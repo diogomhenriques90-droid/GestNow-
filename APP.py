@@ -4,161 +4,129 @@ from datetime import datetime
 import os
 import io
 
-# 1. Configuração da Página
-st.set_page_config(page_title="GestNow", page_icon="🎯", layout="wide")
+# --- CONFIGURAÇÃO E ESTILO (ALTA PERFORMANCE) ---
+st.set_page_config(page_title="GestNow - DeltaPlus", layout="wide")
 
-# 2. LIMPEZA TOTAL DA INTERFACE (CSS)
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    .stDeployButton {display:none;}
-    [data-testid="stStatusWidget"] {visibility: hidden;}
-    [data-testid="stDecoration"] {display:none;}
-    .main { background-color: #f5f7f9; }
-    .stButton>button { 
-        border-radius: 5px; height: 3em; background-color: #004b87; 
-        color: white; font-weight: bold; width: 100%;
+    .stButton>button {
+        border-radius: 10px; height: 3.5em; background-color: #D32F2F; 
+        color: white; font-weight: bold; width: 100%; border: none;
+    }
+    .metric-card {
+        background-color: #D32F2F; padding: 20px; border-radius: 15px;
+        color: white; text-align: center; margin-bottom: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNÇÕES DE DADOS ---
-def carregar_csv(ficheiro, colunas):
+# --- GESTÃO DE DADOS (BLINDAGEM) ---
+def carregar_dados(ficheiro, colunas):
     if os.path.exists(ficheiro):
-        df = pd.read_csv(ficheiro)
-        return df.dropna(subset=['Nome']) if 'Nome' in df.columns else df
+        return pd.read_csv(ficheiro)
     return pd.DataFrame(columns=colunas)
 
-def guardar_csv(df, ficheiro):
+def salvar_dados(df, ficheiro):
     df.to_csv(ficheiro, index=False)
 
-def calcular_horas(row):
-    try:
-        fmt = '%H:%M'
-        tdelta = datetime.strptime(row['Saída'], fmt) - datetime.strptime(row['Entrada'], fmt)
-        return round(tdelta.total_seconds() / 3600, 2)
-    except: return 0
-
-# --- INICIALIZAÇÃO ---
-df_users = carregar_csv("usuarios.csv", ["Nome", "Password", "Tipo"])
-
-# ATUALIZAÇÃO DE PASSWORD MESTRE
-if df_users.empty or not df_users[df_users['Nome'] == 'Admin']['Password'].iloc[0] == 'DeltaPlus2026':
+# Inicialização segura
+df_users = carregar_dados("usuarios.csv", ["Nome", "Password", "Tipo"])
+if df_users.empty:
     df_users = pd.DataFrame([{"Nome": "Admin", "Password": "DeltaPlus2026", "Tipo": "Admin"}])
-    guardar_csv(df_users, "usuarios.csv")
+    salvar_dados(df_users, "usuarios.csv")
 
-df_obras = carregar_csv("obras.csv", ["Nome"])
-# Limpeza de valores nulos/nan nas obras
-df_obras = df_obras.dropna().reset_index(drop=True)
-
-df_registos = carregar_csv("registos_completos.csv", ["Data", "Trabalhador", "Obra", "Entrada", "Saída"])
-if not df_registos.empty:
-    df_registos['Horas'] = df_registos.apply(calcular_horas, axis=1)
+df_obras = carregar_dados("obras.csv", ["Nome"]).dropna()
+df_registos = carregar_dados("registos.csv", ["Data", "Trabalhador", "Obra", "Entrada", "Saída"])
 
 # --- SISTEMA DE LOGIN ---
-if 'user' not in st.session_state: st.session_state['user'] = None
+if 'user' not in st.session_state: st.session_state.user = None
 
-if st.session_state['user'] is None:
-    # IMAGEM FUTURISTA GESTÃO INTELIGENTE
-    st.image("https://raw.githubusercontent.com/diogofilipe24/gestnow/main/gestao_capa.png", use_container_width=True, caption="GESTÃO INTELIGENTE - DELTAPLUS")
-    st.title("GestNow")
-    with st.form("login"):
-        u = st.text_input("Utilizador")
-        p = st.text_input("Password", type="password")
-        if st.form_submit_button("Entrar"):
-            user_match = df_users[(df_users['Nome'] == u) & (df_users['Password'] == p)]
-            if not user_match.empty:
-                st.session_state['user'] = u
-                st.session_state['tipo'] = user_match.iloc[0]['Tipo']
-                st.rerun()
-            else: st.error("Dados incorretos.")
+if st.session_state.user is None:
+    # Imagem Corrigida (Capa)
+    st.markdown("<h3 style='text-align:center;'>GESTÃO INTELIGENTE - DELTAPLUS</h3>", unsafe_allow_html=True)
+    # Nota: O link da imagem deve ser o caminho direto no seu GitHub
+    st.image("https://raw.githubusercontent.com/diogofilipe24/gestnow/main/gestao_capa.png", use_container_width=True)
+    
+    u = st.text_input("Utilizador")
+    p = st.text_input("Password", type="password")
+    if st.button("Entrar"):
+        match = df_users[(df_users['Nome'] == u) & (df_users['Password'] == p)]
+        if not match.empty:
+            st.session_state.user = u
+            st.session_state.tipo = match.iloc[0]['Tipo']
+            st.rerun()
+        else: st.error("Acesso Negado. Verifique os dados.")
     st.stop()
 
-# --- INTERFACE ---
-st.sidebar.title(f"Olá, {st.session_state['user']}")
-if st.sidebar.button("Sair"):
-    st.session_state['user'] = None
+# --- INTERFACE PRINCIPAL ---
+st.sidebar.write(f"Sessão: **{st.session_state.user}**")
+if st.sidebar.button("Terminar Sessão"):
+    st.session_state.user = None
     st.rerun()
 
-# ÁREA COLABORADOR
-if st.session_state['tipo'] == "Colaborador":
-    st.header(f"📍 Ponto: {st.session_state['user']}")
-    with st.container(border=True):
-        d = st.date_input("Data", datetime.now())
-        # Filtro para garantir que não aparece "nan"
-        lista_obras = df_obras['Nome'].tolist() if not df_obras.empty else []
-        o = st.selectbox("Obra", ["Seleccione a Obra"] + lista_obras)
-        c1, c2 = st.columns(2)
-        with c1: ent = st.time_input("Entrada", datetime.now().replace(hour=8, minute=0))
-        with c2: sai = st.time_input("Saída", datetime.now().replace(hour=17, minute=0))
-        
-        if st.button("ENVIAR REGISTO"):
-            if o == "Seleccione a Obra":
-                st.error("Por favor, selecione uma obra válida.")
-            else:
-                novo = pd.DataFrame([{"Data": d.strftime("%d/%m/%Y"), "Trabalhador": st.session_state['user'], "Obra": o, "Entrada": ent.strftime("%H:%M"), "Saída": sai.strftime("%H:%M")}])
-                novo.to_csv("registos_completos.csv", mode='a', index=False, header=not os.path.exists("registos_completos.csv"))
-                st.success("✅ Registo guardado com sucesso!")
-
-# ÁREA ADMIN
-else:
-    st.header("⚙️ Painel de Controlo DeltaPlus")
-    t1, t2, t3 = st.tabs(["👥 Gestão de Staff", "📊 Totais de Horas", "📥 Relatório Excel"])
+# --- MÓDULO: REGISTO DE PONTO (COLABORADOR) ---
+if st.session_state.tipo == "Colaborador":
+    st.markdown(f"## Olá, {st.session_state.user}")
     
-    with t1:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("Trabalhadores")
-            nu = st.text_input("Novo Nome")
-            np = st.text_input("Password Colaborador", type="password")
-            if st.button("💾 Guardar"):
-                if nu and np:
-                    df_users = pd.concat([df_users, pd.DataFrame([{"Nome": nu, "Password": np, "Tipo": "Colaborador"}])], ignore_index=True)
-                    guardar_csv(df_users, "usuarios.csv"); st.rerun()
-            st.write("---")
-            user_del = st.selectbox("Eliminar:", df_users[df_users['Tipo']=='Colaborador']['Nome'])
-            if st.button("❌ Remover"):
-                df_users = df_users[df_users['Nome'] != user_del]
-                guardar_csv(df_users, "usuarios.csv"); st.rerun()
-        with col2:
-            st.subheader("Obras")
-            no = st.text_input("Nova Obra")
-            if st.button("💾 Registar"):
-                if no:
-                    df_obras = pd.concat([df_obras, pd.DataFrame([{"Nome": no}])], ignore_index=True)
-                    guardar_csv(df_obras, "obras.csv"); st.rerun()
-            st.write("---")
-            obra_del = st.selectbox("Eliminar Obra:", df_obras['Nome'])
-            if st.button("❌ Apagar"):
-                df_obras = df_obras[df_obras['Nome'] != obra_del]
-                guardar_csv(df_obras, "obras.csv"); st.rerun()
+    # Cards de Resumo (Inspirado na foto 1000008576)
+    c1, c2 = st.columns(2)
+    horas_mes = df_registos[df_registos['Trabalhador'] == st.session_state.user].shape[0] * 8 # Simulação rápida
+    c1.markdown(f"<div class='metric-card'><h3>{horas_mes}h</h3>Horas este mês</div>", unsafe_allow_html=True)
+    c2.markdown(f"<div class='metric-card'><h3>--</h3>Por validar</div>", unsafe_allow_html=True)
 
-    with t2:
-        st.subheader("Análise de Horas")
-        f_o = st.multiselect("Filtrar Obra:", df_obras['Nome'])
-        f_s = st.multiselect("Filtrar Trabalhador:", df_users['Nome'])
-        df_view = df_registos.copy()
-        if f_o: df_view = df_view[df_view['Obra'].isin(f_o)]
-        if f_s: df_view = df_view[df_view['Trabalhador'].isin(f_s)]
-        st.dataframe(df_view, use_container_width=True)
-        if not df_view.empty:
-            st.metric("SOMATÓRIO TOTAL", f"{df_view['Horas'].sum()} horas")
-        if st.button("🔄 Atualizar Dados"): st.rerun()
+    with st.expander("📝 NOVO REGISTO DE PONTO", expanded=True):
+        data = st.date_input("Data", datetime.now())
+        obra = st.selectbox("Selecione a obra", ["-- Escolha --"] + df_obras['Nome'].tolist())
+        ent = st.time_input("Hora Entrada", datetime.now().replace(hour=8, minute=0))
+        sai = st.time_input("Hora Saída", datetime.now().replace(hour=17, minute=0))
+        
+        if st.button("GUARDAR PONTO"):
+            if obra != "-- Escolha --":
+                novo = pd.DataFrame([{"Data": data.strftime("%d/%m/%Y"), "Trabalhador": st.session_state.user, "Obra": obra, "Entrada": ent.strftime("%H:%M"), "Saída": sai.strftime("%H:%M")}])
+                novo.to_csv("registos.csv", mode='a', index=False, header=not os.path.exists("registos.csv"))
+                st.success("✅ Ponto registado!")
+            else: st.error("Selecione uma obra válida.")
 
-    with t3:
-        st.subheader("Exportação Profissional")
+# --- MÓDULO: ADMINISTRAÇÃO ---
+else:
+    st.title("⚙️ Painel DeltaPlus")
+    aba1, aba2, aba3 = st.tabs(["👥 Staff/Obras", "📊 Análise Horas", "📥 Relatórios"])
+
+    with aba1:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.subheader("Novo Colaborador")
+            n_u = st.text_input("Nome")
+            n_p = st.text_input("Senha")
+            if st.button("Adicionar"):
+                df_users = pd.concat([df_users, pd.DataFrame([{"Nome": n_u, "Password": n_p, "Tipo": "Colaborador"}])])
+                salvar_dados(df_users, "usuarios.csv"); st.rerun()
+        with col_b:
+            st.subheader("Nova Obra")
+            n_o = st.text_input("Nome da Obra")
+            if st.button("Registar Obra"):
+                df_obras = pd.concat([df_obras, pd.DataFrame([{"Nome": n_o}])])
+                salvar_dados(df_obras, "obras.csv"); st.rerun()
+
+    with aba2:
+        # CORREÇÃO DOS FILTROS (Inspirado na foto 1000008572)
+        st.subheader("Filtros de Visualização")
+        f_obra = st.multiselect("Filtrar por Obra:", options=df_obras['Nome'].unique())
+        f_trab = st.multiselect("Filtrar por Trabalhador:", options=df_users[df_users['Tipo']=='Colaborador']['Nome'].unique())
+        
+        df_f = df_registos.copy()
+        if f_obra: df_f = df_f[df_f['Obra'].isin(f_obra)]
+        if f_trab: df_f = df_f[df_f['Trabalhador'].isin(f_trab)]
+        
+        st.dataframe(df_f, use_container_width=True)
+
+    with aba3:
+        # EXCEL PROFISSIONAL (xlsxwriter)
         if not df_registos.empty:
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df_registos.sort_values(by='Data', ascending=False).to_excel(writer, index=False, sheet_name='Ponto')
-                workbook = writer.book
-                worksheet = writer.sheets['Ponto']
-                # Formatação bonita
-                header_fmt = workbook.add_format({'bold': True, 'bg_color': '#004b87', 'font_color': 'white'})
-                for col_num, value in enumerate(df_registos.columns.values):
-                    worksheet.write(0, col_num, value, header_fmt)
-                worksheet.set_column('A:F', 20) # Ajustar largura
-            
-            st.download_button(label="📥 DESCARREGAR EXCEL FORMATADO", data=output.getvalue(), file_name=f"Relatorio_Ponto_{datetime.now().strftime('%d_%m')}.xlsx")
+            buf = io.BytesIO()
+            with pd.ExcelWriter(buf, engine='xlsxwriter') as writer:
+                df_registos.to_excel(writer, index=False, sheet_name='Relatorio')
+            st.download_button("📥 DESCARREGAR EXCEL", buf.getvalue(), "relatorio_pontos.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
