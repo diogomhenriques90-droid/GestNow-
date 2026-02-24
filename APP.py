@@ -4,8 +4,8 @@ import os
 import io
 from datetime import datetime
 
-# --- 1. DESIGN E VISIBILIDADE ---
-st.set_page_config(page_title="GestNow | Elite", layout="wide")
+# --- 1. DESIGN E VISIBILIDADE (BRANCO NO ESCURO) ---
+st.set_page_config(page_title="GestNow | Comando Central", layout="wide")
 
 st.markdown("""
     <style>
@@ -13,8 +13,7 @@ st.markdown("""
     .stApp { background-color: #0A192F; color: #FFFFFF !important; }
     .stButton>button { background-color: #00D2FF; color: #0A192F; font-weight: bold; border-radius: 5px; height: 3em; }
     input, select, textarea { background-color: #112240 !important; color: #FFFFFF !important; border: 2px solid #00D2FF !important; }
-    label, p, h1, h2, h3 { color: #FFFFFF !important; }
-    /* Tabs com cor ativa para separar janelas */
+    label, p, h1, h2, h3, span { color: #FFFFFF !important; }
     .stTabs [aria-selected="true"] { background-color: #00D2FF !important; color: #0A192F !important; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
@@ -29,8 +28,9 @@ def engine(f, col):
 def save(df, f): df.to_csv(f, index=False)
 
 users = engine("usuarios.csv", ["Nome", "Password", "Tipo"])
-obras = engine("obras.csv", ["Nome"])
-registos = engine("registos.csv", ["Data", "Técnico", "Unidade", "Entrada", "Saída", "Relatorio"])
+obras_db = engine("obras_lista.csv", ["Obra"])
+frentes_db = engine("frentes_lista.csv", ["Obra", "Frente"])
+registos = engine("registos.csv", ["Data", "Técnico", "Obra", "Frente", "Entrada", "Saída", "Relatorio"])
 
 # --- 3. LOGIN ---
 if 'user' not in st.session_state: st.session_state.user = None
@@ -44,7 +44,6 @@ if st.session_state.user is None:
         if u_input.lower() in ["diogo", "rafael correia"] and p_input in ["rafael2026", "123"]:
             st.session_state.user, st.session_state.tipo = u_input, "Admin"
             st.rerun()
-        
         if not users.empty:
             match = users[(users['Nome'].str.lower() == u_input.lower()) & (users['Password'] == p_input)]
             if not match.empty:
@@ -57,78 +56,84 @@ if st.session_state.user is None:
 st.sidebar.markdown(f"### 👤 {st.session_state.user.upper()} \n**Cargo:** {st.session_state.tipo}")
 
 if st.session_state.tipo == "Admin":
-    st.title("📊 Terminal de Comando")
-    # Janelas (Tabs) totalmente separadas
-    janela_pessoal, janela_obras, janela_dados = st.tabs(["👥 Gestão de Equipa", "🏗️ Frentes de Trabalho", "📋 Histórico e Excel"])
+    st.title("📊 Painel de Comando Administrativo")
+    j_pessoal, j_obras, j_frentes, j_dados = st.tabs(["👥 Pessoal", "🏗️ Obras", "🚧 Frentes", "📋 Histórico"])
 
-    with janela_pessoal:
-        st.subheader("Controlo de Acessos")
+    with j_pessoal:
+        st.subheader("Gestão de Equipa")
         c1, c2 = st.columns([1, 2])
         with c1:
-            nu = st.text_input("Nome do Funcionário")
-            np = st.text_input("Senha")
-            # Upgrade: Hierarquia completa solicitada
+            nu, np = st.text_input("Nome"), st.text_input("Senha")
             nt = st.selectbox("Cargo", ["Colaborador", "Chefe de Equipa", "Recursos Humanos"])
-            if st.button("Registar na Empresa"):
+            if st.button("Registar"):
                 users = pd.concat([users, pd.DataFrame([{"Nome": nu, "Password": np, "Tipo": nt}])]).drop_duplicates(subset=['Nome'], keep='last')
-                save(users, "usuarios.csv"); st.success("Registado!"); st.rerun()
-        with c2:
-            st.dataframe(users, use_container_width=True)
-            if st.button("Limpar Colaborador"): 
-                # Função de remover o último selecionado ou interface simples
-                st.info("Selecione na tabela para gerir (Em desenvolvimento)")
+                save(users, "usuarios.csv"); st.success("OK!"); st.rerun()
+        with c2: st.dataframe(users, use_container_width=True)
 
-    with janela_obras:
-        st.subheader("Configuração de Frentes")
+    with j_obras:
+        st.subheader("Criar Nova Obra Principal")
         c3, c4 = st.columns([1, 2])
         with c3:
-            no = st.text_input("Nova Frente de Trabalho")
-            if st.button("Ativar Obra"):
-                obras = pd.concat([obras, pd.DataFrame([{"Nome": no}])]).drop_duplicates().dropna()
-                save(obras, "obras.csv"); st.success("Frente Ativa!"); st.rerun()
-        with c4:
-            st.dataframe(obras, use_container_width=True)
+            nova_o = st.text_input("Nome da Obra (ex: Sonae)")
+            if st.button("Gravar Obra"):
+                obras_db = pd.concat([obras_db, pd.DataFrame([{"Obra": nova_o}])]).drop_duplicates()
+                save(obras_db, "obras_lista.csv"); st.success("Obra Ativa!"); st.rerun()
+        with c4: st.dataframe(obras_db, use_container_width=True)
 
-    with janela_dados:
+    with j_frentes:
+        st.subheader("Criar Frentes de Trabalho")
+        c5, c6 = st.columns([1, 2])
+        with c5:
+            o_selec = st.selectbox("Para qual Obra?", ["-- Selecionar --"] + obras_db['Obra'].tolist())
+            nova_f = st.text_input("Nome da Frente (ex: Caldeira 2)")
+            if st.button("Ativar Frente"):
+                if o_selec != "-- Selecionar --":
+                    frentes_db = pd.concat([frentes_db, pd.DataFrame([{"Obra": o_selec, "Frente": nova_f}])]).drop_duplicates()
+                    save(frentes_db, "frentes_lista.csv"); st.success("Frente Criada!"); st.rerun()
+        with c6: st.dataframe(frentes_db, use_container_width=True)
+
+    with j_dados:
         st.dataframe(registos, use_container_width=True)
         if not registos.empty:
             buf = io.BytesIO()
             with pd.ExcelWriter(buf) as w: registos.to_excel(w, index=False)
-            st.download_button("📥 DESCARREGAR RELATÓRIO RH", buf.getvalue(), "GestNow_Total.xlsx")
+            st.download_button("📥 DESCARREGAR EXCEL", buf.getvalue(), "GestNow_Total.xlsx")
 
-# --- 5. MODO REGISTO DE PONTO (PERMISSÕES POR CARGO) ---
+# --- 5. REGISTO DE PONTO (DUAS JANELAS DE SELEÇÃO) ---
 else:
     st.title("📊 Registo de Ponto")
     with st.form("ponto_form"):
-        frente = st.selectbox("Frente de Trabalho", ["-- Selecionar --"] + obras['Nome'].tolist())
-        data_p = st.date_input("Data", datetime.now())
-        h_e = st.time_input("Entrada", datetime.now())
-        h_s = st.time_input("Saída", datetime.now())
+        # Janela 1: Selecionar a Obra
+        obra_escolhida = st.selectbox("1. Selecione a Obra", ["-- Selecionar --"] + obras_db['Obra'].tolist())
         
-        # --- Lógica de Chefe de Equipa ---
+        # Janela 2: Filtrar Frentes baseado na Obra escolhida
+        frentes_filtradas = frentes_db[frentes_db['Obra'] == obra_escolhida]['Frente'].tolist() if obra_escolhida != "-- Selecionar --" else []
+        frente_escolhida = st.selectbox("2. Selecione a Frente de Trabalho", ["-- Selecionar --"] + frentes_filtradas)
+        
+        data_p = st.date_input("Data", datetime.now())
+        c_h1, c_h2 = st.columns(2)
+        h_e = c_h1.time_input("Entrada", datetime.now())
+        h_s = c_h2.time_input("Saída", datetime.now())
+        
         obs, foto = None, None
         if st.session_state.tipo == "Chefe de Equipa":
             st.markdown("---")
-            st.subheader("🛡️ Área Exclusiva: Chefe de Equipa")
-            obs = st.text_area("Observações de Campo / Relatório")
-            foto = st.file_uploader("📸 Carregar Foto da Intervenção", type=['png', 'jpg', 'jpeg'])
+            st.subheader("🛡️ Área do Chefe")
+            obs = st.text_area("Observações Técnicas")
+            foto = st.file_uploader("📸 Foto da Intervenção", type=['png', 'jpg', 'jpeg'])
         
-        if st.form_submit_button("SUBMETER REGISTO"):
-            if frente != "-- Selecionar --":
-                rel_texto = obs if obs else "N/A"
+        if st.form_submit_button("SUBMETER PONTO"):
+            if obra_escolhida != "-- Selecionar --" and frente_escolhida != "-- Selecionar --":
                 novo = pd.DataFrame([{
-                    "Data": data_p.strftime("%d/%m/%Y"), 
-                    "Técnico": st.session_state.user, 
-                    "Unidade": frente, 
-                    "Entrada": h_e.strftime("%H:%M"), 
-                    "Saída": h_s.strftime("%H:%M"), 
-                    "Relatorio": rel_texto
+                    "Data": data_p.strftime("%d/%m/%Y"), "Técnico": st.session_state.user, 
+                    "Obra": obra_escolhida, "Frente": frente_escolhida, 
+                    "Entrada": h_e.strftime("%H:%M"), "Saída": h_s.strftime("%H:%M"), 
+                    "Relatorio": obs if obs else "N/A"
                 }])
                 novo.to_csv("registos.csv", mode='a', index=False, header=not os.path.exists("registos.csv"))
-                if foto: st.toast("Foto anexada ao sistema!")
-                st.success("Registo concluído com sucesso!")
-            else: st.error("Selecione a Frente de Trabalho.")
+                st.success("✅ Registo concluído!")
+            else: st.error("Selecione Obra e Frente!")
 
-if st.sidebar.button("Terminar Sessão"):
+if st.sidebar.button("Logout"):
     st.session_state.user = None
     st.rerun()
