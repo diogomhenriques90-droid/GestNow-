@@ -3,116 +3,147 @@ import pandas as pd
 import os
 from datetime import datetime, timedelta
 
-# --- 1. CONFIGURAÇÃO VISUAL MOBILE ---
-st.set_page_config(page_title="GestNow | Calendário", layout="centered")
+# --- 1. CONFIGURAÇÃO E ESTILO ---
+st.set_page_config(page_title="GestNow Elite", layout="centered")
 
 st.markdown("""
     <style>
     .stApp { max-width: 450px; margin: 0 auto; background-color: #F5F7F8; }
-    .header-ponto { background-color: #112240; color: white; padding: 20px; text-align: center; border-radius: 0 0 25px 25px; }
+    .header-ponto { background-color: #112240; color: white; padding: 20px; text-align: center; border-radius: 0 0 25px 25px; margin-bottom: 15px; }
     .total-horas { font-size: 40px; font-weight: bold; color: #00D2FF; }
-    
-    /* Estados das Bolinhas */
     .status-bola { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-    .status-0 { background-color: #FFA500; } /* Laranja: Reportado */
-    .status-1 { background-color: #28A745; } /* Verde: Validado Gestor */
-    .status-2 { background-color: #007BFF; } /* Azul: Confirmado Final */
-    
-    .turno-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-    .nav-calendario { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+    .status-0 { background-color: #FFA500; } /* Laranja */
+    .status-1 { background-color: #28A745; } /* Verde */
+    .status-2 { background-color: #007BFF; } /* Azul */
+    .turno-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: #333; }
+    .stButton>button { border-radius: 10px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- 2. MOTOR DE DADOS ---
-def load_data(f):
+def load_db(f, cols):
     if os.path.exists(f):
         return pd.read_csv(f, dtype=str).apply(lambda x: x.str.strip())
-    return pd.DataFrame(columns=["Data", "Técnico", "Obra", "Frente", "Turnos", "Relatorio", "Status"])
+    return pd.DataFrame(columns=cols)
 
-registos_db = load_data("registos.csv")
+def save_db(df, f):
+    df.to_csv(f, index=False)
 
-# --- 3. CONTROLO DE NAVEGAÇÃO ---
-if 'data_consulta' not in st.session_state:
-    st.session_state.data_consulta = datetime.now().date()
-if 'turnos_temp' not in st.session_state:
-    st.session_state.turnos_temp = []
+users = load_db("usuarios.csv", ["Nome", "Password", "Tipo"])
+obras_db = load_db("obras_lista.csv", ["Obra"])
+frentes_db = load_db("frentes_lista.csv", ["Obra", "Frente"])
+registos_db = load_db("registos.csv", ["Data", "Técnico", "Obra", "Frente", "Turnos", "Relatorio", "Status"])
 
-# --- 4. INTERFACE DE REGISTO (VISTA DO COLABORADOR) ---
+# --- 3. GESTÃO DE SESSÃO ---
+if 'user' not in st.session_state: st.session_state.user = None
+if 'data_consulta' not in st.session_state: st.session_state.data_consulta = datetime.now().date()
+if 'turnos_temp' not in st.session_state: st.session_state.turnos_temp = []
 
-# Cabeçalho de Navegação (O Calendário "para a frente e para trás")
-st.markdown("### Consultar Data")
-c1, c2, c3 = st.columns([1, 3, 1])
+# --- 4. LOGIN ---
+if st.session_state.user is None:
+    st.markdown("<h1 style='text-align: center; color: #112240;'>GESTNOW</h1>", unsafe_allow_html=True)
+    u = st.text_input("Utilizador").strip()
+    p = st.text_input("Password", type="password").strip()
+    if st.button("ENTRAR"):
+        if u.lower() in ["diogo", "admin"] and p in ["rafael2026", "123"]:
+            st.session_state.user, st.session_state.tipo = u, "Admin"
+            st.rerun()
+        match = users[(users['Nome'].str.lower() == u.lower()) & (users['Password'] == p)]
+        if not match.empty:
+            st.session_state.user, st.session_state.tipo = match.iloc[0]['Nome'], match.iloc[0]['Tipo']
+            st.rerun()
+        else: st.error("Acesso Negado")
+    st.stop()
 
-if c1.button("◀️"):
-    st.session_state.data_consulta -= timedelta(days=1)
-    st.rerun()
+# --- 5. INTERFACE ADMIN ---
+if st.session_state.tipo == "Admin":
+    st.title("Painel de Controlo")
+    tab_aprov, tab_pess, tab_obras, tab_hist = st.tabs(["🟠 Aprovar", "👥 Pessoal", "🏗️ Obras", "📋 Histórico"])
+    
+    with tab_aprov:
+        st.subheader("Validar Horas Pendentes")
+        pendentes = registos_db[registos_db['Status'] == "0"]
+        for i, row in pendentes.iterrows():
+            with st.container():
+                st.markdown(f"**{row['Técnico']}** - {row['Data']}\n*{row['Obra']} ({row['Turnos'])*")
+                col_a, col_b = st.columns(2)
+                if col_a.button(f"Validar Verde 🟢", key=f"v_{i}"):
+                    registos_db.at[i, 'Status'] = "1"
+                    save_db(registos_db, "registos.csv"); st.rerun()
+                if col_b.button(f"Fechar Azul 🔵", key=f"az_{i}"):
+                    registos_db.at[i, 'Status'] = "2"
+                    save_db(registos_db, "registos.csv"); st.rerun()
+                st.markdown("---")
 
-data_str = st.session_state.data_consulta.strftime("%d/%m/%Y")
-c2.markdown(f"<h4 style='text-align:center; color:black;'>{data_str}</h4>", unsafe_allow_html=True)
+    with tab_pess:
+        nu = st.text_input("Novo Nome")
+        np = st.text_input("Nova Senha")
+        nt = st.selectbox("Cargo", ["Colaborador", "Chefe de Equipa", "Recursos Humanos"])
+        if st.button("Criar Utilizador"):
+            users = pd.concat([users, pd.DataFrame([{"Nome":nu, "Password":np, "Tipo":nt}])])
+            save_db(users, "usuarios.csv"); st.rerun()
+        st.dataframe(users)
 
-if c3.button("▶️"):
-    st.session_state.data_consulta += timedelta(days=1)
-    st.rerun()
+    with tab_obras:
+        no = st.text_input("Nome da Obra")
+        if st.button("Criar Obra"):
+            obras_db = pd.concat([obras_db, pd.DataFrame([{"Obra":no}])])
+            save_db(obras_db, "obras_lista.csv"); st.rerun()
+        st.dataframe(obras_db)
+    
+    with tab_hist:
+        st.dataframe(registos_db)
 
-# Filtrar registos desta data para este técnico
-meu_registo_dia = registos_db[
-    (registos_db['Técnico'] == st.session_state.user) & 
-    (registos_db['Data'] == data_str)
-]
-
-# Cálculo de horas total do dia consultado
-total_dia = "00:00"
-if not meu_registo_dia.empty:
-    # Lógica simples de exemplo: cada turno contado como blocos (pode ser expandida)
-    total_dia = f"{len(meu_registo_dia.iloc[0]['Turnos'].split(',')) * 4}:00"
-
-st.markdown(f"""
-    <div class="header-ponto">
-        <p style='margin:0; opacity:0.8;'>Horas no dia {data_str}</p>
-        <div class="total-horas">{total_dia}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.markdown("---")
-
-# MOSTRAR ESTADO DAS HORAS (Bolinhas)
-if not meu_registo_dia.empty:
-    for _, row in meu_registo_dia.iterrows():
-        status = row['Status']
-        status_label = "Reportado" if status == "0" else ("Validado" if status == "1" else "Confirmado")
-        
-        st.markdown(f"""
-            <div class="turno-card">
-                <div style='display:flex; align-items:center; justify-content:space-between;'>
-                    <span><span class="status-bola status-{status}"></span><b>{status_label}</b></span>
-                    <span style='color:gray; font-size:12px;'>{row['Obra']}</span>
-                </div>
-                <div style='margin-top:10px; font-size:18px; font-weight:bold;'>{row['Turnos']}</div>
-                <div style='color:gray; font-size:14px; margin-top:5px;'>{row['Frente']}</div>
-            </div>
-            """, unsafe_allow_html=True)
+# --- 6. INTERFACE COLABORADOR (MOBILE + CALENDÁRIO) ---
 else:
-    st.info("Sem registos para este dia.")
+    # Navegação de Data
+    st.markdown("### O meu Calendário")
+    c1, c2, c3 = st.columns([1, 2, 1])
+    if c1.button("◀️"): st.session_state.data_consulta -= timedelta(days=1); st.rerun()
+    data_str = st.session_state.data_consulta.strftime("%d/%m/%Y")
+    c2.markdown(f"<h4 style='text-align:center; color:black;'>{data_str}</h4>", unsafe_allow_html=True)
+    if c3.button("▶️"): st.session_state.data_consulta += timedelta(days=1); st.rerun()
 
-# SÓ PERMITE REGISTAR SE FOR A DATA DE HOJE (Evita fraudes no passado)
-if st.session_state.data_consulta == datetime.now().date():
-    with st.expander("➕ Adicionar Novo Turno de Hoje"):
-        st.write("Registe os blocos de trabalho")
-        h_e = st.time_input("Entrada", datetime.now().replace(hour=8, minute=0))
-        h_s = st.time_input("Saída", datetime.now().replace(hour=12, minute=0))
-        if st.button("Adicionar Bloco"):
-            st.session_state.turnos_temp.append(f"{h_e.strftime('%H:%M')}-{h_s.strftime('%H:%M')}")
-            st.rerun()
-            
-    if st.session_state.turnos_temp:
-        st.write(f"**Blocos prontos:** {', '.join(st.session_state.turnos_temp)}")
-        obs = st.text_area("Notas do dia")
-        if st.button("🚀 SUBMETER TUDO (Laranja 🟠)"):
-            # Lógica de gravação igual à anterior...
-            st.success("Submetido com sucesso!")
-            st.session_state.turnos_temp = []
-            st.rerun()
+    # Filtro de Registos
+    meu_dia = registos_db[(registos_db['Técnico'] == st.session_state.user) & (registos_db['Data'] == data_str)]
+    
+    # Header Visual
+    total_h = f"{len(meu_dia)*4}:00" if not meu_dia.empty else "00:00"
+    st.markdown(f'<div class="header-ponto"><p style="margin:0">Horas Totais</p><div class="total-horas">{total_h}</div></div>', unsafe_allow_html=True)
 
-if st.button("Voltar ao Menu"):
-    st.session_state.step = "selecao_obra"
+    if not meu_dia.empty:
+        for _, row in meu_dia.iterrows():
+            st.markdown(f"""
+                <div class="turno-card">
+                    <span class="status-bola status-{row['Status']}"></span> <b>{row['Obra']}</b><br>
+                    {row['Turnos']}<br><small>{row['Frente']}</small>
+                </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("Sem registos neste dia.")
+
+    # Registo (Apenas para Hoje)
+    if st.session_state.data_consulta == datetime.now().date():
+        st.markdown("---")
+        with st.expander("➕ Adicionar Turno"):
+            obra_s = st.selectbox("Obra", obras_db['Obra'].tolist())
+            frente_s = st.selectbox("Frente", frentes_db[frentes_db['Obra']==obra_s]['Frente'].tolist() if obra_s else [])
+            h_e = st.time_input("Entrada", datetime.now().replace(hour=8, minute=0))
+            h_s = st.time_input("Saída", datetime.now().replace(hour=17, minute=0))
+            if st.button("Gravar Turno"):
+                st.session_state.turnos_temp.append(f"{h_e.strftime('%H:%M')}-{h_s.strftime('%H:%M')}")
+                st.rerun()
+        
+        if st.session_state.turnos_temp:
+            st.write(f"Blocos: {st.session_state.turnos_temp}")
+            if st.button("🚀 SUBMETER TUDO (Laranja 🟠)"):
+                novo = pd.DataFrame([{"Data":data_str, "Técnico":st.session_state.user, "Obra":obra_s, "Frente":frente_s, "Turnos":", ".join(st.session_state.turnos_temp), "Relatorio":"", "Status":"0"}])
+                registos_db = pd.concat([registos_db, novo])
+                save_db(registos_db, "registos.csv")
+                st.session_state.turnos_temp = []
+                st.success("Enviado!")
+                st.rerun()
+
+if st.sidebar.button("Logout"):
+    st.session_state.user = None
     st.rerun()
