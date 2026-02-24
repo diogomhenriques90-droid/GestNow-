@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from datetime import datetime
 
-# --- 1. DESIGN ---
+# --- 1. DESIGN E ESTILO (FIEL ÀS TUAS FOTOS) ---
 st.set_page_config(page_title="GestNow Elite", layout="centered")
 
 st.markdown("""
@@ -24,35 +24,39 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. MOTOR DE DADOS ---
+# --- 2. MOTOR DE DADOS (BLINDADO) ---
 def safe_load(f, cols):
     if os.path.exists(f):
         try:
-            df = pd.read_csv(f, dtype=str, on_bad_lines='skip')
-            if all(c in df.columns for c in cols): return df[cols]
-        except: pass
+            df = pd.read_csv(f, dtype=str, on_bad_lines='skip', encoding='utf-8')
+            if all(c in df.columns for c in cols): 
+                return df[cols]
+        except: 
+            pass
     return pd.DataFrame(columns=cols)
 
 def save_db(df, f):
-    df.to_csv(f, index=False)
+    df.to_csv(f, index=False, encoding='utf-8')
 
 def calc_total_horas(turnos):
     minutos = 0
     for t in turnos:
         try:
             i, f = t.split('-')
-            t1, t2 = datetime.strptime(i.strip(), "%H:%M"), datetime.strptime(f.strip(), "%H:%M")
+            t1 = datetime.strptime(i.strip(), "%H:%M")
+            t2 = datetime.strptime(f.strip(), "%H:%M")
             diff = (t2 - t1).total_seconds() / 60
             if diff > 0: minutos += diff
         except: continue
     return f"{int(minutos // 60):02d}:{int(minutos % 60):02d}"
 
+# Carregamento Inicial
 users = safe_load("usuarios.csv", ["Nome", "Password", "Tipo"])
 obras_db = safe_load("obras_lista.csv", ["Obra"])
 frentes_db = safe_load("frentes_lista.csv", ["Obra", "Frente"])
 registos_db = safe_load("registos.csv", ["Data", "Técnico", "Obra", "Frente", "Turnos", "Relatorio", "Status"])
 
-# --- 3. ESTADOS ---
+# --- 3. ESTADOS DA SESSÃO ---
 if 'user' not in st.session_state: st.session_state.user = None
 if 'turnos_temp' not in st.session_state: st.session_state.turnos_temp = []
 if 'step' not in st.session_state: st.session_state.step = "obra"
@@ -64,42 +68,48 @@ if st.session_state.user is None:
     p = st.text_input("Password", type="password").strip()
     if st.button("Entrar", use_container_width=True):
         if u.lower() in ["diogo", "admin"] and p in ["rafael2026", "123"]:
-            st.session_state.user, st.session_state.tipo = u, "Admin"; st.rerun()
+            st.session_state.user, st.session_state.tipo = u, "Admin"
+            st.rerun()
         match = users[(users['Nome'].str.lower() == u.lower()) & (users['Password'] == p)]
         if not match.empty:
-            st.session_state.user, st.session_state.tipo = match.iloc[0]['Nome'], match.iloc[0]['Tipo']; st.rerun()
+            st.session_state.user, st.session_state.tipo = match.iloc[0]['Nome'], match.iloc[0]['Tipo']
+            st.rerun()
         else: st.error("Acesso negado.")
     st.stop()
 
-# --- 5. ADMIN ---
+# --- 5. INTERFACE ADMIN ---
 if st.session_state.tipo == "Admin":
     st.title("Painel Admin")
-    t1, t2, t3 = st.tabs(["🟠 Aprovar", "👥 Equipa", "🏗️ Obras"])
+    t1, t2, t3 = st.tabs(["🟠 Aprovar", "👥 Equipa", "🏗️ Config Obras"])
+    
     with t1:
         pend = registos_db[registos_db['Status'] == "0"]
+        if pend.empty: st.write("Tudo em dia!")
         for idx, row in pend.iterrows():
-            st.write(f"**{row['Técnico']}** | {row['Data']} | {row['Turnos']}")
+            st.info(f"**{row['Técnico']}** | {row['Data']}\n{row['Turnos']}")
             c1, c2 = st.columns(2)
-            if c1.button("🟢 Validar", key=f"v{idx}"):
-                registos_db.at[idx, 'Status'] = "1"; save_db(registos_db, "registos.csv"); st.rerun()
-            if c2.button("🔵 Finalizar", key=f"f{idx}"):
-                registos_db.at[idx, 'Status'] = "2"; save_db(registos_db, "registos.csv"); st.rerun()
+            if c1.button("Validar 🟢", key=f"v{idx}"):
+                registos_db.at[idx, 'Status'] = "1"
+                save_db(registos_db, "registos.csv"); st.rerun()
+            if c2.button("Finalizar 🔵", key=f"f{idx}"):
+                registos_db.at[idx, 'Status'] = "2"
+                save_db(registos_db, "registos.csv"); st.rerun()
+    
     with t2:
-        nu = st.text_input("Novo Técnico")
-        np = st.text_input("Senha")
-        if st.button("Criar"):
+        nu, np = st.text_input("Nome"), st.text_input("Senha")
+        if st.button("Adicionar"):
             users = pd.concat([users, pd.DataFrame([{"Nome":nu, "Password":np, "Tipo":"Colaborador"}])])
             save_db(users, "usuarios.csv"); st.rerun()
         st.dataframe(users)
+
     with t3:
-        no = st.text_input("Obra")
-        nf = st.text_input("Frente")
-        if st.button("Gravar Obra"):
+        no, nf = st.text_input("Obra"), st.text_input("Frente")
+        if st.button("Gravar"):
             obras_db = pd.concat([obras_db, pd.DataFrame([{"Obra":no}])]).drop_duplicates()
             frentes_db = pd.concat([frentes_db, pd.DataFrame([{"Obra":no, "Frente":nf}])]).drop_duplicates()
             save_db(obras_db, "obras_lista.csv"); save_db(frentes_db, "frentes_lista.csv"); st.rerun()
 
-# --- 6. COLABORADOR (FOTOS) ---
+# --- 6. INTERFACE COLABORADOR (FIEL ÀS TUAS FOTOS) ---
 else:
     if st.session_state.step == "obra":
         st.markdown("### Selecione a Obra")
@@ -116,10 +126,13 @@ else:
                 st.session_state.frente_ativa = f; st.session_state.step = "ponto"; st.rerun()
 
     elif st.session_state.step == "ponto":
-        data_sel = st.date_input("Data", datetime.now())
+        # Navegação por data (Scroll no mobile)
+        data_sel = st.date_input("Escolha o Dia", datetime.now())
         ds = data_sel.strftime("%d/%m/%Y")
         
         meu_reg = registos_db[(registos_db['Técnico'] == st.session_state.user) & (registos_db['Data'] == ds)]
+        
+        # Define o que exibir no cabeçalho e nos cartões
         lista_exibir = st.session_state.turnos_temp if meu_reg.empty else meu_reg.iloc[0]['Turnos'].split(', ')
         total_h = calc_total_horas(lista_exibir)
 
@@ -130,31 +143,56 @@ else:
                 <div class="sub-header">{st.session_state.frente_ativa}</div>
             </div>""", unsafe_allow_html=True)
 
+        # Cartões de Período (Igual à Foto 2)
         if not meu_reg.empty:
             stts = meu_reg.iloc[0]['Status']
             s_map = {"0":("Reportado","bola-0","#FF9500"), "1":("Validado","bola-1","#34C759"), "2":("Finalizado","bola-2","#007AFF")}
             txt, bola, cor = s_map.get(stts, ("Reportado","bola-0","#FF9500"))
             for t in meu_reg.iloc[0]['Turnos'].split(', '):
                 h1, h2 = t.split('-')
-                st.markdown(f"""<div class="turno-card"><div class="turno-info"><span class="label-hora">Hora entrada</span><span class="valor-hora">{h1}</span><span class="label-hora">Hora saída</span><span class="valor-hora">{h2}</span></div><div style="text-align:right"><span style="font-size:11px; font-weight:bold; color:{cor}">{txt}</span><span class="status-bola {bola}"></span></div></div>""", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class="turno-card">
+                    <div class="turno-info">
+                        <span class="label-hora">Hora entrada</span><span class="valor-hora">{h1}</span>
+                        <span class="label-hora">Hora saída</span><span class="valor-hora">{h2}</span>
+                    </div>
+                    <div style="text-align:right">
+                        <span style="font-size:11px; font-weight:bold; color:{cor}">{txt}</span><span class="status-bola {bola}"></span>
+                    </div>
+                </div>""", unsafe_allow_html=True)
 
+        # Novos blocos temporários
         for t in st.session_state.turnos_temp:
             h1, h2 = t.split('-')
-            st.markdown(f"""<div class="turno-card" style="border-left: 5px solid orange;"><div class="turno-info"><span class="label-hora">Entrada</span><span class="valor-hora">{h1}</span><span class="label-hora">Saída</span><span class="valor-hora">{h2}</span></div><div style="text-align:right"><span style="font-size:11px; color:orange;">Pendente</span></div></div>""", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="turno-card" style="border-left: 5px solid orange;">
+                <div class="turno-info">
+                    <span class="label-hora">Entrada</span><span class="valor-hora">{h1}</span>
+                    <span class="label-hora">Saída</span><span class="valor-hora">{h2}</span>
+                </div>
+                <div style="text-align:right"><span style="font-size:11px; color:orange;">Novo</span></div>
+            </div>""", unsafe_allow_html=True)
 
         with st.expander("➕ Adicionar Bloco"):
             c1, c2 = st.columns(2)
             hi = c1.time_input("Início", datetime.now().replace(hour=8, minute=0))
-            hf = c2.time_input("Fim", datetime.now().replace(hour=12, minute=0))
+            hf = c2.time_input("Fim", datetime.now().replace(hour=17, minute=0))
             if st.button("Inserir"):
-                st.session_state.turnos_temp.append(f"{hi.strftime('%H:%M')}-{hf.strftime('%H:%M')}"); st.rerun()
+                st.session_state.turnos_temp.append(f"{hi.strftime('%H:%M')}-{hf.strftime('%H:%M')}")
+                st.rerun()
 
         if st.session_state.turnos_temp:
             if st.button("🚀 SUBMETER DIA", use_container_width=True):
                 nr = pd.DataFrame([{"Data":ds, "Técnico":st.session_state.user, "Obra":st.session_state.obra_ativa, "Frente":st.session_state.frente_ativa, "Turnos":", ".join(st.session_state.turnos_temp), "Relatorio":"", "Status":"0"}])
                 save_db(pd.concat([registos_db, nr]), "registos.csv")
-                st.session_state.turnos_temp = []; st.success("Enviado!"); st.rerun()
+                st.session_state.turnos_temp = []
+                st.success("Submetido com sucesso!")
+                st.rerun()
         
-        if st.button("⬅️ Trocar Obra"): st.session_state.step = "obra"; st.rerun()
+        if st.button("⬅️ Mudar Obra"):
+            st.session_state.step = "obra"
+            st.rerun()
 
-if st.sidebar.button("Logout"): st.session_state.user = None; st.rerun()
+if st.sidebar.button("Logout"):
+    st.session_state.user = None
+    st.rerun()
