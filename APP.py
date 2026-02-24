@@ -1,9 +1,7 @@
-import streamlit as st
+datetimeeamlit as st
 import pandas as pd
 import os
-from datetime import datetime
-
-# --- 1. DESIGN E ESTILO (FIEL ÀS TUAS FOTOS) ---
+from datetime import dapd# --- 1. DESIGN E ESTILO (FIEL ÀS TUAS FOTOS) ---
 st.set_page_config(page_title="GestNow Elite", layout="centered")
 
 st.markdown("""
