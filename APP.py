@@ -4,89 +4,70 @@ import os
 import io
 from datetime import datetime
 
-# --- 1. CONFIGURAÇÃO DE ELITE ---
-st.set_page_config(page_title="GestNow | Precision Control", layout="wide")
+# --- CONFIGURAÇÃO DE ELITE (INSTRUMENTAÇÃO) ---
+st.set_page_config(page_title="GestNow | Precision", layout="wide")
 
 st.markdown("""
     <style>
     #MainMenu, footer, header {visibility: hidden;}
     .stApp { background-color: #0A192F; color: #00D2FF; }
-    .stButton>button { 
-        background-color: #00D2FF; color: #0A192F; font-weight: bold; 
-        border-radius: 5px; width: 100%; border: none; height: 3.5em;
-    }
+    .stButton>button { background-color: #00D2FF; color: #0A192F; font-weight: bold; border-radius: 5px; height: 3.5em; width: 100%; }
     input, select, textarea { background-color: #112240 !important; color: #00D2FF !important; border: 1px solid #1E3A5F !important; }
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { background-color: #112240; border-radius: 5px; color: white; padding: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. MOTOR DE DADOS ---
-def engine(f, colunas):
+# --- MOTOR DE DADOS ---
+def engine(f, col):
     try:
-        if os.path.exists(f):
-            df = pd.read_csv(f)
-            return df if not df.empty else pd.DataFrame(columns=colunas)
-    except:
-        os.remove(f)
-    return pd.DataFrame(columns=colunas)
+        if os.path.exists(f): return pd.read_csv(f)
+    except: os.remove(f)
+    return pd.DataFrame(columns=col)
 
 users = engine("usuarios.csv", ["Nome", "Password", "Tipo"])
 obras = engine("obras.csv", ["Nome"])
 registos = engine("registos.csv", ["Data", "Técnico", "Unidade", "Entrada", "Saída", "Relatorio"])
 
-# --- 3. LOGIN COM CHAVE MESTRA (DIOGO) ---
+# --- LOGIN (A TUA CHAVE MESTRA) ---
 if 'user' not in st.session_state: st.session_state.user = None
 
 if st.session_state.user is None:
-    st.markdown("<h1 style='text-align: center; color: #00D2FF;'>GESTNOW</h1>", unsafe_allow_html=True)
-    u_input = st.text_input("Utilizador").lower().strip()
-    p_input = st.text_input("Palavra-Passe", type="password")
-    
-    if st.button("AUTENTICAR NO SISTEMA"):
-        # ACESSO GARANTIDO PARA O DIOGO
-        if u_input == "diogo" or u_input == "rafael correia":
-            # Aqui garanto que tu entras com o que está na tua imagem
-            if p_input == "rafael2026" or p_input == "123":
-                st.session_state.user = u_input
-                st.session_state.tipo = "Admin"
-                st.rerun()
-        
-        elif not users.empty:
-            match = users[(users['Nome'].str.lower() == u_input) & (users['Password'].astype(str) == p_input)]
-            if not match.empty:
-                st.session_state.user = u_input
-                st.session_state.tipo = match.iloc[0]['Tipo']
-                st.rerun()
-            else: st.error("Acesso Negado.")
-        else:
-            st.warning("Sistema a carregar. Usa a tua credencial mestre.")
+    st.title("GESTNOW | PORTAL")
+    u = st.text_input("Utilizador").lower().strip()
+    p = st.text_input("Senha", type="password")
+    if st.button("ENTRAR"):
+        # Garante a tua entrada Diogo (Master Key)
+        if (u == "diogo" or u == "rafael correia") and (p == "rafael2026" or p == "123"):
+            st.session_state.user, st.session_state.tipo = u, "Admin"
+            st.rerun()
+        # Validação via DB
+        match = users[(users['Nome'].str.lower() == u) & (users['Password'].astype(str) == p)]
+        if not match.empty:
+            st.session_state.user, st.session_state.tipo = u, match.iloc[0]['Tipo']
+            st.rerun()
+        else: st.error("Erro de Acesso.")
     st.stop()
 
-# --- 4. INTERFACE ---
-st.sidebar.markdown(f"### 👤 {st.session_state.user.upper()}")
+# --- INTERFACE DE ALTA PERFORMANCE ---
+st.sidebar.title(f"👤 {st.session_state.user.upper()}")
 
 if st.session_state.tipo == "Admin":
     st.title("📊 Painel de Monitorização")
-    t1, t2, t3 = st.tabs(["📡 Recursos", "📑 Registos", "📥 Exportar"])
-
+    t1, t2, t3 = st.tabs(["⚙️ Gestão", "📋 Registos", "📥 Exportar"])
+    
     with t1:
         c1, c2 = st.columns(2)
         with c1:
-            st.subheader("Ativar Novo Técnico")
-            n_u = st.text_input("Nome")
-            n_p = st.text_input("Senha")
-            n_t = st.selectbox("Nível", ["Colaborador", "Admin"])
-            if st.button("Registar"):
-                new = pd.DataFrame([{"Nome": n_u, "Password": n_p, "Tipo": n_t}])
-                new.to_csv("usuarios.csv", mode='a', index=False, header=not os.path.exists("usuarios.csv"))
-                st.success("OK!"); st.rerun()
+            st.subheader("Novo Técnico")
+            nu, np = st.text_input("Nome"), st.text_input("Senha")
+            if st.button("Ativar"):
+                pd.DataFrame([{"Nome": nu, "Password": np, "Tipo": "Colaborador"}]).to_csv("usuarios.csv", mode='a', index=False, header=not os.path.exists("usuarios.csv"))
+                st.success("Técnico pronto!")
         with c2:
-            st.subheader("Ativar Unidade")
-            n_o = st.text_input("ID Unidade")
-            if st.button("Gravar Unidade"):
-                pd.DataFrame([{"Nome": n_o}]).to_csv("obras.csv", mode='a', index=False, header=not os.path.exists("obras.csv"))
-                st.success("OK!"); st.rerun()
+            st.subheader("Nova Unidade")
+            no = st.text_input("ID Unidade")
+            if st.button("Gravar"):
+                pd.DataFrame([{"Nome": no}]).to_csv("obras.csv", mode='a', index=False, header=not os.path.exists("obras.csv"))
+                st.success("Unidade pronta!")
 
     with t2:
         st.dataframe(registos, use_container_width=True)
@@ -94,9 +75,18 @@ if st.session_state.tipo == "Admin":
     with t3:
         if not registos.empty:
             buf = io.BytesIO()
-            with pd.ExcelWriter(buf, engine='xlsxwriter') as writer:
-                registos.to_excel(writer, index=False)
-            st.download_button("📥 DESCARREGAR EXCEL", buf.getvalue(), "GestNow.xlsx")
+            with pd.ExcelWriter(buf) as w: registos.to_excel(w, index=False)
+            st.download_button("📥 BAIXAR EXCEL PARA O CHEFE", buf.getvalue(), "Relatorio.xlsx")
+
+else: # MODO TÉCNICO
+    st.title("📝 Registo de Campo")
+    with st.form("ponto"):
+        un = st.selectbox("Unidade", ["-- Selecionar --"] + obras['Nome'].tolist())
+        rel = st.text_area("Notas Técnicas")
+        if st.form_submit_button("SUBMETER"):
+            novo = pd.DataFrame([{"Data": datetime.now().strftime("%d/%m/%Y"), "Técnico": st.session_state.user, "Unidade": un, "Relatorio": rel}])
+            novo.to_csv("registos.csv", mode='a', index=False, header=not os.path.exists("registos.csv"))
+            st.success("Transmitido!")
 
 if st.sidebar.button("Sair"):
     st.session_state.user = None
