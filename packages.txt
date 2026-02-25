@@ -1,0 +1,4 @@
+gdal-bin
+libgdal-dev
+build-essential
+python3-dev
