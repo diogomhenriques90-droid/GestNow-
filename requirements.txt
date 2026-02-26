@@ -7,3 +7,4 @@ folium==0.14.0
 geopy==2.4.1
 reportlab==4.1.0
 openpyxl==3.1.2
+wheel==0.42.0
