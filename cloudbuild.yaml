@@ -22,6 +22,12 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--timeout'
+      - '300'
 images:
   - 'gcr.io/$PROJECT_ID/gestnow-app:$COMMIT_SHA'
 options:
