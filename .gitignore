@@ -1,0 +1,11 @@
+data/*.csv
+data/backups/
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+.DS_Store
+Thumbs.db
+.streamlit/secrets.toml
