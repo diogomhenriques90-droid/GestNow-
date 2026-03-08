@@ -480,10 +480,12 @@ def render_admin(users, obras_db, frentes_db, registos_db, faturas_db,
                 except: exp_c=False
                 n_lid=len(comuns_u_db[comuns_u_db['ComunicadoID']==row_c['ID']]) if not comuns_u_db.empty else 0
                 urg_ic="🚨 " if row_c.get('Urgente')=="Sim" else ""
+                exp_label = '<small style="color:#9CA3AF;">[expirado]</small>' if exp_c else ''
+                status_cls = 'status-fechado' if exp_c else 'status-aprovado'
                 st.markdown(f"<div class='turno-card'><div class='turno-header'>"
                     f"<span>{urg_ic}<b>{row_c.get('Titulo','—')}</b>"
-                    f"{'<small style="color:#9CA3AF;">[expirado]</small>' if exp_c else ''}</span>"
-                    f"<span class='turno-status {'status-fechado' if exp_c else 'status-aprovado'}'>{row_c.get('Tipo','—')}</span>"
+                    f"{exp_label}</span>"
+                    f"<span class='turno-status {status_cls}'>{row_c.get('Tipo','—')}</span>"
                     f"</div><div style='color:#374151;font-size:.85rem;'>{row_c.get('Conteudo','')[:180]}...</div>"
                     f"<div style='color:#7A8BA6;font-size:.78rem;'>📅 {row_c.get('DataCriacao','—')} | "
                     f"👤 {row_c.get('Autor','—')} | ✅ {n_lid} leitura(s)</div></div>",unsafe_allow_html=True)
