@@ -515,205 +515,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                 if not obras_db.empty and obra_fp in obras_db['Obra'].values:
                     cod_obra_fp = obras_db[obras_db['Obra']==obra_fp].iloc[0].get('Codigo','')
 
-                # ── Assinaturas digitais ──
-                st.markdown("#### ✍️ Assinaturas")
-                st.caption("Usa o rato ou o dedo para assinar na área abaixo.")
-
-                sig_html = """
-    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
-      <div style="flex:1;min-width:280px;">
-    <div style="color:#7A8BA6;font-size:.8rem;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">
-      ✍️ Assinatura do Chefe de Equipa
-    </div>
-    <canvas id="sig-chefe" width="340" height="140"
-      style="border:2px solid #E5EDFF;border-radius:12px;background:white;cursor:crosshair;touch-action:none;display:block;"></canvas>
-    <button onclick="clearCanvas('sig-chefe')"
-      style="margin-top:6px;padding:5px 14px;border:1px solid #E5EDFF;border-radius:8px;
-      background:white;color:#7A8BA6;font-size:.8rem;cursor:pointer;">🗑️ Limpar</button>
-      </div>
-      <div style="flex:1;min-width:280px;">
-    <div style="color:#7A8BA6;font-size:.8rem;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">
-      ✍️ Assinatura do Representante do Cliente
-    </div>
-    <canvas id="sig-cliente" width="340" height="140"
-      style="border:2px solid #E5EDFF;border-radius:12px;background:white;cursor:crosshair;touch-action:none;display:block;"></canvas>
-    <button onclick="clearCanvas('sig-cliente')"
-      style="margin-top:6px;padding:5px 14px;border:1px solid #E5EDFF;border-radius:8px;
-      background:white;color:#7A8BA6;font-size:.8rem;cursor:pointer;">🗑️ Limpar</button>
-      </div>
-    </div>
-    <div style="margin-top:1rem;">
-      <input id="nome-cliente-input" type="text" placeholder="Nome do representante do cliente (opcional)"
-    style="width:100%;padding:10px 14px;border:1px solid #E5EDFF;border-radius:10px;
-    font-size:.9rem;color:#374151;box-sizing:border-box;"/>
-    </div>
-    <div style="margin-top:.75rem;display:flex;gap:.75rem;flex-wrap:wrap;">
-      <button id="btn-gerar" onclick="prepareSignatures()"
-    style="flex:1;padding:.75rem;background:linear-gradient(135deg,#0A2463,#3E92CC);
-    color:white;border:none;border-radius:12px;font-size:.95rem;font-weight:700;
-    cursor:pointer;min-width:200px;box-shadow:0 4px 12px rgba(10,36,99,.25);">
-    📄 Gerar Folha de Ponto com Assinaturas
-      </button>
-    </div>
-    <input type="hidden" id="sig-chefe-data" />
-    <input type="hidden" id="sig-cliente-data" />
-    <input type="hidden" id="nome-cliente-data" />
-
-    <script>
-    // ── Setup canvas de assinatura ──
-    function setupCanvas(id) {
-      const canvas = document.getElementById(id);
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      let drawing = false;
-      ctx.strokeStyle = '#1E3A8A';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      function getPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    if (e.touches) {
-      return {
-        x: (e.touches[0].clientX - rect.left) * scaleX,
-        y: (e.touches[0].clientY - rect.top) * scaleY
-      };
-    }
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY
-    };
-      }
-
-      ['mousedown','touchstart'].forEach(ev =>
-    canvas.addEventListener(ev, e => {
-      e.preventDefault(); drawing = true;
-      const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y);
-    }, {passive:false})
-      );
-      ['mousemove','touchmove'].forEach(ev =>
-    canvas.addEventListener(ev, e => {
-      e.preventDefault();
-      if (!drawing) return;
-      const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke();
-    }, {passive:false})
-      );
-      ['mouseup','touchend','mouseleave'].forEach(ev =>
-    canvas.addEventListener(ev, () => { drawing = false; })
-      );
-    }
-
-    function clearCanvas(id) {
-      const canvas = document.getElementById(id);
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-
-    function isCanvasEmpty(id) {
-      const canvas = document.getElementById(id);
-      const ctx = canvas.getContext('2d');
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      return !data.some(v => v !== 0);
-    }
-
-    function prepareSignatures() {
-      const chefeCanvas = document.getElementById('sig-chefe');
-      const clienteCanvas = document.getElementById('sig-cliente');
-      const nomeCliente = document.getElementById('nome-cliente-input').value;
-
-      const sigChefeB64 = isCanvasEmpty('sig-chefe') ? '' :
-    chefeCanvas.toDataURL('image/png').split(',')[1];
-      const sigClienteB64 = isCanvasEmpty('sig-cliente') ? '' :
-    clienteCanvas.toDataURL('image/png').split(',')[1];
-
-      // Passar para os hidden inputs (Streamlit vai ler via query params)
-      const params = new URLSearchParams(window.location.search);
-      params.set('sig_chefe', sigChefeB64 ? '1' : '0');
-      params.set('sig_cliente', sigClienteB64 ? '1' : '0');
-      params.set('nome_cliente', encodeURIComponent(nomeCliente));
-      params.set('gerar_folha', '1');
-      params.set('sig_chefe_b64', sigChefeB64.substring(0, 100)); // preview apenas
-
-      // Guardar em sessionStorage para acesso pelo Streamlit
-      sessionStorage.setItem('gestnow_sig_chefe', sigChefeB64);
-      sessionStorage.setItem('gestnow_sig_cliente', sigClienteB64);
-      sessionStorage.setItem('gestnow_nome_cliente', nomeCliente);
-
-      // Notificar Streamlit via componente customizado
-      window.parent.postMessage({
-    type: 'streamlit:setComponentValue',
-    value: {
-      sig_chefe: sigChefeB64,
-      sig_cliente: sigClienteB64,
-      nome_cliente: nomeCliente
-    }
-      }, '*');
-
-      // Fallback: update URL para Streamlit detetar
-      const url = window.location.href.split('?')[0];
-      const newUrl = url + '?gerar_folha=1&nc=' + encodeURIComponent(nomeCliente);
-      window.location.href = newUrl;
-    }
-
-    // Inicializar quando DOM estiver pronto
-    setTimeout(() => { setupCanvas('sig-chefe'); setupCanvas('sig-cliente'); }, 300);
-    </script>
-    """
-                st.components.v1.html(sig_html, height=480, scrolling=False)
-                st.markdown("<br>", unsafe_allow_html=True)
-
-                # Verificar se foi pedida geração de folha
-                gerar_param = st.query_params.get("gerar_folha","")
-                nome_cli_param = st.query_params.get("nc","")
-
-                # Botão alternativo para gerar sem assinatura
-                col_g1, col_g2 = st.columns(2)
-                with col_g1:
-                    gerar_sem_assin = st.button("📄 Gerar PDF (sem assinatura)",
-                        use_container_width=True, key="fp_gerar_sem")
-                with col_g2:
-                    assin_opcional = st.text_input("Nome do cliente (para o PDF)",
-                        placeholder="Nome do representante", key="fp_nome_cli")
-
-                # ── GPS capture via JS ──────────────────────
-                gps_html = """
-    <div id="gps-status" style="color:#7A8BA6;font-size:.8rem;padding:.4rem 0;">
-      📍 A obter localização GPS...
-    </div>
-    <input type="hidden" id="gps-coords" value="" />
-    <script>
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-    pos => {
-      const lat = pos.coords.latitude.toFixed(6);
-      const lon = pos.coords.longitude.toFixed(6);
-      const acc = Math.round(pos.coords.accuracy);
-      document.getElementById('gps-coords').value = lat + ',' + lon;
-      document.getElementById('gps-status').innerHTML =
-        '📍 GPS obtido: <b>' + lat + ', ' + lon + '</b> (±' + acc + 'm)';
-      document.getElementById('gps-status').style.color = '#059669';
-      // Passar para Streamlit via URL param
-      const url = new URL(window.location.href);
-      url.searchParams.set('gps_chefe', lat + ',' + lon);
-      window.history.replaceState({}, '', url);
-    },
-    err => {
-      document.getElementById('gps-status').innerHTML =
-        '⚠️ GPS não disponível (' + err.message + ')';
-      document.getElementById('gps-status').style.color = '#D97706';
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
-      );
-    } else {
-      document.getElementById('gps-status').textContent = '⚠️ GPS não suportado neste dispositivo';
-    }
-    </script>"""
-                st.components.v1.html(gps_html, height=50)
-                gps_param = st.query_params.get("gps_chefe","")
-
-                # Verificar configuração de assinatura obrigatória desta obra
+                # ── Verificar config da obra ──────────────────
                 assin_obrig = False
                 logo_obra   = ""
                 if not obras_db.empty and obra_fp in obras_db['Obra'].values:
@@ -724,15 +526,124 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                 if assin_obrig:
                     st.warning("⚠️ Esta obra requer **assinatura do cliente** para validar a folha.")
 
-                if gerar_sem_assin or gerar_param == "1":
-                    nome_cli_final    = assin_opcional or nome_cli_param
-                    assin_chefe_b64   = ""   # sem assinatura neste fluxo
-                    assin_cliente_b64 = ""   # sem assinatura neste fluxo
+                # ── GPS via JS → query_params ─────────────────
+                gps_html = """
+    <div id="gps-status" style="color:#7A8BA6;font-size:.78rem;padding:.3rem 0;">
+      📍 A obter localização GPS...
+    </div>
+    <script>
+    (function() {
+      function setGPS(txt, color) {
+        document.getElementById('gps-status').innerHTML = txt;
+        document.getElementById('gps-status').style.color = color;
+      }
+      if (!navigator.geolocation) {
+        setGPS('⚠️ GPS não suportado neste dispositivo', '#D97706'); return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          var lat = pos.coords.latitude.toFixed(6);
+          var lon = pos.coords.longitude.toFixed(6);
+          var acc = Math.round(pos.coords.accuracy);
+          setGPS('📍 GPS obtido: <b style="color:#0A2463">' + lat + ', ' + lon +
+                 '</b> <span style="color:#7A8BA6">(±' + acc + 'm)</span>', '#059669');
+          var url = new URL(window.location.href);
+          url.searchParams.set('gps_chefe', lat + ',' + lon);
+          window.history.replaceState({}, '', url);
+        },
+        function(err) {
+          setGPS('⚠️ GPS não disponível (' + err.message + ')', '#D97706');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    })();
+    </script>"""
+                st.components.v1.html(gps_html, height=36)
+                gps_param = st.query_params.get("gps_chefe", "")
+
+                # ── Assinaturas com streamlit-drawable-canvas ─
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("#### ✍️ Assinaturas")
+                st.caption("Usa o rato ou o dedo para assinar na área abaixo.")
+
+                try:
+                    from streamlit_drawable_canvas import st_canvas
+
+                    col_sig1, col_sig2 = st.columns(2)
+                    with col_sig1:
+                        st.markdown('<div style="color:#7A8BA6;font-size:.78rem;font-weight:600;'
+                            'text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'
+                            '✍️ Assinatura do Chefe de Equipa</div>', unsafe_allow_html=True)
+                        canvas_chefe = st_canvas(
+                            fill_color="rgba(255,255,255,0)",
+                            stroke_width=2.5,
+                            stroke_color="#1E3A8A",
+                            background_color="#FFFFFF",
+                            height=140,
+                            drawing_mode="freedraw",
+                            key="canvas_chefe",
+                        )
+
+                    with col_sig2:
+                        st.markdown('<div style="color:#7A8BA6;font-size:.78rem;font-weight:600;'
+                            'text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'
+                            '✍️ Assinatura do Representante do Cliente</div>', unsafe_allow_html=True)
+                        canvas_cliente = st_canvas(
+                            fill_color="rgba(255,255,255,0)",
+                            stroke_width=2.5,
+                            stroke_color="#1E3A8A",
+                            background_color="#FFFFFF",
+                            height=140,
+                            drawing_mode="freedraw",
+                            key="canvas_cliente",
+                        )
+
+                    # Converter imagem do canvas para base64 PNG
+                    import base64 as b64_mod
+                    import numpy as np
+                    from PIL import Image as PILImage
+
+                    def _canvas_to_b64(canvas_result):
+                        """Converte resultado do st_canvas para base64 PNG."""
+                        if canvas_result is None or canvas_result.image_data is None:
+                            return ""
+                        arr = canvas_result.image_data  # RGBA numpy array
+                        if arr.max() == 0:              # canvas vazio
+                            return ""
+                        img = PILImage.fromarray(arr.astype("uint8"), "RGBA")
+                        # Fundo branco
+                        bg = PILImage.new("RGB", img.size, (255, 255, 255))
+                        bg.paste(img, mask=img.split()[3])
+                        buf_img = io.BytesIO()
+                        bg.save(buf_img, format="PNG")
+                        return b64_mod.b64encode(buf_img.getvalue()).decode()
+
+                    assin_chefe_b64   = _canvas_to_b64(canvas_chefe)
+                    assin_cliente_b64 = _canvas_to_b64(canvas_cliente)
+
+                except ImportError:
+                    # Fallback se streamlit-drawable-canvas não estiver instalado
+                    st.info("ℹ️ Para assinaturas digitais adiciona `streamlit-drawable-canvas` ao requirements.txt")
+                    assin_chefe_b64   = ""
+                    assin_cliente_b64 = ""
+
+                # ── Nome do cliente + botão gerar ─────────────
+                st.markdown("<br>", unsafe_allow_html=True)
+                col_g1, col_g2 = st.columns([3, 1])
+                with col_g1:
+                    assin_opcional = st.text_input("Nome do cliente / representante (para o PDF)",
+                        placeholder="Ex: João Silva — ACME Lda.", key="fp_nome_cli")
+                with col_g2:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    gerar_btn = st.button("📄 Gerar PDF", use_container_width=True,
+                        key="fp_gerar_btn", type="primary")
+
+                if gerar_btn:
+                    nome_cli_final = assin_opcional.strip()
                     if assin_obrig and not nome_cli_final:
                         st.error("❌ Esta obra requer o nome do representante do cliente.")
                     else:
                         try:
-                            import base64 as b64_mod
                             pdf_bytes, total_horas, folha_id = gerar_folha_ponto_pdf(
                                 obra=obra_fp,
                                 cod_obra=cod_obra_fp,
@@ -747,6 +658,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                                 logo_b64=logo_obra,
                                 assin_cliente_obrigatoria=assin_obrig
                             )
+                            import base64 as b64_mod
                             pdf_b64 = b64_mod.b64encode(pdf_bytes).decode()
                             tem_assin_cli = bool(assin_cliente_b64 and len(assin_cliente_b64) > 20)
                             nova_folha = pd.DataFrame([{
@@ -759,8 +671,8 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                                 "Tecnicos": "|".join(regs_fp['Técnico'].unique()),
                                 "TotalHoras": round(total_horas, 2),
                                 "AssinadoCliente": "Sim" if tem_assin_cli else "Não",
-                                "AssinaturaChefe": "",
-                                "AssinaturaCliente": "",
+                                "AssinaturaChefe": assin_chefe_b64[:50] if assin_chefe_b64 else "",
+                                "AssinaturaCliente": assin_cliente_b64[:50] if assin_cliente_b64 else "",
                                 "NomeCliente": nome_cli_final,
                                 "GPS_Chefe": gps_param,
                                 "DataCriacao": datetime.now().strftime('%d/%m/%Y %H:%M'),
@@ -768,7 +680,12 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                             }])
                             save_db(pd.concat([folhas_db, nova_folha], ignore_index=True), "folhas_ponto.csv")
                             inv()
-                            st.success(f"✅ Folha **{folha_id}** gerada — {fh(total_horas)} • {regs_fp['Técnico'].nunique()} técnico(s){' 📍 GPS incluído' if gps_param else ''}")
+                            assin_info = ""
+                            if assin_chefe_b64: assin_info += " ✍️ chefe"
+                            if assin_cliente_b64: assin_info += " ✍️ cliente"
+                            st.success(f"✅ Folha **{folha_id}** gerada — {fh(total_horas)} • "
+                                f"{regs_fp['Técnico'].nunique()} técnico(s)"
+                                f"{assin_info}{' 📍 GPS' if gps_param else ''}")
                             st.download_button(
                                 label="⬇️ Descarregar Folha de Ponto PDF",
                                 data=pdf_bytes,
@@ -776,8 +693,6 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                                 mime="application/pdf",
                                 use_container_width=True
                             )
-                            if gerar_param == "1":
-                                st.query_params.clear()
                         except Exception as e:
                             st.error(f"❌ Erro ao gerar PDF: {e}")
 
