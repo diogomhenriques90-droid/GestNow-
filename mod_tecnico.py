@@ -725,7 +725,9 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                     st.warning("⚠️ Esta obra requer **assinatura do cliente** para validar a folha.")
 
                 if gerar_sem_assin or gerar_param == "1":
-                    nome_cli_final = assin_opcional or nome_cli_param
+                    nome_cli_final    = assin_opcional or nome_cli_param
+                    assin_chefe_b64   = ""   # sem assinatura neste fluxo
+                    assin_cliente_b64 = ""   # sem assinatura neste fluxo
                     if assin_obrig and not nome_cli_final:
                         st.error("❌ Esta obra requer o nome do representante do cliente.")
                     else:
@@ -738,14 +740,15 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                                 periodo_label=per_label,
                                 regs_obra=regs_fp,
                                 users_df=users,
-                                assin_chefe_b64="",
-                                assin_cliente_b64="",
+                                assin_chefe_b64=assin_chefe_b64,
+                                assin_cliente_b64=assin_cliente_b64,
                                 nome_cliente=nome_cli_final,
                                 gps_chefe=gps_param,
                                 logo_b64=logo_obra,
                                 assin_cliente_obrigatoria=assin_obrig
                             )
                             pdf_b64 = b64_mod.b64encode(pdf_bytes).decode()
+                            tem_assin_cli = bool(assin_cliente_b64 and len(assin_cliente_b64) > 20)
                             nova_folha = pd.DataFrame([{
                                 "ID": folha_id,
                                 "Data": hoje_fp.strftime('%d/%m/%Y'),
@@ -755,7 +758,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                                 "Periodo": per_label,
                                 "Tecnicos": "|".join(regs_fp['Técnico'].unique()),
                                 "TotalHoras": round(total_horas, 2),
-                                "AssinadoCliente": "Sim" if (assin_cliente_b64 and len(assin_cliente_b64)>20) else "Não",
+                                "AssinadoCliente": "Sim" if tem_assin_cli else "Não",
                                 "AssinaturaChefe": "",
                                 "AssinaturaCliente": "",
                                 "NomeCliente": nome_cli_final,
@@ -765,7 +768,6 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                             }])
                             save_db(pd.concat([folhas_db, nova_folha], ignore_index=True), "folhas_ponto.csv")
                             inv()
-                            assin_cli_txt = " ✅ com assinatura do cliente" if (assin_cli_final := "") else ""
                             st.success(f"✅ Folha **{folha_id}** gerada — {fh(total_horas)} • {regs_fp['Técnico'].nunique()} técnico(s){' 📍 GPS incluído' if gps_param else ''}")
                             st.download_button(
                                 label="⬇️ Descarregar Folha de Ponto PDF",
@@ -780,7 +782,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                             st.error(f"❌ Erro ao gerar PDF: {e}")
 
                 # Histórico das folhas deste chefe
-                st.markdown("<br>")
+                st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("#### 📁 Folhas Anteriores")
                 minhas_folhas = folhas_db[folhas_db['ChefEquipa']==st.session_state.user] if not folhas_db.empty else pd.DataFrame()
                 if not minhas_folhas.empty:
