@@ -63,41 +63,290 @@ def render_admin(users, obras_db, frentes_db, registos_db, faturas_db,
         else: st.info("📭 Sem dados no período.")
 
     with tab2:
-        st.markdown('<div class="section-title">✅ Aprovações</div>',unsafe_allow_html=True)
-        pend=registos_db[registos_db['Status']=="0"].copy() if not registos_db.empty else pd.DataFrame()
-        if pend.empty: st.success("🎉 Nenhum registo pendente!")
+        # ── CSS específico Tab2 ───────────────────────────────────────
+        st.markdown("""
+        <style>
+        :root {
+            --g-red:#C0392B; --g-red-dark:#96281B; --g-orange:#E67E22;
+            --g-green:#27AE60; --g-blue:#2980B9;
+            --g-bg:#F4F6F8; --g-card:#FFFFFF; --g-border:#E0E4EA;
+            --g-text:#1A1A2E; --g-muted:#7F8C9A;
+        }
+        .aprov-metric-row { display:flex; gap:12px; margin-bottom:20px; }
+        .aprov-metric { flex:1; border-radius:14px; padding:16px 20px; color:#fff; font-family:'Segoe UI',sans-serif; }
+        .aprov-metric.red    { background:linear-gradient(135deg,#C0392B,#96281B); }
+        .aprov-metric.orange { background:linear-gradient(135deg,#E67E22,#CA6F1E); }
+        .aprov-metric.green  { background:linear-gradient(135deg,#27AE60,#1E8449); }
+        .aprov-metric .met-val   { font-size:2rem; font-weight:800; line-height:1; letter-spacing:-1px; }
+        .aprov-metric .met-label { font-size:.78rem; opacity:.88; margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
+        .tec-header { display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--g-card); border-radius:12px; border:1px solid var(--g-border); margin-bottom:2px; }
+        .tec-avatar { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,var(--g-red),var(--g-orange)); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:1.1rem; flex-shrink:0; }
+        .tec-info { flex:1; }
+        .tec-name  { font-weight:700; font-size:1rem; color:var(--g-text); }
+        .tec-cargo { font-size:.78rem; color:var(--g-muted); }
+        .tec-badge { background:var(--g-orange); color:#fff; border-radius:20px; padding:4px 14px; font-weight:800; font-size:.95rem; white-space:nowrap; }
+        .reg-card { background:#FEF9F0; border-left:4px solid var(--g-orange); border-radius:0 12px 12px 0; padding:14px 16px; margin:6px 0 6px 20px; font-family:'Segoe UI',sans-serif; }
+        .reg-card.aprovado { background:#F0FBF4; border-left-color:var(--g-green); }
+        .reg-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+        .reg-frente  { font-weight:700; font-size:.95rem; color:var(--g-text); }
+        .reg-status  { font-size:.72rem; color:var(--g-muted); margin-top:2px; }
+        .reg-horas   { font-weight:800; font-size:1.2rem; color:var(--g-orange); }
+        .reg-card.aprovado .reg-horas { color:var(--g-green); }
+        .reg-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; font-size:.8rem; }
+        .reg-grid-label { color:var(--g-muted); font-weight:600; font-size:.7rem; text-transform:uppercase; }
+        .reg-grid-val   { color:var(--g-text); font-weight:500; }
+        .reg-obra-code  { display:inline-block; background:#EBF5FB; color:var(--g-blue); border-radius:6px; padding:1px 7px; font-size:.72rem; font-weight:700; margin-left:6px; }
+        .tec-divider { height:1px; background:var(--g-border); margin:8px 0 12px 0; }
+        </style>
+        """, unsafe_allow_html=True)
+
+        # ── Session state ────────────────────────────────────────────
+        if 'aprov_dia_sel' not in st.session_state:
+            st.session_state.aprov_dia_sel = pd.Timestamp.today().normalize()
+        if 'aprov_expandidos' not in st.session_state:
+            st.session_state.aprov_expandidos = set()
+        if 'aprov_edit_idx' not in st.session_state:
+            st.session_state.aprov_edit_idx = None
+
+        # ── Dados ────────────────────────────────────────────────────
+        if not registos_db.empty and 'Data' in registos_db.columns:
+            registos_db['Data'] = pd.to_datetime(registos_db['Data'], errors='coerce')
+        pend_all = registos_db[registos_db['Status']=="0"].copy() if not registos_db.empty else pd.DataFrame()
+        if not pend_all.empty:
+            pend_all['Data'] = pd.to_datetime(pend_all['Data'], errors='coerce')
+
+        total_horas_all = registos_db['Horas_Total'].apply(lambda x: float(x) if pd.notna(x) else 0).sum() if not registos_db.empty else 0
+        total_pendentes = pend_all['Horas_Total'].apply(lambda x: float(x) if pd.notna(x) else 0).sum() if not pend_all.empty else 0
+        total_aprovadas = registos_db[registos_db['Status']=="1"]['Horas_Total'].apply(lambda x: float(x) if pd.notna(x) else 0).sum() if not registos_db.empty else 0
+
+        # ── MÉTRICAS ─────────────────────────────────────────────────
+        st.markdown(f"""
+        <div class="aprov-metric-row">
+            <div class="aprov-metric red">
+                <div class="met-val">⏱ {fh(total_horas_all)}</div>
+                <div class="met-label">Total de horas</div>
+            </div>
+            <div class="aprov-metric orange">
+                <div class="met-val">📋 {fh(total_pendentes)}</div>
+                <div class="met-label">Por validar</div>
+            </div>
+            <div class="aprov-metric green">
+                <div class="met-val">✅ {fh(total_aprovadas)}</div>
+                <div class="met-label">Aprovadas</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── CALENDÁRIO SEMANAL ───────────────────────────────────────
+        hoje_aprov = pd.Timestamp.today().normalize()
+        inicio_sem = hoje_aprov - pd.Timedelta(days=hoje_aprov.weekday())
+        dias_sem   = [inicio_sem + pd.Timedelta(days=i) for i in range(7)]
+        nomes_dia  = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom']
+        dias_com_pend = set(pend_all['Data'].dt.normalize().dropna().unique()) if not pend_all.empty else set()
+        dias_com_aprov_set = set()
+        if not registos_db.empty:
+            _ap = registos_db[registos_db['Status']=="1"]
+            dias_com_aprov_set = set(_ap['Data'].dt.normalize().dropna().unique()) if not _ap.empty else set()
+
+        st.markdown('<div style="background:#fff;border-radius:14px;padding:12px;border:1px solid #E0E4EA;margin-bottom:16px;">', unsafe_allow_html=True)
+        cols_cal = st.columns(7)
+        for i, (dia, nome) in enumerate(zip(dias_sem, nomes_dia)):
+            with cols_cal[i]:
+                tem_pend = dia in dias_com_pend
+                dot = "🟠" if tem_pend else ("🟢" if dia in dias_com_aprov_set else "")
+                is_sel = (dia == st.session_state.aprov_dia_sel)
+                if st.button(f"{nome} {dia.day} {dot}", key=f"cal_aprov_{i}",
+                             use_container_width=True,
+                             type="primary" if is_sel else "secondary"):
+                    st.session_state.aprov_dia_sel = dia
+                    st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── FILTROS ──────────────────────────────────────────────────
+        with st.expander("🔍 Filtros avançados", expanded=False):
+            fc1, fc2, fc3 = st.columns(3)
+            with fc1: filtro_tec  = st.selectbox("Técnico", ["Todos"]+(pend_all['Técnico'].unique().tolist() if not pend_all.empty else []), key="aprov_ft")
+            with fc2: filtro_obra = st.selectbox("Obra", ["Todas"]+(pend_all['Obra'].unique().tolist() if not pend_all.empty else []), key="aprov_fo")
+            with fc3: ver_todos   = st.checkbox("Ver todos os dias", value=False, key="aprov_todos")
+
+        # ── FILTRAR POR DIA ──────────────────────────────────────────
+        dia_sel = st.session_state.aprov_dia_sel
+        if not pend_all.empty:
+            pend_dia = pend_all.copy() if ver_todos else pend_all[pend_all['Data'].dt.normalize()==dia_sel].copy()
+            if filtro_tec  != "Todos": pend_dia = pend_dia[pend_dia['Técnico']==filtro_tec]
+            if filtro_obra != "Todas": pend_dia = pend_dia[pend_dia['Obra']==filtro_obra]
         else:
-            st.info(f"📋 {len(pend)} pendente(s).")
-            f1,f2=st.columns(2)
-            with f1: ft=st.selectbox("Técnico",["Todos"]+pend['Técnico'].unique().tolist())
-            with f2: fo=st.selectbox("Obra",["Todas"]+pend['Obra'].unique().tolist())
-            if ft!="Todos": pend=pend[pend['Técnico']==ft]
-            if fo!="Todas": pend=pend[pend['Obra']==fo]
-            ca,cb,_=st.columns([1,1,2])
-            with ca:
-                if st.button("✅ Aprovar Todos"):
-                    for i in pend.index: registos_db.at[i,'Status']="1"
-                    save_db(registos_db,"registos.csv"); inv(); st.rerun()
-            with cb:
-                if st.button("🔵 Fechar Todos"):
-                    for i in pend.index: registos_db.at[i,'Status']="2"
-                    save_db(registos_db,"registos.csv"); inv(); st.rerun()
-            st.divider()
-            for idx,row in pend.iterrows():
-                ds=row['Data'].strftime('%d/%m/%Y') if pd.notna(row['Data']) and hasattr(row['Data'],'strftime') else "—"
-                cod=obras_db[obras_db['Obra']==row['Obra']]['Codigo'].values[0] if not obras_db.empty and row['Obra'] in obras_db['Obra'].values else ""
-                c1,c2,c3,c4=st.columns([3,1,1,1])
-                with c1: st.markdown(f"**{row['Técnico']}** | {row['Obra']} <span class='obra-codigo'>{cod}</span> | {ds} | `{row['Turnos']}` | **{fh(float(row['Horas_Total']))}**",unsafe_allow_html=True)
-                with c2:
-                    if st.button("✅",key=f"ap_{idx}"): registos_db.at[idx,'Status']="1"; save_db(registos_db,"registos.csv"); inv(); st.rerun()
-                with c3:
-                    if st.button("🔵",key=f"fe_{idx}"): registos_db.at[idx,'Status']="2"; save_db(registos_db,"registos.csv"); inv(); st.rerun()
-                with c4:
-                    if st.button("❌",key=f"rej_{idx}"):
-                        registos_db=registos_db.drop(idx).reset_index(drop=True); save_db(registos_db,"registos.csv"); inv(); st.rerun()
-                if row.get('Relatorio'):
-                    with st.expander("📝 Relatório"): st.write(row['Relatorio'])
-                st.divider()
+            pend_dia = pd.DataFrame()
+
+        label_dia   = "Hoje" if dia_sel == hoje_aprov else dia_sel.strftime('%d %b %Y')
+        total_dia_h = pend_dia['Horas_Total'].apply(lambda x: float(x) if pd.notna(x) else 0).sum() if not pend_dia.empty else 0
+        n_regs      = len(pend_dia)
+
+        col_hd1, col_hd2 = st.columns([3,1])
+        with col_hd1:
+            st.markdown(f"### 📅 {label_dia} &nbsp; <span style='font-size:.9rem;color:#7F8C9A;font-weight:400;'>{n_regs} registo(s) pendente(s)</span>", unsafe_allow_html=True)
+        with col_hd2:
+            if n_regs > 0:
+                st.markdown(f"<div style='text-align:right;font-size:1.4rem;font-weight:800;color:#E67E22;padding-top:8px;'>{fh(total_dia_h)}</div>", unsafe_allow_html=True)
+
+        # ── EMPTY STATE ──────────────────────────────────────────────
+        if pend_dia.empty:
+            st.markdown(f"""
+            <div style="text-align:center;padding:48px 20px;color:#7F8C9A;font-family:'Segoe UI',sans-serif;">
+                <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
+                <div style="font-size:1.1rem;font-weight:700;color:#1A1A2E;">Nada por validar {f'em {label_dia}' if not ver_todos else ''}!</div>
+                <div style="font-size:.88rem;margin-top:4px;">Todos os registos estão em dia.</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            # Botão validar tudo
+            col_vd1, col_vd2 = st.columns([2,1])
+            with col_vd2:
+                if st.button(f"✅ Validar todos ({n_regs})", key="validar_dia_tudo", type="primary", use_container_width=True):
+                    for i in pend_dia.index: registos_db.at[i,'Status']="1"
+                    save_db(registos_db,"registos.csv"); inv(); st.success(f"✅ {n_regs} registos aprovados!"); st.rerun()
+
+            st.markdown('<div class="tec-divider"></div>', unsafe_allow_html=True)
+
+            # ── AGRUPAR POR TÉCNICO ──────────────────────────────────
+            for tec in pend_dia['Técnico'].unique().tolist():
+                regs_tec  = pend_dia[pend_dia['Técnico']==tec]
+                horas_tec = regs_tec['Horas_Total'].apply(lambda x: float(x) if pd.notna(x) else 0).sum()
+                n_tec     = len(regs_tec)
+                initials  = "".join([p[0].upper() for p in tec.split()[:2]])
+                tec_key   = f"tec_{tec.replace(' ','_')}"
+                expandido = tec_key in st.session_state.aprov_expandidos
+
+                # Header do técnico
+                col_t1, col_t2, col_t3 = st.columns([4,1,1])
+                with col_t1:
+                    st.markdown(f"""
+                    <div class="tec-header">
+                        <div class="tec-avatar">{initials}</div>
+                        <div class="tec-info">
+                            <div class="tec-name">{tec}</div>
+                            <div class="tec-cargo">{n_tec} registo(s) pendente(s)</div>
+                        </div>
+                        <div class="tec-badge">{fh(horas_tec)}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col_t2:
+                    seta = "▲ Fechar" if expandido else "▼ Ver"
+                    if st.button(seta, key=f"exp_{tec_key}", use_container_width=True):
+                        if expandido: st.session_state.aprov_expandidos.discard(tec_key)
+                        else: st.session_state.aprov_expandidos.add(tec_key)
+                        st.rerun()
+                with col_t3:
+                    if st.button(f"✅ Todos ({n_tec})", key=f"aprov_tec_{tec_key}", use_container_width=True):
+                        for i in regs_tec.index: registos_db.at[i,'Status']="1"
+                        save_db(registos_db,"registos.csv"); inv(); st.rerun()
+
+                # Registos expandidos
+                if expandido:
+                    for idx, row in regs_tec.iterrows():
+                        ds  = row['Data'].strftime('%d/%m/%Y') if pd.notna(row['Data']) and hasattr(row['Data'],'strftime') else "—"
+                        cod = obras_db[obras_db['Obra']==row['Obra']]['Codigo'].values[0] if not obras_db.empty and row['Obra'] in obras_db['Obra'].values else ""
+                        hrs = float(row['Horas_Total']) if pd.notna(row.get('Horas_Total')) else 0
+                        turno_str = str(row.get('Turnos','')) if pd.notna(row.get('Turnos')) else ""
+
+                        st.markdown(f"""
+                        <div class="reg-card">
+                            <div class="reg-card-top">
+                                <div>
+                                    <div class="reg-frente">{row.get('Frente','—')} <span class="reg-obra-code">{cod}</span></div>
+                                    <div class="reg-status">📍 {row['Obra']} &nbsp;·&nbsp; 📅 {ds} &nbsp;·&nbsp; 🔄 {turno_str}</div>
+                                </div>
+                                <div class="reg-horas">{fh(hrs)}</div>
+                            </div>
+                            <div class="reg-grid">
+                                <div><div class="reg-grid-label">Tipo de frente</div><div class="reg-grid-val">{row.get('TipoFrente','—')}</div></div>
+                                <div><div class="reg-grid-label">Horas totais</div><div class="reg-grid-val">{fh(hrs)}</div></div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        if row.get('Relatorio') and str(row.get('Relatorio','')).strip():
+                            with st.expander(f"📝 Relatório — {tec}"):
+                                st.write(row['Relatorio'])
+
+                        # Modo edição inline
+                        if st.session_state.aprov_edit_idx == idx:
+                            with st.container():
+                                st.markdown("**✏️ Editar registo**")
+                                ec1, ec2, ec3 = st.columns(3)
+                                with ec1: nova_frente = st.text_input("Frente", value=str(row.get('Frente','')), key=f"ef_{idx}")
+                                with ec2: nova_obra   = st.text_input("Obra", value=str(row.get('Obra','')), key=f"eo_{idx}")
+                                with ec3: novas_horas = st.number_input("Horas", value=float(hrs), min_value=0.0, max_value=16.0, step=0.5, key=f"eh_{idx}")
+                                novo_rel = st.text_area("Relatório", value=str(row.get('Relatorio','')), key=f"er_{idx}")
+                                es1, es2 = st.columns(2)
+                                with es1:
+                                    if st.button("💾 Guardar", key=f"save_edit_{idx}", type="primary"):
+                                        registos_db.at[idx,'Frente']      = nova_frente
+                                        registos_db.at[idx,'Obra']        = nova_obra
+                                        registos_db.at[idx,'Horas_Total'] = novas_horas
+                                        registos_db.at[idx,'Relatorio']   = novo_rel
+                                        save_db(registos_db,"registos.csv"); inv()
+                                        st.session_state.aprov_edit_idx = None
+                                        st.success("✅ Registo actualizado!"); st.rerun()
+                                with es2:
+                                    if st.button("↩️ Cancelar", key=f"cancel_edit_{idx}"):
+                                        st.session_state.aprov_edit_idx = None; st.rerun()
+
+                        # Botões de acção
+                        ba1, ba2, ba3, ba4, _ = st.columns([1,1,1,1,2])
+                        with ba1:
+                            if st.button("✅ Aprovar", key=f"ap_{idx}", type="primary", use_container_width=True):
+                                registos_db.at[idx,'Status']="1"; save_db(registos_db,"registos.csv"); inv(); st.rerun()
+                        with ba2:
+                            if st.button("🔵 Fechar", key=f"fe_{idx}", use_container_width=True):
+                                registos_db.at[idx,'Status']="2"; save_db(registos_db,"registos.csv"); inv(); st.rerun()
+                        with ba3:
+                            if st.button("✏️ Editar", key=f"ed_{idx}", use_container_width=True):
+                                st.session_state.aprov_edit_idx = idx if st.session_state.aprov_edit_idx != idx else None; st.rerun()
+                        with ba4:
+                            if st.button("🗑️ Apagar", key=f"rej_{idx}", use_container_width=True):
+                                st.session_state[f"confirm_del_{idx}"] = True; st.rerun()
+
+                        # Confirmação de apagar
+                        if st.session_state.get(f"confirm_del_{idx}", False):
+                            st.warning(f"⚠️ Apagar registo de **{tec}** ({ds}, {fh(hrs)})?")
+                            cd1, cd2 = st.columns(2)
+                            with cd1:
+                                if st.button("🗑️ Sim, apagar", key=f"del_sim_{idx}", type="primary"):
+                                    registos_db = registos_db.drop(idx).reset_index(drop=True)
+                                    save_db(registos_db,"registos.csv"); inv()
+                                    st.session_state.pop(f"confirm_del_{idx}", None); st.rerun()
+                            with cd2:
+                                if st.button("↩️ Cancelar", key=f"del_nao_{idx}"):
+                                    st.session_state.pop(f"confirm_del_{idx}", None); st.rerun()
+
+                        st.markdown('<div style="height:6px;"></div>', unsafe_allow_html=True)
+
+                st.markdown('<div class="tec-divider"></div>', unsafe_allow_html=True)
+
+        # ── REGISTOS JÁ PROCESSADOS ──────────────────────────────────
+        if not registos_db.empty:
+            proc_hoje = registos_db[
+                (registos_db['Status'].isin(["1","2"])) &
+                (pd.to_datetime(registos_db['Data'],errors='coerce').dt.normalize()==dia_sel)
+            ]
+            if not proc_hoje.empty:
+                with st.expander(f"📁 Registos já processados em {label_dia} ({len(proc_hoje)})", expanded=False):
+                    for _, row in proc_hoje.iterrows():
+                        ds  = row['Data'].strftime('%d/%m/%Y') if pd.notna(row['Data']) and hasattr(row['Data'],'strftime') else "—"
+                        hrs = float(row['Horas_Total']) if pd.notna(row.get('Horas_Total')) else 0
+                        estado = "✅ Aprovado" if row['Status']=="1" else "🔵 Fechado"
+                        st.markdown(f"""
+                        <div class="reg-card aprovado">
+                            <div class="reg-card-top">
+                                <div>
+                                    <div class="reg-frente">{row.get('Frente','—')}</div>
+                                    <div class="reg-status">{estado} &nbsp;·&nbsp; {row['Técnico']} &nbsp;·&nbsp; {row['Obra']} &nbsp;·&nbsp; {ds}</div>
+                                </div>
+                                <div class="reg-horas">{fh(hrs)}</div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
     with tab3:
         st.markdown('<div class="section-title">👥 Pessoal</div>',unsafe_allow_html=True)
