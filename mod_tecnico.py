@@ -43,12 +43,8 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
 
     hj_dt=datetime.now()
     mt=registos_db[registos_db['Técnico']==st.session_state.user].copy() if not registos_db.empty else pd.DataFrame()
-    h_mes=mt[mt['Data'].dt.month==hj_dt.month]['Horas_Total'].sum() if not mt.empty else 0
-    h_pend=mt[mt['Status']=="0"]['Horas_Total'].sum() if not mt.empty else 0
-    c1m,c2m=st.columns(2)
-    with c1m: render_metric_red("⏱️",fh(h_mes),"Horas deste mês")
-    with c2m: render_metric_red("📅",fh(h_pend),"Por validar")
-    st.markdown("<br>",unsafe_allow_html=True)
+    if not mt.empty and 'Data' in mt.columns:
+        mt['Data'] = pd.to_datetime(mt['Data'], errors='coerce')
 
     is_chefe = st.session_state.get('cargo','') in ['Chefe de Equipa','Encarregado','Supervisor']
 
@@ -92,55 +88,361 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
         tab2=None; tab_perfil=tab6; tab_seg=tab6
 
     with tab1:
-        ds_=st.session_state.data_consulta; hj=datetime.now().date()
-        render_cal(ds_,mt)
-        st.markdown("<br>",unsafe_allow_html=True)
-        rd=mt[mt['Data']==pd.Timestamp(ds_)] if not mt.empty else pd.DataFrame()
-        if not rd.empty:
-            th=rd['Horas_Total'].sum()
-            st.markdown(f"<h2 style='text-align:center;color:#0A2463;font-size:2.5rem;font-weight:800;'>{fh(th)}</h2><p style='text-align:center;color:#7A8BA6;margin-top:-10px;'>{ds_.strftime('%d de %B de %Y')}</p>",unsafe_allow_html=True)
-            st.markdown("<br>",unsafe_allow_html=True)
-            for _,row in rd.iterrows():
-                st_txt,st_cls=sl(row['Status'])
-                cod_=""
-                if not obras_db.empty and row['Obra'] in obras_db['Obra'].values:
-                    cod_=obras_db[obras_db['Obra']==row['Obra']]['Codigo'].values[0]
-                render_card(row['Obra'],cod_,st_txt,st_cls,row['Turnos'],float(row['Horas_Total']),row.get('TipoFrente',''),row.get('Relatorio'),row.get('Status','0'))
-        else: st.info(f"📭 Sem registos em {ds_.strftime('%d/%m/%Y')}.")
+        # ── CSS Tab Pontos ───────────────────────────────────────────
+        st.markdown("""
+        <style>
+        /* ── Perfil header ── */
+        .tec-profile-card {
+            background: linear-gradient(135deg, #1A1A2E 0%, #C0392B 100%);
+            border-radius: 20px; padding: 18px 22px;
+            display: flex; align-items: center; gap: 14px;
+            margin-bottom: 16px; color: white; position: relative; overflow: hidden;
+        }
+        .tec-profile-card::before {
+            content:''; position:absolute; top:-30px; right:-30px;
+            width:110px; height:110px; background:rgba(255,255,255,.06); border-radius:50%;
+        }
+        .tec-profile-card::after {
+            content:''; position:absolute; bottom:-20px; right:55px;
+            width:70px; height:70px; background:rgba(255,255,255,.04); border-radius:50%;
+        }
+        .tec-av-big {
+            width:52px; height:52px; border-radius:50%;
+            background:rgba(255,255,255,.2); border:2px solid rgba(255,255,255,.4);
+            display:flex; align-items:center; justify-content:center;
+            font-size:1.3rem; font-weight:800; flex-shrink:0; z-index:1;
+        }
+        .tec-prof-info { flex:1; z-index:1; }
+        .tec-prof-name  { font-size:1.05rem; font-weight:800; line-height:1; }
+        .tec-prof-cargo { font-size:.76rem; opacity:.75; margin-top:3px; }
+        .tec-clock-wrap { text-align:right; z-index:1; }
+        .tec-clock {
+            font-family: 'DM Mono', 'Courier New', monospace;
+            font-size:1.9rem; font-weight:500; letter-spacing:-1px; line-height:1;
+        }
+        .tec-date-sm { font-size:.68rem; opacity:.6; margin-top:2px; }
+        /* ── Chips métricas ── */
+        .pt-metrics { display:flex; gap:10px; margin-bottom:18px; }
+        .pt-chip {
+            flex:1; background:#fff; border:1px solid #E8ECF2;
+            border-radius:12px; padding:11px 12px; text-align:center;
+        }
+        .pt-chip .pcv { font-size:1.25rem; font-weight:800; color:#1A1A2E; }
+        .pt-chip .pcl { font-size:.66rem; color:#8A95A3; text-transform:uppercase; font-weight:600; letter-spacing:.4px; margin-top:2px; }
+        .pt-chip .pcv.orange { color:#E67E22; }
+        /* ── Calendário semanal ── */
+        .week-bar {
+            background:#fff; border:1px solid #E8ECF2;
+            border-radius:14px; padding:12px 14px; margin-bottom:16px;
+        }
+        .week-bar-title { font-size:.68rem; font-weight:700; color:#8A95A3; text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px; }
+        /* ── Total do dia ── */
+        .dia-total-wrap { text-align:center; padding:14px 0 10px; }
+        .dia-total-h {
+            font-family:'DM Mono','Courier New',monospace;
+            font-size:2.8rem; font-weight:500; color:#1A1A2E; line-height:1;
+        }
+        .dia-total-sub { font-size:.82rem; color:#8A95A3; margin-top:5px; }
+        /* ── Card de registo ── */
+        .rp-card {
+            background:#fff; border:1px solid #E8ECF2;
+            border-radius:13px; padding:14px 16px; margin-bottom:9px;
+            position:relative; overflow:hidden;
+        }
+        .rp-card::before {
+            content:''; position:absolute; left:0; top:0; bottom:0;
+            width:4px; border-radius:4px 0 0 4px;
+        }
+        .rp-card.pendente::before  { background:#E67E22; }
+        .rp-card.aprovado::before  { background:#27AE60; }
+        .rp-card.fechado::before   { background:#2980B9; }
+        .rp-top { display:flex; justify-content:space-between; align-items:flex-start; }
+        .rp-frente { font-weight:700; font-size:.93rem; color:#1A1A2E; }
+        .rp-obra   { font-size:.76rem; color:#8A95A3; margin-top:2px; }
+        .rp-horas  { font-family:'DM Mono','Courier New',monospace; font-size:1.25rem; font-weight:500; color:#1A1A2E; }
+        .rp-pills  { display:flex; gap:8px; margin-top:9px; flex-wrap:wrap; }
+        .rp-pill {
+            display:inline-flex; align-items:center; gap:3px;
+            background:#F4F6F8; border-radius:20px; padding:3px 9px;
+            font-size:.73rem; font-weight:600; color:#4A5568;
+        }
+        .rp-pill.pendente { background:#FEF3E7; color:#C47A1B; }
+        .rp-pill.aprovado { background:#EDFAF3; color:#1E8449; }
+        .rp-pill.fechado  { background:#EAF4FB; color:#1A6FA0; }
+        .rp-cod { display:inline-block; background:#EBF5FB; color:#2980B9; border-radius:5px; padding:1px 6px; font-size:.7rem; font-weight:700; margin-left:5px; }
+        /* ── Form steps ── */
+        .form-step-title {
+            font-size:.68rem; font-weight:700; color:#8A95A3;
+            text-transform:uppercase; letter-spacing:.6px; margin:14px 0 6px;
+        }
+        .obra-card-sel {
+            background:#fff; border:2px solid #E8ECF2; border-radius:13px;
+            padding:12px 14px; margin-bottom:6px; display:flex; align-items:center; gap:10px;
+        }
+        .obra-card-sel.selected { border-color:#C0392B; background:#FEF9F8; }
+        /* ── Horas preview ── */
+        .horas-preview {
+            text-align:center; padding:10px; background:#F8FAFC;
+            border-radius:11px; margin:6px 0;
+        }
+        /* ── Vazio ── */
+        .pt-empty { text-align:center; padding:36px 16px; color:#8A95A3; }
+        .pt-empty-ico { font-size:2.5rem; margin-bottom:10px; }
+        .pt-empty-title { font-weight:700; color:#1A1A2E; font-size:.98rem; }
+        .pt-empty-sub   { font-size:.82rem; margin-top:3px; }
+        </style>
+        """, unsafe_allow_html=True)
 
-        if ds_==hj:
-            st.divider()
-            with st.expander("➕ Registar Ponto",expanded=rd.empty):
-                if obras_db.empty: st.warning("Sem obras disponíveis.")
+        hj = datetime.now().date()
+        ds_ = st.session_state.data_consulta
+
+        # ── Dados do utilizador ──────────────────────────────────────
+        user_nome  = st.session_state.user
+        user_cargo = st.session_state.get('cargo', 'Técnico')
+        initials   = "".join([p[0].upper() for p in user_nome.split()[:2]])
+        hora_atual = datetime.now().strftime('%H:%M')
+        data_label = datetime.now().strftime('%A, %d %b').capitalize()
+
+        # ── Calcular métricas ────────────────────────────────────────
+        def _flt(x):
+            try: return float(x)
+            except: return 0.0
+        h_hoje = mt[mt['Data'] == pd.Timestamp(hj)]['Horas_Total'].apply(_flt).sum() if not mt.empty else 0
+        h_mes  = mt[mt['Data'].dt.month == hj_dt.month]['Horas_Total'].apply(_flt).sum() if not mt.empty else 0
+        h_pend = mt[mt['Status'] == "0"]['Horas_Total'].apply(_flt).sum() if not mt.empty else 0
+
+        # ── HEADER: avatar + relógio ─────────────────────────────────
+        st.markdown(f"""
+        <div class="tec-profile-card">
+            <div class="tec-av-big">{initials}</div>
+            <div class="tec-prof-info">
+                <div class="tec-prof-name">{user_nome}</div>
+                <div class="tec-prof-cargo">{user_cargo}</div>
+            </div>
+            <div class="tec-clock-wrap">
+                <div class="tec-clock" id="pt-clock">{hora_atual}</div>
+                <div class="tec-date-sm">{data_label}</div>
+            </div>
+        </div>
+        <script>
+        (function() {{
+            function tick() {{
+                var n=new Date();
+                var s=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+                var el=document.getElementById('pt-clock');
+                if(el) el.textContent=s;
+            }}
+            tick(); setInterval(tick,1000);
+        }})();
+        </script>
+        """, unsafe_allow_html=True)
+
+        # ── Chips métricas ───────────────────────────────────────────
+        st.markdown(f"""
+        <div class="pt-metrics">
+            <div class="pt-chip"><div class="pcv">{fh(h_hoje)}</div><div class="pcl">Hoje</div></div>
+            <div class="pt-chip"><div class="pcv">{fh(h_mes)}</div><div class="pcl">Este mês</div></div>
+            <div class="pt-chip"><div class="pcv orange">{fh(h_pend)}</div><div class="pcl">Por validar</div></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── Calendário semanal ───────────────────────────────────────
+        inicio_sem = hj - timedelta(days=hj.weekday())
+        dias_sem   = [inicio_sem + timedelta(days=i) for i in range(7)]
+        nomes_pt   = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom']
+        dias_com_reg = set(mt['Data'].dt.date.unique()) if not mt.empty else set()
+
+        st.markdown('<div class="week-bar"><div class="week-bar-title">📅 Semana</div>', unsafe_allow_html=True)
+        cols_w = st.columns(7)
+        for i, (dia, nome) in enumerate(zip(dias_sem, nomes_pt)):
+            with cols_w[i]:
+                dot    = "🟠" if dia in dias_com_reg else ""
+                is_sel = (dia == ds_)
+                lbl    = f"{nome} {dia.day}{' ' + dot if dot else ''}"
+                if st.button(lbl, key=f"pt_w_{i}", use_container_width=True,
+                             type="primary" if is_sel else "secondary"):
+                    st.session_state.data_consulta = dia
+                    st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── Registos do dia selecionado ──────────────────────────────
+        rd = mt[mt['Data'] == pd.Timestamp(ds_)] if not mt.empty else pd.DataFrame()
+        ds_label = "Hoje" if ds_ == hj else ds_.strftime('%d de %B de %Y')
+
+        if not rd.empty:
+            th = rd['Horas_Total'].apply(_flt).sum()
+            st.markdown(f"""
+            <div class="dia-total-wrap">
+                <div class="dia-total-h">{fh(th)}</div>
+                <div class="dia-total-sub">⏱ Total em {ds_label}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            for _, row in rd.iterrows():
+                st_txt, st_cls = sl(row['Status'])
+                cod_ = ""
+                if not obras_db.empty and row['Obra'] in obras_db['Obra'].values:
+                    cod_ = obras_db[obras_db['Obra'] == row['Obra']]['Codigo'].values[0]
+                hrs = _flt(row.get('Horas_Total', 0))
+                turno_s = str(row.get('Turnos','—')) if pd.notna(row.get('Turnos')) else '—'
+
+                if row['Status'] == "0":   css_c = "pendente"; pill_c = "pendente"
+                elif row['Status'] == "1": css_c = "aprovado"; pill_c = "aprovado"
+                else:                      css_c = "fechado";  pill_c = "fechado"
+
+                rel_html = ""
+                rel_val = row.get('Relatorio', '')
+                if rel_val and str(rel_val).strip() and str(rel_val).strip() != 'nan':
+                    rel_html = f"<div style='margin-top:9px;font-size:.8rem;color:#4A5568;padding:7px 10px;background:#F8FAFC;border-radius:7px;'>📝 {str(rel_val)[:120]}</div>"
+
+                st.markdown(f"""
+                <div class="rp-card {css_c}">
+                    <div class="rp-top">
+                        <div>
+                            <div class="rp-frente">{row.get('Frente','—')}
+                                {'<span class="rp-cod">'+cod_+'</span>' if cod_ else ''}
+                            </div>
+                            <div class="rp-obra">📍 {row['Obra']}</div>
+                        </div>
+                        <div class="rp-horas">{fh(hrs)}</div>
+                    </div>
+                    <div class="rp-pills">
+                        <span class="rp-pill">🕐 {turno_s}</span>
+                        <span class="rp-pill">🏷️ {row.get('TipoFrente','—')}</span>
+                        <span class="rp-pill {pill_c}">{st_txt}</span>
+                    </div>
+                    {rel_html}
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="pt-empty">
+                <div class="pt-empty-ico">📭</div>
+                <div class="pt-empty-title">Sem registos em {ds_label}</div>
+                <div class="pt-empty-sub">{'Regista o teu ponto abaixo ↓' if ds_ == hj else 'Seleciona outro dia ou regista hoje.'}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ── Formulário de novo registo (só hoje) ─────────────────────
+        if ds_ == hj:
+            st.markdown('<div style="text-align:center;color:#8A95A3;font-size:.8rem;margin:6px 0 14px;">＋ Adicionar período</div>', unsafe_allow_html=True)
+            with st.expander("➕ Registar Ponto", expanded=rd.empty):
+                if obras_db.empty:
+                    st.warning("⚠️ Sem obras disponíveis. Contacta o administrador.")
                 else:
-                    oa=obras_db[obras_db['Ativa']=='Ativa']
-                    if oa.empty: oa=obras_db
-                    with st.form("fp"):
-                        c1,c2=st.columns(2)
-                        with c1:
-                            ob_=st.selectbox("🏗️ Obra",oa['Obra'].tolist())
-                            oi_=oa[oa['Obra']==ob_].iloc[0]
-                            if oi_.get('DataFim'):
-                                try:
-                                    df_fim=pd.to_datetime(oi_['DataFim']).date()
-                                    if df_fim<hj: st.warning(f"⚠️ Obra com prazo previsto em {df_fim.strftime('%d/%m/%Y')}!")
-                                except: pass
-                            fr_d=frentes_db[frentes_db['Obra']==ob_]['Frente'].tolist() if not frentes_db.empty else []
-                            fr_=st.selectbox("📋 Frente",fr_d if fr_d else ["Geral"])
-                            tf_=st.selectbox("🏷️ Tipo de Frente",TIPOS_FRENTE)
-                        with c2:
-                            h1=st.time_input("🕗 Entrada",value=datetime.now().replace(hour=8,minute=0,second=0,microsecond=0).time())
-                            h2=st.time_input("🕔 Saída",value=datetime.now().replace(hour=17,minute=0,second=0,microsecond=0).time())
-                        rel_=st.text_area("📝 Relatório / Observações",placeholder="Descreve o trabalho realizado...")
-                        if st.form_submit_button("📍 Submeter Registo",use_container_width=True):
-                            if h2<=h1: st.error("⚠️ Saída deve ser após entrada.")
+                    oa = obras_db[obras_db['Ativa'].isin(['Ativa','ativa','Sim','sim','true','True','1'])]
+                    if oa.empty: oa = obras_db
+
+                    # Step 1 — Obra
+                    st.markdown('<div class="form-step-title">1. Seleciona a obra</div>', unsafe_allow_html=True)
+                    pesq = st.text_input("🔍 Pesquisar obra", placeholder="Nome ou código...",
+                                         key="pt_pesq", label_visibility="collapsed")
+                    if pesq.strip():
+                        oa_f = oa[oa['Obra'].str.contains(pesq, case=False, na=False)]
+                        if oa_f.empty: oa_f = oa
+                    else:
+                        oa_f = oa
+
+                    ob_ = st.selectbox("Obra", oa_f['Obra'].tolist(), key="pt_obra",
+                                       label_visibility="collapsed",
+                                       format_func=lambda x: f"🏗️ {x}")
+
+                    if ob_:
+                        oi_ = oa[oa['Obra'] == ob_].iloc[0]
+                        cod_obra = str(oi_.get('Codigo',''))
+                        cli_obra = str(oi_.get('Cliente',''))
+                        cod_badge = f'<span style="background:#EBF5FB;color:#2980B9;border-radius:5px;padding:1px 7px;font-size:.7rem;font-weight:700;">{cod_obra}</span>' if cod_obra and cod_obra != 'nan' else ''
+                        cli_txt  = cli_obra if cli_obra and cli_obra != 'nan' else ''
+                        st.markdown(f"""
+                        <div class="obra-card-sel selected">
+                            <div style="flex:1;">
+                                <div style="font-weight:700;font-size:.93rem;color:#1A1A2E;">{ob_}</div>
+                                <div style="font-size:.76rem;color:#C0392B;margin-top:2px;">{cod_badge} {cli_txt}</div>
+                            </div>
+                            <div style="color:#27AE60;font-size:1.1rem;">✓</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        if oi_.get('DataFim'):
+                            try:
+                                df_fim = pd.to_datetime(oi_['DataFim']).date()
+                                if df_fim < hj: st.warning(f"⚠️ Obra com prazo previsto em {df_fim.strftime('%d/%m/%Y')}!")
+                            except: pass
+
+                    # Step 2 — Frente
+                    st.markdown('<div class="form-step-title">2. Frente de trabalho</div>', unsafe_allow_html=True)
+                    fr_d = frentes_db[frentes_db['Obra'] == ob_]['Frente'].tolist() if not frentes_db.empty else []
+                    fr_  = st.selectbox("Frente", fr_d if fr_d else ["Geral"], key="pt_frente",
+                                        label_visibility="collapsed",
+                                        format_func=lambda x: f"📋 {x}")
+                    tf_  = st.selectbox("Tipo de Frente", TIPOS_FRENTE, key="pt_tipo",
+                                        label_visibility="collapsed",
+                                        format_func=lambda x: f"🏷️ {x}")
+
+                    # Step 3 — Horário
+                    st.markdown('<div class="form-step-title">3. Horário</div>', unsafe_allow_html=True)
+                    col_h1, col_h2 = st.columns(2)
+                    with col_h1:
+                        st.markdown('<div style="font-size:.75rem;font-weight:700;color:#27AE60;margin-bottom:4px;">🟢 Entrada</div>', unsafe_allow_html=True)
+                        h1 = st.time_input("Entrada",
+                                           value=datetime.now().replace(hour=8,minute=0,second=0,microsecond=0).time(),
+                                           key="pt_h1", label_visibility="collapsed")
+                        st.markdown(f'<div style="text-align:center;font-family:monospace;font-size:1.7rem;font-weight:500;color:#27AE60;margin-top:-4px;">{h1.strftime("%H:%M")}</div>', unsafe_allow_html=True)
+                    with col_h2:
+                        st.markdown('<div style="font-size:.75rem;font-weight:700;color:#C0392B;margin-bottom:4px;">🔴 Saída</div>', unsafe_allow_html=True)
+                        h2 = st.time_input("Saída",
+                                           value=datetime.now().replace(hour=17,minute=0,second=0,microsecond=0).time(),
+                                           key="pt_h2", label_visibility="collapsed")
+                        st.markdown(f'<div style="text-align:center;font-family:monospace;font-size:1.7rem;font-weight:500;color:#C0392B;margin-top:-4px;">{h2.strftime("%H:%M")}</div>', unsafe_allow_html=True)
+
+                    if h2 > h1:
+                        hc = (datetime.combine(hj, h2) - datetime.combine(hj, h1)).seconds / 3600
+                        cor_hc = "#27AE60" if hc <= 10 else ("#E67E22" if hc <= 14 else "#C0392B")
+                        st.markdown(f"""
+                        <div class="horas-preview">
+                            <span style="font-family:monospace;font-size:1.4rem;font-weight:500;color:{cor_hc};">{fh(hc)}</span>
+                            <span style="font-size:.78rem;color:#8A95A3;margin-left:6px;">de trabalho</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    elif h2.hour > 0 and h2 <= h1:
+                        st.error("⚠️ A saída deve ser posterior à entrada.")
+
+                    # Step 4 — Relatório
+                    st.markdown('<div class="form-step-title">4. Relatório (opcional)</div>', unsafe_allow_html=True)
+                    rel_ = st.text_area("Relatório", placeholder="📝 Descreve o trabalho realizado hoje...",
+                                        height=90, key="pt_rel", label_visibility="collapsed")
+
+                    # Submeter
+                    col_s1, col_s2 = st.columns([3, 1])
+                    with col_s1:
+                        submeter = st.button("📍 Registar Ponto", use_container_width=True,
+                                             type="primary", key="pt_submit")
+                    with col_s2:
+                        st.markdown(f'<div style="padding:7px;text-align:center;font-size:.68rem;color:#8A95A3;border:1px solid #E8ECF2;border-radius:9px;"><div style="font-weight:700;color:#1A1A2E;font-size:.85rem;">Hoje</div><div>{hj.strftime("%d/%m/%Y")}</div></div>', unsafe_allow_html=True)
+
+                    if submeter:
+                        if h2 <= h1:
+                            st.error("⚠️ A saída deve ser posterior à entrada.")
+                        else:
+                            hc = (datetime.combine(hj, h2) - datetime.combine(hj, h1)).seconds / 3600
+                            if hc > 16:
+                                st.error("⚠️ Mais de 16 horas. Verifica os horários.")
                             else:
-                                hc=(datetime.combine(date.today(),h2)-datetime.combine(date.today(),h1)).seconds/3600
-                                if hc>16: st.error("⚠️ Mais de 16h. Verifica os horários.")
-                                else:
-                                    ts_=f"{h1.strftime('%H:%M')}-{h2.strftime('%H:%M')}"
-                                    nr=pd.DataFrame([{"Data":hj.strftime('%d/%m/%Y'),"Técnico":st.session_state.user,"Obra":ob_,"Frente":fr_,"TipoFrente":tf_,"Turnos":ts_,"Relatorio":rel_.strip(),"Status":"0","Horas_Total":round(hc,2),"Localizacao_Checkin":"","Localizacao_Checkout":""}])
-                                    if save_db(pd.concat([registos_db,nr],ignore_index=True),"registos.csv"): inv(); st.success("✅ Ponto registado!"); st.balloons(); st.rerun()
+                                ts_ = f"{h1.strftime('%H:%M')}-{h2.strftime('%H:%M')}"
+                                nr = pd.DataFrame([{
+                                    "Data": hj.strftime('%d/%m/%Y'),
+                                    "Técnico": st.session_state.user,
+                                    "Obra": ob_, "Frente": fr_, "TipoFrente": tf_,
+                                    "Turnos": ts_, "Relatorio": rel_.strip(),
+                                    "Status": "0", "Horas_Total": round(hc, 2),
+                                    "Localizacao_Checkin": "", "Localizacao_Checkout": ""
+                                }])
+                                if save_db(pd.concat([registos_db, nr], ignore_index=True), "registos.csv"):
+                                    inv()
+                                    st.success(f"✅ Ponto registado! {fh(hc)} em {ob_}")
+                                    st.balloons()
+                                    st.rerun()
+        else:
+            st.info(f"📅 Só podes registar pontos no próprio dia. Seleciona **hoje** no calendário para registar.")
 
 
     # ─────────────────────────────────────────────────
