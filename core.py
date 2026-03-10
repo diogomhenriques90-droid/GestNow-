@@ -15,6 +15,36 @@ import pandas as pd
 import os, re, secrets, shutil, io
 from datetime import datetime, timedelta, date
 import bcrypt
+from google.cloud import storage as gcs
+
+GCS_BUCKET = os.environ.get("GCS_BUCKET", "gestnow-dados")
+
+def _gcs_client():
+    return gcs.Client()
+
+def _gcs_read(fn):
+    try:
+        bucket = _gcs_client().bucket(GCS_BUCKET)
+        blob = bucket.blob(f"data/{fn}")
+        if blob.exists():
+            return io.BytesIO(blob.download_as_bytes())
+    except Exception as e:
+        st.warning(f"⚠️ Erro ao ler {fn} do Storage: {e}")
+    return None
+
+def _gcs_write(fn, content_bytes):
+    try:
+        bucket = _gcs_client().bucket(GCS_BUCKET)
+        # backup antes de escrever
+        blob = bucket.blob(f"data/{fn}")
+        if blob.exists():
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            bucket.copy_blob(blob, bucket, f"backups/{fn.replace('.csv','')}_{ts}.csv")
+        blob.upload_from_string(content_bytes, content_type="text/csv")
+        return True
+    except Exception as e:
+        st.error(f"⚠️ Erro ao guardar {fn} no Storage: {e}")
+        return False
 import plotly.express as px
 from streamlit_folium import folium_static
 import folium
@@ -169,9 +199,9 @@ def val_pw(p):
 # ============================================================
 def load_db(fn,cols):
     try:
-        fp=f"data/{fn}" if not fn.startswith("data/") else fn
-        if os.path.exists(fp) and os.path.getsize(fp)>0:
-            df=pd.read_csv(fp,dtype=str,on_bad_lines='skip')
+        buf = _gcs_read(fn)
+        if buf:
+            df=pd.read_csv(buf,dtype=str,on_bad_lines='skip')
             df.columns=df.columns.str.strip()
             for c in df.columns: df[c]=df[c].astype(str).str.strip().replace('nan','')
             for c in cols:
@@ -182,16 +212,9 @@ def load_db(fn,cols):
 
 def save_db(df,fn):
     try:
-        fp=f"data/{fn}" if not fn.startswith("data/") else fn
-        os.makedirs("data",exist_ok=True)
-        if os.path.exists(fp):
-            bd="data/backups"; os.makedirs(bd,exist_ok=True)
-            ts=datetime.now().strftime("%Y%m%d_%H%M%S")
-            shutil.copy2(fp,f"{bd}/{fn.replace('.csv','')}_{ts}.csv")
-            base=fn.replace('.csv','')
-            bks=sorted([f for f in os.listdir(bd) if f.startswith(base)])
-            for old in bks[:-10]: os.remove(os.path.join(bd,old))
-        df.to_csv(fp,index=False,encoding='utf-8-sig'); return True
+        buf = io.StringIO()
+        df.to_csv(buf,index=False,encoding='utf-8-sig')
+        return _gcs_write(fn, buf.getvalue().encode('utf-8-sig'))
     except Exception as e: st.error(f"⚠️ Erro ao guardar {fn}: {e}"); return False
 
 @st.cache_data(ttl=30)
