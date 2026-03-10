@@ -153,7 +153,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
         st.markdown("<br>", unsafe_allow_html=True)
 
         # ── Seleção de obra e período ──
-        obras_ativas = obras_db[obras_db['Ativa'].str.lower()=='sim']['Obra'].tolist() if not obras_db.empty else []
+        obras_ativas = obras_db[obras_db['Ativa'].isin(['Ativa','ativa','Sim','sim','true','True','1'])]['Obra'].tolist() if not obras_db.empty else []
         if not obras_ativas:
             st.warning("Sem obras ativas disponíveis.")
         else:
@@ -551,7 +551,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
 
     # ── Ferramentas (chefe) ────────────────────────────
     with tab4:
-        obras_ativas_tec=obras_db[obras_db['Ativa'].str.lower()=='sim']['Obra'].tolist() if not obras_db.empty else []
+        obras_ativas_tec=obras_db[obras_db['Ativa'].isin(['Ativa','ativa','Sim','sim','true','True','1'])]['Obra'].tolist() if not obras_db.empty else []
         st.markdown('<div class="section-title">🔧 Requisitar Ferramenta</div>', unsafe_allow_html=True)
         if not obras_ativas_tec:
             st.warning("Sem obras ativas disponíveis.")
@@ -594,7 +594,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
 
     # ── Material e EPI ─────────────────────────────────
     with tab5:
-        obras_ativas_tec2=obras_db[obras_db['Ativa'].str.lower()=='sim']['Obra'].tolist() if not obras_db.empty else []
+        obras_ativas_tec2=obras_db[obras_db['Ativa'].isin(['Ativa','ativa','Sim','sim','true','True','1'])]['Obra'].tolist() if not obras_db.empty else []
         st.markdown('<div class="section-title">📦 Material / Consumíveis / EPI</div>', unsafe_allow_html=True)
         sub_mat, sub_epi = st.tabs(["📦 Material e Consumíveis","🦺 Fardamento e EPI"])
 
