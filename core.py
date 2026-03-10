@@ -452,15 +452,16 @@ def gerar_folha_ponto_pdf(obra, cod_obra, chefe, periodo_label, regs_obra, users
     - Rodapé legal com ID único
     """
     import base64, uuid as _uuid
-    from reportlab.graphics import renderPDF as _renderPDF
-    from reportlab.platypus import KeepTogether
 
     doc_id = doc_id or _uuid.uuid4().hex[:12].upper()
     buf = io.BytesIO()
+
+    # Largura útil A4 com margens 1.8cm: 21cm - 3.6cm = 17.4cm
+    PAGE_W = 17.4 * cm
+
     doc = SimpleDocTemplate(buf, pagesize=A4,
         leftMargin=1.8*cm, rightMargin=1.8*cm,
         topMargin=1.5*cm, bottomMargin=2.2*cm)
-    sty = getSampleStyleSheet()
     el = []
 
     # ── Estilos ──────────────────────────────────────────────
@@ -468,231 +469,251 @@ def gerar_folha_ponto_pdf(obra, cod_obra, chefe, periodo_label, regs_obra, users
     NAVY  = colors.HexColor('#0A2463')
     GREY  = colors.HexColor('#7A8BA6')
     LGREY = colors.HexColor('#F8FAFF')
-    BLUE  = colors.HexColor('#3E92CC')
 
-    ts_title  = ParagraphStyle('FT',  fontSize=16, fontName='Helvetica-Bold',
-                                textColor=NAVY, spaceAfter=2, leading=18)
-    ts_sub    = ParagraphStyle('FSub', fontSize=8, textColor=GREY, spaceAfter=8)
-    ts_h2     = ParagraphStyle('FH2',  fontSize=10, fontName='Helvetica-Bold',
-                                textColor=NAVY, spaceBefore=10, spaceAfter=5)
-    ts_tiny   = ParagraphStyle('FTiny',fontSize=7,  textColor=GREY, alignment=1)
-    ts_label  = ParagraphStyle('FLbl', fontSize=7,  fontName='Helvetica-Bold',
-                                textColor=GREY, spaceAfter=2)
-    ts_val    = ParagraphStyle('FVal', fontSize=8,  textColor=NAVY)
+    ts_title = ParagraphStyle('FT',  fontSize=14, fontName='Helvetica-Bold',
+                               textColor=NAVY, spaceAfter=2, leading=16)
+    ts_sub   = ParagraphStyle('FSub', fontSize=7, textColor=GREY, spaceAfter=6)
+    ts_h2    = ParagraphStyle('FH2',  fontSize=9, fontName='Helvetica-Bold',
+                               textColor=NAVY, spaceBefore=8, spaceAfter=4)
+    ts_tiny  = ParagraphStyle('FTiny', fontSize=7, textColor=GREY, alignment=1)
+    ts_label = ParagraphStyle('FLbl', fontSize=7, fontName='Helvetica-Bold',
+                               textColor=GREY, spaceAfter=1)
+    ts_val   = ParagraphStyle('FVal', fontSize=8, textColor=NAVY)
 
     # ── CABEÇALHO: Logo + Título + QR ────────────────────────
-    # Coluna esquerda: logo ou nome empresa
     if logo_b64 and len(logo_b64) > 20:
         try:
             logo_bytes = base64.b64decode(logo_b64)
             logo_buf   = io.BytesIO(logo_bytes)
             from reportlab.platypus import Image as RLImage
-            logo_el = RLImage(logo_buf, width=4*cm, height=1.8*cm, kind='proportional')
+            logo_el = RLImage(logo_buf, width=3.5*cm, height=1.6*cm, kind='proportional')
         except:
             logo_el = Paragraph("<b>GESTNOW</b>", ParagraphStyle('LG',
-                fontSize=18, fontName='Helvetica-Bold', textColor=RED))
+                fontSize=14, fontName='Helvetica-Bold', textColor=RED))
     else:
-        logo_el = Paragraph("<b>🏗 GESTNOW</b>", ParagraphStyle('LG',
-            fontSize=16, fontName='Helvetica-Bold', textColor=NAVY))
+        logo_el = Paragraph("<b>GESTNOW</b>", ParagraphStyle('LG',
+            fontSize=14, fontName='Helvetica-Bold', textColor=NAVY))
 
-    # Coluna centro: título
     titulo_el = [
         Paragraph("FOLHA DE REGISTO DE PONTO", ts_title),
-        Paragraph(f"Gerado em {datetime.now().strftime('%d/%m/%Y às %H:%M')} &nbsp;|&nbsp; ID: <b>{doc_id}</b>", ts_sub),
+        Paragraph(f"Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')}  |  ID: {doc_id}", ts_sub),
     ]
 
-    # Coluna direita: QR code (aponta para ID verificável)
-    qr_data = f"GESTNOW|FP|{doc_id}|{obra}|{chefe}|{periodo_label}"
-    qr_draw = _qr_drawing(qr_data, size_cm=2.6)
-    from reportlab.platypus import Image as _RLI
-    from reportlab.graphics import renderPM as _rPM
+    # QR code — com fallback robusto
+    qr_el = Paragraph(f"<b>{doc_id}</b>", ParagraphStyle('QRF',
+        fontSize=6, textColor=GREY, alignment=1))
     try:
-        qr_png = io.BytesIO()
-        _rPM.drawToFile(qr_draw, qr_png, fmt='PNG', dpi=150)
+        from reportlab.platypus import Image as _RLI
+        from reportlab.graphics import renderPM as _rPM
+        qr_data = f"GESTNOW|FP|{doc_id}|{obra}|{chefe}|{periodo_label}"
+        qr_draw = _qr_drawing(qr_data, size_cm=2.4)
+        qr_png  = io.BytesIO()
+        _rPM.drawToFile(qr_draw, qr_png, fmt='PNG', dpi=144)
         qr_png.seek(0)
-        qr_el = _RLI(qr_png, width=2.6*cm, height=2.6*cm)
-    except:
-        # Fallback: texto com ID
-        qr_el = Paragraph(f"<b>ID</b><br/>{doc_id}", ParagraphStyle('QRF',
-            fontSize=7, textColor=GREY, alignment=1))
+        qr_el = _RLI(qr_png, width=2.4*cm, height=2.4*cm)
+    except Exception:
+        pass
 
+    # colWidths somam exactamente PAGE_W = 17.4cm
     hdr_table = Table(
         [[logo_el, titulo_el, qr_el]],
-        colWidths=[4.5*cm, 10*cm, 3*cm]
+        colWidths=[4*cm, 10.6*cm, 2.8*cm]
     )
     hdr_table.setStyle(TableStyle([
-        ('VALIGN',  (0,0),(-1,-1),'MIDDLE'),
-        ('ALIGN',   (1,0),(1,0),  'LEFT'),
-        ('ALIGN',   (2,0),(2,0),  'CENTER'),
-        ('LINEBELOW',(0,0),(-1,0),1,colors.HexColor('#E5EDFF')),
-        ('BOTTOMPADDING',(0,0),(-1,-1),8),
+        ('VALIGN',      (0,0),(-1,-1),'MIDDLE'),
+        ('ALIGN',       (1,0),(1,0),  'LEFT'),
+        ('ALIGN',       (2,0),(2,0),  'CENTER'),
+        ('LINEBELOW',   (0,0),(-1,0), 1, colors.HexColor('#E5EDFF')),
+        ('BOTTOMPADDING',(0,0),(-1,-1),6),
+        ('TOPPADDING',  (0,0),(-1,-1),4),
     ]))
     el.append(hdr_table)
-    el.append(Spacer(1, 0.3*cm))
+    el.append(Spacer(1, 0.25*cm))
 
     # ── DADOS DA OBRA ─────────────────────────────────────────
     gps_str = gps_chefe if gps_chefe else "Não disponível"
     info_rows = [
-        [Paragraph("<b>Obra</b>",ts_label),         Paragraph(obra, ts_val),
-         Paragraph("<b>Código</b>",ts_label),        Paragraph(cod_obra or "—", ts_val)],
-        [Paragraph("<b>Período</b>",ts_label),       Paragraph(periodo_label, ts_val),
-         Paragraph("<b>Chefe de Equipa</b>",ts_label), Paragraph(chefe, ts_val)],
-        [Paragraph("<b>Cliente</b>",ts_label),       Paragraph(nome_cliente or "—", ts_val),
-         Paragraph("<b>Localização GPS (chefe)</b>",ts_label), Paragraph(gps_str, ts_val)],
+        [Paragraph("<b>Obra</b>", ts_label),    Paragraph(str(obra), ts_val),
+         Paragraph("<b>Código</b>", ts_label),  Paragraph(str(cod_obra or "—"), ts_val)],
+        [Paragraph("<b>Período</b>", ts_label),  Paragraph(str(periodo_label), ts_val),
+         Paragraph("<b>Chefe de Equipa</b>", ts_label), Paragraph(str(chefe), ts_val)],
+        [Paragraph("<b>Cliente</b>", ts_label),  Paragraph(str(nome_cliente or "—"), ts_val),
+         Paragraph("<b>GPS (chefe)</b>", ts_label), Paragraph(str(gps_str), ts_val)],
     ]
-    ti = Table(info_rows, colWidths=[3.5*cm, 6.5*cm, 4*cm, 4*cm])
+    # colWidths somam 17.4cm
+    ti = Table(info_rows, colWidths=[3*cm, 6.2*cm, 3.8*cm, 4.4*cm])
     ti.setStyle(TableStyle([
-        ('BACKGROUND', (0,0),(-1,-1), LGREY),
-        ('GRID',       (0,0),(-1,-1), 0.4, colors.HexColor('#DDE6F5')),
-        ('TOPPADDING', (0,0),(-1,-1), 5),
-        ('BOTTOMPADDING',(0,0),(-1,-1),5),
-        ('LEFTPADDING', (0,0),(-1,-1), 6),
+        ('BACKGROUND',    (0,0),(-1,-1), LGREY),
+        ('GRID',          (0,0),(-1,-1), 0.3, colors.HexColor('#DDE6F5')),
+        ('TOPPADDING',    (0,0),(-1,-1), 4),
+        ('BOTTOMPADDING', (0,0),(-1,-1), 4),
+        ('LEFTPADDING',   (0,0),(-1,-1), 5),
+        ('RIGHTPADDING',  (0,0),(-1,-1), 4),
+        ('FONTSIZE',      (0,0),(-1,-1), 8),
     ]))
     el.append(ti)
-    el.append(Spacer(1, 0.4*cm))
+    el.append(Spacer(1, 0.35*cm))
 
     # ── TABELA DE PRESENÇA ────────────────────────────────────
     el.append(Paragraph("Registos de Presença", ts_h2))
 
-    hdrs = [['Data','Técnico','Cargo','Frente / Tipo de Trabalho','Turno','Horas','Estado']]
+    hdrs = [['Data', 'Técnico', 'Cargo', 'Frente / Trabalho', 'Turno', 'Horas', 'Estado']]
     rows = []
     total_h = 0.0
-
-    # Agrupar por técnico para calcular totais
     tecnicos_presentes = {}
 
     for _, r in regs_obra.sort_values('Data').iterrows():
-        u_row = users_df[users_df['Nome'] == r.get('Técnico','')]
+        u_row = users_df[users_df['Nome'] == r.get('Técnico', '')]
         cargo = u_row.iloc[0]['Cargo'] if not u_row.empty else '—'
-        h = float(r.get('Horas_Total', 0))
+        try:
+            h = float(r.get('Horas_Total', 0))
+        except (TypeError, ValueError):
+            h = 0.0
         total_h += h
-        tec_nome = r.get('Técnico','—')
+        tec_nome = str(r.get('Técnico', '—'))
         tecnicos_presentes[tec_nome] = tecnicos_presentes.get(tec_nome, 0) + h
 
-        data_str  = r['Data'].strftime('%d/%m/%Y') if pd.notnull(r.get('Data')) else '—'
-        estado_map = {"0":"Pendente","1":"Aprovado","2":"Faturado"}
-        turno_str = r.get('Turnos','—')
+        try:
+            data_str = r['Data'].strftime('%d/%m/%Y') if pd.notnull(r.get('Data')) else '—'
+        except Exception:
+            data_str = '—'
+
+        estado_map = {"0": "Pendente", "1": "Aprovado", "2": "Faturado"}
+        turno_str  = str(r.get('Turnos', '—')) if pd.notnull(r.get('Turnos')) else '—'
+        frente_str = str(r.get('TipoFrente', r.get('Frente', '—')))
 
         rows.append([
             data_str,
             tec_nome,
-            cargo,
-            r.get('TipoFrente', r.get('Frente','—')),
+            str(cargo),
+            frente_str,
             turno_str,
             f"{h:.1f}h",
-            estado_map.get(str(r.get('Status','0')),'—')
+            estado_map.get(str(r.get('Status', '0')), '—')
         ])
 
-    # Linha separadora + TOTAL
-    rows.append(['','','','','TOTAL',f"{total_h:.1f}h",f"{len(rows)} reg."])
+    rows.append(['', '', '', '', 'TOTAL', f"{total_h:.1f}h", f"{len(rows)} reg."])
 
+    # colWidths somam 17.4cm
     tbl_regs = Table(hdrs + rows,
-        colWidths=[2.2*cm, 3.8*cm, 2.8*cm, 4.2*cm, 3*cm, 1.6*cm, 2*cm])
+        colWidths=[2*cm, 3.6*cm, 2.8*cm, 4.2*cm, 2.8*cm, 1.5*cm, 2.5*cm],
+        repeatRows=1)
     tbl_regs.setStyle(TableStyle([
-        # Cabeçalho
-        ('BACKGROUND',    (0,0), (-1,0),  NAVY),
-        ('TEXTCOLOR',     (0,0), (-1,0),  colors.white),
-        ('FONTNAME',      (0,0), (-1,0),  'Helvetica-Bold'),
-        ('ALIGN',         (0,0), (-1,0),  'CENTER'),
-        # Dados
-        ('FONTSIZE',      (0,0), (-1,-1), 8),
-        ('GRID',          (0,0), (-1,-1), 0.4, colors.HexColor('#D1D9F0')),
-        ('ROWBACKGROUNDS',(0,1), (-1,-2), [colors.white, LGREY]),
-        # Linha total
-        ('FONTNAME',      (0,-1),(-1,-1), 'Helvetica-Bold'),
-        ('BACKGROUND',    (0,-1),(-1,-1), colors.HexColor('#EEF2FF')),
-        ('LINEABOVE',     (0,-1),(-1,-1), 1, NAVY),
-        ('ALIGN',         (5,0), (6,-1),  'CENTER'),
-        # Padding
-        ('TOPPADDING',    (0,0), (-1,-1), 4),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-        ('LEFTPADDING',   (0,0), (-1,-1), 4),
+        ('BACKGROUND',    (0,0),  (-1,0),  NAVY),
+        ('TEXTCOLOR',     (0,0),  (-1,0),  colors.white),
+        ('FONTNAME',      (0,0),  (-1,0),  'Helvetica-Bold'),
+        ('ALIGN',         (0,0),  (-1,0),  'CENTER'),
+        ('FONTSIZE',      (0,0),  (-1,-1), 7),
+        ('GRID',          (0,0),  (-1,-1), 0.3, colors.HexColor('#D1D9F0')),
+        ('ROWBACKGROUNDS',(0,1),  (-1,-2), [colors.white, LGREY]),
+        ('FONTNAME',      (0,-1), (-1,-1), 'Helvetica-Bold'),
+        ('BACKGROUND',    (0,-1), (-1,-1), colors.HexColor('#EEF2FF')),
+        ('LINEABOVE',     (0,-1), (-1,-1), 0.8, NAVY),
+        ('ALIGN',         (5,0),  (6,-1),  'CENTER'),
+        ('TOPPADDING',    (0,0),  (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0),  (-1,-1), 3),
+        ('LEFTPADDING',   (0,0),  (-1,-1), 4),
+        ('RIGHTPADDING',  (0,0),  (-1,-1), 3),
+        ('WORDWRAP',      (0,0),  (-1,-1), 1),
     ]))
     el.append(tbl_regs)
 
     # ── RESUMO POR TÉCNICO ────────────────────────────────────
     if len(tecnicos_presentes) > 1:
-        el.append(Spacer(1, 0.3*cm))
+        el.append(Spacer(1, 0.25*cm))
         el.append(Paragraph("Resumo por Técnico", ts_h2))
-        res_rows = [[Paragraph('<b>Técnico</b>',ts_label),
-                     Paragraph('<b>Total Horas</b>',ts_label),
-                     Paragraph('<b>Cargo</b>',ts_label)]]
+        res_rows = [[
+            Paragraph('<b>Técnico</b>', ts_label),
+            Paragraph('<b>Total Horas</b>', ts_label),
+            Paragraph('<b>Cargo</b>', ts_label)
+        ]]
         for tec_n, tec_h in sorted(tecnicos_presentes.items()):
-            u_r = users_df[users_df['Nome']==tec_n]
+            u_r = users_df[users_df['Nome'] == tec_n]
             cg_ = u_r.iloc[0]['Cargo'] if not u_r.empty else '—'
-            res_rows.append([tec_n, f"{tec_h:.1f}h", cg_])
-        tbl_res = Table(res_rows, colWidths=[7*cm, 4*cm, 7*cm])
+            res_rows.append([str(tec_n), f"{tec_h:.1f}h", str(cg_)])
+        # colWidths somam 17.4cm
+        tbl_res = Table(res_rows, colWidths=[7*cm, 3.4*cm, 7*cm])
         tbl_res.setStyle(TableStyle([
-            ('BACKGROUND', (0,0),(-1,0), colors.HexColor('#EEF2FF')),
-            ('FONTSIZE',   (0,0),(-1,-1),8),
-            ('GRID',       (0,0),(-1,-1),0.4,colors.HexColor('#D1D9F0')),
-            ('TOPPADDING', (0,0),(-1,-1),4),
-            ('BOTTOMPADDING',(0,0),(-1,-1),4),
-            ('LEFTPADDING', (0,0),(-1,-1),4),
+            ('BACKGROUND',    (0,0),(-1,0), colors.HexColor('#EEF2FF')),
+            ('FONTSIZE',      (0,0),(-1,-1), 7),
+            ('GRID',          (0,0),(-1,-1), 0.3, colors.HexColor('#D1D9F0')),
+            ('TOPPADDING',    (0,0),(-1,-1), 3),
+            ('BOTTOMPADDING', (0,0),(-1,-1), 3),
+            ('LEFTPADDING',   (0,0),(-1,-1), 4),
         ]))
         el.append(tbl_res)
 
-    el.append(Spacer(1, 0.5*cm))
+    el.append(Spacer(1, 0.4*cm))
 
     # ── ZONA DE ASSINATURAS ───────────────────────────────────
+    # NOTA: NÃO usar KeepTogether aqui — causa "too large on page" quando
+    # a tabela de registos já ocupou muito espaço. Cada célula é uma lista
+    # simples de elementos; o ReportLab quebra a página naturalmente.
     el.append(Paragraph("Assinaturas", ts_h2))
 
     if assin_cliente_obrigatoria and not (assin_cliente_b64 and len(assin_cliente_b64) > 20):
-        obrig_note = " <font color='red'>(obrigatória para validar este documento)</font>"
+        obrig_note = " (obrigatoria para validar)"
     else:
         obrig_note = ""
 
-    def _sig_cell(titulo, b64_img, nome="", obrig_txt=""):
-        els = []
-        els.append(Paragraph(f"<b>{titulo}</b>{obrig_txt}",
-            ParagraphStyle('SH', fontSize=8, fontName='Helvetica-Bold', textColor=GREY, spaceAfter=4)))
+    def _sig_cell_elements(titulo, b64_img, nome="", obrig_txt=""):
+        """Devolve lista de Flowables para uma célula de assinatura."""
+        cell_els = []
+        cell_els.append(Paragraph(f"<b>{titulo}</b>{obrig_txt}",
+            ParagraphStyle('SH', fontSize=8, fontName='Helvetica-Bold',
+                           textColor=GREY, spaceAfter=3)))
         if b64_img and len(b64_img) > 20:
             try:
                 ib  = base64.b64decode(b64_img)
                 ibf = io.BytesIO(ib)
                 from reportlab.platypus import Image as _I
-                els.append(_I(ibf, width=7*cm, height=2.3*cm))
-                els.append(Paragraph("✓ Assinatura digital capturada",
-                    ParagraphStyle('SOK', fontSize=7, textColor=colors.HexColor('#059669'))))
-            except:
-                els.append(Spacer(1, 2.3*cm))
-                els.append(Paragraph("_"*42, ParagraphStyle('SL', fontSize=9,
-                    textColor=colors.HexColor('#CBD5E1'))))
+                cell_els.append(_I(ibf, width=6.5*cm, height=2*cm))
+                cell_els.append(Paragraph("Assinatura digital capturada",
+                    ParagraphStyle('SOK', fontSize=7,
+                                   textColor=colors.HexColor('#059669'), spaceAfter=2)))
+            except Exception:
+                cell_els.append(Spacer(1, 2*cm))
+                cell_els.append(Paragraph("_" * 38,
+                    ParagraphStyle('SL', fontSize=8,
+                                   textColor=colors.HexColor('#CBD5E1'), spaceAfter=2)))
         else:
-            els.append(Spacer(1, 2.3*cm))
-            els.append(Paragraph("_"*42, ParagraphStyle('SL', fontSize=9,
-                textColor=colors.HexColor('#CBD5E1'))))
+            cell_els.append(Spacer(1, 2*cm))
+            cell_els.append(Paragraph("_" * 38,
+                ParagraphStyle('SL', fontSize=8,
+                               textColor=colors.HexColor('#CBD5E1'), spaceAfter=2)))
         if nome:
-            els.append(Paragraph(nome, ParagraphStyle('SN', fontSize=8, textColor=NAVY, spaceBefore=3)))
-        els.append(Paragraph(datetime.now().strftime('%d/%m/%Y'),
+            cell_els.append(Paragraph(str(nome),
+                ParagraphStyle('SN', fontSize=8, textColor=NAVY, spaceBefore=2)))
+        cell_els.append(Paragraph(datetime.now().strftime('%d/%m/%Y'),
             ParagraphStyle('SD', fontSize=7, textColor=GREY)))
-        return KeepTogether(els)
+        return cell_els
 
     sig_tbl = Table(
-        [[_sig_cell("Chefe de Equipa", assin_chefe_b64, chefe),
-          _sig_cell("Representante do Cliente", assin_cliente_b64, nome_cliente, obrig_note)]],
-        colWidths=[9.3*cm, 9.3*cm]
+        [[_sig_cell_elements("Chefe de Equipa", assin_chefe_b64, chefe),
+          _sig_cell_elements("Representante do Cliente", assin_cliente_b64,
+                             nome_cliente, obrig_note)]],
+        colWidths=[8.7*cm, 8.7*cm]   # 17.4cm total
     )
     sig_tbl.setStyle(TableStyle([
         ('VALIGN',       (0,0),(-1,-1),'TOP'),
-        ('LEFTPADDING',  (0,0),(-1,-1),10),
-        ('RIGHTPADDING', (0,0),(-1,-1),10),
-        ('TOPPADDING',   (0,0),(-1,-1),8),
-        ('BOTTOMPADDING',(0,0),(-1,-1),8),
-        ('BOX',          (0,0),(0,0),0.5,colors.HexColor('#E5EDFF')),
-        ('BOX',          (1,0),(1,0),0.5,colors.HexColor('#E5EDFF')),
-        ('BACKGROUND',   (0,0),(-1,-1),LGREY),
+        ('LEFTPADDING',  (0,0),(-1,-1),8),
+        ('RIGHTPADDING', (0,0),(-1,-1),8),
+        ('TOPPADDING',   (0,0),(-1,-1),6),
+        ('BOTTOMPADDING',(0,0),(-1,-1),6),
+        ('BOX',          (0,0),(0,0), 0.5, colors.HexColor('#E5EDFF')),
+        ('BOX',          (1,0),(1,0), 0.5, colors.HexColor('#E5EDFF')),
+        ('BACKGROUND',   (0,0),(-1,-1), LGREY),
     ]))
     el.append(sig_tbl)
-    el.append(Spacer(1, 0.4*cm))
+    el.append(Spacer(1, 0.35*cm))
 
     # ── RODAPÉ ────────────────────────────────────────────────
     footer_lines = [
-        f"ID do documento: {doc_id}  |  Gerado pela plataforma GESTNOW  |  {datetime.now().strftime('%d/%m/%Y %H:%M')}",
-        "Este documento tem validade legal quando assinado por ambas as partes e substitui a folha de ponto em papel.",
+        f"ID: {doc_id}  |  GESTNOW  |  {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        "Documento com validade legal quando assinado por ambas as partes.",
     ]
     if gps_chefe:
-        footer_lines.append(f"Localização GPS do Chefe de Equipa no momento da geração: {gps_chefe}")
+        footer_lines.append(f"GPS Chefe de Equipa: {gps_chefe}")
     for fl in footer_lines:
         el.append(Paragraph(fl, ts_tiny))
 
