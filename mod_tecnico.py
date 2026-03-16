@@ -72,140 +72,6 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
             _n_req_tec += len(_rdb[(_rdb['Solicitante']==st.session_state.user)&(_rdb['Status']=='Pendente')])
     _badge_req = f" ({_n_req_tec})" if _n_req_tec>0 else ""
 
-    # ─── CSS DARK MODE GLOBAL ────────────────────────────────────
-    st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-    /* ── Base ── */
-    html, body, .stApp { background:#0D1117 !important; font-family:'Inter',sans-serif; color:#E2E8F0; }
-    #MainMenu, footer, .stDeployButton { display:none !important; }
-    .block-container { padding:1rem 1rem 3rem 1rem !important; max-width:100% !important; }
-
-    /* ── Inputs ── */
-    .stTextInput input, .stTextArea textarea, .stSelectbox>div>div,
-    .stTimeInput input, .stNumberInput input, .stDateInput input {
-        background:#1E2740 !important; border:1px solid rgba(255,255,255,0.08) !important;
-        border-radius:10px !important; color:#E2E8F0 !important; font-size:0.88rem !important;
-    }
-    .stTextInput input:focus, .stTextArea textarea:focus, .stNumberInput input:focus {
-        border-color:#3B82F6 !important; box-shadow:0 0 0 3px rgba(59,130,246,0.12) !important;
-    }
-    label, .stSelectbox label, .stTextInput label, .stTextArea label,
-    .stTimeInput label, .stNumberInput label, .stDateInput label {
-        color:#64748B !important; font-size:0.8rem !important; font-weight:500 !important;
-    }
-
-    /* ── Botões ── */
-    .stButton>button {
-        background:#2563EB !important; color:#F8FAFC !important; border:none !important;
-        border-radius:10px !important; font-weight:600 !important; font-size:0.86rem !important;
-        width:100% !important; min-height:44px !important; transition:all 0.2s ease !important;
-    }
-    .stButton>button:hover {
-        background:#1D4ED8 !important; transform:translateY(-1px) !important;
-        box-shadow:0 6px 20px rgba(37,99,235,0.3) !important;
-    }
-    .stButton>button[kind="secondary"] {
-        background:#1A1F35 !important; border:1px solid rgba(255,255,255,0.09) !important;
-        color:#94A3B8 !important;
-    }
-    .stButton>button[kind="secondary"]:hover {
-        background:#1E2740 !important; border-color:rgba(99,102,241,0.35) !important;
-        color:#A5B4FC !important;
-    }
-
-    /* ── Download button ── */
-    .stDownloadButton>button {
-        background:#065F46 !important; border:1px solid rgba(16,185,129,0.3) !important;
-        color:#D1FAE5 !important; border-radius:10px !important; min-height:44px !important;
-    }
-    .stDownloadButton>button:hover { background:#047857 !important; }
-
-    /* ── Tabs ── */
-    .stTabs [data-baseweb="tab-list"] {
-        background:#161B2E !important; border-radius:12px !important;
-        padding:4px !important; gap:3px !important;
-        border:1px solid rgba(255,255,255,0.06) !important; flex-wrap:wrap !important;
-    }
-    .stTabs [data-baseweb="tab"] {
-        background:transparent !important; border:none !important;
-        border-radius:8px !important; color:#475569 !important;
-        font-size:0.78rem !important; font-weight:500 !important;
-        padding:6px 13px !important; min-height:34px !important; white-space:nowrap;
-    }
-    .stTabs [aria-selected="true"] { background:#2563EB !important; color:#F8FAFC !important; }
-    .stTabs [data-baseweb="tab-panel"] { padding:1rem 0 0 0 !important; }
-
-    /* ── Alerts ── */
-    .stAlert { border-radius:12px !important; border:none !important; }
-
-    /* ── Expander ── */
-    details {
-        background:#161B2E !important; border:1px solid rgba(255,255,255,0.06) !important;
-        border-radius:12px !important; margin-bottom:8px;
-    }
-    summary { padding:0.75rem 1rem !important; color:#CBD5E1 !important;
-              font-weight:500 !important; font-size:0.9rem !important; }
-
-    /* ── Dataframe ── */
-    .stDataFrame { border-radius:12px !important; overflow:hidden !important;
-                   border:1px solid rgba(255,255,255,0.06) !important; }
-
-    /* ── section-title (usado em todas as tabs) ── */
-    .section-title {
-        font-size:0.82rem; font-weight:700; color:#475569;
-        text-transform:uppercase; letter-spacing:1.2px;
-        margin:1.2rem 0 0.9rem; display:flex; align-items:center; gap:8px;
-    }
-    .section-title::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.06); }
-
-    /* ── turno-card (usado em todas as tabs) ── */
-    .turno-card {
-        background:#161B2E !important; border:1px solid rgba(255,255,255,0.07) !important;
-        border-radius:13px; padding:13px 15px; margin-bottom:9px;
-    }
-    .turno-header {
-        display:flex; justify-content:space-between; align-items:center;
-        font-weight:600; color:#E2E8F0 !important; font-size:0.9rem; margin-bottom:4px;
-    }
-    .turno-status {
-        font-size:0.72rem; font-weight:600; padding:3px 10px;
-        border-radius:20px; white-space:nowrap;
-    }
-    .status-pendente  { background:rgba(251,191,36,0.12);  color:#FCD34D; }
-    .status-aprovado  { background:rgba(16,185,129,0.12);  color:#34D399; }
-    .status-fechado   { background:rgba(59,130,246,0.12);  color:#93C5FD; }
-    div[style*="color:#94A3B8"], div[style*="color:#94A3B8"],
-    div[style*="color:#64748B"] { color:#94A3B8 !important; }
-    div[style*="color:#64748B"] { color:#64748B !important; }
-    div[style*="color:#E2E8F0"], div[style*="color:#E2E8F0"] { color:#E2E8F0 !important; }
-
-    /* ── seg-card (tab Segurança) ── */
-    .seg-card {
-        background:#161B2E !important; border:1px solid rgba(255,255,255,0.07) !important;
-        border-radius:13px; padding:13px 16px; margin-bottom:8px;
-        display:flex; align-items:center; gap:12px; cursor:pointer;
-        transition:0.2s;
-    }
-    .seg-card:hover { border-color:rgba(59,130,246,0.3) !important; transform:translateX(2px); }
-    .seg-icon { width:40px; height:40px; border-radius:10px; display:flex;
-                align-items:center; justify-content:center; font-size:1.2rem;
-                filter:saturate(0.7) brightness(0.85); }
-    .seg-title { font-weight:600; font-size:0.9rem; color:#E2E8F0; }
-    .seg-sub   { font-size:0.75rem; color:#64748B; margin-top:2px; }
-
-    /* ── perfil-campo (tab Perfil) ── */
-    .perfil-campo {
-        background:#161B2E; border:1px solid rgba(255,255,255,0.06);
-        border-radius:11px; padding:10px 14px; margin-bottom:7px;
-    }
-    .perfil-label { font-size:0.72rem; color:#64748B; font-weight:600;
-                    text-transform:uppercase; letter-spacing:0.5px; }
-    .perfil-valor { font-size:0.9rem; color:#E2E8F0; font-weight:500; margin-top:2px; }
-    </style>
-    """, unsafe_allow_html=True)
-
     if is_chefe:
         tab1,tab2,tab3,tab4,tab5,tab6=st.tabs([
             "📅 Pontos","📋 Folha de Ponto",
@@ -225,70 +91,61 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
         # ── CSS Tab Pontos ───────────────────────────────────────────
         st.markdown("""
         <style>
-        /* ── Profile card (já tem fundo escuro) ── */
+        /* ── Perfil header ── */
         .tec-profile-card {
             background: linear-gradient(135deg, #1A1A2E 0%, #C0392B 100%);
-            border-radius: 16px; padding: 16px 20px;
+            border-radius: 20px; padding: 18px 22px;
             display: flex; align-items: center; gap: 14px;
             margin-bottom: 16px; color: white; position: relative; overflow: hidden;
-            border: 1px solid rgba(192,57,43,0.3);
         }
         .tec-profile-card::before {
             content:''; position:absolute; top:-30px; right:-30px;
-            width:110px; height:110px; background:rgba(255,255,255,.05); border-radius:50%;
+            width:110px; height:110px; background:rgba(255,255,255,.06); border-radius:50%;
         }
         .tec-profile-card::after {
             content:''; position:absolute; bottom:-20px; right:55px;
-            width:70px; height:70px; background:rgba(255,255,255,.03); border-radius:50%;
+            width:70px; height:70px; background:rgba(255,255,255,.04); border-radius:50%;
         }
         .tec-av-big {
-            width:50px; height:50px; border-radius:50%;
-            background:rgba(255,255,255,.15); border:2px solid rgba(255,255,255,.35);
+            width:52px; height:52px; border-radius:50%;
+            background:rgba(255,255,255,.2); border:2px solid rgba(255,255,255,.4);
             display:flex; align-items:center; justify-content:center;
-            font-size:1.25rem; font-weight:800; flex-shrink:0; z-index:1;
+            font-size:1.3rem; font-weight:800; flex-shrink:0; z-index:1;
         }
         .tec-prof-info { flex:1; z-index:1; }
-        .tec-prof-name  { font-size:1.05rem; font-weight:800; line-height:1; color:#F1F5F9; }
-        .tec-prof-cargo { font-size:.76rem; opacity:.7; margin-top:3px; }
+        .tec-prof-name  { font-size:1.05rem; font-weight:800; line-height:1; }
+        .tec-prof-cargo { font-size:.76rem; opacity:.75; margin-top:3px; }
         .tec-clock-wrap { text-align:right; z-index:1; }
         .tec-clock {
             font-family: 'DM Mono', 'Courier New', monospace;
-            font-size:1.9rem; font-weight:500; letter-spacing:-1px; line-height:1; color:#F1F5F9;
+            font-size:1.9rem; font-weight:500; letter-spacing:-1px; line-height:1;
         }
         .tec-date-sm { font-size:.68rem; opacity:.6; margin-top:2px; }
         /* ── Chips métricas ── */
         .pt-metrics { display:flex; gap:10px; margin-bottom:18px; }
         .pt-chip {
-            flex:1; background:#161B2E; border:1px solid rgba(255,255,255,0.07);
+            flex:1; background:#fff; border:1px solid #E8ECF2;
             border-radius:12px; padding:11px 12px; text-align:center;
-            position:relative; overflow:hidden;
         }
-        .pt-chip::before { content:''; position:absolute; top:0; left:0; right:0;
-                           height:3px; border-radius:12px 12px 0 0; }
-        .pt-chip:nth-child(1)::before { background:linear-gradient(90deg,#3B82F6,#60A5FA); }
-        .pt-chip:nth-child(2)::before { background:linear-gradient(90deg,#6366F1,#A5B4FC); }
-        .pt-chip:nth-child(3)::before { background:linear-gradient(90deg,#F59E0B,#FCD34D); }
-        .pt-chip .pcv { font-size:1.25rem; font-weight:800; color:#E2E8F0; }
-        .pt-chip .pcl { font-size:.66rem; color:#64748B; text-transform:uppercase;
-                        font-weight:600; letter-spacing:.4px; margin-top:2px; }
-        .pt-chip .pcv.orange { color:#F59E0B; }
+        .pt-chip .pcv { font-size:1.25rem; font-weight:800; color:#1A1A2E; }
+        .pt-chip .pcl { font-size:.66rem; color:#8A95A3; text-transform:uppercase; font-weight:600; letter-spacing:.4px; margin-top:2px; }
+        .pt-chip .pcv.orange { color:#E67E22; }
         /* ── Calendário semanal ── */
         .week-bar {
-            background:#161B2E; border:1px solid rgba(255,255,255,0.07);
+            background:#fff; border:1px solid #E8ECF2;
             border-radius:14px; padding:12px 14px; margin-bottom:16px;
         }
-        .week-bar-title { font-size:.68rem; font-weight:700; color:#64748B;
-                          text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px; }
+        .week-bar-title { font-size:.68rem; font-weight:700; color:#8A95A3; text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px; }
         /* ── Total do dia ── */
         .dia-total-wrap { text-align:center; padding:14px 0 10px; }
         .dia-total-h {
             font-family:'DM Mono','Courier New',monospace;
-            font-size:2.8rem; font-weight:500; color:#F1F5F9; line-height:1;
+            font-size:2.8rem; font-weight:500; color:#1A1A2E; line-height:1;
         }
-        .dia-total-sub { font-size:.82rem; color:#64748B; margin-top:5px; }
+        .dia-total-sub { font-size:.82rem; color:#8A95A3; margin-top:5px; }
         /* ── Card de registo ── */
         .rp-card {
-            background:#161B2E; border:1px solid rgba(255,255,255,0.07);
+            background:#fff; border:1px solid #E8ECF2;
             border-radius:13px; padding:14px 16px; margin-bottom:9px;
             position:relative; overflow:hidden;
         }
@@ -296,44 +153,42 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
             content:''; position:absolute; left:0; top:0; bottom:0;
             width:4px; border-radius:4px 0 0 4px;
         }
-        .rp-card.pendente::before  { background:#F59E0B; }
-        .rp-card.aprovado::before  { background:#10B981; }
-        .rp-card.fechado::before   { background:#3B82F6; }
+        .rp-card.pendente::before  { background:#E67E22; }
+        .rp-card.aprovado::before  { background:#27AE60; }
+        .rp-card.fechado::before   { background:#2980B9; }
         .rp-top { display:flex; justify-content:space-between; align-items:flex-start; }
-        .rp-frente { font-weight:700; font-size:.93rem; color:#E2E8F0; }
-        .rp-obra   { font-size:.76rem; color:#64748B; margin-top:2px; }
-        .rp-horas  { font-family:'DM Mono','Courier New',monospace;
-                     font-size:1.25rem; font-weight:500; color:#E2E8F0; }
+        .rp-frente { font-weight:700; font-size:.93rem; color:#1A1A2E; }
+        .rp-obra   { font-size:.76rem; color:#8A95A3; margin-top:2px; }
+        .rp-horas  { font-family:'DM Mono','Courier New',monospace; font-size:1.25rem; font-weight:500; color:#1A1A2E; }
         .rp-pills  { display:flex; gap:8px; margin-top:9px; flex-wrap:wrap; }
         .rp-pill {
             display:inline-flex; align-items:center; gap:3px;
-            background:rgba(255,255,255,0.05); border-radius:20px; padding:3px 9px;
-            font-size:.73rem; font-weight:600; color:#94A3B8;
+            background:#F4F6F8; border-radius:20px; padding:3px 9px;
+            font-size:.73rem; font-weight:600; color:#4A5568;
         }
-        .rp-pill.pendente { background:rgba(245,158,11,0.12); color:#FCD34D; }
-        .rp-pill.aprovado { background:rgba(16,185,129,0.12);  color:#34D399; }
-        .rp-pill.fechado  { background:rgba(59,130,246,0.12);  color:#93C5FD; }
-        .rp-cod { display:inline-block; background:rgba(59,130,246,0.12); color:#93C5FD;
-                  border-radius:5px; padding:1px 6px; font-size:.7rem; font-weight:700; margin-left:5px; }
+        .rp-pill.pendente { background:#FEF3E7; color:#C47A1B; }
+        .rp-pill.aprovado { background:#EDFAF3; color:#1E8449; }
+        .rp-pill.fechado  { background:#EAF4FB; color:#1A6FA0; }
+        .rp-cod { display:inline-block; background:#EBF5FB; color:#2980B9; border-radius:5px; padding:1px 6px; font-size:.7rem; font-weight:700; margin-left:5px; }
         /* ── Form steps ── */
         .form-step-title {
-            font-size:.68rem; font-weight:700; color:#64748B;
+            font-size:.68rem; font-weight:700; color:#8A95A3;
             text-transform:uppercase; letter-spacing:.6px; margin:14px 0 6px;
         }
         .obra-card-sel {
-            background:#1E2740; border:2px solid rgba(255,255,255,0.08); border-radius:13px;
+            background:#fff; border:2px solid #E8ECF2; border-radius:13px;
             padding:12px 14px; margin-bottom:6px; display:flex; align-items:center; gap:10px;
         }
-        .obra-card-sel.selected { border-color:#C0392B; background:#1E1525; }
+        .obra-card-sel.selected { border-color:#C0392B; background:#FEF9F8; }
         /* ── Horas preview ── */
         .horas-preview {
-            text-align:center; padding:10px; background:#1A2035;
+            text-align:center; padding:10px; background:#F8FAFC;
             border-radius:11px; margin:6px 0;
         }
         /* ── Vazio ── */
-        .pt-empty { text-align:center; padding:36px 16px; color:#64748B; }
+        .pt-empty { text-align:center; padding:36px 16px; color:#8A95A3; }
         .pt-empty-ico { font-size:2.5rem; margin-bottom:10px; }
-        .pt-empty-title { font-weight:700; color:#94A3B8; font-size:.98rem; }
+        .pt-empty-title { font-weight:700; color:#1A1A2E; font-size:.98rem; }
         .pt-empty-sub   { font-size:.82rem; margin-top:3px; }
         </style>
         """, unsafe_allow_html=True)
@@ -438,7 +293,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                 rel_html = ""
                 rel_val = row.get('Relatorio', '')
                 if rel_val and str(rel_val).strip() and str(rel_val).strip() != 'nan':
-                    rel_html = f"<div style='margin-top:9px;font-size:.8rem;color:#94A3B8;padding:7px 10px;background:#1A2035;border-radius:7px;'>📝 {str(rel_val)[:120]}</div>"
+                    rel_html = f"<div style='margin-top:9px;font-size:.8rem;color:#4A5568;padding:7px 10px;background:#F8FAFC;border-radius:7px;'>📝 {str(rel_val)[:120]}</div>"
 
                 st.markdown(f"""
                 <div class="rp-card {css_c}">
@@ -470,7 +325,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
 
         # ── Formulário de novo registo (só hoje) ─────────────────────
         if ds_ == hj:
-            st.markdown('<div style="text-align:center;color:#64748B;font-size:.8rem;margin:6px 0 14px;">＋ Adicionar período</div>', unsafe_allow_html=True)
+            st.markdown('<div style="text-align:center;color:#8A95A3;font-size:.8rem;margin:6px 0 14px;">＋ Adicionar período</div>', unsafe_allow_html=True)
             with st.expander("➕ Registar Ponto", expanded=rd.empty):
                 if obras_db.empty:
                     st.warning("⚠️ Sem obras disponíveis. Contacta o administrador.")
@@ -496,15 +351,15 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                         oi_ = oa[oa['Obra'] == ob_].iloc[0]
                         cod_obra = str(oi_.get('Codigo',''))
                         cli_obra = str(oi_.get('Cliente',''))
-                        cod_badge = f'<span style="background:rgba(59,130,246,0.15);color:#93C5FD;border-radius:5px;padding:1px 7px;font-size:.7rem;font-weight:700;">{cod_obra}</span>' if cod_obra and cod_obra != 'nan' else ''
+                        cod_badge = f'<span style="background:#EBF5FB;color:#2980B9;border-radius:5px;padding:1px 7px;font-size:.7rem;font-weight:700;">{cod_obra}</span>' if cod_obra and cod_obra != 'nan' else ''
                         cli_txt  = cli_obra if cli_obra and cli_obra != 'nan' else ''
                         st.markdown(f"""
                         <div class="obra-card-sel selected">
                             <div style="flex:1;">
-                                <div style="font-weight:700;font-size:.93rem;color:#E2E8F0;">{ob_}</div>
-                                <div style="font-size:.76rem;color:#F87171;margin-top:2px;">{cod_badge} {cli_txt}</div>
+                                <div style="font-weight:700;font-size:.93rem;color:#1A1A2E;">{ob_}</div>
+                                <div style="font-size:.76rem;color:#C0392B;margin-top:2px;">{cod_badge} {cli_txt}</div>
                             </div>
-                            <div style="color:#34D399;font-size:1.1rem;">✓</div>
+                            <div style="color:#27AE60;font-size:1.1rem;">✓</div>
                         </div>
                         """, unsafe_allow_html=True)
                         if oi_.get('DataFim'):
@@ -527,11 +382,11 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                     st.markdown('<div class="form-step-title">3. Horário</div>', unsafe_allow_html=True)
                     col_h1, col_h2 = st.columns(2)
                     with col_h1:
-                        st.markdown('<div style="font-size:.75rem;font-weight:700;color:#34D399;margin-bottom:4px;">🟢 Entrada</div>', unsafe_allow_html=True)
+                        st.markdown('<div style="font-size:.75rem;font-weight:700;color:#27AE60;margin-bottom:4px;">🟢 Entrada</div>', unsafe_allow_html=True)
                         h1 = st.time_input("Entrada",
                                            value=datetime.now().replace(hour=8,minute=0,second=0,microsecond=0).time(),
                                            key="pt_h1", label_visibility="collapsed")
-                        st.markdown(f'<div style="text-align:center;font-family:monospace;font-size:1.7rem;font-weight:500;color:#34D399;margin-top:-4px;">{h1.strftime("%H:%M")}</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div style="text-align:center;font-family:monospace;font-size:1.7rem;font-weight:500;color:#27AE60;margin-top:-4px;">{h1.strftime("%H:%M")}</div>', unsafe_allow_html=True)
                     with col_h2:
                         st.markdown('<div style="font-size:.75rem;font-weight:700;color:#C0392B;margin-bottom:4px;">🔴 Saída</div>', unsafe_allow_html=True)
                         h2 = st.time_input("Saída",
@@ -545,7 +400,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                         st.markdown(f"""
                         <div class="horas-preview">
                             <span style="font-family:monospace;font-size:1.4rem;font-weight:500;color:{cor_hc};">{fh(hc)}</span>
-                            <span style="font-size:.78rem;color:#64748B;margin-left:6px;">de trabalho</span>
+                            <span style="font-size:.78rem;color:#8A95A3;margin-left:6px;">de trabalho</span>
                         </div>
                         """, unsafe_allow_html=True)
                     elif h2.hour > 0 and h2 <= h1:
@@ -562,7 +417,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                         submeter = st.button("📍 Registar Ponto", use_container_width=True,
                                              type="primary", key="pt_submit")
                     with col_s2:
-                        st.markdown(f'<div style="padding:7px;text-align:center;font-size:.68rem;color:#64748B;border:1px solid rgba(255,255,255,0.07);border-radius:9px;"><div style="font-weight:700;color:#E2E8F0;font-size:.85rem;">Hoje</div><div>{hj.strftime("%d/%m/%Y")}</div></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div style="padding:7px;text-align:center;font-size:.68rem;color:#8A95A3;border:1px solid #E8ECF2;border-radius:9px;"><div style="font-weight:700;color:#1A1A2E;font-size:.85rem;">Hoje</div><div>{hj.strftime("%d/%m/%Y")}</div></div>', unsafe_allow_html=True)
 
                     if submeter:
                         if h2 <= h1:
@@ -673,7 +528,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
 
                 # ── GPS via JS → query_params ─────────────────
                 gps_html = """
-    <div id="gps-status" style="color:#64748B;font-size:.78rem;padding:.3rem 0;">
+    <div id="gps-status" style="color:#7A8BA6;font-size:.78rem;padding:.3rem 0;">
       📍 A obter localização GPS...
     </div>
     <script>
@@ -691,7 +546,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
           var lon = pos.coords.longitude.toFixed(6);
           var acc = Math.round(pos.coords.accuracy);
           setGPS('📍 GPS obtido: <b style="color:#0A2463">' + lat + ', ' + lon +
-                 '</b> <span style="color:#64748B">(±' + acc + 'm)</span>', '#059669');
+                 '</b> <span style="color:#7A8BA6">(±' + acc + 'm)</span>', '#059669');
           var url = new URL(window.location.href);
           url.searchParams.set('gps_chefe', lat + ',' + lon);
           window.history.replaceState({}, '', url);
@@ -716,7 +571,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
 
                     col_sig1, col_sig2 = st.columns(2)
                     with col_sig1:
-                        st.markdown('<div style="color:#64748B;font-size:.78rem;font-weight:600;'
+                        st.markdown('<div style="color:#7A8BA6;font-size:.78rem;font-weight:600;'
                             'text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'
                             '✍️ Assinatura do Chefe de Equipa</div>', unsafe_allow_html=True)
                         canvas_chefe = st_canvas(
@@ -730,7 +585,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                         )
 
                     with col_sig2:
-                        st.markdown('<div style="color:#64748B;font-size:.78rem;font-weight:600;'
+                        st.markdown('<div style="color:#7A8BA6;font-size:.78rem;font-weight:600;'
                             'text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'
                             '✍️ Assinatura do Representante do Cliente</div>', unsafe_allow_html=True)
                         canvas_cliente = st_canvas(
@@ -854,7 +709,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                                 f"<span>{assin_ic} {f_.get('Obra','—')} — {f_.get('Periodo','—')}</span>"
                                 f"<span class='turno-status {'status-aprovado' if f_.get('AssinadoCliente')=='Sim' else 'status-pendente'}'>"
                                 f"{'Assinado' if f_.get('AssinadoCliente')=='Sim' else 'Pendente assinatura'}</span></div>"
-                                f"<div style='color:#64748B;font-size:.8rem;'>🆔 {f_.get('ID','—')} &nbsp;|&nbsp; "
+                                f"<div style='color:#7A8BA6;font-size:.8rem;'>🆔 {f_.get('ID','—')} &nbsp;|&nbsp; "
                                 f"⏱️ {f_.get('TotalHoras',0)}h &nbsp;|&nbsp; 👤 {f_.get('NomeCliente','—')} &nbsp;|&nbsp; "
                                 f"📅 {f_.get('DataCriacao','—')}</div></div>",
                                 unsafe_allow_html=True)
@@ -903,8 +758,8 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                         f"<div class='turno-card' style='border-left:4px solid {'#DC2626' if urg_tc else '#E5EDFF'};background:{'#FEF2F2' if urg_tc else 'white'};'>"
                         f"<div class='turno-header'><span>{'🚨' if urg_tc else '✅' if ja_leu_tc else '📬'} <b>{row_tc.get('Titulo','—')}</b></span>"
                         f"<span class='turno-status {'status-fechado' if urg_tc else 'status-aprovado'}'>{'🚨 Urgente' if urg_tc else '✅ Lido' if ja_leu_tc else '📬 Por ler'}</span></div>"
-                        f"<div style='color:#94A3B8;margin:.4rem 0;line-height:1.5;'>{row_tc.get('Conteudo','')}</div>"
-                        f"<div style='color:#64748B;font-size:.78rem;'>📅 {row_tc.get('DataCriacao','—')} | 👤 {row_tc.get('Autor','—')}</div></div>",
+                        f"<div style='color:#374151;margin:.4rem 0;line-height:1.5;'>{row_tc.get('Conteudo','')}</div>"
+                        f"<div style='color:#7A8BA6;font-size:.78rem;'>📅 {row_tc.get('DataCriacao','—')} | 👤 {row_tc.get('Autor','—')}</div></div>",
                         unsafe_allow_html=True)
                     if not ja_leu_tc:
                         if st.button("✅ Confirmar leitura",key=f"com_ler_tec_{com_id_tc}_{idx_tc}",use_container_width=True):
@@ -951,7 +806,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                     st.markdown(f"<div class='turno-card'><div class='turno-header'>"
                         f"<span>{st_ic_rf} <b>{row_rf.get('Descricao','—')}</b></span>"
                         f"<span class='turno-status {st_cls_rf}'>{row_rf.get('Status','—')}</span></div>"
-                        f"<div style='color:#64748B;font-size:.82rem;'>🏗️ {row_rf.get('Obra','—')} | "
+                        f"<div style='color:#7A8BA6;font-size:.82rem;'>🏗️ {row_rf.get('Obra','—')} | "
                         f"🔢 {row_rf.get('Quantidade','—')} | 📅 {row_rf.get('DataNecessaria','—')} | 🆔 {row_rf.get('ID','—')}</div></div>",
                         unsafe_allow_html=True)
             else: st.info("Sem requisições.")
@@ -997,7 +852,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                         st.markdown(f"<div class='turno-card'><div class='turno-header'>"
                             f"<span>{st_ic_rm} <b>{row_rm.get('Descricao','—')}</b></span>"
                             f"<span class='turno-status'>  {row_rm.get('Status','—')}</span></div>"
-                            f"<div style='color:#64748B;font-size:.82rem;'>🏗️ {row_rm.get('Obra','—')} | "
+                            f"<div style='color:#7A8BA6;font-size:.82rem;'>🏗️ {row_rm.get('Obra','—')} | "
                             f"🔢 {row_rm.get('Quantidade','—')} {row_rm.get('Unidade','')} | {row_rm.get('Data','—')}</div></div>",
                             unsafe_allow_html=True)
 
@@ -1029,7 +884,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                     st.markdown(f"<div class='turno-card'><div class='turno-header'>"
                         f"<span>{st_ic_re} <b>{row_re.get('Item','—')}</b> {row_re.get('TipoReq','')}</span>"
                         f"<span class='turno-status'>{row_re.get('Status','—')}</span></div>"
-                        f"<div style='color:#64748B;font-size:.82rem;'>🔢 {row_re.get('Quantidade','—')} | "
+                        f"<div style='color:#7A8BA6;font-size:.82rem;'>🔢 {row_re.get('Quantidade','—')} | "
                         f"📏 {row_re.get('Tamanho','—')} | {row_re.get('Data','—')}</div></div>",
                         unsafe_allow_html=True)
 
@@ -1099,7 +954,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
         st.markdown('<div class="section-title">🛡️ Segurança</div>',unsafe_allow_html=True)
         # Menu de navegação rápida
         for icn,bg,titulo,sub in [("🥇","#FFF3CD","Regras de Ouro","As 10 regras essenciais"),("💬","#EEF2FF","Diálogos de Segurança","Listagem de diálogos atribuídos"),("🚶","#F0FDF4","Safety Walk","Registar inspeção de segurança"),("👁️","#FFF0F0","Observação","Registar observação de segurança"),("⚠️","#FEE2E2","Reportar Incidente","Registar situação de perigo")]:
-            st.markdown(f"<div class='seg-card'><div class='seg-icon' style='background:{bg};'>{icn}</div><div><div class='seg-title'>{titulo}</div><div class='seg-sub'>{sub}</div></div><div style='margin-left:auto;color:#475569;'>›</div></div>",unsafe_allow_html=True)
+            st.markdown(f"<div class='seg-card'><div class='seg-icon' style='background:{bg};'>{icn}</div><div><div class='seg-title'>{titulo}</div><div class='seg-sub'>{sub}</div></div><div style='margin-left:auto;color:#9CA3AF;'>›</div></div>",unsafe_allow_html=True)
         st.markdown("<br>",unsafe_allow_html=True)
 
         # 10 Regras de Ouro com texto completo
@@ -1108,8 +963,8 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
             st.markdown(f"""<div class='turno-card'>
             <div style='display:flex;align-items:flex-start;gap:1rem;'>
             <div style='font-size:1.8rem;font-weight:800;color:#C0392B;min-width:32px;'>{i}</div>
-            <div><div style='font-weight:600;color:#E2E8F0;margin-bottom:4px;'>{icn} {titulo}</div>
-            <div style='color:#94A3B8;font-size:.9rem;line-height:1.5;'>{desc}</div></div></div></div>""",unsafe_allow_html=True)
+            <div><div style='font-weight:600;color:#1F2A44;margin-bottom:4px;'>{icn} {titulo}</div>
+            <div style='color:#374151;font-size:.9rem;line-height:1.5;'>{desc}</div></div></div></div>""",unsafe_allow_html=True)
 
         st.markdown("<br>",unsafe_allow_html=True)
         st.markdown("#### 💬 Diálogos de Segurança Atribuídos")
@@ -1125,7 +980,7 @@ def render_tecnico(users, obras_db, frentes_db, registos_db, faturas_db,
                     desc_dlg=dlg_info.iloc[0].get('Descricao','') if not dlg_info.empty else ''
                     tipo_dlg=dlg_info.iloc[0].get('Tipo','') if not dlg_info.empty else ''
                     est_ic="✅" if confirmado else "📬"
-                    st.markdown(f"<div class='turno-card'><div class='turno-header'><span>{est_ic} {du.get('Dialogo','—')}</span><span class='turno-status {'status-aprovado' if confirmado else 'status-pendente'}'>{'Confirmado' if confirmado else 'Por confirmar'}</span></div><div style='color:#94A3B8;font-size:.9rem;'>{tipo_dlg}</div><div style='color:#64748B;font-size:.85rem;margin-top:4px;'>{desc_dlg[:120]}{'...' if len(desc_dlg)>120 else ''}</div></div>",unsafe_allow_html=True)
+                    st.markdown(f"<div class='turno-card'><div class='turno-header'><span>{est_ic} {du.get('Dialogo','—')}</span><span class='turno-status {'status-aprovado' if confirmado else 'status-pendente'}'>{'Confirmado' if confirmado else 'Por confirmar'}</span></div><div style='color:#374151;font-size:.9rem;'>{tipo_dlg}</div><div style='color:#6B7280;font-size:.85rem;margin-top:4px;'>{desc_dlg[:120]}{'...' if len(desc_dlg)>120 else ''}</div></div>",unsafe_allow_html=True)
                     if not confirmado:
                         if st.button(f"✅ Confirmar leitura — {du.get('Dialogo','')[:30]}",key=f"conf_dlg_{_}",use_container_width=True):
                             idx_du=diags_u_db[(diags_u_db['Utilizador']==st.session_state.user)&(diags_u_db['Dialogo']==du['Dialogo'])].index[0]
