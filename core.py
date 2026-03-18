@@ -73,9 +73,8 @@ html,body,.stApp{background:#F4F7FB;font-family:'Inter',sans-serif;}
 .login-box{max-width:400px;margin:0 auto;background:white;padding:2.5rem;border-radius:24px;box-shadow:0 20px 60px rgba(10,36,99,.12);border:1px solid #E5EDFF;}
 .stButton>button{border-radius:12px!important;font-weight:600!important;background:linear-gradient(135deg,#0A2463,#3E92CC)!important;color:white!important;border:none!important;box-shadow:0 4px 12px rgba(10,36,99,.25)!important;transition:all .2s!important;}
 .stButton>button:hover{transform:translateY(-2px)!important;box-shadow:0 8px 20px rgba(10,36,99,.35)!important;}
-.stTabs [data-baseweb="tab-list"]{gap:4px;background:white;padding:6px;border-radius:16px;border:1px solid #E5EDFF;box-shadow:0 2px 8px rgba(10,36,99,.06);flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-.stTabs [data-baseweb="tab-list"]::-webkit-scrollbar{display:none;}
-.stTabs [data-baseweb="tab"]{border-radius:10px;padding:8px 14px;font-weight:500;font-size:.8rem;color:#5A6B85;white-space:nowrap!important;flex-shrink:0!important;}
+.stTabs [data-baseweb="tab-list"]{gap:4px;background:white;padding:6px;border-radius:16px;border:1px solid #E5EDFF;box-shadow:0 2px 8px rgba(10,36,99,.06);}
+.stTabs [data-baseweb="tab"]{border-radius:10px;padding:8px 16px;font-weight:500;font-size:.85rem;color:#5A6B85;}
 .stTabs [aria-selected="true"]{background:linear-gradient(135deg,#0A2463,#3E92CC)!important;color:white!important;font-weight:600!important;}
 .turno-card{background:white;padding:1.25rem 1.5rem;border-radius:16px;margin-bottom:.75rem;border:1px solid #E5EDFF;box-shadow:0 2px 10px rgba(10,36,99,.05);transition:box-shadow .2s;}
 .turno-card:hover{box-shadow:0 6px 20px rgba(10,36,99,.1);}
@@ -111,96 +110,6 @@ html,body,.stApp{background:#F4F7FB;font-family:'Inter',sans-serif;}
 .seg-sub{font-size:.78rem;color:#7A8BA6;}
 .security-badge{display:inline-flex;align-items:center;gap:6px;background:#ECFDF5;color:#065F46;font-size:.75rem;font-weight:600;padding:4px 10px;border-radius:8px;margin-top:1rem;}
 .stAlert{border-radius:12px!important;}
-
-/* ══════════════════════════════════════════════════════
-   DARK MODE — Dark Slate Naval (inspirado no design industrial)
-   Fundo: #0D1B2A | Surface: #1A2535 | Accent: #3E92CC
-   ══════════════════════════════════════════════════════ */
-@media (prefers-color-scheme: dark) {
-  html, body, .stApp {
-    background: #0D1B2A !important;
-  }
-  /* Inputs, selects, textareas */
-  .stTextInput input, .stTextArea textarea, .stSelectbox select,
-  .stNumberInput input, .stDateInput input,
-  [data-baseweb="input"] input,
-  [data-baseweb="textarea"] textarea,
-  [data-baseweb="select"] div {
-    background: #0F2236 !important;
-    color: #C8D8E8 !important;
-    border-color: rgba(62,146,204,0.25) !important;
-  }
-  /* Contentor geral dos inputs */
-  [data-baseweb="base-input"],
-  [data-baseweb="input"],
-  [data-baseweb="textarea"] {
-    background: #0F2236 !important;
-    border-color: rgba(62,146,204,0.25) !important;
-  }
-  /* Form containers */
-  [data-testid="stForm"] {
-    background: #162033 !important;
-    border: 1px solid rgba(62,146,204,0.18) !important;
-    border-radius: 16px !important;
-    padding: 1.25rem !important;
-  }
-  /* Cards */
-  .turno-card, .metric-card, .seg-card, .perfil-campo,
-  .week-bar, .rp-card, .pt-chip, .obra-card-sel {
-    background: #162033 !important;
-    border-color: rgba(62,146,204,0.2) !important;
-    color: #C8D8E8 !important;
-  }
-  /* Tabs */
-  .stTabs [data-baseweb="tab-list"] {
-    background: #162033 !important;
-    border-color: rgba(62,146,204,0.2) !important;
-  }
-  .stTabs [data-baseweb="tab"] { color: #7A95B0 !important; }
-  .stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg,#0A2463,#3E92CC) !important;
-    color: white !important;
-  }
-  /* Texto geral */
-  p, span, div, h1, h2, h3, label {
-    color: #C8D8E8;
-  }
-  /* Section titles */
-  .section-title { color: #7BBCDE !important; border-color: rgba(62,146,204,0.3) !important; }
-  /* Topbar */
-  .topbar { background: #162033 !important; border-color: rgba(62,146,204,0.2) !important; }
-  /* Selectbox dropdown */
-  [data-baseweb="popover"] [role="listbox"] {
-    background: #1A2A3E !important;
-    border: 1px solid rgba(62,146,204,0.3) !important;
-  }
-  [data-baseweb="popover"] [role="option"]:hover {
-    background: rgba(62,146,204,0.15) !important;
-  }
-  /* Alertas */
-  .stAlert { background: #162033 !important; border-color: rgba(62,146,204,0.3) !important; }
-  /* Botões secundários */
-  .stButton > button[kind="secondary"] {
-    background: #1A2A3E !important;
-    color: #7BBCDE !important;
-    border-color: rgba(62,146,204,0.3) !important;
-  }
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: #0D1B2A; }
-  ::-webkit-scrollbar-thumb { background: rgba(62,146,204,0.4); border-radius: 3px; }
-  /* Profile card mantém o gradiente mas mais rico */
-  .tec-profile-card {
-    background: linear-gradient(135deg, #0D1B2A 0%, #1A2A4A 50%, #1A3A5C 100%) !important;
-    border: 1px solid rgba(62,146,204,0.3) !important;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(62,146,204,0.2) !important;
-  }
-  /* Status badges */
-  .status-pendente { background: rgba(234,179,8,0.15) !important; color: #FCD34D !important; }
-  .status-aprovado { background: rgba(16,185,129,0.15) !important; color: #6EE7B7 !important; }
-  .status-fechado  { background: rgba(99,102,241,0.15) !important; color: #A5B4FC !important; }
-  .status-vencida  { background: rgba(239,68,68,0.15) !important; color: #FCA5A5 !important; }
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -311,7 +220,7 @@ def save_db(df,fn):
 @st.cache_data(ttl=30)
 def load_all():
     users  =load_db("usuarios.csv",["Nome","Password","Tipo","Email","Telefone","Cargo","NIF","NISS","CC","DataNasc","Nacionalidade","Morada","Foto"])
-    obras  =load_db("obras_lista.csv",["Obra","Codigo","Cliente","Local","Ativa","Latitude","Longitude","Raio_Validacao","DataInicio","DataFim"])
+    obras  =load_db("obras_lista.csv",["Obra","Codigo","Cliente","Local","Ativa","Latitude","Longitude","Raio_Validacao","DataInicio","DataFim","TipoObra","AssinaturaObrigatoria","Logo_b64"])
     frentes=load_db("frentes_lista.csv",["Obra","Frente","Tipo","Responsavel"])
     regs   =load_db("registos.csv",["Data","Técnico","Obra","Frente","TipoFrente","Turnos","Relatorio","Status","Horas_Total","Localizacao_Checkin","Localizacao_Checkout"])
     fats   =load_db("faturas.csv",["Numero","Cliente","Data_Emissao","Data_Vencimento","Valor","Status","Periodo_Inicio","Periodo_Fim","Obra"])
@@ -328,7 +237,8 @@ def load_all():
     req_fer=load_db("req_ferramentas.csv",["ID","Data","Solicitante","Obra","Categoria","Descricao","Referencia","Quantidade","DataNecessaria","Status","NotaAdmin","DataResposta"])
     req_mat=load_db("req_materiais.csv",["ID","Data","Solicitante","Obra","Categoria","Descricao","Referencia","Quantidade","Unidade","DataNecessaria","Status","NotaAdmin","DataResposta"])
     req_epi=load_db("req_epis.csv",["ID","Data","Solicitante","Obra","TipoReq","Item","Tamanho","Quantidade","Motivo","Status","NotaAdmin","DataResposta"])
-    avals  =load_db("avaliacoes.csv",["Utilizador","Data","PontuacaoManual","NotaAdmin","Avaliador"])
+    avals       =load_db("avaliacoes.csv",["Utilizador","Data","PontuacaoManual","NotaAdmin","Avaliador"])
+    inst_acessos=load_db("inst_acessos.csv",["Obra","Utilizador","Cargo","DataAcesso","Ativo"])
     # Campos novos nos users
     for col in ["PrecoHora","PrecoHoraStatus","PrecoHoraData","PIN","Foto"]:
         if col not in users.columns: users[col]=""
@@ -342,10 +252,453 @@ def load_all():
         for c in ['Data_Emissao','Data_Vencimento','Periodo_Inicio','Periodo_Fim']:
             fats[c]=pd.to_datetime(fats[c],dayfirst=True,errors='coerce')
         fats['Valor']=pd.to_numeric(fats['Valor'],errors='coerce').fillna(0)
-    return users,obras,frentes,regs,fats,docs,incs,sw,obs,equip,diags,diags_u,folhas,comuns,comuns_u,req_fer,req_mat,req_epi,avals
+    return users,obras,frentes,regs,fats,docs,incs,sw,obs,equip,diags,diags_u,folhas,comuns,comuns_u,req_fer,req_mat,req_epi,avals,inst_acessos
 
 def inv(): load_all.clear()
 
 # ============================================================
 # 6. UTILIDADES
-# ====================
+# ============================================================
+def fh(h): h=float(h); return f"{int(h)}h{int((h-int(h))*60):02d}m"
+def sl(s): return {"0":("Pendente","status-pendente"),"1":("Aprovado","status-aprovado"),"2":("Fechado","status-fechado")}.get(s,("—","status-fechado"))
+def calc_val(rd,ud):
+    t=0.0
+    for _,r in rd.iterrows():
+        u=ud[ud['Nome']==r['Técnico']]; cargo=u.iloc[0]['Cargo'] if not u.empty else 'Técnico'
+        t+=float(r['Horas_Total'])*TAXA_HORA_POR_CARGO.get(cargo,15.0)
+    return t
+
+def gen_cod(obras_df):
+    ano=datetime.now().year
+    if obras_df.empty or 'Codigo' not in obras_df.columns: return f"GN.{ano}.OBR.0001"
+    nums=[int(str(c).split('.')[-1]) for c in obras_df['Codigo'].dropna() if str(c).split('.')[-1].isdigit()]
+    return f"GN.{ano}.OBR.{(max(nums)+1 if nums else 1):04d}"
+
+def semana_de(d):
+    dow=d.weekday(); inicio=d-timedelta(days=(dow+1)%7)
+    return [inicio+timedelta(days=i) for i in range(7)]
+
+# ============================================================
+# 7. COMPONENTES
+# ============================================================
+def render_metric(icon,val,lbl):
+    st.markdown(f"<div class='metric-card'><div class='metric-icon'>{icon}</div><div class='metric-value'>{val}</div><div class='metric-label'>{lbl}</div></div>",unsafe_allow_html=True)
+
+def render_metric_red(icon,val,lbl):
+    st.markdown(f"<div class='metric-card-red'><div class='mic-icon'>{icon}</div><div class='mic-value'>{val}</div><div class='mic-label'>{lbl}</div></div>",unsafe_allow_html=True)
+
+def estado_bolinha(status):
+    """Retorna emoji bolinha colorida conforme o estado do registo."""
+    return {"0":"🟠","1":"🟢","2":"🔵"}.get(status,"⚪")
+
+def render_card(obra,cod,st_txt,st_cls,turno,horas,frente="",rel=None,status="0"):
+    cod_h=f"<span class='obra-codigo'>{cod}</span> " if cod else ""
+    fr_h=f"<span style='color:#7A8BA6;font-size:.82rem;'> · {frente}</span>" if frente else ""
+    rl_h=f"<div style='color:#6B7280;font-size:.8rem;margin-top:6px;'>📝 {rel}</div>" if rel else ""
+    bolinha=estado_bolinha(status)
+    st.markdown(f"<div class='turno-card'><div class='turno-header'><span>{bolinha} {cod_h}{obra}{fr_h}</span><span class='turno-status {st_cls}'>{st_txt}</span></div><div style='color:#374151;font-size:.9rem;'>⏱️ {turno} &nbsp;|&nbsp; <strong>{fh(horas)}</strong></div>{rl_h}</div>",unsafe_allow_html=True)
+
+def cor_bolinha_dia(d, regs_user):
+    """
+    Determina a cor da bolinha para um dia do calendário.
+    Regras (do estado mais avançado para o menor):
+      🔵 Azul    = pelo menos um registo Faturado (Status "2") 
+      🟢 Verde   = pelo menos um aprovado (Status "1"), nenhum faturado
+      🟠 Laranja = apenas pendentes (Status "0")
+      None       = sem registos ou dia há mais de 31 dias
+    """
+    hoje = datetime.now().date()
+    # Apagar bolinhas com mais de 31 dias
+    if (hoje - d).days > 31:
+        return None
+    if regs_user.empty:
+        return None
+    dia_regs = regs_user[regs_user['Data'].dt.date == d]
+    if dia_regs.empty:
+        return None
+    statuses = set(dia_regs['Status'].tolist())
+    if "2" in statuses:
+        return "#3E92CC"   # Azul — Faturado
+    elif "1" in statuses:
+        return "#27AE60"   # Verde — Aprovado
+    else:
+        return "#E67E22"   # Laranja — Pendente
+
+def render_cal(data_sel, regs_user):
+    semana = semana_de(data_sel)
+    hoje = datetime.now().date()
+    mes = MESES_PT[data_sel.month]
+
+    html = f"<div style='text-align:center;font-weight:700;color:#0A2463;margin-bottom:.5rem;font-size:1.1rem;'>📅 {mes} {data_sel.year}</div>"
+    html += "<div style='display:flex;gap:6px;justify-content:center;background:white;padding:1rem;border-radius:16px;margin-bottom:.5rem;border:1px solid #E5EDFF;box-shadow:0 2px 10px rgba(10,36,99,.05);'>"
+
+    for d in semana:
+        is_sel = d == data_sel
+        is_hoje = d == hoje
+        cor = cor_bolinha_dia(d, regs_user)
+
+        bg = "background:linear-gradient(135deg,#0A2463,#3E92CC);box-shadow:0 4px 12px rgba(10,36,99,.3);" if is_sel else "background:#F8FAFF;"
+        txt_c = "color:white;" if is_sel else "color:#0A2463;"
+        nome_c = "rgba(255,255,255,.8)" if is_sel else "#7A8BA6"
+        nome = DIAS_PT[d.weekday()]
+
+        # Bolinha colorida com cor do status
+        if cor:
+            dot_color = "rgba(255,255,255,.9)" if is_sel else cor
+            dot = f"<div style='width:8px;height:8px;border-radius:50%;background:{dot_color};margin:3px auto 0;box-shadow:0 0 4px {dot_color};'></div>"
+        else:
+            dot = "<div style='width:8px;height:8px;margin:3px auto 0;'></div>"
+
+        # Anel extra para "hoje"
+        hoje_ring = "outline:2px solid #E74C3C;outline-offset:2px;" if is_hoje and not is_sel else ""
+
+        html += f"<div style='display:flex;flex-direction:column;align-items:center;width:52px;padding:10px 6px;border-radius:12px;{bg}{hoje_ring}cursor:pointer;'>"
+        html += f"<div style='font-size:.65rem;font-weight:700;color:{nome_c};text-transform:uppercase;margin-bottom:3px;letter-spacing:.5px;'>{nome}</div>"
+        html += f"<div style='font-size:1.15rem;font-weight:700;{txt_c}'>{d.day}</div>"
+        html += dot
+        html += "</div>"
+
+    html += "</div>"
+
+    # Legenda das cores
+    html += """<div style='display:flex;gap:1rem;justify-content:center;margin-bottom:.75rem;flex-wrap:wrap;'>
+    <span style='font-size:.75rem;color:#7A8BA6;display:flex;align-items:center;gap:4px;'>
+        <span style='width:8px;height:8px;border-radius:50%;background:#E67E22;display:inline-block;'></span>Pendente</span>
+    <span style='font-size:.75rem;color:#7A8BA6;display:flex;align-items:center;gap:4px;'>
+        <span style='width:8px;height:8px;border-radius:50%;background:#27AE60;display:inline-block;'></span>Aprovado</span>
+    <span style='font-size:.75rem;color:#7A8BA6;display:flex;align-items:center;gap:4px;'>
+        <span style='width:8px;height:8px;border-radius:50%;background:#3E92CC;display:inline-block;'></span>Faturado</span>
+    </div>"""
+
+    st.markdown(html, unsafe_allow_html=True)
+
+    # Navegação semanal
+    c1, c2, c3 = st.columns([1, 3, 1])
+    with c1:
+        if st.button("◀ Semana", key="cal_p"):
+            st.session_state.data_consulta -= timedelta(days=7); st.rerun()
+    with c2:
+        st.markdown(f"<p style='text-align:center;color:#7A8BA6;font-size:.85rem;margin:.3rem 0;'>"
+                    f"{semana[0].strftime('%d/%m')} – {semana[-1].strftime('%d/%m/%Y')}</p>", unsafe_allow_html=True)
+    with c3:
+        if st.button("Semana ▶", key="cal_n"):
+            if semana[-1] < hoje:
+                st.session_state.data_consulta += timedelta(days=7); st.rerun()
+
+    # Seletor de dia
+    nomes = [f"{DIAS_PT[d.weekday()]} {d.day}" for d in semana]
+    idx = semana.index(data_sel) if data_sel in semana else 0
+    escolha = st.radio("", nomes, index=idx, horizontal=True, key="cal_r", label_visibility="collapsed")
+    nd = semana[nomes.index(escolha)]
+    if nd != data_sel:
+        st.session_state.data_consulta = nd; st.rerun()
+
+# ============================================================
+# 8. PDF
+# ============================================================
+def gerar_pdf(dados,regs,users_df):
+    buf=io.BytesIO()
+    doc=SimpleDocTemplate(buf,pagesize=A4,leftMargin=2*cm,rightMargin=2*cm,topMargin=2*cm,bottomMargin=2*cm)
+    sty=getSampleStyleSheet(); el=[]
+    ts=ParagraphStyle('T',parent=sty['Title'],fontSize=22,textColor=colors.HexColor('#0A2463'),spaceAfter=4)
+    ss=ParagraphStyle('S',parent=sty['Normal'],fontSize=10,textColor=colors.HexColor('#7A8BA6'),spaceAfter=20)
+    el.append(Paragraph(f"FATURA Nº {dados['Numero']}",ts))
+    el.append(Paragraph("GESTNOW — Gestão de Obras e Equipas",ss))
+    el.append(Spacer(1,.3*cm))
+    def ds(v): return str(v)[:10] if v else "—"
+    info=[["Cliente:",dados['Cliente']],["Obra:",dados.get('Obra','—')],["Emissão:",ds(dados.get('Data_Emissao'))],["Vencimento:",ds(dados.get('Data_Vencimento'))]]
+    ti=Table(info,colWidths=[4*cm,12*cm])
+    ti.setStyle(TableStyle([('FONTNAME',(0,0),(0,-1),'Helvetica-Bold'),('FONTSIZE',(0,0),(-1,-1),10),('TEXTCOLOR',(0,0),(0,-1),colors.HexColor('#0A2463')),('BOTTOMPADDING',(0,0),(-1,-1),6)]))
+    el.append(ti); el.append(Spacer(1,.5*cm))
+    hdr=[['Data','Técnico','Cargo','Turno','Horas','€/h','Total']]; rows=[]
+    for _,r in regs.iterrows():
+        u=users_df[users_df['Nome']==r['Técnico']]; cargo=u.iloc[0]['Cargo'] if not u.empty else 'Técnico'
+        taxa=TAXA_HORA_POR_CARGO.get(cargo,15.0)
+        d_s=r['Data'].strftime('%d/%m/%Y') if hasattr(r['Data'],'strftime') else str(r['Data'])
+        rows.append([d_s,r['Técnico'],cargo,r['Turnos'],f"{float(r['Horas_Total']):.1f}h",f"€{taxa:.2f}",f"€{float(r['Horas_Total'])*taxa:.2f}"])
+    rows.append(['','','','','','TOTAL',f"€{dados['Valor']:,.2f}"])
+    tab=Table(hdr+rows,colWidths=[2.5*cm,3.5*cm,2.5*cm,2.5*cm,1.5*cm,1.5*cm,2*cm])
+    tab.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#0A2463')),('TEXTCOLOR',(0,0),(-1,0),colors.white),('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),('FONTSIZE',(0,0),(-1,-1),8),('ALIGN',(0,0),(-1,-1),'CENTER'),('ROWBACKGROUNDS',(0,1),(-1,-2),[colors.white,colors.HexColor('#F4F7FB')]),('GRID',(0,0),(-1,-2),.5,colors.HexColor('#D1DAF5')),('BACKGROUND',(0,-1),(-1,-1),colors.HexColor('#0A2463')),('TEXTCOLOR',(0,-1),(-1,-1),colors.white),('FONTNAME',(0,-1),(-1,-1),'Helvetica-Bold'),('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),6)]))
+    el.append(tab); el.append(Spacer(1,1*cm))
+    el.append(Paragraph(f"Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')} • GESTNOW",ParagraphStyle('R',parent=sty['Normal'],fontSize=8,textColor=colors.HexColor('#9CA3AF'),alignment=1)))
+    doc.build(el); buf.seek(0); return buf
+
+
+# ============================================================
+# 8b. FOLHA DE PONTO PDF
+# ============================================================
+def _qr_drawing(data_str, size_cm=2.8):
+    """Gera QR code como Drawing do ReportLab (sem dependências externas)."""
+    from reportlab.graphics.barcode.qr import QrCodeWidget
+    from reportlab.graphics.shapes import Drawing
+    qr_w = QrCodeWidget(data_str)
+    b = qr_w.getBounds()
+    w, h = b[2]-b[0], b[3]-b[1]
+    sz = size_cm * cm
+    d = Drawing(sz, sz, transform=[sz/w, 0, 0, sz/h, 0, 0])
+    d.add(qr_w)
+    return d
+
+def gerar_folha_ponto_pdf(obra, cod_obra, chefe, periodo_label, regs_obra, users_df,
+                           assin_chefe_b64="", assin_cliente_b64="", nome_cliente="",
+                           gps_chefe="", logo_b64="", doc_id=None,
+                           assin_cliente_obrigatoria=False):
+    """
+    Gera PDF da folha de ponto com:
+    - Logo da empresa (se fornecido)
+    - QR code de verificação
+    - GPS do chefe de equipa
+    - Tabela detalhada de presença (entrada/saída, cargo, frente)
+    - Zona de assinaturas (chefe + cliente, obrigatoriedade configurável)
+    - Rodapé legal com ID único
+    """
+    import base64, uuid as _uuid
+    from reportlab.graphics import renderPDF as _renderPDF
+    from reportlab.platypus import KeepTogether
+
+    doc_id = doc_id or _uuid.uuid4().hex[:12].upper()
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+        leftMargin=1.8*cm, rightMargin=1.8*cm,
+        topMargin=1.5*cm, bottomMargin=2.2*cm)
+    sty = getSampleStyleSheet()
+    el = []
+
+    # ── Estilos ──────────────────────────────────────────────
+    RED   = colors.HexColor('#C0392B')
+    NAVY  = colors.HexColor('#0A2463')
+    GREY  = colors.HexColor('#7A8BA6')
+    LGREY = colors.HexColor('#F8FAFF')
+    BLUE  = colors.HexColor('#3E92CC')
+
+    ts_title  = ParagraphStyle('FT',  fontSize=16, fontName='Helvetica-Bold',
+                                textColor=NAVY, spaceAfter=2, leading=18)
+    ts_sub    = ParagraphStyle('FSub', fontSize=8, textColor=GREY, spaceAfter=8)
+    ts_h2     = ParagraphStyle('FH2',  fontSize=10, fontName='Helvetica-Bold',
+                                textColor=NAVY, spaceBefore=10, spaceAfter=5)
+    ts_tiny   = ParagraphStyle('FTiny',fontSize=7,  textColor=GREY, alignment=1)
+    ts_label  = ParagraphStyle('FLbl', fontSize=7,  fontName='Helvetica-Bold',
+                                textColor=GREY, spaceAfter=2)
+    ts_val    = ParagraphStyle('FVal', fontSize=8,  textColor=NAVY)
+
+    # ── CABEÇALHO: Logo + Título + QR ────────────────────────
+    # Coluna esquerda: logo ou nome empresa
+    if logo_b64 and len(logo_b64) > 20:
+        try:
+            logo_bytes = base64.b64decode(logo_b64)
+            logo_buf   = io.BytesIO(logo_bytes)
+            from reportlab.platypus import Image as RLImage
+            logo_el = RLImage(logo_buf, width=4*cm, height=1.8*cm, kind='proportional')
+        except:
+            logo_el = Paragraph("<b>GESTNOW</b>", ParagraphStyle('LG',
+                fontSize=18, fontName='Helvetica-Bold', textColor=RED))
+    else:
+        logo_el = Paragraph("<b>🏗 GESTNOW</b>", ParagraphStyle('LG',
+            fontSize=16, fontName='Helvetica-Bold', textColor=NAVY))
+
+    # Coluna centro: título
+    titulo_el = [
+        Paragraph("FOLHA DE REGISTO DE PONTO", ts_title),
+        Paragraph(f"Gerado em {datetime.now().strftime('%d/%m/%Y às %H:%M')} &nbsp;|&nbsp; ID: <b>{doc_id}</b>", ts_sub),
+    ]
+
+    # Coluna direita: QR code (aponta para ID verificável)
+    qr_data = f"GESTNOW|FP|{doc_id}|{obra}|{chefe}|{periodo_label}"
+    qr_draw = _qr_drawing(qr_data, size_cm=2.6)
+    from reportlab.platypus import Image as _RLI
+    from reportlab.graphics import renderPM as _rPM
+    try:
+        qr_png = io.BytesIO()
+        _rPM.drawToFile(qr_draw, qr_png, fmt='PNG', dpi=150)
+        qr_png.seek(0)
+        qr_el = _RLI(qr_png, width=2.6*cm, height=2.6*cm)
+    except:
+        # Fallback: texto com ID
+        qr_el = Paragraph(f"<b>ID</b><br/>{doc_id}", ParagraphStyle('QRF',
+            fontSize=7, textColor=GREY, alignment=1))
+
+    hdr_table = Table(
+        [[logo_el, titulo_el, qr_el]],
+        colWidths=[4.5*cm, 10*cm, 3*cm]
+    )
+    hdr_table.setStyle(TableStyle([
+        ('VALIGN',  (0,0),(-1,-1),'MIDDLE'),
+        ('ALIGN',   (1,0),(1,0),  'LEFT'),
+        ('ALIGN',   (2,0),(2,0),  'CENTER'),
+        ('LINEBELOW',(0,0),(-1,0),1,colors.HexColor('#E5EDFF')),
+        ('BOTTOMPADDING',(0,0),(-1,-1),8),
+    ]))
+    el.append(hdr_table)
+    el.append(Spacer(1, 0.3*cm))
+
+    # ── DADOS DA OBRA ─────────────────────────────────────────
+    gps_str = gps_chefe if gps_chefe else "Não disponível"
+    info_rows = [
+        [Paragraph("<b>Obra</b>",ts_label),         Paragraph(obra, ts_val),
+         Paragraph("<b>Código</b>",ts_label),        Paragraph(cod_obra or "—", ts_val)],
+        [Paragraph("<b>Período</b>",ts_label),       Paragraph(periodo_label, ts_val),
+         Paragraph("<b>Chefe de Equipa</b>",ts_label), Paragraph(chefe, ts_val)],
+        [Paragraph("<b>Cliente</b>",ts_label),       Paragraph(nome_cliente or "—", ts_val),
+         Paragraph("<b>Localização GPS (chefe)</b>",ts_label), Paragraph(gps_str, ts_val)],
+    ]
+    ti = Table(info_rows, colWidths=[3.5*cm, 6.5*cm, 4*cm, 4*cm])
+    ti.setStyle(TableStyle([
+        ('BACKGROUND', (0,0),(-1,-1), LGREY),
+        ('GRID',       (0,0),(-1,-1), 0.4, colors.HexColor('#DDE6F5')),
+        ('TOPPADDING', (0,0),(-1,-1), 5),
+        ('BOTTOMPADDING',(0,0),(-1,-1),5),
+        ('LEFTPADDING', (0,0),(-1,-1), 6),
+    ]))
+    el.append(ti)
+    el.append(Spacer(1, 0.4*cm))
+
+    # ── TABELA DE PRESENÇA ────────────────────────────────────
+    el.append(Paragraph("Registos de Presença", ts_h2))
+
+    hdrs = [['Data','Técnico','Cargo','Frente / Tipo de Trabalho','Turno','Horas','Estado']]
+    rows = []
+    total_h = 0.0
+
+    # Agrupar por técnico para calcular totais
+    tecnicos_presentes = {}
+
+    for _, r in regs_obra.sort_values('Data').iterrows():
+        u_row = users_df[users_df['Nome'] == r.get('Técnico','')]
+        cargo = u_row.iloc[0]['Cargo'] if not u_row.empty else '—'
+        h = float(r.get('Horas_Total', 0))
+        total_h += h
+        tec_nome = r.get('Técnico','—')
+        tecnicos_presentes[tec_nome] = tecnicos_presentes.get(tec_nome, 0) + h
+
+        data_str  = r['Data'].strftime('%d/%m/%Y') if pd.notnull(r.get('Data')) else '—'
+        estado_map = {"0":"Pendente","1":"Aprovado","2":"Faturado"}
+        turno_str = r.get('Turnos','—')
+
+        rows.append([
+            data_str,
+            tec_nome,
+            cargo,
+            r.get('TipoFrente', r.get('Frente','—')),
+            turno_str,
+            f"{h:.1f}h",
+            estado_map.get(str(r.get('Status','0')),'—')
+        ])
+
+    # Linha separadora + TOTAL
+    rows.append(['','','','','TOTAL',f"{total_h:.1f}h",f"{len(rows)} reg."])
+
+    tbl_regs = Table(hdrs + rows,
+        colWidths=[2.2*cm, 3.8*cm, 2.8*cm, 4.2*cm, 3*cm, 1.6*cm, 2*cm])
+    tbl_regs.setStyle(TableStyle([
+        # Cabeçalho
+        ('BACKGROUND',    (0,0), (-1,0),  NAVY),
+        ('TEXTCOLOR',     (0,0), (-1,0),  colors.white),
+        ('FONTNAME',      (0,0), (-1,0),  'Helvetica-Bold'),
+        ('ALIGN',         (0,0), (-1,0),  'CENTER'),
+        # Dados
+        ('FONTSIZE',      (0,0), (-1,-1), 8),
+        ('GRID',          (0,0), (-1,-1), 0.4, colors.HexColor('#D1D9F0')),
+        ('ROWBACKGROUNDS',(0,1), (-1,-2), [colors.white, LGREY]),
+        # Linha total
+        ('FONTNAME',      (0,-1),(-1,-1), 'Helvetica-Bold'),
+        ('BACKGROUND',    (0,-1),(-1,-1), colors.HexColor('#EEF2FF')),
+        ('LINEABOVE',     (0,-1),(-1,-1), 1, NAVY),
+        ('ALIGN',         (5,0), (6,-1),  'CENTER'),
+        # Padding
+        ('TOPPADDING',    (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('LEFTPADDING',   (0,0), (-1,-1), 4),
+    ]))
+    el.append(tbl_regs)
+
+    # ── RESUMO POR TÉCNICO ────────────────────────────────────
+    if len(tecnicos_presentes) > 1:
+        el.append(Spacer(1, 0.3*cm))
+        el.append(Paragraph("Resumo por Técnico", ts_h2))
+        res_rows = [[Paragraph('<b>Técnico</b>',ts_label),
+                     Paragraph('<b>Total Horas</b>',ts_label),
+                     Paragraph('<b>Cargo</b>',ts_label)]]
+        for tec_n, tec_h in sorted(tecnicos_presentes.items()):
+            u_r = users_df[users_df['Nome']==tec_n]
+            cg_ = u_r.iloc[0]['Cargo'] if not u_r.empty else '—'
+            res_rows.append([tec_n, f"{tec_h:.1f}h", cg_])
+        tbl_res = Table(res_rows, colWidths=[7*cm, 4*cm, 7*cm])
+        tbl_res.setStyle(TableStyle([
+            ('BACKGROUND', (0,0),(-1,0), colors.HexColor('#EEF2FF')),
+            ('FONTSIZE',   (0,0),(-1,-1),8),
+            ('GRID',       (0,0),(-1,-1),0.4,colors.HexColor('#D1D9F0')),
+            ('TOPPADDING', (0,0),(-1,-1),4),
+            ('BOTTOMPADDING',(0,0),(-1,-1),4),
+            ('LEFTPADDING', (0,0),(-1,-1),4),
+        ]))
+        el.append(tbl_res)
+
+    el.append(Spacer(1, 0.5*cm))
+
+    # ── ZONA DE ASSINATURAS ───────────────────────────────────
+    el.append(Paragraph("Assinaturas", ts_h2))
+
+    if assin_cliente_obrigatoria and not (assin_cliente_b64 and len(assin_cliente_b64) > 20):
+        obrig_note = " <font color='red'>(obrigatória para validar este documento)</font>"
+    else:
+        obrig_note = ""
+
+    def _sig_cell(titulo, b64_img, nome="", obrig_txt=""):
+        els = []
+        els.append(Paragraph(f"<b>{titulo}</b>{obrig_txt}",
+            ParagraphStyle('SH', fontSize=8, fontName='Helvetica-Bold', textColor=GREY, spaceAfter=4)))
+        if b64_img and len(b64_img) > 20:
+            try:
+                ib  = base64.b64decode(b64_img)
+                ibf = io.BytesIO(ib)
+                from reportlab.platypus import Image as _I
+                els.append(_I(ibf, width=7*cm, height=2.3*cm))
+                els.append(Paragraph("✓ Assinatura digital capturada",
+                    ParagraphStyle('SOK', fontSize=7, textColor=colors.HexColor('#059669'))))
+            except:
+                els.append(Spacer(1, 2.3*cm))
+                els.append(Paragraph("_"*42, ParagraphStyle('SL', fontSize=9,
+                    textColor=colors.HexColor('#CBD5E1'))))
+        else:
+            els.append(Spacer(1, 2.3*cm))
+            els.append(Paragraph("_"*42, ParagraphStyle('SL', fontSize=9,
+                textColor=colors.HexColor('#CBD5E1'))))
+        if nome:
+            els.append(Paragraph(nome, ParagraphStyle('SN', fontSize=8, textColor=NAVY, spaceBefore=3)))
+        els.append(Paragraph(datetime.now().strftime('%d/%m/%Y'),
+            ParagraphStyle('SD', fontSize=7, textColor=GREY)))
+        return KeepTogether(els)
+
+    sig_tbl = Table(
+        [[_sig_cell("Chefe de Equipa", assin_chefe_b64, chefe),
+          _sig_cell("Representante do Cliente", assin_cliente_b64, nome_cliente, obrig_note)]],
+        colWidths=[9.3*cm, 9.3*cm]
+    )
+    sig_tbl.setStyle(TableStyle([
+        ('VALIGN',       (0,0),(-1,-1),'TOP'),
+        ('LEFTPADDING',  (0,0),(-1,-1),10),
+        ('RIGHTPADDING', (0,0),(-1,-1),10),
+        ('TOPPADDING',   (0,0),(-1,-1),8),
+        ('BOTTOMPADDING',(0,0),(-1,-1),8),
+        ('BOX',          (0,0),(0,0),0.5,colors.HexColor('#E5EDFF')),
+        ('BOX',          (1,0),(1,0),0.5,colors.HexColor('#E5EDFF')),
+        ('BACKGROUND',   (0,0),(-1,-1),LGREY),
+    ]))
+    el.append(sig_tbl)
+    el.append(Spacer(1, 0.4*cm))
+
+    # ── RODAPÉ ────────────────────────────────────────────────
+    footer_lines = [
+        f"ID do documento: {doc_id}  |  Gerado pela plataforma GESTNOW  |  {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        "Este documento tem validade legal quando assinado por ambas as partes e substitui a folha de ponto em papel.",
+    ]
+    if gps_chefe:
+        footer_lines.append(f"Localização GPS do Chefe de Equipa no momento da geração: {gps_chefe}")
+    for fl in footer_lines:
+        el.append(Paragraph(fl, ts_tiny))
+
+    doc.build(el)
+    buf.seek(0)
+    return buf.read(), total_h, doc_id
+
+# ============================================================
