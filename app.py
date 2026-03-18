@@ -22,7 +22,12 @@ from core import (
 from mod_login   import render_login
 from mod_admin   import render_admin
 from mod_tecnico        import render_tecnico
-from mod_instrumentacao import render_instrumentacao
+try:
+    from mod_instrumentacao import render_instrumentacao
+    _tem_instrumentacao = True
+except ImportError:
+    _tem_instrumentacao = False
+    def render_instrumentacao(**DB): st.error("Módulo de instrumentação não encontrado. Adiciona mod_instrumentacao.py ao repositório.")
 
 # ── 1. Inicializar sessão ────────────────────────────────────────────────────
 init_session()
@@ -107,7 +112,10 @@ else:
                 key="modulo_sel"
             )
             if modulo == "🔧 Instrumentação":
-                render_instrumentacao(**DB)
+                if _tem_instrumentacao:
+                    render_instrumentacao(**DB)
+                else:
+                    st.error("Módulo de instrumentação não instalado.")
             else:
                 render_tecnico(**DB)
         else:
