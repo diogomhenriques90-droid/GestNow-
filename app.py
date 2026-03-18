@@ -21,7 +21,8 @@ from core import (
 )
 from mod_login   import render_login
 from mod_admin   import render_admin
-from mod_tecnico import render_tecnico
+from mod_tecnico        import render_tecnico
+from mod_instrumentacao import render_instrumentacao
 
 # ── 1. Inicializar sessão ────────────────────────────────────────────────────
 init_session()
@@ -67,7 +68,8 @@ else:
     (users, obras_db, frentes_db, registos_db, faturas_db,
      docs_db, incs_db, sw_db, obs_db, equip_db,
      diags_db, diags_u_db, folhas_db,
-     comuns_db, comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db) = load_all()
+     comuns_db, comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db,
+     inst_acessos_db) = load_all()
 
     DB = dict(
         users=users, obras_db=obras_db, frentes_db=frentes_db,
@@ -78,6 +80,7 @@ else:
         comuns_db=comuns_db, comuns_u_db=comuns_u_db,
         req_fer_db=req_fer_db, req_mat_db=req_mat_db, req_epi_db=req_epi_db,
         avals_db=avals_db,
+        inst_acessos_db=inst_acessos_db,
     )
 
     # ── Routing por tipo de utilizador
@@ -86,8 +89,29 @@ else:
     if tipo == "Admin":
         render_admin(**DB)
     else:
-        # Técnico, Chefe de Equipa, Encarregado, Supervisor, etc.
-        render_tecnico(**DB)
+        # Verificar se o utilizador tem acesso a obra de instrumentação
+        user_atual = st.session_state.get('user','')
+        tem_acesso_inst = False
+        if not inst_acessos_db.empty:
+            acesso = inst_acessos_db[
+                (inst_acessos_db['Utilizador'] == user_atual) &
+                (inst_acessos_db['Ativo'].isin(['Sim','sim','1','true','True']))
+            ]
+            tem_acesso_inst = not acesso.empty
+
+        # Selector de módulo se tiver acesso a instrumentação
+        if tem_acesso_inst:
+            modulo = st.sidebar.radio(
+                "📱 Módulo",
+                ["🏗️ Gestão de Obra", "🔧 Instrumentação"],
+                key="modulo_sel"
+            )
+            if modulo == "🔧 Instrumentação":
+                render_instrumentacao(**DB)
+            else:
+                render_tecnico(**DB)
+        else:
+            render_tecnico(**DB)
 
     # ── Para adicionar um novo tipo de utilizador no futuro:
     # elif tipo == "Fornecedor":
