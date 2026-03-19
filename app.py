@@ -25,9 +25,10 @@ from mod_tecnico        import render_tecnico
 try:
     from mod_instrumentacao import render_instrumentacao
     _tem_instrumentacao = True
-except ImportError:
+except Exception as _inst_err:
     _tem_instrumentacao = False
-    def render_instrumentacao(**DB): st.error("Módulo de instrumentação não encontrado. Adiciona mod_instrumentacao.py ao repositório.")
+    _inst_err_msg = str(_inst_err)
+    def render_instrumentacao(**DB): st.error(f"Erro no módulo de instrumentação: {_inst_err_msg}")
 
 # ── 1. Inicializar sessão ────────────────────────────────────────────────────
 init_session()
