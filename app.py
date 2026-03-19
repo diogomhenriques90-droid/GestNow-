@@ -25,8 +25,9 @@ from mod_tecnico        import render_tecnico
 try:
     from mod_instrumentacao import render_instrumentacao
 except Exception as _e:
+    _erro_inst = str(_e)
     def render_instrumentacao(**DB):
-        st.error(f"❌ Erro ao carregar módulo de instrumentação: {_e}")
+        st.error(f"❌ Erro ao carregar módulo de instrumentação: {_erro_inst}")
 
 # ── 1. Inicializar sessão ────────────────────────────────────────────────────
 init_session()
