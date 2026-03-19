@@ -24,11 +24,9 @@ from mod_admin   import render_admin
 from mod_tecnico        import render_tecnico
 try:
     from mod_instrumentacao import render_instrumentacao
-    _tem_instrumentacao = True
-except Exception as _inst_err:
-    _tem_instrumentacao = False
-    _inst_err_msg = str(_inst_err)
-    def render_instrumentacao(**DB): st.error(f"Erro no módulo de instrumentação: {_inst_err_msg}")
+except Exception as _e:
+    def render_instrumentacao(**DB):
+        st.error(f"❌ Erro ao carregar módulo de instrumentação: {_e}")
 
 # ── 1. Inicializar sessão ────────────────────────────────────────────────────
 init_session()
@@ -113,10 +111,7 @@ else:
                 key="modulo_sel"
             )
             if modulo == "🔧 Instrumentação":
-                if _tem_instrumentacao:
-                    render_instrumentacao(**DB)
-                else:
-                    st.error("Módulo de instrumentação não instalado.")
+                render_instrumentacao(**DB)
             else:
                 render_tecnico(**DB)
         else:
