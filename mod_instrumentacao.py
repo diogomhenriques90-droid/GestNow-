@@ -10,22 +10,11 @@ Bibliotecas novas: pdfplumber (requirements.txt)
 Tudo o resto já existe no core.py
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
-# Imports do core sem re-executar set_page_config
+# Imports seguros — não re-executa set_page_config
 import streamlit as st
 import pandas as pd
 import io, re, uuid as _uuid_inst
 from datetime import datetime, timedelta, date
-try:
-    from core import (
-        load_db, save_db, inv, fh, sl,
-        render_metric, render_metric_red, render_card, render_cal,
-        _qr_drawing, gerar_folha_ponto_pdf,
-        TIPOS_FRENTE, CARGOS,
-        A4, colors, SimpleDocTemplate, Table, TableStyle,
-        Paragraph, Spacer, getSampleStyleSheet, ParagraphStyle, cm
-    )
-except Exception as _ce:
-    st.error(f"Erro ao importar core: {_ce}")
 
 # ── Tipos ISA standard + cores de identificação ──────────────
 TIPOS_TAG = {
@@ -142,6 +131,20 @@ _CSS_INST = """
 # RENDER PRINCIPAL
 # ═══════════════════════════════════════════════════════════════
 def render_instrumentacao(**DB):
+    # Imports lazy — só aqui, nunca no topo do módulo
+    try:
+        from core import (
+            load_db, save_db, inv, fh, sl,
+            render_metric, render_metric_red, render_card, render_cal,
+            _qr_drawing, gerar_folha_ponto_pdf,
+            TIPOS_FRENTE, CARGOS,
+            A4, colors, SimpleDocTemplate, Table, TableStyle,
+            Paragraph, Spacer, getSampleStyleSheet, ParagraphStyle, cm
+        )
+    except Exception as _ce:
+        st.error(f"❌ Erro ao carregar core: {_ce}")
+        return
+
     inst_acessos_db = DB.get("inst_acessos_db", pd.DataFrame())
     st.markdown(_CSS_INST, unsafe_allow_html=True)
 
