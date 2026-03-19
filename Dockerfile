@@ -16,6 +16,7 @@ COPY core.py .
 COPY mod_login.py .
 COPY mod_admin.py .
 COPY mod_tecnico.py .
+COPY mod_instrumentacao.py .
 
 COPY .streamlit/ .streamlit/
 
