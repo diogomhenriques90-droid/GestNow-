@@ -453,13 +453,14 @@ def render_instrumentacao(**DB):
                     st_txt, st_cls, st_ic = STATUS_INST.get(st_code, ("?","","?"))
                     gps_ok = bool(row.get('GPS_Lat') and str(row.get('GPS_Lat')) not in ('','nan'))
 
+                    gps_badge = "<span class='stat-pill' style='background:#EEF2FF;color:#4F46E5'>📍 GPS</span>" if gps_ok else ""
                     st.markdown(
                         f"<div class='inst-tag-card'>"
                         f"<div class='inst-tag-badge' style='background:{cor}'>{row.get('Tipo','?')}</div>"
                         f"<div class='inst-tag-desc'>"
                         f"<div class='tag-nome'>{row.get('Tag','—')} "
                         f"<span class='stat-pill turno-status {st_cls}'>{st_ic} {st_txt}</span>"
-                        f"{'<span class=\"stat-pill\" style=\"background:#EEF2FF;color:#4F46E5\">📍 GPS</span>' if gps_ok else ''}"
+                        f"{gps_badge}"
                         f"</div>"
                         f"<div class='tag-sub'>{row.get('Descricao','—')} | "
                         f"{row.get('Fabricante','')} {row.get('Modelo','')} | "
