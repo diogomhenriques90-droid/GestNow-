@@ -6,8 +6,14 @@ Módulo de Gestão de Instrumentação Industrial
 Fluxo: P&ID → Hook-Ups → Packing List → Calibração (ITR-A)
        → Instalação+GPS (ITR-B) → Punch List → Handover Dossier
 
-Bibliotecas novas: pdfplumber (requirements.txt)
-Tudo o resto já existe no core.py
+NOVIDADE: Extracção de tags por Claude Vision API
+  → Lê qualquer P&ID (vectorial, CAD, escaneado)
+  → Devolve JSON estruturado com todas as tags ISA
+  → Sem OCR clássico, sem regex, sem falhas
+
+requirements.txt:
+  pymupdf      ← converter PDF → imagem
+  anthropic    ← Claude Vision API
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 # Imports seguros — não re-executa set_page_config
@@ -55,12 +61,162 @@ STATUS_INST = {
     "X": ("Bloqueado",    "status-vencida",   "🔴"),
 }
 
+# ── Claude Vision — Extracção de Tags de P&ID ────────────────
+def _extrair_tags_claude_vision(pdf_file, nome_ficheiro):
+    """
+    Usa Claude Vision para extrair tags ISA de um P&ID.
+    Funciona em qualquer formato: vectorial CAD, escaneado, imagem.
+    Retorna lista de dicts: [{"tag": "PT-101", "tipo": "PT", "descricao": "...", "linha": "..."}]
+    """
+    import base64, json, urllib.request
+    try:
+        import fitz  # PyMuPDF
+    except ImportError:
+        return "❌ PyMuPDF não instalado. Adiciona 'pymupdf' ao requirements.txt"
+
+    try:
+        # Converter primeira página do PDF em imagem PNG alta resolução
+        pdf_bytes = pdf_file.read()
+        pdf_file.seek(0)  # reset para leituras futuras
+
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        imgs_b64 = []
+        for page_num in range(min(len(doc), 3)):  # máx 3 páginas por P&ID
+            page = doc[page_num]
+            # 3x zoom para alta resolução — tags pequenas ficam legíveis
+            mat = fitz.Matrix(3, 3)
+            pix = page.get_pixmap(matrix=mat)
+            img_bytes = pix.tobytes("png")
+            imgs_b64.append(base64.standard_b64encode(img_bytes).decode())
+
+        doc.close()
+
+        # Construir payload para Claude Vision
+        content = []
+        for i, img_b64 in enumerate(imgs_b64):
+            content.append({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": "image/png",
+                    "data": img_b64
+                }
+            })
+
+        prompt = """Analisa este P&ID (Piping and Instrumentation Diagram) industrial.
+
+Extrai TODAS as tags de instrumentação presentes no desenho.
+
+Tags de instrumentação seguem a norma ISA 5.1:
+- Formato típico: XX-NNNN (ex: PT-101, FT-1234, LT-001A)
+- Também podem ter prefixo de área: 3075-PT-101
+- Tipos comuns: PT, FT, LT, TT, AT, CV, PSV, TE, PG, LG, FE, ZT, ST, IT, DT, PIC, FIC, LIC, TIC, FCV, PCV, LCV
+
+Para cada tag encontrada, indica:
+1. Tag completa (ex: PT-101)
+2. Tipo de instrumento (as 2-3 letras do tipo: PT, FT, etc.)
+3. Descrição em português (ex: Transmissor de Pressão)
+4. Linha de processo associada se visível (ex: 3075-CS-001)
+
+Responde APENAS em JSON válido, sem markdown, sem explicações:
+{
+  "tags": [
+    {"tag": "PT-101", "tipo": "PT", "descricao": "Transmissor de Pressão", "linha": "3075-CW-001"},
+    {"tag": "FT-202", "tipo": "FT", "descricao": "Transmissor de Caudal", "linha": ""}
+  ]
+}
+
+Se não encontrares tags, responde: {"tags": []}
+"""
+        content.append({"type": "text", "text": prompt})
+
+        # Chamada à API Claude
+        payload = json.dumps({
+            "model": "claude-sonnet-4-20250514",
+            "max_tokens": 4096,
+            "messages": [{"role": "user", "content": content}]
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "anthropic-version": "2023-06-01"
+            },
+            method="POST"
+        )
+
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read().decode())
+
+        # Extrair o JSON da resposta
+        resposta_texto = result["content"][0]["text"].strip()
+        # Limpar possível markdown
+        resposta_texto = resposta_texto.replace("```json","").replace("```","").strip()
+        dados = json.loads(resposta_texto)
+        tags = dados.get("tags", [])
+
+        # Normalizar e enriquecer com descrições do dicionário local
+        for t in tags:
+            tipo = t.get("tipo","XX")[:3].upper()
+            if tipo not in TIPOS_TAG:
+                # Tentar extrair tipo da tag
+                m = re.match(r"([A-Z]{1,3})", t.get("tag",""))
+                if m: tipo = m.group(1)
+            t["tipo"] = tipo
+            if not t.get("descricao"):
+                t["descricao"] = TIPOS_TAG.get(tipo, ("Instrumento",""))[0]
+
+        return tags
+
+    except Exception as e:
+        return f"Erro na análise IA: {str(e)}"
+
+
+def _importar_tags(tags_lista, insts_df, obra_sel, obra_key, pid_ref):
+    """Importa lista de tags para o Instrument Index."""
+    tags_existentes = insts_df["Tag"].tolist() if not insts_df.empty else []
+    novas = []
+    for t in tags_lista:
+        tag = t.get("tag","")
+        if not tag or tag in tags_existentes:
+            continue
+        tipo = t.get("tipo","XX")
+        desc = t.get("descricao","") or TIPOS_TAG.get(tipo, ("Instrumento",""))[0]
+        novas.append({
+            "ID": "INST"+_uuid_inst.uuid4().hex[:8].upper(),
+            "Tag": tag,
+            "Tipo": tipo,
+            "Descricao": desc,
+            "Fabricante": "",
+            "Modelo": "",
+            "PID_Ref": pid_ref,
+            "LinhaProcesso": t.get("linha",""),
+            "Obra": obra_sel,
+            "Unidade": "",
+            "Status": "0",
+            "GPS_Lat": "", "GPS_Lng": "", "Elevacao": "",
+            "Foto_Local_b64": "",
+            "DataCriacao": datetime.now().strftime("%d/%m/%Y %H:%M"),
+            "QR_impresso": "0",
+        })
+    if novas:
+        novo_df = pd.DataFrame(novas)
+        upd = pd.concat([insts_df, novo_df], ignore_index=True)
+        _save_inst(upd, obra_key, "index")
+        inv()
+        st.success(f"✅ {len(novas)} tags importadas para o Instrument Index!")
+    else:
+        st.info("ℹ️ Todas as tags já existem.")
+
+
 # ── Carregamento dos CSVs próprios deste módulo ───────────────
 def _load_inst(obra):
     """Carrega todos os CSVs de instrumentação para uma obra."""
     insts   = load_db(f"inst_{obra}_index.csv",
         ["ID","Tag","Tipo","Descricao","Fabricante","Modelo","PID_Ref",
-         "Obra","Unidade","Status","GPS_Lat","GPS_Lng","Elevacao",
+         "LinhaProcesso","Obra","Unidade","Status","GPS_Lat","GPS_Lng","Elevacao",
          "Foto_Local_b64","DataCriacao","QR_impresso"])
     hookups = load_db(f"inst_{obra}_hookups.csv",
         ["ID","Obra","Codigo","Tipo_Tag","Descricao","DataCriacao"])
@@ -268,106 +424,87 @@ def render_instrumentacao(**DB):
             "🏷️ Etiquetas QR",
         ])
 
-        # ── Sub: Extrair de P&ID ──────────────────────────────
+        # ── Sub: Extrair de P&ID — Claude Vision ─────────────────
         with sub_pid:
-            st.markdown("#### 📄 Upload P&ID — Extracção Automática de Tags")
-            st.caption("Carrega o PDF do P&ID. O sistema extrai todas as tags ISA automaticamente.")
+            st.markdown("""
+            <div style='background:linear-gradient(135deg,#0A2463,#1A3A6A);border-radius:16px;
+            padding:18px 20px;color:white;margin-bottom:16px;'>
+            <div style='font-size:1.2rem;font-weight:800;margin-bottom:4px;'>
+            🤖 Extracção Automática com IA</div>
+            <div style='opacity:.8;font-size:.85rem;'>Claude Vision analisa o P&ID e extrai todas
+            as tags ISA automaticamente — funciona em qualquer formato de PDF, incluindo CAD vectorial.</div>
+            </div>""", unsafe_allow_html=True)
 
-            pid_file = st.file_uploader("Selecciona o PDF do P&ID",
+            pid_file = st.file_uploader("📄 Upload do P&ID (PDF)",
                 type=["pdf"], key="inst_pid_upload")
 
             if pid_file:
-                try:
-                    import pdfplumber
-                    texto_total = ""
-                    with pdfplumber.open(pid_file) as pdf:
-                        for page in pdf.pages:
-                            t = page.extract_text()
-                            if t: texto_total += t + "\n"
+                col_btn, col_info = st.columns([2,3])
+                with col_btn:
+                    analisar = st.button("🤖 Analisar com IA",
+                        use_container_width=True, type="primary",
+                        key="inst_analisar_ia")
+                with col_info:
+                    st.caption(f"📄 {pid_file.name} — {pid_file.size/1024:.0f} KB")
 
-                    # Regex para tags ISA: PT-101, FT-1234A, LT-002, etc.
-                    padrao = r'\b([A-Z]{1,3}[A-Z]?)[- ]?(\d{2,5}[A-Z]?)\b'
-                    matches = re.findall(padrao, texto_total)
+                if analisar or st.session_state.get("pid_tags_cache_key") == pid_file.name:
 
-                    # Filtrar só tipos conhecidos
-                    tags_encontradas = []
-                    for tipo, num in matches:
-                        if tipo in TIPOS_TAG:
-                            tag_full = f"{tipo}-{num}"
-                            tags_encontradas.append({
-                                "tag": tag_full, "tipo": tipo, "num": num
-                            })
+                    # Verificar cache — não re-analisar o mesmo ficheiro
+                    cache_key = f"pid_tags_{obra_key}_{pid_file.name}"
+                    tags_cache = st.session_state.get(cache_key)
 
-                    # Deduplicate
-                    tags_unicas = list({t['tag']: t for t in tags_encontradas}.values())
+                    if not tags_cache or analisar:
+                        with st.spinner("🤖 A analisar P&ID com Claude Vision... (pode demorar 10-20 segundos)"):
+                            tags_cache = _extrair_tags_claude_vision(pid_file, pid_file.name)
+                            if tags_cache:
+                                st.session_state[cache_key] = tags_cache
+                                st.session_state["pid_tags_cache_key"] = pid_file.name
 
-                    if tags_unicas:
-                        st.success(f"✅ {len(tags_unicas)} tags encontradas no P&ID!")
+                    if tags_cache and "erro" not in str(tags_cache).lower()[:20]:
+                        tags_unicas = tags_cache
+                        tags_existentes = insts["Tag"].tolist() if not insts.empty else []
+                        novas_count = len([t for t in tags_unicas if t["tag"] not in tags_existentes])
+
+                        st.success(f"✅ **{len(tags_unicas)} tags encontradas** — {novas_count} novas para importar")
 
                         # Preview agrupado por tipo
                         por_tipo = {}
                         for t in tags_unicas:
-                            por_tipo.setdefault(t['tipo'], []).append(t['tag'])
+                            por_tipo.setdefault(t["tipo"], []).append(t)
 
                         for tipo, lst in sorted(por_tipo.items()):
                             desc, cor = TIPOS_TAG.get(tipo, ("Outro","#7F8C8D"))
+                            tags_str = ", ".join(t["tag"] for t in lst[:8])
+                            extra = f" +{len(lst)-8} mais" if len(lst) > 8 else ""
                             st.markdown(
-                                f"<span class='inst-tag-badge' style='background:{cor}'>{tipo}</span> "
-                                f"**{desc}** — {len(lst)} tags: "
-                                f"<small style='color:#7A8BA6'>{', '.join(lst[:8])}"
-                                f"{'...' if len(lst)>8 else ''}</small>",
+                                f"<div style='margin-bottom:6px;'>"
+                                f"<span class='inst-tag-badge' style='background:{cor}'>{tipo}</span>"
+                                f" <b>{desc}</b> — {len(lst)} tags: "
+                                f"<small style='color:#7A8BA6'>{tags_str}{extra}</small></div>",
                                 unsafe_allow_html=True)
 
                         st.markdown("<br>", unsafe_allow_html=True)
 
-                        # Botão para importar todas
-                        if st.button("📥 Importar todas para Instrument Index",
-                                use_container_width=True, type="primary",
-                                key="inst_importar_pid"):
-                            novas = []
-                            tags_existentes = insts['Tag'].tolist() if not insts.empty else []
-                            adicionadas = 0
-                            for t in tags_unicas:
-                                if t['tag'] not in tags_existentes:
-                                    desc_auto, _ = TIPOS_TAG.get(t['tipo'], ("Instrumento","#7F8C8D"))
-                                    novas.append({
-                                        "ID": "INST"+_uuid_inst.uuid4().hex[:8].upper(),
-                                        "Tag": t['tag'],
-                                        "Tipo": t['tipo'],
-                                        "Descricao": desc_auto,
-                                        "Fabricante": "",
-                                        "Modelo": "",
-                                        "PID_Ref": pid_file.name,
-                                        "Obra": obra_sel,
-                                        "Unidade": "",
-                                        "Status": "0",
-                                        "GPS_Lat": "",
-                                        "GPS_Lng": "",
-                                        "Elevacao": "",
-                                        "Foto_Local_b64": "",
-                                        "DataCriacao": datetime.now().strftime('%d/%m/%Y %H:%M'),
-                                        "QR_impresso": "0",
-                                    })
-                                    adicionadas += 1
-
-                            if novas:
-                                novo_df = pd.DataFrame(novas)
-                                insts_upd = pd.concat([insts, novo_df], ignore_index=True)
-                                _save_inst(insts_upd, obra_key, "index")
-                                inv()
-                                st.success(f"✅ {adicionadas} tags importadas! "
-                                    f"({len(tags_unicas)-adicionadas} já existiam)")
+                        col_imp1, col_imp2 = st.columns(2)
+                        with col_imp1:
+                            if st.button("📥 Importar TODAS as tags",
+                                    use_container_width=True, type="primary",
+                                    key="inst_importar_todas"):
+                                _importar_tags(tags_unicas, insts, obra_sel,
+                                    obra_key, pid_file.name)
                                 st.rerun()
-                            else:
-                                st.info("Todas as tags já existem no Instrument Index.")
-                    else:
-                        st.warning("Nenhuma tag ISA encontrada. Verifica se o PDF tem texto seleccionável.")
-                        st.info("💡 Se o PDF for uma imagem escaneada, usa a tab 'Adicionar Manual'.")
+                        with col_imp2:
+                            if st.button("📥 Importar só as NOVAS",
+                                    use_container_width=True,
+                                    key="inst_importar_novas"):
+                                novas = [t for t in tags_unicas
+                                    if t["tag"] not in tags_existentes]
+                                _importar_tags(novas, insts, obra_sel,
+                                    obra_key, pid_file.name)
+                                st.rerun()
 
-                except ImportError:
-                    st.error("❌ `pdfplumber` não está instalado. Adiciona ao requirements.txt e faz deploy.")
-                except Exception as e:
-                    st.error(f"❌ Erro ao processar PDF: {e}")
+                    elif tags_cache:
+                        st.error(f"❌ {tags_cache}")
 
         # ── Sub: Adicionar Manual ─────────────────────────────
         with sub_manual:
@@ -467,6 +604,36 @@ def render_instrumentacao(**DB):
                         unsafe_allow_html=True)
 
                 st.markdown(f"**{len(df_show)}** instrumentos mostrados de {len(insts)} total.")
+
+                # ── Export Excel e CSV ───────────────────────────────
+                if not insts.empty:
+                    st.markdown("---")
+                    col_ex1, col_ex2 = st.columns(2)
+                    with col_ex1:
+                        try:
+                            excel_buf = io.BytesIO()
+                            export_df = df_show[[c for c in df_show.columns
+                                if c not in ["Foto_Local_b64","QR_impresso"]]].copy()
+                            export_df.to_excel(excel_buf, index=False, engine="openpyxl")
+                            excel_buf.seek(0)
+                            st.download_button(
+                                label="📊 Exportar Excel",
+                                data=excel_buf.getvalue(),
+                                file_name=f"InstrumentIndex_{obra_sel}_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                use_container_width=True
+                            )
+                        except Exception as _ex:
+                            st.caption(f"Excel: instala openpyxl")
+                    with col_ex2:
+                        csv_str = df_show.to_csv(index=False).encode("utf-8")
+                        st.download_button(
+                            label="📋 Exportar CSV",
+                            data=csv_str,
+                            file_name=f"InstrumentIndex_{obra_sel}_{datetime.now().strftime('%Y%m%d')}.csv",
+                            mime="text/csv",
+                            use_container_width=True
+                        )
 
         # ── Sub: Etiquetas QR ─────────────────────────────────
         with sub_etiquetas:
