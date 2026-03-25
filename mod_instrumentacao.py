@@ -633,34 +633,44 @@ def render_instrumentacao(**DB):
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ── Tabs ──────────────────────────────────────────────────
-    # ── Tabs filtradas por cargo ────────────────────────────────
-    if is_admin_inst or is_chefe_inst:
-        # Admin e Chefe — acesso total
-        tab1,tab2,tab3,tab4,tab5,tab6,tab7 = st.tabs([
-            "📋 Instrument Index",
-            "🔩 Hook-Ups & BOM",
-            "📦 Packing List",
-            "🔬 Calibração ITR-A",
-            "🏗️ Instalação ITR-B",
-            "⚠️ Punch List",
-            "📄 Handover",
-        ])
-        tab2_visivel = True
-        tab3_visivel = True
-        tab6_visivel = True
-        tab7_visivel = True
-    else:
-        # Técnico / Instrumentista — só tabs operacionais
-        tab1,tab4,tab5 = st.tabs([
-            "📋 Os Meus Instrumentos",
-            "🔬 Calibração ITR-A",
-            "🏗️ Instalação ITR-B",
-        ])
-        tab2 = None; tab3 = None; tab6 = None; tab7 = None
-        tab2_visivel = False
-        tab3_visivel = False
-        tab6_visivel = False
-        tab7_visivel = False
+# ── Tabs filtradas por cargo ────────────────────────────────
+if is_admin_inst or is_chefe_inst:
+    # Admin e Chefe — acesso total
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "📋 Instrument Index",
+        "🔩 Hook-Ups & BOM",
+        "📦 Packing List",
+        "🔬 Calibração ITR-A",
+        "🏗️ Instalação ITR-B",
+        "⚠️ Punch List",
+        "📄 Handover",
+    ])
+    tab2_visivel = True
+    tab3_visivel = True
+    tab6_visivel = True
+    tab7_visivel = True
+    # Definir tabs para uso posterior (mesmo nome para todos os casos)
+    tab_inst = tab1
+    tab_cal = tab4
+    tab_instal = tab5
+else:
+    # Técnico / Instrumentista — só tabs operacionais
+    tab_inst, tab_cal, tab_instal = st.tabs([
+        "📋 Os Meus Instrumentos",
+        "🔬 Calibração ITR-A",
+        "🏗️ Instalação ITR-B",
+    ])
+    tab2 = None
+    tab3 = None
+    tab6 = None
+    tab7 = None
+    tab1 = tab_inst
+    tab4 = tab_cal
+    tab5 = tab_instal
+    tab2_visivel = False
+    tab3_visivel = False
+    tab6_visivel = False
+    tab7_visivel = False
 
     # ══════════════════════════════════════════════════════════
     # TAB 1 — INSTRUMENT INDEX
