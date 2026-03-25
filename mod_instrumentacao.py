@@ -577,16 +577,11 @@ def render_instrumentacao(**DB):
             cargo_inst = str(acesso_row.iloc[0].get('Cargo',''))
 
     # Nível de acesso: admin > chefe > tecnico
-is_admin_inst  = tipo_atual == "Admin"
-# Correção: também verificar se o tipo_atual é "Chefe de Equipa"
-is_chefe_inst  = (cargo_inst in ['Chefe de Equipa','Supervisor']) or \
-                 (cargo_atual in ['Chefe de Equipa','Encarregado','Supervisor']) or \
-                 (tipo_atual == 'Chefe de Equipa')
-is_instr_inst  = cargo_inst == 'Instrumentista'
-
-# DEBUG - remove depois que funcionar
-st.sidebar.caption(f"Debug: Admin={is_admin_inst}, Chefe={is_chefe_inst}, Tipo={tipo_atual}")
-    # Técnico de campo ou instrumentista veem as mesmas tabs operacionais
+    is_admin_inst = tipo_atual == "Admin"
+    is_chefe_inst = (cargo_inst in ['Chefe de Equipa', 'Supervisor']) or \
+                    (cargo_atual in ['Chefe de Equipa', 'Encarregado', 'Supervisor']) or \
+                    (tipo_atual == 'Chefe de Equipa')
+    is_instr_inst = cargo_inst == 'Instrumentista'
 
     if not obras_lista:
         st.warning("⚠️ Sem obras ativas. Cria uma obra primeiro no módulo Admin.")
