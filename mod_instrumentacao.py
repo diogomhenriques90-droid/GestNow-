@@ -61,7 +61,10 @@ STATUS_INST = {
     "X": ("Bloqueado",    "status-vencida",   "🔴"),
 }
 
-# ── Claude Vision — Extracção de Tags de P&ID ────────────────
+# ═══════════════════════════════════════════════════════════════
+# FUNÇÕES DE EXTRAÇÃO COM CLAUDE VISION
+# ═══════════════════════════════════════════════════════════════
+
 def _extrair_tags_claude_vision(pdf_file, nome_ficheiro):
     """
     Usa Claude Vision para extrair tags ISA de um P&ID.
@@ -178,6 +181,249 @@ Se não encontrares tags, responde: {"tags": []}
 
     except Exception as e:
         return f"Erro na análise IA: {str(e)}"
+
+
+def _extrair_bom_hookup_claude(pdf_file, nome_ficheiro):
+    """
+    Usa Claude Vision para extrair BOM (Bill of Materials) de um Hook-Up PDF.
+    Retorna lista de itens: [{"item": "1", "descricao": "...", "quantidade": 1, "unidade": "un"}]
+    """
+    import base64, json, urllib.request
+    try:
+        import fitz
+    except ImportError:
+        return "❌ PyMuPDF não instalado"
+
+    try:
+        pdf_bytes = pdf_file.read()
+        pdf_file.seek(0)
+
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        imgs_b64 = []
+        for page_num in range(min(len(doc), 3)):
+            page = doc[page_num]
+            mat = fitz.Matrix(3, 3)
+            pix = page.get_pixmap(matrix=mat)
+            img_bytes = pix.tobytes("png")
+            imgs_b64.append(base64.standard_b64encode(img_bytes).decode())
+        doc.close()
+
+        content = []
+        for img_b64 in imgs_b64:
+            content.append({
+                "type": "image",
+                "source": {"type": "base64", "media_type": "image/png", "data": img_b64}
+            })
+
+        prompt = """Analisa este desenho de Hook-Up de instrumentação industrial.
+
+Extrai a lista de materiais (BOM - Bill of Materials) presente no desenho.
+A BOM geralmente está numa tabela com:
+- Item (número)
+- Descrição do material
+- Quantidade
+- Unidade (ex: un, m, kg, etc.)
+
+Responde APENAS em JSON válido:
+{
+  "bom": [
+    {"item": "1", "descricao": "Válvula de bloco 1/2\" SS", "quantidade": 1, "unidade": "un"},
+    {"item": "2", "descricao": "Tubo 1/2\" x 3m", "quantidade": 3, "unidade": "m"},
+    {"item": "3", "descricao": "Porca de pressão", "quantidade": 2, "unidade": "un"}
+  ]
+}
+
+Se não encontrares BOM, responde: {"bom": []}
+"""
+        content.append({"type": "text", "text": prompt})
+
+        import os
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return "❌ ANTHROPIC_API_KEY não configurada"
+
+        payload = json.dumps({
+            "model": "claude-sonnet-4-20250514",
+            "max_tokens": 4096,
+            "messages": [{"role": "user", "content": content}]
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "anthropic-version": "2023-06-01",
+                "x-api-key": api_key,
+            },
+            method="POST"
+        )
+
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read().decode())
+
+        resposta_texto = result["content"][0]["text"].strip()
+        resposta_texto = resposta_texto.replace("```json", "").replace("```", "").strip()
+        dados = json.loads(resposta_texto)
+        return dados.get("bom", [])
+
+    except Exception as e:
+        return f"Erro: {str(e)}"
+
+
+def _extrair_packing_list_claude(pdf_file, nome_ficheiro):
+    """
+    Usa Claude Vision para extrair itens de um Packing List.
+    Retorna lista de dicts: [{"tag": "PT-101", "descricao": "...", "quantidade": 1, "observacao": "..."}]
+    """
+    import base64, json, urllib.request
+    try:
+        import fitz
+    except ImportError:
+        return "❌ PyMuPDF não instalado"
+
+    try:
+        pdf_bytes = pdf_file.read()
+        pdf_file.seek(0)
+
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        imgs_b64 = []
+        for page_num in range(min(len(doc), 3)):
+            page = doc[page_num]
+            mat = fitz.Matrix(3, 3)
+            pix = page.get_pixmap(matrix=mat)
+            img_bytes = pix.tobytes("png")
+            imgs_b64.append(base64.standard_b64encode(img_bytes).decode())
+        doc.close()
+
+        content = []
+        for img_b64 in imgs_b64:
+            content.append({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": "image/png",
+                    "data": img_b64
+                }
+            })
+
+        prompt = """Analisa este Packing List (lista de materiais) de um projeto industrial.
+
+Extrai TODOS os itens listados, incluindo:
+1. Tag do instrumento associado (se houver, ex: PT-101, FT-202, LT-001)
+2. Descrição do material (ex: "Transmissor de Pressão", "Válvula 1/2" SS")
+3. Quantidade
+4. Observações (ex: "urgente", "substituir por...")
+
+O Packing List pode ser:
+- Uma tabela com colunas: Tag, Descrição, Qtd
+- Uma lista numerada
+- Um texto corrido com itens
+
+Para cada item, responde APENAS em JSON válido:
+{
+  "itens": [
+    {"tag": "PT-101", "descricao": "Transmissor de Pressão", "quantidade": 2, "observacao": ""},
+    {"tag": "", "descricao": "Cabo 2x1.5mm", "quantidade": 100, "observacao": "metros"},
+    {"tag": "FT-202", "descricao": "Transmissor de Caudal", "quantidade": 1, "observacao": "urgente"}
+  ]
+}
+
+Se não encontrares itens, responde: {"itens": []}
+"""
+        content.append({"type": "text", "text": prompt})
+
+        import os
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return "❌ ANTHROPIC_API_KEY não configurada"
+
+        payload = json.dumps({
+            "model": "claude-sonnet-4-20250514",
+            "max_tokens": 4096,
+            "messages": [{"role": "user", "content": content}]
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "anthropic-version": "2023-06-01",
+                "x-api-key": api_key,
+            },
+            method="POST"
+        )
+
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read().decode())
+
+        resposta_texto = result["content"][0]["text"].strip()
+        resposta_texto = resposta_texto.replace("```json", "").replace("```", "").strip()
+        dados = json.loads(resposta_texto)
+        itens = dados.get("itens", [])
+        
+        for item in itens:
+            if "tag" not in item:
+                item["tag"] = ""
+            if "quantidade" in item:
+                try:
+                    item["quantidade"] = float(item["quantidade"])
+                except:
+                    item["quantidade"] = 1
+            else:
+                item["quantidade"] = 1
+            if "observacao" not in item:
+                item["observacao"] = ""
+
+        return itens
+
+    except Exception as e:
+        return f"Erro na análise IA: {str(e)}"
+
+
+def _check_material_completo(tag, packing, bom, hookups):
+    """
+    Verifica se o material de um instrumento está completo
+    comparando BOM do Hook-Up com Packing List recebido
+    """
+    if packing.empty:
+        return False, "Sem packing list"
+    
+    if bom.empty:
+        return False, "Sem BOM definida"
+    
+    # Encontrar Hook-Up para este tipo de instrumento
+    tipo = tag.split('-')[0] if '-' in tag else tag[:2]
+    # Remover números do tipo (ex: PT-101 -> PT)
+    tipo = re.sub(r'[0-9]', '', tipo)[:3]
+    
+    hookups_tipo = hookups[hookups['Tipo_Tag'] == tipo] if not hookups.empty else pd.DataFrame()
+    
+    if hookups_tipo.empty:
+        return False, f"Sem Hook-Up para tipo {tipo}"
+    
+    # Pegar BOM dos Hook-Ups deste tipo
+    bom_ids = hookups_tipo['ID'].tolist()
+    bom_total = bom[bom['HookupID'].isin(bom_ids)] if not bom.empty else pd.DataFrame()
+    
+    # Pegar packing list para esta tag
+    packing_tag = packing[packing['Tag'] == tag] if not packing.empty else pd.DataFrame()
+    
+    if bom_total.empty:
+        return False, "BOM vazia"
+    
+    if packing_tag.empty:
+        return False, "Nada recebido no packing list"
+    
+    # Comparar quantidades
+    total_esperado = bom_total['Quantidade'].sum() if not bom_total.empty else 0
+    total_recebido = packing_tag[packing_tag['Estado'] == 'Recebido OK']['QtdRecebida'].sum() if not packing_tag.empty else 0
+    
+    if total_recebido >= total_esperado:
+        return True, "Material completo"
+    else:
+        return False, f"Faltam {int(total_esperado - total_recebido)} itens"
 
 
 def _importar_tags(tags_lista, insts_df, obra_sel, obra_key, pid_ref):
@@ -685,355 +931,453 @@ def render_instrumentacao(**DB):
                         st.error(f"❌ Erro ao gerar etiquetas: {e}")
 
     # ══════════════════════════════════════════════════════════
-    # TAB 2 — HOOK-UPS & BOM (Admin / Chefe)
+    # TAB 2 — HOOK-UPS & BOM (Admin / Chefe) COM IA
     # ══════════════════════════════════════════════════════════
     if tab2_visivel:
-     with tab2:
-        st.markdown('<div class="section-title">🔩 Hook-Ups & BOM</div>',
-            unsafe_allow_html=True)
+        with tab2:
+            st.markdown('<div class="section-title">🔩 Hook-Ups & BOM</div>',
+                unsafe_allow_html=True)
 
-        sub_hu1, sub_hu2, sub_hu3 = st.tabs([
-            "📄 Upload Hook-Up (PDF)",
-            "✏️ BOM Manual",
-            "📚 Biblioteca",
-        ])
+            sub_hu1, sub_hu2, sub_hu3 = st.tabs([
+                "📄 Upload Hook-Up com IA",
+                "✏️ BOM Manual",
+                "📚 Biblioteca",
+            ])
 
-        with sub_hu1:
-            st.markdown("#### 📄 Upload e Extracção de BOM do Hook-Up")
-            st.info("💡 O sistema tenta extrair a lista de materiais automaticamente. "
-                "Podes sempre editar antes de confirmar.")
+            with sub_hu1:
+                st.markdown("#### 📄 Upload Hook-Up (PDF) com Extracção Automática de BOM")
+                st.info("💡 Faz upload do PDF do Hook-Up. A IA extrai automaticamente a lista de materiais (BOM).")
+                
+                hu_tipo = st.selectbox("Tipo de Tag deste Hook-Up",
+                    list(TIPOS_TAG.keys()),
+                    format_func=lambda x: f"{x} — {TIPOS_TAG[x][0]}",
+                    key="hu_tipo_upload")
+                hu_cod  = st.text_input("Código do Hook-Up",
+                    placeholder="Ex: HU-PT-001, HU-FT-STD", key="hu_cod_upload")
+                hu_desc = st.text_input("Descrição", key="hu_desc_upload",
+                    placeholder="Ex: Transmissor de Pressão — Serviço Standard")
+                hu_file = st.file_uploader("PDF do Hook-Up", type=["pdf"],
+                    key="hu_pdf_upload")
 
-            hu_tipo = st.selectbox("Tipo de Tag deste Hook-Up",
-                list(TIPOS_TAG.keys()),
-                format_func=lambda x: f"{x} — {TIPOS_TAG[x][0]}",
-                key="hu_tipo_upload")
-            hu_cod  = st.text_input("Código do Hook-Up",
-                placeholder="Ex: HU-PT-001, HU-FT-STD", key="hu_cod_upload")
-            hu_desc = st.text_input("Descrição", key="hu_desc_upload",
-                placeholder="Ex: Transmissor de Pressão — Serviço Standard")
-            hu_file = st.file_uploader("PDF do Hook-Up", type=["pdf"],
-                key="hu_pdf_upload")
+                if hu_file:
+                    col_btn_bom, col_info_bom = st.columns([2,3])
+                    with col_btn_bom:
+                        analisar_bom = st.button("🤖 Extrair BOM com IA", 
+                            use_container_width=True, type="primary", key="hu_analisar_bom")
+                    
+                    if analisar_bom:
+                        with st.spinner("🤖 A analisar Hook-Up e extrair BOM... (10-20 segundos)"):
+                            bom_extraida = _extrair_bom_hookup_claude(hu_file, hu_file.name)
+                            
+                            if bom_extraida and "erro" not in str(bom_extraida).lower():
+                                st.success(f"✅ **{len(bom_extraida)} itens extraídos da BOM**")
+                                
+                                st.markdown("#### 📋 BOM Extraída:")
+                                bom_df = pd.DataFrame(bom_extraida)
+                                st.dataframe(bom_df, use_container_width=True)
+                                
+                                st.session_state[f"bom_extraida_{hu_cod}"] = bom_extraida
+                                
+                                if st.button("💾 Guardar Hook-Up + BOM", use_container_width=True, type="primary"):
+                                    if not hu_cod.strip():
+                                        st.error("Código do Hook-Up obrigatório.")
+                                    else:
+                                        novo_hu = pd.DataFrame([{
+                                            "ID": "HU"+_uuid_inst.uuid4().hex[:8].upper(),
+                                            "Obra": obra_sel,
+                                            "Codigo": hu_cod.strip(),
+                                            "Tipo_Tag": hu_tipo,
+                                            "Descricao": hu_desc,
+                                            "DataCriacao": datetime.now().strftime('%d/%m/%Y %H:%M'),
+                                        }])
+                                        _save_inst(pd.concat([hookups, novo_hu], ignore_index=True),
+                                            obra_key, "hookups")
+                                        
+                                        hu_id = novo_hu.iloc[0]['ID']
+                                        bom_items = []
+                                        for i, item in enumerate(bom_extraida):
+                                            bom_items.append({
+                                                "HookupID": hu_id,
+                                                "Item": item.get("item", str(i+1)),
+                                                "Descricao": item.get("descricao", ""),
+                                                "Quantidade": item.get("quantidade", 1),
+                                                "Unidade": item.get("unidade", "un"),
+                                                "Especificacao": "",
+                                            })
+                                        if bom_items:
+                                            novo_bom_df = pd.DataFrame(bom_items)
+                                            _save_inst(pd.concat([bom, novo_bom_df], ignore_index=True),
+                                                obra_key, "bom")
+                                        
+                                        inv()
+                                        st.success(f"✅ Hook-Up {hu_cod} guardado com {len(bom_items)} itens na BOM!")
+                                        st.rerun()
+                            else:
+                                st.error(f"❌ {bom_extraida}")
 
-            if hu_file and hu_cod:
-                st.markdown("**📋 BOM extraída — revisa antes de guardar:**")
-                try:
-                    import pdfplumber
-                    texto_hu = ""
-                    with pdfplumber.open(hu_file) as pdf:
-                        for pg in pdf.pages:
-                            t = pg.extract_text()
-                            if t: texto_hu += t + "\n"
+            with sub_hu2:
+                st.markdown("#### ✏️ Introduzir BOM Manualmente")
 
-                    # Tentar extrair linhas que parecem BOM
-                    # Padrões: "1 off valve block 1/2 SS" ou "2x cable 2x1.5"
-                    linhas_bom = []
-                    for linha in texto_hu.split('\n'):
-                        linha = linha.strip()
-                        if len(linha) > 5 and any(
-                            c.isdigit() for c in linha[:4]
-                        ):
-                            linhas_bom.append(linha)
+                if hookups.empty:
+                    st.info("Cria primeiro um Hook-Up na tab anterior.")
+                else:
+                    hu_sel = st.selectbox("Hook-Up",
+                        hookups['Codigo'].tolist(), key="bom_hu_sel")
+                    hu_id_sel = hookups[hookups['Codigo']==hu_sel]['ID'].iloc[0] \
+                        if not hookups.empty else ""
 
-                    if linhas_bom:
-                        st.success(f"✅ {len(linhas_bom)} linhas extraídas do PDF")
-                        for i, l in enumerate(linhas_bom[:20]):
-                            st.text(f"  {l}")
+                    st.markdown(f"**BOM actual do {hu_sel}:**")
+                    bom_hu = bom[bom['HookupID']==hu_id_sel] if not bom.empty else pd.DataFrame()
+                    if not bom_hu.empty:
+                        for _, br in bom_hu.iterrows():
+                            st.markdown(
+                                f"• **{br.get('Quantidade','')} {br.get('Unidade','')}** "
+                                f"{br.get('Descricao','—')} "
+                                f"<small style='color:#7A8BA6'>({br.get('Especificacao','')})</small>",
+                                unsafe_allow_html=True)
                     else:
-                        st.warning("Não foi possível extrair BOM automaticamente. "
-                            "Usa a tab 'BOM Manual'.")
-                except ImportError:
-                    st.error("❌ pdfplumber não instalado.")
-                except Exception as e:
-                    st.warning(f"Erro na extracção: {e}. Usa BOM Manual.")
+                        st.caption("Sem itens ainda.")
 
-            if st.button("💾 Guardar Hook-Up", key="hu_guardar",
-                    use_container_width=True):
-                if not hu_cod.strip():
-                    st.error("Código do Hook-Up obrigatório.")
+                    st.markdown("**Adicionar item:**")
+                    with st.form("bom_add_item"):
+                        bc1, bc2, bc3 = st.columns([1,1,2])
+                        with bc1:
+                            b_qtd  = st.number_input("Qtd", min_value=0.0,
+                                value=1.0, step=0.5, key="b_qtd")
+                        with bc2:
+                            b_unid = st.selectbox("Unidade",
+                                ["un","m","ml","kg","L","rolo","par","cx","jg"],
+                                key="b_unid")
+                        with bc3:
+                            b_desc = st.text_input("Descrição *",
+                                placeholder="Ex: Válvula de bloco 1/2\" SS")
+                        b_esp = st.text_input("Especificação técnica",
+                            placeholder="Ex: PN40, SS316, DN15")
+
+                        if st.form_submit_button("➕ Adicionar Item",
+                                use_container_width=True):
+                            if not b_desc.strip():
+                                st.error("Descrição obrigatória.")
+                            else:
+                                novo_bom = pd.DataFrame([{
+                                    "HookupID": hu_id_sel,
+                                    "Item": len(bom_hu)+1,
+                                    "Descricao": b_desc.strip(),
+                                    "Quantidade": b_qtd,
+                                    "Unidade": b_unid,
+                                    "Especificacao": b_esp,
+                                }])
+                                _save_inst(pd.concat([bom, novo_bom], ignore_index=True),
+                                    obra_key, "bom")
+                                inv()
+                                st.success("✅ Item adicionado!")
+                                st.rerun()
+
+            with sub_hu3:
+                st.markdown("#### 📚 Biblioteca de Hook-Ups desta Obra")
+                if hookups.empty:
+                    st.info("Sem Hook-Ups criados ainda.")
                 else:
-                    novo_hu = pd.DataFrame([{
-                        "ID": "HU"+_uuid_inst.uuid4().hex[:8].upper(),
-                        "Obra": obra_sel,
-                        "Codigo": hu_cod.strip(),
-                        "Tipo_Tag": hu_tipo,
-                        "Descricao": hu_desc,
-                        "DataCriacao": datetime.now().strftime('%d/%m/%Y %H:%M'),
-                    }])
-                    _save_inst(pd.concat([hookups, novo_hu], ignore_index=True),
-                        obra_key, "hookups")
-                    inv()
-                    st.success(f"✅ Hook-Up {hu_cod} guardado!")
-                    st.rerun()
-
-        with sub_hu2:
-            st.markdown("#### ✏️ Introduzir BOM Manualmente")
-
-            if hookups.empty:
-                st.info("Cria primeiro um Hook-Up na tab anterior.")
-            else:
-                hu_sel = st.selectbox("Hook-Up",
-                    hookups['Codigo'].tolist(), key="bom_hu_sel")
-                hu_id_sel = hookups[hookups['Codigo']==hu_sel]['ID'].iloc[0] \
-                    if not hookups.empty else ""
-
-                st.markdown(f"**BOM actual do {hu_sel}:**")
-                bom_hu = bom[bom['HookupID']==hu_id_sel] if not bom.empty else pd.DataFrame()
-                if not bom_hu.empty:
-                    for _, br in bom_hu.iterrows():
+                    for _, hu in hookups.iterrows():
+                        _, cor = TIPOS_TAG.get(hu.get('Tipo_Tag','XX'), ("","#7F8C8D"))
+                        n_bom = len(bom[bom['HookupID']==hu.get('ID','')]) \
+                            if not bom.empty else 0
+                        n_inst_tipo = len(insts[insts['Tipo']==hu.get('Tipo_Tag','')]) \
+                            if not insts.empty else 0
                         st.markdown(
-                            f"• **{br.get('Quantidade','')} {br.get('Unidade','')}** "
-                            f"{br.get('Descricao','—')} "
-                            f"<small style='color:#7A8BA6'>({br.get('Especificacao','')})</small>",
+                            f"<div class='inst-tag-card'>"
+                            f"<div class='inst-tag-badge' style='background:{cor}'>"
+                            f"{hu.get('Tipo_Tag','?')}</div>"
+                            f"<div class='inst-tag-desc'>"
+                            f"<div class='tag-nome'>{hu.get('Codigo','—')} — {hu.get('Descricao','')}</div>"
+                            f"<div class='tag-sub'>📋 {n_bom} itens na BOM | "
+                            f"🔧 {n_inst_tipo} instrumentos deste tipo</div>"
+                            f"</div></div>",
                             unsafe_allow_html=True)
-                else:
-                    st.caption("Sem itens ainda.")
-
-                st.markdown("**Adicionar item:**")
-                with st.form("bom_add_item"):
-                    bc1, bc2, bc3 = st.columns([1,1,2])
-                    with bc1:
-                        b_qtd  = st.number_input("Qtd", min_value=0.0,
-                            value=1.0, step=0.5, key="b_qtd")
-                    with bc2:
-                        b_unid = st.selectbox("Unidade",
-                            ["un","m","ml","kg","L","rolo","par","cx","jg"],
-                            key="b_unid")
-                    with bc3:
-                        b_desc = st.text_input("Descrição *",
-                            placeholder="Ex: Válvula de bloco 1/2\" SS")
-                    b_esp = st.text_input("Especificação técnica",
-                        placeholder="Ex: PN40, SS316, DN15")
-
-                    if st.form_submit_button("➕ Adicionar Item",
-                            use_container_width=True):
-                        if not b_desc.strip():
-                            st.error("Descrição obrigatória.")
-                        else:
-                            novo_bom = pd.DataFrame([{
-                                "HookupID": hu_id_sel,
-                                "Item": len(bom_hu)+1,
-                                "Descricao": b_desc.strip(),
-                                "Quantidade": b_qtd,
-                                "Unidade": b_unid,
-                                "Especificacao": b_esp,
-                            }])
-                            _save_inst(pd.concat([bom, novo_bom], ignore_index=True),
-                                obra_key, "bom")
-                            inv()
-                            st.success("✅ Item adicionado!")
-                            st.rerun()
-
-        with sub_hu3:
-            st.markdown("#### 📚 Biblioteca de Hook-Ups desta Obra")
-            if hookups.empty:
-                st.info("Sem Hook-Ups criados ainda.")
-            else:
-                for _, hu in hookups.iterrows():
-                    _, cor = TIPOS_TAG.get(hu.get('Tipo_Tag','XX'), ("","#7F8C8D"))
-                    n_bom = len(bom[bom['HookupID']==hu.get('ID','')]) \
-                        if not bom.empty else 0
-                    n_inst_tipo = len(insts[insts['Tipo']==hu.get('Tipo_Tag','')]) \
-                        if not insts.empty else 0
-                    st.markdown(
-                        f"<div class='inst-tag-card'>"
-                        f"<div class='inst-tag-badge' style='background:{cor}'>"
-                        f"{hu.get('Tipo_Tag','?')}</div>"
-                        f"<div class='inst-tag-desc'>"
-                        f"<div class='tag-nome'>{hu.get('Codigo','—')} — {hu.get('Descricao','')}</div>"
-                        f"<div class='tag-sub'>📋 {n_bom} itens na BOM | "
-                        f"🔧 {n_inst_tipo} instrumentos deste tipo</div>"
-                        f"</div></div>",
-                        unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════════════
-    # TAB 3 — PACKING LIST (Admin / Chefe)
+    # TAB 3 — PACKING LIST (Admin / Chefe) COM IA
     # ══════════════════════════════════════════════════════════
     if tab3_visivel:
-     with tab3:
-        st.markdown('<div class="section-title">📦 Packing List & Material Check</div>',
-            unsafe_allow_html=True)
+        with tab3:
+            st.markdown('<div class="section-title">📦 Packing List & Material Check</div>',
+                unsafe_allow_html=True)
 
-        sub_pk1, sub_pk2, sub_pk3 = st.tabs([
-            "📥 Importar / Registar",
-            "✅ Check-in de Recepção",
-            "🚦 Semáforo por Instrumento",
-        ])
+            sub_pk1, sub_pk2, sub_pk3 = st.tabs([
+                "📥 Importar / Registar",
+                "✅ Check-in de Recepção",
+                "🚦 Semáforo por Instrumento",
+            ])
 
-        with sub_pk1:
-            st.markdown("#### 📥 Importar Packing List do Cliente")
-            st.caption("Importa o CSV do cliente ou regista itens manualmente.")
+            with sub_pk1:
+                st.markdown("#### 🤖 Extrair de PDF (Claude Vision)")
+                st.info("💡 Faz upload do PDF do Packing List enviado pelo cliente. "
+                    "A IA extrai automaticamente as tags, descrições e quantidades.")
+                
+                pk_pdf = st.file_uploader("📄 Packing List (PDF)", 
+                    type=["pdf"], key="pk_pdf_upload", 
+                    help="Pode ser digital ou escaneado. A IA lê tags ISA e materiais.")
+                
+                if pk_pdf:
+                    col_pk1, col_pk2 = st.columns([2,3])
+                    with col_pk1:
+                        analisar_pk = st.button("🤖 Analisar Packing List", 
+                            use_container_width=True, type="primary", key="pk_analisar_ia")
+                    with col_pk2:
+                        st.caption(f"📄 {pk_pdf.name} — {pk_pdf.size/1024:.0f} KB")
+                    
+                    if analisar_pk or st.session_state.get("pk_tags_cache_key") == pk_pdf.name:
+                        cache_key_pk = f"pk_tags_{obra_key}_{pk_pdf.name}"
+                        pk_tags_cache = st.session_state.get(cache_key_pk)
+                        
+                        if not pk_tags_cache or analisar_pk:
+                            with st.spinner("🤖 A analisar Packing List com Claude Vision... (pode demorar 10-20 segundos)"):
+                                pk_tags_cache = _extrair_packing_list_claude(pk_pdf, pk_pdf.name)
+                                if pk_tags_cache:
+                                    st.session_state[cache_key_pk] = pk_tags_cache
+                                    st.session_state["pk_tags_cache_key"] = pk_pdf.name
+                        
+                        if pk_tags_cache and "erro" not in str(pk_tags_cache).lower()[:20]:
+                            st.success(f"✅ **{len(pk_tags_cache)} itens encontrados**")
+                            
+                            preview_df = pd.DataFrame(pk_tags_cache)
+                            st.dataframe(preview_df, use_container_width=True)
+                            
+                            col_imp1, col_imp2 = st.columns(2)
+                            with col_imp1:
+                                if st.button("📥 Importar TODOS os itens",
+                                        use_container_width=True, type="primary",
+                                        key="pk_importar_ia"):
+                                    itens_para_importar = []
+                                    for item in pk_tags_cache:
+                                        tag = item.get("tag", "")
+                                        if not tag:
+                                            tag = f"MAT-{_uuid_inst.uuid4().hex[:4].upper()}"
+                                        
+                                        itens_para_importar.append({
+                                            "ID": "PK"+_uuid_inst.uuid4().hex[:8].upper(),
+                                            "Obra": obra_sel,
+                                            "Tag": tag,
+                                            "Item": "",
+                                            "Descricao": item.get("descricao", ""),
+                                            "QtdEsperada": item.get("quantidade", 1),
+                                            "QtdRecebida": "0",
+                                            "Estado": "Pendente",
+                                            "DataRecepcao": "",
+                                            "Observacao": item.get("observacao", ""),
+                                        })
+                                    
+                                    if itens_para_importar:
+                                        novo_df_pk = pd.DataFrame(itens_para_importar)
+                                        _save_inst(pd.concat([packing, novo_df_pk], ignore_index=True),
+                                            obra_key, "packing")
+                                        inv()
+                                        st.success(f"✅ {len(itens_para_importar)} itens importados!")
+                                        st.rerun()
+                                    else:
+                                        st.warning("Nenhum item para importar.")
+                            with col_imp2:
+                                if st.button("📋 Copiar para Excel", use_container_width=True):
+                                    try:
+                                        excel_buf = io.BytesIO()
+                                        preview_df.to_excel(excel_buf, index=False, engine="openpyxl")
+                                        excel_buf.seek(0)
+                                        st.download_button(
+                                            label="⬇️ Descarregar Excel",
+                                            data=excel_buf.getvalue(),
+                                            file_name=f"PackingList_extraido_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                            key="pk_download_excel"
+                                        )
+                                    except Exception as e:
+                                        st.error(f"Erro: {e}")
+                        elif pk_tags_cache:
+                            st.error(f"❌ {pk_tags_cache}")
+                
+                st.markdown("---")
+                st.markdown("#### 📥 Importar CSV do Cliente")
+                st.caption("Se tiveres o Packing List em Excel/CSV, importa aqui.")
+                
+                pk_csv = st.file_uploader("CSV do Packing List (Tag, Descrição, Qtd)",
+                    type=["csv"], key="pk_csv_upload")
 
-            pk_csv = st.file_uploader("CSV do Packing List (Tag, Descrição, Qtd)",
-                type=["csv"], key="pk_csv_upload")
+                if pk_csv:
+                    try:
+                        df_pk_raw = pd.read_csv(pk_csv)
+                        st.success(f"✅ {len(df_pk_raw)} linhas encontradas.")
+                        st.dataframe(df_pk_raw.head(10), use_container_width=True)
 
-            if pk_csv:
-                try:
-                    df_pk_raw = pd.read_csv(pk_csv)
-                    st.success(f"✅ {len(df_pk_raw)} linhas encontradas.")
-                    st.dataframe(df_pk_raw.head(10), use_container_width=True)
+                        col_tag = st.selectbox("Coluna da Tag",
+                            df_pk_raw.columns.tolist(), key="pk_col_tag")
+                        col_desc = st.selectbox("Coluna Descrição",
+                            df_pk_raw.columns.tolist(), key="pk_col_desc")
+                        col_qtd = st.selectbox("Coluna Quantidade",
+                            df_pk_raw.columns.tolist(), key="pk_col_qtd")
 
-                    col_tag = st.selectbox("Coluna da Tag",
-                        df_pk_raw.columns.tolist(), key="pk_col_tag")
-                    col_desc = st.selectbox("Coluna Descrição",
-                        df_pk_raw.columns.tolist(), key="pk_col_desc")
-                    col_qtd = st.selectbox("Coluna Quantidade",
-                        df_pk_raw.columns.tolist(), key="pk_col_qtd")
+                        if st.button("📥 Importar", use_container_width=True,
+                                type="primary", key="pk_importar_csv"):
+                            novos_pk = []
+                            for _, row_pk in df_pk_raw.iterrows():
+                                novos_pk.append({
+                                    "ID": "PK"+_uuid_inst.uuid4().hex[:8].upper(),
+                                    "Obra": obra_sel,
+                                    "Tag": str(row_pk.get(col_tag,'')),
+                                    "Item": "",
+                                    "Descricao": str(row_pk.get(col_desc,'')),
+                                    "QtdEsperada": str(row_pk.get(col_qtd,1)),
+                                    "QtdRecebida": "0",
+                                    "Estado": "Pendente",
+                                    "DataRecepcao": "",
+                                    "Observacao": "",
+                                })
+                            novo_df_pk = pd.DataFrame(novos_pk)
+                            _save_inst(pd.concat([packing, novo_df_pk], ignore_index=True),
+                                obra_key, "packing")
+                            inv()
+                            st.success(f"✅ {len(novos_pk)} itens importados!")
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Erro: {e}")
 
-                    if st.button("📥 Importar", use_container_width=True,
-                            type="primary", key="pk_importar"):
-                        novos_pk = []
-                        for _, row_pk in df_pk_raw.iterrows():
-                            novos_pk.append({
-                                "ID": "PK"+_uuid_inst.uuid4().hex[:8].upper(),
-                                "Obra": obra_sel,
-                                "Tag": str(row_pk.get(col_tag,'')),
-                                "Item": "",
-                                "Descricao": str(row_pk.get(col_desc,'')),
-                                "QtdEsperada": str(row_pk.get(col_qtd,1)),
-                                "QtdRecebida": "0",
-                                "Estado": "Pendente",
-                                "DataRecepcao": "",
-                                "Observacao": "",
-                            })
-                        novo_df_pk = pd.DataFrame(novos_pk)
-                        _save_inst(pd.concat([packing, novo_df_pk], ignore_index=True),
+                st.markdown("---")
+                st.markdown("**Ou adiciona item manualmente:**")
+                with st.form("pk_add_manual"):
+                    pc1, pc2 = st.columns(2)
+                    with pc1:
+                        pk_tag  = st.selectbox("Tag",
+                            ["—"]+insts['Tag'].tolist() if not insts.empty else ["—"],
+                            key="pk_tag_m")
+                        pk_desc = st.text_input("Descrição do item", key="pk_desc_m")
+                    with pc2:
+                        pk_qtd  = st.number_input("Quantidade esperada",
+                            min_value=1, value=1, key="pk_qtd_m")
+                    if st.form_submit_button("➕ Adicionar", use_container_width=True):
+                        novo_pk = pd.DataFrame([{
+                            "ID": "PK"+_uuid_inst.uuid4().hex[:8].upper(),
+                            "Obra": obra_sel, "Tag": pk_tag,
+                            "Item": "", "Descricao": pk_desc,
+                            "QtdEsperada": pk_qtd, "QtdRecebida": "0",
+                            "Estado": "Pendente", "DataRecepcao": "", "Observacao": "",
+                        }])
+                        _save_inst(pd.concat([packing, novo_pk], ignore_index=True),
                             obra_key, "packing")
                         inv()
-                        st.success(f"✅ {len(novos_pk)} itens importados!")
+                        st.success("✅ Item adicionado!")
                         st.rerun()
-                except Exception as e:
-                    st.error(f"Erro: {e}")
 
-            st.markdown("---")
-            st.markdown("**Ou adiciona item manualmente:**")
-            with st.form("pk_add_manual"):
-                pc1, pc2 = st.columns(2)
-                with pc1:
-                    pk_tag  = st.selectbox("Tag",
-                        ["—"]+insts['Tag'].tolist() if not insts.empty else ["—"],
-                        key="pk_tag_m")
-                    pk_desc = st.text_input("Descrição do item", key="pk_desc_m")
-                with pc2:
-                    pk_qtd  = st.number_input("Quantidade esperada",
-                        min_value=1, value=1, key="pk_qtd_m")
-                if st.form_submit_button("➕ Adicionar", use_container_width=True):
-                    novo_pk = pd.DataFrame([{
-                        "ID": "PK"+_uuid_inst.uuid4().hex[:8].upper(),
-                        "Obra": obra_sel, "Tag": pk_tag,
-                        "Item": "", "Descricao": pk_desc,
-                        "QtdEsperada": pk_qtd, "QtdRecebida": "0",
-                        "Estado": "Pendente", "DataRecepcao": "", "Observacao": "",
-                    }])
-                    _save_inst(pd.concat([packing, novo_pk], ignore_index=True),
-                        obra_key, "packing")
-                    inv()
-                    st.success("✅ Item adicionado!")
-                    st.rerun()
+            with sub_pk2:
+                st.markdown("#### ✅ Check-in — Confirmar Recepção")
 
-        with sub_pk2:
-            st.markdown("#### ✅ Check-in — Confirmar Recepção")
+                pendentes_pk = packing[packing['Estado']=='Pendente'] \
+                    if not packing.empty else pd.DataFrame()
 
-            pendentes_pk = packing[packing['Estado']=='Pendente'] \
-                if not packing.empty else pd.DataFrame()
+                if pendentes_pk.empty:
+                    st.success("✅ Todos os itens verificados!")
+                else:
+                    st.caption(f"{len(pendentes_pk)} itens por verificar.")
+                    for _, pk_row in pendentes_pk.iterrows():
+                        with st.expander(
+                                f"📦 {pk_row.get('Tag','—')} — {pk_row.get('Descricao','—')[:50]}"):
+                            cc1, cc2, cc3 = st.columns(3)
+                            with cc1:
+                                qtd_rec = st.number_input(
+                                    "Qtd recebida",
+                                    min_value=0,
+                                    value=int(float(str(pk_row.get('QtdEsperada',1)))),
+                                    key=f"pk_rec_{pk_row.get('ID','')}")
+                            with cc2:
+                                est_rec = st.selectbox("Estado",
+                                    ["Recebido OK","Recebido com defeito","Em falta"],
+                                    key=f"pk_est_{pk_row.get('ID','')}")
+                            with cc3:
+                                obs_rec = st.text_input("Obs",
+                                    key=f"pk_obs_{pk_row.get('ID','')}")
 
-            if pendentes_pk.empty:
-                st.success("✅ Todos os itens verificados!")
-            else:
-                st.caption(f"{len(pendentes_pk)} itens por verificar.")
-                for _, pk_row in pendentes_pk.iterrows():
-                    with st.expander(
-                            f"📦 {pk_row.get('Tag','—')} — {pk_row.get('Descricao','—')[:50]}"):
-                        cc1, cc2, cc3 = st.columns(3)
-                        with cc1:
-                            qtd_rec = st.number_input(
-                                "Qtd recebida",
-                                min_value=0,
-                                value=int(float(str(pk_row.get('QtdEsperada',1)))),
-                                key=f"pk_rec_{pk_row.get('ID','')}")
-                        with cc2:
-                            est_rec = st.selectbox("Estado",
-                                ["Recebido OK","Recebido com defeito","Em falta"],
-                                key=f"pk_est_{pk_row.get('ID','')}")
-                        with cc3:
-                            obs_rec = st.text_input("Obs",
-                                key=f"pk_obs_{pk_row.get('ID','')}")
+                            if st.button("✅ Confirmar recepção",
+                                    key=f"pk_conf_{pk_row.get('ID','')}",
+                                    use_container_width=True):
+                                pk_upd = packing.copy()
+                                idx = pk_upd[pk_upd['ID']==pk_row['ID']].index
+                                pk_upd.loc[idx, 'QtdRecebida'] = qtd_rec
+                                pk_upd.loc[idx, 'Estado']      = est_rec
+                                pk_upd.loc[idx, 'Observacao']  = obs_rec
+                                pk_upd.loc[idx, 'DataRecepcao']= datetime.now().strftime('%d/%m/%Y')
+                                _save_inst(pk_upd, obra_key, "packing")
 
-                        if st.button("✅ Confirmar recepção",
-                                key=f"pk_conf_{pk_row.get('ID','')}",
-                                use_container_width=True):
-                            pk_upd = packing.copy()
-                            idx = pk_upd[pk_upd['ID']==pk_row['ID']].index
-                            pk_upd.loc[idx, 'QtdRecebida'] = qtd_rec
-                            pk_upd.loc[idx, 'Estado']      = est_rec
-                            pk_upd.loc[idx, 'Observacao']  = obs_rec
-                            pk_upd.loc[idx, 'DataRecepcao']= datetime.now().strftime('%d/%m/%Y')
-                            _save_inst(pk_upd, obra_key, "packing")
+                                # Se Recebido OK → atualizar status do instrumento
+                                if est_rec == "Recebido OK" and not insts.empty:
+                                    tag_pk = pk_row.get('Tag','')
+                                    if tag_pk in insts['Tag'].values:
+                                        # Verificar se material do Hook-Up está completo
+                                        material_completo, msg = _check_material_completo(
+                                            tag_pk, pk_upd, bom, hookups)
+                                        if material_completo:
+                                            inst_upd = insts.copy()
+                                            inst_upd.loc[inst_upd['Tag']==tag_pk, 'Status'] = '1'
+                                            _save_inst(inst_upd, obra_key, "index")
+                                            st.success(f"✅ {tag_pk}: {msg}")
+                                        else:
+                                            st.warning(f"⚠️ {tag_pk}: {msg}")
 
-                            # Se Recebido OK e BOM completa → atualizar status do instrumento
-                            if est_rec == "Recebido OK" and not insts.empty:
-                                tag_pk = pk_row.get('Tag','')
-                                if tag_pk in insts['Tag'].values:
-                                    inst_upd = insts.copy()
-                                    inst_upd.loc[inst_upd['Tag']==tag_pk, 'Status'] = '1'
-                                    _save_inst(inst_upd, obra_key, "index")
+                                inv()
+                                st.rerun()
 
-                            inv()
-                            st.rerun()
+            with sub_pk3:
+                st.markdown("#### 🚦 Semáforo — Material por Instrumento")
 
-        with sub_pk3:
-            st.markdown("#### 🚦 Semáforo — Material por Instrumento")
+                if insts.empty:
+                    st.info("Sem instrumentos no Index.")
+                else:
+                    for _, inst_row in insts.iterrows():
+                        tag = inst_row.get('Tag','')
+                        status = str(inst_row.get('Status','0'))
+                        _, cor = TIPOS_TAG.get(inst_row.get('Tipo','XX'), ("","#7F8C8D"))
 
-            if insts.empty:
-                st.info("Sem instrumentos no Index.")
-            else:
-                for _, inst_row in insts.iterrows():
-                    tag = inst_row.get('Tag','')
-                    status = str(inst_row.get('Status','0'))
-                    _, cor = TIPOS_TAG.get(inst_row.get('Tipo','XX'), ("","#7F8C8D"))
-
-                    pk_tag_items = packing[packing['Tag']==tag] \
-                        if not packing.empty else pd.DataFrame()
-
-                    if pk_tag_items.empty:
-                        sem_cls, sem_txt, sem_ic = "sem-cinza", "Sem dados", "⚪"
-                    else:
-                        todos_ok = all(
-                            pk_tag_items['Estado'] == 'Recebido OK')
-                        algum_falta = any(
-                            pk_tag_items['Estado'] == 'Em falta')
-                        if todos_ok:
+                        # Verificar material completo
+                        material_completo, msg = _check_material_completo(tag, packing, bom, hookups)
+                        
+                        if material_completo:
                             sem_cls, sem_txt, sem_ic = "sem-verde", "Material OK", "🟢"
-                        elif algum_falta:
-                            sem_cls, sem_txt, sem_ic = "sem-vermelho", "Em Falta", "🔴"
                         else:
-                            sem_cls, sem_txt, sem_ic = "sem-amarelo", "Parcial", "🟡"
+                            sem_cls, sem_txt, sem_ic = "sem-vermelho", msg, "🔴"
 
-                    gps_badge = ""
-                    if inst_row.get('GPS_Lat') and str(inst_row.get('GPS_Lat')) not in ('','nan'):
-                        gps_badge = "<span class='stat-pill' style='background:#EEF2FF;color:#4F46E5;'>📍 Localizado</span>"
+                        gps_badge = ""
+                        if inst_row.get('GPS_Lat') and str(inst_row.get('GPS_Lat')) not in ('','nan'):
+                            gps_badge = "<span class='stat-pill' style='background:#EEF2FF;color:#4F46E5;'>📍 Localizado</span>"
 
-                    st.markdown(
-                        f"<div class='inst-tag-card'>"
-                        f"<div class='inst-tag-badge' style='background:{cor}'>"
-                        f"{inst_row.get('Tipo','?')}</div>"
-                        f"<div class='inst-tag-desc'>"
-                        f"<div class='tag-nome'>{tag} {gps_badge}</div>"
-                        f"<div class='tag-sub'>{inst_row.get('Descricao','—')}</div>"
-                        f"</div>"
-                        f"<span class='inst-semaforo {sem_cls}'>{sem_ic} {sem_txt}</span>"
-                        f"</div>",
-                        unsafe_allow_html=True)
+                        st.markdown(
+                            f"<div class='inst-tag-card'>"
+                            f"<div class='inst-tag-badge' style='background:{cor}'>"
+                            f"{inst_row.get('Tipo','?')}</div>"
+                            f"<div class='inst-tag-desc'>"
+                            f"<div class='tag-nome'>{tag} {gps_badge}</div>"
+                            f"<div class='tag-sub'>{inst_row.get('Descricao','—')}</div>"
+                            f"</div>"
+                            f"<span class='inst-semaforo {sem_cls}'>{sem_ic} {sem_txt}</span>"
+                            f"</div>",
+                            unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════════════
-    # TAB 4 — CALIBRAÇÃO ITR-A
+    # TAB 4 — CALIBRAÇÃO ITR-A (com validação de material completo)
     # ══════════════════════════════════════════════════════════
     with tab4:
         st.markdown('<div class="section-title">🔬 Calibração em Bancada — ITR-A</div>',
             unsafe_allow_html=True)
 
-        # Só instrumentos com material OK (status >= 1)
-        inst_para_cal = insts[insts['Status'].isin(['1'])] \
-            if not insts.empty else pd.DataFrame()
+        # Verificar material completo para cada instrumento antes de mostrar
+        inst_para_cal = []
+        if not insts.empty:
+            for _, inst in insts.iterrows():
+                if inst['Status'] == '1':  # Material OK
+                    tag = inst['Tag']
+                    material_completo, msg = _check_material_completo(tag, packing, bom, hookups)
+                    if material_completo:
+                        inst_para_cal.append(inst)
+                    else:
+                        # Se material incompleto, manter status pendente
+                        st.warning(f"⚠️ {tag}: {msg} - pendente de material para calibração")
+        
+        inst_para_cal = pd.DataFrame(inst_para_cal) if inst_para_cal else pd.DataFrame()
         inst_calibrados = insts[insts['Status'].isin(['2','3','4'])] \
             if not insts.empty else pd.DataFrame()
 
@@ -1043,7 +1387,7 @@ def render_instrumentacao(**DB):
             if inst_para_cal.empty:
                 st.info("Sem instrumentos prontos para calibrar. "
                     "Verifica o Packing List — os instrumentos precisam de estar com "
-                    "🟢 Material OK.")
+                    "🟢 Material OK e com o material do Hook-Up completo.")
             else:
                 # Instrumentistas só vêem os atribuídos a eles via ITR-A
                 if not is_admin_inst and not is_chefe_inst:
@@ -1055,8 +1399,109 @@ def render_instrumentacao(**DB):
                 st.caption(f"{len(inst_para_cal)} instrumento(s) prontos para calibração.")
 
                 tag_cal = st.selectbox("Seleccionar instrumento",
-                    inst_para_cal['Tag'].tolist(), key="cal_tag_sel")
+                    inst_para_cal['Tag'].tolist() if not inst_para_cal.empty else [],
+                    key="cal_tag_sel")
 
+                if tag_cal and not inst_para_cal.empty:
+                    inst_sel = inst_para_cal[inst_para_cal['Tag']==tag_cal].iloc[0]
+                    _, cor = TIPOS_TAG.get(inst_sel.get('Tipo','XX'), ("","#7F8C8D"))
+
+                    st.markdown(
+                        f"<div class='inst-tag-card'>"
+                        f"<div class='inst-tag-badge' style='background:{cor}'>"
+                        f"{inst_sel.get('Tipo','?')}</div>"
+                        f"<div class='inst-tag-desc'>"
+                        f"<div class='tag-nome'>{tag_cal}</div>"
+                        f"<div class='tag-sub'>{inst_sel.get('Descricao','—')} | "
+                        f"{inst_sel.get('Fabricante','')} {inst_sel.get('Modelo','')}</div>"
+                        f"</div></div>",
+                        unsafe_allow_html=True)
+
+                    with st.form("cal_form"):
+                        st.markdown("**Parâmetros de Calibração:**")
+                        ca1, ca2, ca3 = st.columns(3)
+                        with ca1:
+                            cal_range_min = st.number_input("Range Mín",
+                                value=0.0, step=0.1, key="cal_rmin")
+                            cal_resultado = st.number_input("Resultado Real",
+                                value=0.0, step=0.01, key="cal_res")
+                        with ca2:
+                            cal_range_max = st.number_input("Range Máx",
+                                value=100.0, step=0.1, key="cal_rmax")
+                            cal_desvio = st.number_input("Desvio (%)",
+                                value=0.0, step=0.001, key="cal_dev")
+                        with ca3:
+                            cal_unidade = st.text_input("Unidade de Engenharia",
+                                placeholder="Ex: mbar, °C, m³/h", key="cal_unid")
+                            cal_setpoint = st.number_input("Set Point",
+                                value=50.0, step=0.1, key="cal_sp")
+
+                        cal_pass = st.radio("Resultado",
+                            ["✅ PASS", "❌ FAIL"], horizontal=True, key="cal_pf")
+                        cal_obs = st.text_area("Observações", height=80, key="cal_obs")
+                        cal_inst_nome = st.text_input("Instrumentista responsável",
+                            value=st.session_state.get('user',''), key="cal_inst")
+
+                        if st.form_submit_button("💾 Registar ITR-A",
+                                use_container_width=True, type="primary"):
+                            novo_itr = pd.DataFrame([{
+                                "ID": "ITRA"+_uuid_inst.uuid4().hex[:8].upper(),
+                                "Tag": tag_cal, "Obra": obra_sel,
+                                "Instrumentista": cal_inst_nome,
+                                "DataCalibracao": datetime.now().strftime('%d/%m/%Y %H:%M'),
+                                "RangeMin": cal_range_min, "RangeMax": cal_range_max,
+                                "Unidade": cal_unidade, "SetPoint": cal_setpoint,
+                                "ResultadoReal": cal_resultado, "Desvio": cal_desvio,
+                                "PassFail": "PASS" if "PASS" in cal_pass else "FAIL",
+                                "Observacoes": cal_obs, "Assinatura_b64": "",
+                            }])
+                            _save_inst(pd.concat([itr_a, novo_itr], ignore_index=True),
+                                obra_key, "itr_a")
+# ══════════════════════════════════════════════════════════
+# TAB 4 — CALIBRAÇÃO ITR-A (com formulário completo)
+# ══════════════════════════════════════════════════════════
+with tab4:
+    st.markdown('<div class="section-title">🔬 Calibração em Bancada — ITR-A</div>',
+        unsafe_allow_html=True)
+
+    # Verificar material completo para cada instrumento antes de mostrar
+    inst_para_cal = []
+    if not insts.empty:
+        for _, inst in insts.iterrows():
+            if inst['Status'] == '1':  # Material OK
+                tag = inst['Tag']
+                material_completo, msg = _check_material_completo(tag, packing, bom, hookups)
+                if material_completo:
+                    inst_para_cal.append(inst)
+                else:
+                    st.warning(f"⚠️ {tag}: {msg} - pendente de material para calibração")
+    
+    inst_para_cal = pd.DataFrame(inst_para_cal) if inst_para_cal else pd.DataFrame()
+    inst_calibrados = insts[insts['Status'].isin(['2','3','4'])] \
+        if not insts.empty else pd.DataFrame()
+
+    sub_cal1, sub_cal2 = st.tabs(["🔬 Nova Calibração", "📋 Histórico ITR-A"])
+
+    with sub_cal1:
+        if inst_para_cal.empty:
+            st.info("Sem instrumentos prontos para calibrar. "
+                "Verifica o Packing List — os instrumentos precisam de estar com "
+                "🟢 Material OK e com o material do Hook-Up completo.")
+        else:
+            # Instrumentistas só vêem os atribuídos a eles via ITR-A
+            if not is_admin_inst and not is_chefe_inst:
+                tags_ja_minhas = itr_a[itr_a['Instrumentista']==user_atual]['Tag'].tolist() \
+                    if not itr_a.empty else []
+                inst_para_cal = inst_para_cal[
+                    ~inst_para_cal['Tag'].isin(tags_ja_minhas)
+                ]
+            st.caption(f"{len(inst_para_cal)} instrumento(s) prontos para calibração.")
+
+            tag_cal = st.selectbox("Seleccionar instrumento",
+                inst_para_cal['Tag'].tolist() if not inst_para_cal.empty else [],
+                key="cal_tag_sel")
+
+            if tag_cal and not inst_para_cal.empty:
                 inst_sel = inst_para_cal[inst_para_cal['Tag']==tag_cal].iloc[0]
                 _, cor = TIPOS_TAG.get(inst_sel.get('Tipo','XX'), ("","#7F8C8D"))
 
@@ -1071,76 +1516,245 @@ def render_instrumentacao(**DB):
                     f"</div></div>",
                     unsafe_allow_html=True)
 
-                with st.form("cal_form"):
-                    st.markdown("**Parâmetros de Calibração:**")
-                    ca1, ca2, ca3 = st.columns(3)
-                    with ca1:
-                        cal_range_min = st.number_input("Range Mín",
-                            value=0.0, step=0.1, key="cal_rmin")
-                        cal_resultado = st.number_input("Resultado Real",
-                            value=0.0, step=0.01, key="cal_res")
-                    with ca2:
-                        cal_range_max = st.number_input("Range Máx",
-                            value=100.0, step=0.1, key="cal_rmax")
-                        cal_desvio = st.number_input("Desvio (%)",
-                            value=0.0, step=0.001, key="cal_dev")
-                    with ca3:
-                        cal_unidade = st.text_input("Unidade de Engenharia",
-                            placeholder="Ex: mbar, °C, m³/h", key="cal_unid")
-                        cal_setpoint = st.number_input("Set Point",
-                            value=50.0, step=0.1, key="cal_sp")
+                # ──────────────────────────────────────────────────────────
+                # FORMULÁRIO COMPLETO DE CALIBRAÇÃO
+                # ──────────────────────────────────────────────────────────
+                with st.form("cal_form_completo"):
+                    st.markdown("#### 📋 Identificação do Equipamento")
+                    col_id1, col_id2, col_id3, col_id4 = st.columns(4)
+                    with col_id1:
+                        cal_marca = st.text_input("Marca", key="cal_marca")
+                    with col_id2:
+                        cal_modelo = st.text_input("Modelo", value=inst_sel.get('Modelo',''), key="cal_modelo")
+                    with col_id3:
+                        cal_nserie = st.text_input("Nº Série", key="cal_nserie")
+                    with col_id4:
+                        cal_tipo = st.text_input("Tipo", value=inst_sel.get('Tipo',''), key="cal_tipo")
 
-                    cal_pass = st.radio("Resultado",
-                        ["✅ PASS", "❌ FAIL"], horizontal=True, key="cal_pf")
-                    cal_obs = st.text_area("Observações", height=80, key="cal_obs")
-                    cal_inst_nome = st.text_input("Instrumentista responsável",
-                        value=st.session_state.get('user',''), key="cal_inst")
+                    st.markdown("#### 🔧 Estado do Equipamento")
+                    col_est1, col_est2, col_est3, col_est4 = st.columns(4)
+                    with col_est1:
+                        cal_carcaca = st.selectbox("Carcaça", ["OK", "Danificado", "Não aplicável"], key="cal_carcaca")
+                    with col_est2:
+                        cal_roscas = st.selectbox("Roscas", ["OK", "Danificado", "Não aplicável"], key="cal_roscas")
+                    with col_est3:
+                        cal_eletronica = st.selectbox("Eletrónica", ["OK", "Danificado", "Não aplicável"], key="cal_eletronica")
+                    with col_est4:
+                        cal_sensor = st.selectbox("Elemento sensorial", ["OK", "Danificado", "Não aplicável"], key="cal_sensor")
 
-                    if st.form_submit_button("💾 Registar ITR-A",
-                            use_container_width=True, type="primary"):
+                    st.markdown("#### 📊 Dados de Processo / Parâmetros")
+                    col_dp1, col_dp2, col_dp3, col_dp4 = st.columns(4)
+                    with col_dp1:
+                        cal_funcao = st.text_input("Função", key="cal_funcao")
+                    with col_dp2:
+                        cal_faixa_min = st.number_input("Faixa de medição (min)", value=0.0, step=0.1, key="cal_faixa_min")
+                    with col_dp3:
+                        cal_faixa_max = st.number_input("Faixa de medição (max)", value=100.0, step=0.1, key="cal_faixa_max")
+                    with col_dp4:
+                        cal_unidade = st.text_input("Unidades", key="cal_unidade")
+
+                    # ──────────────────────────────────────────────────────
+                    # TESTE SUBIDA - 5 pontos
+                    # ──────────────────────────────────────────────────────
+                    st.markdown("#### 📈 Teste de Subida")
+                    st.markdown("Preencha os valores para os pontos 0%, 25%, 50%, 75% e 100%")
+                    
+                    col_sub1, col_sub2, col_sub3, col_sub4, col_sub5 = st.columns(5)
+                    
+                    pontos = [0, 0.25, 0.5, 0.75, 1]
+                    valores_subida = {}
+                    
+                    for i, ponto in enumerate(pontos):
+                        pct = int(ponto * 100)
+                        with [col_sub1, col_sub2, col_sub3, col_sub4, col_sub5][i]:
+                            st.markdown(f"**{pct}%**")
+                            val_teorico = cal_faixa_min + ponto * (cal_faixa_max - cal_faixa_min)
+                            st.caption(f"Teórico: {val_teorico:.1f}")
+                            valores_subida[f"simulado_{pct}"] = st.number_input(
+                                "Simulado", value=val_teorico, step=0.1, key=f"sub_sim_{i}",
+                                label_visibility="collapsed"
+                            )
+                            valores_subida[f"lido_{pct}"] = st.number_input(
+                                "Lido", value=val_teorico, step=0.01, key=f"sub_li_{i}",
+                                label_visibility="collapsed"
+                            )
+
+                    # ──────────────────────────────────────────────────────
+                    # TESTE DESCIDA - 5 pontos
+                    # ──────────────────────────────────────────────────────
+                    st.markdown("#### 📉 Teste de Descida")
+                    st.markdown("Preencha os valores para os pontos 100%, 75%, 50%, 25% e 0%")
+                    
+                    col_desc1, col_desc2, col_desc3, col_desc4, col_desc5 = st.columns(5)
+                    
+                    pontos_desc = [1, 0.75, 0.5, 0.25, 0]
+                    valores_descida = {}
+                    
+                    for i, ponto in enumerate(pontos_desc):
+                        pct = int(ponto * 100)
+                        with [col_desc1, col_desc2, col_desc3, col_desc4, col_desc5][i]:
+                            st.markdown(f"**{pct}%**")
+                            val_teorico = cal_faixa_min + ponto * (cal_faixa_max - cal_faixa_min)
+                            st.caption(f"Teórico: {val_teorico:.1f}")
+                            valores_descida[f"simulado_{pct}"] = st.number_input(
+                                "Simulado", value=val_teorico, step=0.1, key=f"desc_sim_{i}",
+                                label_visibility="collapsed"
+                            )
+                            valores_descida[f"lido_{pct}"] = st.number_input(
+                                "Lido", value=val_teorico, step=0.01, key=f"desc_li_{i}",
+                                label_visibility="collapsed"
+                            )
+
+                    # ──────────────────────────────────────────────────────
+                    # DIAGNÓSTICO E VEREDITO
+                    # ──────────────────────────────────────────────────────
+                    st.markdown("#### 📝 Diagnóstico e Veredito")
+                    
+                    col_diag1, col_diag2 = st.columns(2)
+                    with col_diag1:
+                        st.markdown("**Antes da Calibração**")
+                        cal_estado_antes = st.selectbox("Estado", ["OK", "Fora de especificação", "Não testado"], key="cal_estado_antes")
+                        cal_calibrar_antes = st.selectbox("Necessário calibrar?", ["Sim", "Não", "Parcialmente"], key="cal_calibrar_antes")
+                        cal_obs_antes = st.text_area("Comentário", height=60, key="cal_obs_antes")
+                    
+                    with col_diag2:
+                        st.markdown("**Após Calibração**")
+                        cal_estado_depois = st.selectbox("Estado", ["OK", "Fora de especificação", "Não testado"], key="cal_estado_depois")
+                        cal_calibrar_depois = st.selectbox("Necessário calibrar?", ["Sim", "Não", "Parcialmente"], key="cal_calibrar_depois")
+                        cal_obs_depois = st.text_area("Comentário", height=60, key="cal_obs_depois")
+
+                    # ──────────────────────────────────────────────────────
+                    # VEREDITO FINAL E ASSINATURAS
+                    # ──────────────────────────────────────────────────────
+                    st.markdown("#### ✅ Veredito Final e Assinaturas")
+                    
+                    col_ver1, col_ver2 = st.columns(2)
+                    with col_ver1:
+                        cal_veredito = st.selectbox("Estado Final", ["Aprovado", "Reprovado", "Condicional"], key="cal_veredito")
+                        cal_tecnico = st.text_input("Técnico", value=st.session_state.get('user',''), key="cal_tecnico")
+                        cal_data = st.date_input("Data", value=datetime.now().date(), key="cal_data")
+                    
+                    with col_ver2:
+                        cal_necessario = st.selectbox("Necessário calibrar?", ["Sim", "Não"], key="cal_necessario")
+                        cal_responsavel = st.text_input("Responsável", key="cal_responsavel")
+                        cal_data_resp = st.date_input("Data (Responsável)", value=datetime.now().date(), key="cal_data_resp")
+
+                    # Botão de submissão
+                    if st.form_submit_button("💾 Registar Calibração ITR-A", use_container_width=True, type="primary"):
+                        # Calcular erros máximos
+                        erro_max_subida = 0
+                        for ponto in [0, 25, 50, 75, 100]:
+                            teorico = cal_faixa_min + (ponto/100) * (cal_faixa_max - cal_faixa_min)
+                            lido = valores_subida.get(f"lido_{ponto/100}", teorico)
+                            if teorico != 0:
+                                erro = abs((lido - teorico) / teorico) * 100
+                                erro_max_subida = max(erro_max_subida, erro)
+                        
+                        erro_max_descida = 0
+                        for ponto in [100, 75, 50, 25, 0]:
+                            teorico = cal_faixa_min + (ponto/100) * (cal_faixa_max - cal_faixa_min)
+                            lido = valores_descida.get(f"lido_{ponto}", teorico)
+                            if teorico != 0:
+                                erro = abs((lido - teorico) / teorico) * 100
+                                erro_max_descida = max(erro_max_descida, erro)
+                        
+                        erro_max_global = max(erro_max_subida, erro_max_descida)
+                        pass_fail = "PASS" if erro_max_global <= 1.0 else "FAIL"
+                        
+                        # Criar registro
                         novo_itr = pd.DataFrame([{
                             "ID": "ITRA"+_uuid_inst.uuid4().hex[:8].upper(),
-                            "Tag": tag_cal, "Obra": obra_sel,
-                            "Instrumentista": cal_inst_nome,
-                            "DataCalibracao": datetime.now().strftime('%d/%m/%Y %H:%M'),
-                            "RangeMin": cal_range_min, "RangeMax": cal_range_max,
-                            "Unidade": cal_unidade, "SetPoint": cal_setpoint,
-                            "ResultadoReal": cal_resultado, "Desvio": cal_desvio,
-                            "PassFail": "PASS" if "PASS" in cal_pass else "FAIL",
-                            "Observacoes": cal_obs, "Assinatura_b64": "",
+                            "Tag": tag_cal,
+                            "Obra": obra_sel,
+                            "Instrumentista": cal_tecnico,
+                            "DataCalibracao": cal_data.strftime('%d/%m/%Y'),
+                            "Marca": cal_marca,
+                            "Modelo": cal_modelo,
+                            "NSerie": cal_nserie,
+                            "Tipo": cal_tipo,
+                            "Estado_Carcaca": cal_carcaca,
+                            "Estado_Roscas": cal_roscas,
+                            "Estado_Eletronica": cal_eletronica,
+                            "Estado_Sensor": cal_sensor,
+                            "Funcao": cal_funcao,
+                            "RangeMin": cal_faixa_min,
+                            "RangeMax": cal_faixa_max,
+                            "Unidade": cal_unidade,
+                            "ValsSubida": str(valores_subida),
+                            "ValsDescida": str(valores_descida),
+                            "ErroMaximo": erro_max_global,
+                            "PassFail": pass_fail,
+                            "EstadoAntes": cal_estado_antes,
+                            "CalibrarAntes": cal_calibrar_antes,
+                            "ObsAntes": cal_obs_antes,
+                            "EstadoDepois": cal_estado_depois,
+                            "CalibrarDepois": cal_calibrar_depois,
+                            "ObsDepois": cal_obs_depois,
+                            "Veredito": cal_veredito,
+                            "Responsavel": cal_responsavel,
+                            "DataResponsavel": cal_data_resp.strftime('%d/%m/%Y'),
+                            "Assinatura_b64": "",
                         }])
                         _save_inst(pd.concat([itr_a, novo_itr], ignore_index=True),
                             obra_key, "itr_a")
 
-                        # Actualizar status do instrumento
-                        if "PASS" in cal_pass:
+                        if pass_fail == "PASS":
                             inst_upd = insts.copy()
                             inst_upd.loc[inst_upd['Tag']==tag_cal, 'Status'] = '2'
                             _save_inst(inst_upd, obra_key, "index")
 
                         inv()
-                        st.success(f"✅ ITR-A registado para {tag_cal}!")
+                        st.success(f"✅ Calibração registada para {tag_cal}!")
+                        st.success(f"📊 Erro máximo: {erro_max_global:.2f}% — {pass_fail}")
                         st.rerun()
 
-        with sub_cal2:
-            if itr_a.empty:
-                st.info("Sem calibrações registadas.")
-            else:
-                for _, itr_row in itr_a.sort_values('DataCalibracao',
-                        ascending=False).iterrows():
-                    pf = itr_row.get('PassFail','')
-                    cls_ = "pass" if pf=="PASS" else "fail"
-                    ic_  = "✅" if pf=="PASS" else "❌"
-                    st.markdown(
-                        f"<div class='itr-card {cls_}'>"
-                        f"<b>{itr_row.get('Tag','—')}</b> {ic_} {pf} &nbsp;|&nbsp; "
-                        f"Range: {itr_row.get('RangeMin','')}–{itr_row.get('RangeMax','')} "
-                        f"{itr_row.get('Unidade','')} &nbsp;|&nbsp; "
-                        f"Desvio: {itr_row.get('Desvio','')}% &nbsp;|&nbsp; "
-                        f"<small style='color:#7A8BA6'>{itr_row.get('Instrumentista','—')} "
-                        f"· {itr_row.get('DataCalibracao','—')}</small>"
-                        f"</div>",
-                        unsafe_allow_html=True)
+    with sub_cal2:
+        if itr_a.empty:
+            st.info("Sem calibrações registadas.")
+        else:
+            st.markdown("#### 📋 Histórico de Calibrações")
+            
+            # Filtros
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                filtro_tag = st.multiselect("Filtrar por Tag", 
+                    itr_a['Tag'].unique().tolist() if not itr_a.empty else [],
+                    key="hist_filtro_tag")
+            with col_f2:
+                filtro_result = st.multiselect("Resultado", ["PASS", "FAIL"],
+                    default=["PASS", "FAIL"], key="hist_filtro_res")
+            
+            df_hist = itr_a.copy()
+            if filtro_tag:
+                df_hist = df_hist[df_hist['Tag'].isin(filtro_tag)]
+            if filtro_result:
+                df_hist = df_hist[df_hist['PassFail'].isin(filtro_result)]
+            
+            for _, itr_row in df_hist.sort_values('DataCalibracao',
+                    ascending=False).iterrows():
+                pf = itr_row.get('PassFail','')
+                cls_ = "pass" if pf=="PASS" else "fail"
+                ic_  = "✅" if pf=="PASS" else "❌"
+                
+                with st.expander(f"{ic_} {itr_row.get('Tag','—')} — {itr_row.get('DataCalibracao','—')} — Erro: {itr_row.get('ErroMaximo',0):.2f}%"):
+                    st.markdown(f"**Marca:** {itr_row.get('Marca','—')} | **Modelo:** {itr_row.get('Modelo','—')} | **Nº Série:** {itr_row.get('NSerie','—')}")
+                    st.markdown(f"**Faixa:** {itr_row.get('RangeMin','')} – {itr_row.get('RangeMax','')} {itr_row.get('Unidade','')}")
+                    st.markdown(f"**Estado do equipamento:** Carcaça: {itr_row.get('Estado_Carcaca','—')} | Roscas: {itr_row.get('Estado_Roscas','—')}")
+                    st.markdown(f"**Veredito Final:** {itr_row.get('Veredito','—')} | Responsável: {itr_row.get('Responsavel','—')}")
+                    st.markdown(f"**Observações:** {itr_row.get('ObsDepois','—')}")
+                    
+                    if st.button("📄 Gerar PDF da Calibração", key=f"pdf_{itr_row.get('ID','')}"):
+                        try:
+                            pdf_bytes = _gerar_pdf_calibracao(itr_row, tag_cal if 'tag_cal' in dir() else itr_row.get('Tag',''))
+                            st.download_button(
+                                label="⬇️ Descarregar PDF",
+                                data=pdf_bytes,
+                                file_name=f"Calibracao_{itr_row.get('Tag','')}_{itr_row.get('DataCalibracao','')}.pdf",
+                                mime="application/pdf",
+                                key=f"download_{itr_row.get('ID','')}"
+                            )
+                        except Exception as e:
+                            st.error(f"Erro ao gerar PDF: {e}")
 
     # ══════════════════════════════════════════════════════════
     # TAB 5 — INSTALAÇÃO ITR-B + GPS
@@ -1155,13 +1769,11 @@ def render_instrumentacao(**DB):
             "🗺️ Mapa da Obra",
         ])
 
-        # ── Sub: Marcar localização ────────────────────────────
         with sub_it1:
             st.markdown("#### 📍 Levantamento de Posições — Chefe vai ao Terreno")
             st.caption("Vai ao local de cada instrumento, captura o GPS e define a elevação. "
                 "Os técnicos seguirão estas coordenadas.")
 
-            # GPS JS
             gps_inst_html = """
 <div id="gps-inst-status" style="color:#7A8BA6;font-size:.82rem;padding:.3rem 0;
   background:#F0F9FF;border-radius:8px;padding:8px 12px;margin-bottom:8px;">
@@ -1198,7 +1810,6 @@ def render_instrumentacao(**DB):
             gps_lat = st.query_params.get("inst_lat","")
             gps_lon = st.query_params.get("inst_lon","")
 
-            # Instrumentos sem GPS
             sem_gps = insts[
                 (insts['GPS_Lat'].isna() | (insts['GPS_Lat']=='') | (insts['GPS_Lat']=='nan'))
             ] if not insts.empty else pd.DataFrame()
@@ -1241,7 +1852,6 @@ def render_instrumentacao(**DB):
                         st.success(f"✅ {tag_gps} localizado — {lat_man}, {lon_man} (+{elev_man}m)")
                         st.rerun()
 
-        # ── Sub: Registar instalação ───────────────────────────
         with sub_it2:
             st.markdown("#### 🔧 Registar Instalação — ITR-B")
 
@@ -1303,7 +1913,6 @@ def render_instrumentacao(**DB):
                         st.success(f"✅ ITR-B registado para {tag_it}!")
                         st.rerun()
 
-        # ── Sub: Mapa ──────────────────────────────────────────
         with sub_it3:
             st.markdown("#### 🗺️ Mapa da Obra — Instrumentos Geolocalizados")
 
@@ -1365,144 +1974,141 @@ def render_instrumentacao(**DB):
     # TAB 6 — PUNCH LIST (Admin / Chefe)
     # ══════════════════════════════════════════════════════════
     if tab6_visivel:
-     with tab6:
-        st.markdown('<div class="section-title">⚠️ Punch List</div>',
-            unsafe_allow_html=True)
+        with tab6:
+            st.markdown('<div class="section-title">⚠️ Punch List</div>',
+                unsafe_allow_html=True)
 
-        # Contadores por categoria
-        def _punch_count(cat, estado="Aberto"):
-            if punch.empty: return 0
-            return len(punch[(punch['Categoria']==cat)&(punch['Status']==estado)])
+            def _punch_count(cat, estado="Aberto"):
+                if punch.empty: return 0
+                return len(punch[(punch['Categoria']==cat)&(punch['Status']==estado)])
 
-        c_a, c_b, c_c = st.columns(3)
-        with c_a:
-            render_metric_red("🔴", _punch_count("A"), "Cat A — Crítico")
-        with c_b:
-            render_metric("🟡", _punch_count("B"), "Cat B — Não Crítico")
-        with c_c:
-            render_metric("⚫", _punch_count("C"), "Cat C — Cosmético")
+            c_a, c_b, c_c = st.columns(3)
+            with c_a:
+                render_metric_red("🔴", _punch_count("A"), "Cat A — Crítico")
+            with c_b:
+                render_metric("🟡", _punch_count("B"), "Cat B — Não Crítico")
+            with c_c:
+                render_metric("⚫", _punch_count("C"), "Cat C — Cosmético")
 
-        if _punch_count("A") > 0:
-            st.error("🔴 Existem Punch Items **Cat A** abertos — "
-                "o Handover está BLOQUEADO até serem resolvidos.")
+            if _punch_count("A") > 0:
+                st.error("🔴 Existem Punch Items **Cat A** abertos — "
+                    "o Handover está BLOQUEADO até serem resolvidos.")
 
-        st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
 
-        sub_p1, sub_p2 = st.tabs(["➕ Novo Item", "📋 Lista"])
+            sub_p1, sub_p2 = st.tabs(["➕ Novo Item", "📋 Lista"])
 
-        with sub_p1:
-            with st.form("punch_add"):
-                pp1, pp2 = st.columns(2)
-                with pp1:
-                    p_tag = st.selectbox("Tag associada",
-                        ["Geral"]+insts['Tag'].tolist() if not insts.empty else ["Geral"],
-                        key="punch_tag")
-                    p_cat = st.selectbox("Categoria",
-                        ["A — Crítico (bloqueia handover)",
-                         "B — Não crítico",
-                         "C — Cosmético / documentação"],
-                        key="punch_cat")
-                    p_resp = st.text_input("Responsável",
-                        value=st.session_state.get('user',''), key="punch_resp")
-                with pp2:
-                    p_desc = st.text_area("Descrição *", height=100, key="punch_desc")
-                    p_prazo = st.date_input("Prazo",
-                        value=date.today()+timedelta(days=7), key="punch_prazo")
+            with sub_p1:
+                with st.form("punch_add"):
+                    pp1, pp2 = st.columns(2)
+                    with pp1:
+                        p_tag = st.selectbox("Tag associada",
+                            ["Geral"]+insts['Tag'].tolist() if not insts.empty else ["Geral"],
+                            key="punch_tag")
+                        p_cat = st.selectbox("Categoria",
+                            ["A — Crítico (bloqueia handover)",
+                             "B — Não crítico",
+                             "C — Cosmético / documentação"],
+                            key="punch_cat")
+                        p_resp = st.text_input("Responsável",
+                            value=st.session_state.get('user',''), key="punch_resp")
+                    with pp2:
+                        p_desc = st.text_area("Descrição *", height=100, key="punch_desc")
+                        p_prazo = st.date_input("Prazo",
+                            value=date.today()+timedelta(days=7), key="punch_prazo")
 
-                if st.form_submit_button("➕ Registar Punch Item",
-                        use_container_width=True):
-                    if not p_desc.strip():
-                        st.error("Descrição obrigatória.")
-                    else:
-                        cat_letra = p_cat[0]
-                        novo_p = pd.DataFrame([{
-                            "ID": "P"+_uuid_inst.uuid4().hex[:8].upper(),
-                            "Tag": p_tag, "Obra": obra_sel,
-                            "Categoria": cat_letra,
-                            "Descricao": p_desc.strip(),
-                            "Responsavel": p_resp,
-                            "Prazo": str(p_prazo),
-                            "Status": "Aberto",
-                            "DataCriacao": datetime.now().strftime('%d/%m/%Y %H:%M'),
-                            "DataFecho": "",
-                        }])
-                        _save_inst(pd.concat([punch, novo_p], ignore_index=True),
-                            obra_key, "punch")
-                        inv()
-                        st.success("✅ Punch item registado!")
-                        st.rerun()
+                    if st.form_submit_button("➕ Registar Punch Item",
+                            use_container_width=True):
+                        if not p_desc.strip():
+                            st.error("Descrição obrigatória.")
+                        else:
+                            cat_letra = p_cat[0]
+                            novo_p = pd.DataFrame([{
+                                "ID": "P"+_uuid_inst.uuid4().hex[:8].upper(),
+                                "Tag": p_tag, "Obra": obra_sel,
+                                "Categoria": cat_letra,
+                                "Descricao": p_desc.strip(),
+                                "Responsavel": p_resp,
+                                "Prazo": str(p_prazo),
+                                "Status": "Aberto",
+                                "DataCriacao": datetime.now().strftime('%d/%m/%Y %H:%M'),
+                                "DataFecho": "",
+                            }])
+                            _save_inst(pd.concat([punch, novo_p], ignore_index=True),
+                                obra_key, "punch")
+                            inv()
+                            st.success("✅ Punch item registado!")
+                            st.rerun()
 
-        with sub_p2:
-            if punch.empty:
-                st.success("✅ Punch List limpa! Boa obra.")
-            else:
-                f_pcat = st.multiselect("Filtrar categoria",
-                    ["A","B","C"], default=["A","B","C"], key="punch_f_cat")
-                f_pest = st.multiselect("Estado",
-                    ["Aberto","Fechado"], default=["Aberto"], key="punch_f_est")
+            with sub_p2:
+                if punch.empty:
+                    st.success("✅ Punch List limpa! Boa obra.")
+                else:
+                    f_pcat = st.multiselect("Filtrar categoria",
+                        ["A","B","C"], default=["A","B","C"], key="punch_f_cat")
+                    f_pest = st.multiselect("Estado",
+                        ["Aberto","Fechado"], default=["Aberto"], key="punch_f_est")
 
-                df_punch_show = punch.copy()
-                if f_pcat:
-                    df_punch_show = df_punch_show[df_punch_show['Categoria'].isin(f_pcat)]
-                if f_pest:
-                    df_punch_show = df_punch_show[df_punch_show['Status'].isin(f_pest)]
+                    df_punch_show = punch.copy()
+                    if f_pcat:
+                        df_punch_show = df_punch_show[df_punch_show['Categoria'].isin(f_pcat)]
+                    if f_pest:
+                        df_punch_show = df_punch_show[df_punch_show['Status'].isin(f_pest)]
 
-                for _, p_row in df_punch_show.iterrows():
-                    cat = p_row.get('Categoria','C')
-                    cls_p = {'A':'punch-a','B':'punch-b','C':'punch-c'}.get(cat,'punch-c')
-                    ic_p  = {'A':'🔴','B':'🟡','C':'⚫'}.get(cat,'⚫')
-                    est_p = p_row.get('Status','Aberto')
+                    for _, p_row in df_punch_show.iterrows():
+                        cat = p_row.get('Categoria','C')
+                        cls_p = {'A':'punch-a','B':'punch-b','C':'punch-c'}.get(cat,'punch-c')
+                        ic_p  = {'A':'🔴','B':'🟡','C':'⚫'}.get(cat,'⚫')
+                        est_p = p_row.get('Status','Aberto')
 
-                    col_punch, col_fechar = st.columns([5,1])
-                    with col_punch:
-                        st.markdown(
-                            f"<div class='punch-card {cls_p}'>"
-                            f"<b>{ic_p} Cat {cat} — {p_row.get('Tag','Geral')}</b> "
-                            f"<small style='color:#7A8BA6'>({est_p})</small><br>"
-                            f"{p_row.get('Descricao','—')}<br>"
-                            f"<small style='color:#9CA3AF'>👤 {p_row.get('Responsavel','—')} "
-                            f"| 📅 Prazo: {p_row.get('Prazo','—')}</small>"
-                            f"</div>",
-                            unsafe_allow_html=True)
-                    with col_fechar:
-                        if est_p == "Aberto":
-                            if st.button("✅", key=f"punch_fechar_{p_row.get('ID','')}",
-                                    help="Fechar item"):
-                                punch_upd = punch.copy()
-                                punch_upd.loc[punch_upd['ID']==p_row['ID'],
-                                    'Status'] = 'Fechado'
-                                punch_upd.loc[punch_upd['ID']==p_row['ID'],
-                                    'DataFecho'] = datetime.now().strftime('%d/%m/%Y')
-                                _save_inst(punch_upd, obra_key, "punch")
-                                inv()
-                                st.rerun()
+                        col_punch, col_fechar = st.columns([5,1])
+                        with col_punch:
+                            st.markdown(
+                                f"<div class='punch-card {cls_p}'>"
+                                f"<b>{ic_p} Cat {cat} — {p_row.get('Tag','Geral')}</b> "
+                                f"<small style='color:#7A8BA6'>({est_p})</small><br>"
+                                f"{p_row.get('Descricao','—')}<br>"
+                                f"<small style='color:#9CA3AF'>👤 {p_row.get('Responsavel','—')} "
+                                f"| 📅 Prazo: {p_row.get('Prazo','—')}</small>"
+                                f"</div>",
+                                unsafe_allow_html=True)
+                        with col_fechar:
+                            if est_p == "Aberto":
+                                if st.button("✅", key=f"punch_fechar_{p_row.get('ID','')}",
+                                        help="Fechar item"):
+                                    punch_upd = punch.copy()
+                                    punch_upd.loc[punch_upd['ID']==p_row['ID'],
+                                        'Status'] = 'Fechado'
+                                    punch_upd.loc[punch_upd['ID']==p_row['ID'],
+                                        'DataFecho'] = datetime.now().strftime('%d/%m/%Y')
+                                    _save_inst(punch_upd, obra_key, "punch")
+                                    inv()
+                                    st.rerun()
 
     # ══════════════════════════════════════════════════════════
     # TAB 7 — HANDOVER DOSSIER (Admin)
     # ══════════════════════════════════════════════════════════
     if tab7_visivel:
-     with tab7:
-        st.markdown('<div class="section-title">📄 Handover Dossier</div>',
-            unsafe_allow_html=True)
+        with tab7:
+            st.markdown('<div class="section-title">📄 Handover Dossier</div>',
+                unsafe_allow_html=True)
 
-        # Check punch cat A
-        punch_a_abertos = _punch_count("A") if not punch.empty else 0
-        if punch_a_abertos > 0:
-            st.error(f"🔴 **HANDOVER BLOQUEADO** — {punch_a_abertos} Punch Item(s) "
-                f"Cat A por fechar.")
-        else:
-            st.success("✅ Punch List Cat A limpa — Handover desbloqueado!")
+            punch_a_abertos = _punch_count("A") if not punch.empty else 0
+            if punch_a_abertos > 0:
+                st.error(f"🔴 **HANDOVER BLOQUEADO** — {punch_a_abertos} Punch Item(s) "
+                    f"Cat A por fechar.")
+            else:
+                st.success("✅ Punch List Cat A limpa — Handover desbloqueado!")
 
-        st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
 
-        # Dashboard de progresso
-        total = len(insts) if not insts.empty else 0
-        if total > 0:
-            p_mat  = round(100 * len(insts[insts['Status'].isin(['1','2','3','4'])]) / total)
-            p_cal  = round(100 * len(insts[insts['Status'].isin(['2','3','4'])]) / total)
-            p_inst = round(100 * len(insts[insts['Status'].isin(['3','4'])]) / total)
+            total = len(insts) if not insts.empty else 0
+            if total > 0:
+                p_mat  = round(100 * len(insts[insts['Status'].isin(['1','2','3','4'])]) / total)
+                p_cal  = round(100 * len(insts[insts['Status'].isin(['2','3','4'])]) / total)
+                p_inst = round(100 * len(insts[insts['Status'].isin(['3','4'])]) / total)
 
-            st.markdown(f"""
+                st.markdown(f"""
 <div style='background:white;border-radius:16px;padding:20px;border:1px solid #E5EDFF;margin-bottom:16px;'>
   <div style='font-weight:700;color:#0A2463;margin-bottom:12px;'>Progresso da Obra</div>
   <div style='margin-bottom:8px;'>
@@ -1535,30 +2141,30 @@ def render_instrumentacao(**DB):
 </div>
 """, unsafe_allow_html=True)
 
-        if not insts.empty:
-            hd_tag = st.selectbox("Gerar dossier para instrumento",
-                ["— Todos —"] + insts['Tag'].tolist(), key="hd_tag_sel")
+            if not insts.empty:
+                hd_tag = st.selectbox("Gerar dossier para instrumento",
+                    ["— Todos —"] + insts['Tag'].tolist(), key="hd_tag_sel")
 
-            if st.button("📄 Gerar Handover Dossier PDF",
-                    use_container_width=True, type="primary", key="hd_gerar"):
-                try:
-                    tags_dossier = insts['Tag'].tolist() if hd_tag == "— Todos —" \
-                        else [hd_tag]
-                    pdf_hd = _gerar_handover_pdf(
-                        tags_dossier, insts, itr_a, itr_b, punch,
-                        obra_sel, obra_cod)
-                    fname = (f"Handover_{obra_key}_"
-                        f"{'COMPLETO' if hd_tag=='— Todos —' else hd_tag}_"
-                        f"{datetime.now().strftime('%Y%m%d')}.pdf")
-                    st.download_button(
-                        label="⬇️ Descarregar Handover Dossier",
-                        data=pdf_hd,
-                        file_name=fname,
-                        mime="application/pdf",
-                        use_container_width=True,
-                    )
-                except Exception as e:
-                    st.error(f"Erro ao gerar dossier: {e}")
+                if st.button("📄 Gerar Handover Dossier PDF",
+                        use_container_width=True, type="primary", key="hd_gerar"):
+                    try:
+                        tags_dossier = insts['Tag'].tolist() if hd_tag == "— Todos —" \
+                            else [hd_tag]
+                        pdf_hd = _gerar_handover_pdf(
+                            tags_dossier, insts, itr_a, itr_b, punch,
+                            obra_sel, obra_cod)
+                        fname = (f"Handover_{obra_key}_"
+                            f"{'COMPLETO' if hd_tag=='— Todos —' else hd_tag}_"
+                            f"{datetime.now().strftime('%Y%m%d')}.pdf")
+                        st.download_button(
+                            label="⬇️ Descarregar Handover Dossier",
+                            data=pdf_hd,
+                            file_name=fname,
+                            mime="application/pdf",
+                            use_container_width=True,
+                        )
+                    except Exception as e:
+                        st.error(f"Erro ao gerar dossier: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1566,21 +2172,17 @@ def render_instrumentacao(**DB):
 # ═══════════════════════════════════════════════════════════════
 
 def _gerar_etiquetas_zebra(df_inst, obra, cod_obra):
-    """
-    Gera PDF com etiquetas 50×30mm para impressora Zebra.
-    Layout: QR Code à esquerda, Tag + Descrição à direita.
-    """
+    """Gera PDF com etiquetas 50×30mm para impressora Zebra."""
     from reportlab.lib.pagesizes import landscape
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
     from reportlab.lib.units import mm
 
     LAB_W = 50 * mm
     LAB_H = 30 * mm
-    COLS  = 3  # etiquetas por linha em A4
+    COLS  = 3
 
     buf = io.BytesIO()
 
-    # Página A4 landscape para caber 3 etiquetas por linha
     doc = SimpleDocTemplate(buf,
         pagesize=(210*mm, 297*mm),
         leftMargin=5*mm, rightMargin=5*mm,
@@ -1605,7 +2207,6 @@ def _gerar_etiquetas_zebra(df_inst, obra, cod_obra):
         desc = str(row.get('Descricao',''))[:30]
         tipo_cor = TIPOS_TAG.get(row.get('Tipo','XX'), ("","#7F8C8D"))[1]
 
-        # QR Code
         qr_data = f"GESTNOW|INST|{tag}|{obra}|{row.get('ID','')}"
         qr_el = Paragraph(f"<b>{tag}</b>",
             ParagraphStyle('QRF', fontSize=6, textColor=GREY))
@@ -1627,7 +2228,6 @@ def _gerar_etiquetas_zebra(df_inst, obra, cod_obra):
 
         etiquetas.append([qr_el, txt_cell])
 
-    # Agrupar em linhas de 1 etiqueta (tabela simples)
     all_rows = []
     row_curr = []
     for i, et in enumerate(etiquetas):
@@ -1691,7 +2291,6 @@ def _gerar_handover_pdf(tags, insts, itr_a, itr_b, punch, obra, cod_obra):
 
     el = []
 
-    # Capa
     el.append(Spacer(1, 2*cm))
     el.append(Paragraph("HANDOVER DOSSIER", ts_h1))
     el.append(Paragraph(f"Obra: {obra} | Código: {cod_obra}", ts_h2))
@@ -1701,7 +2300,6 @@ def _gerar_handover_pdf(tags, insts, itr_a, itr_b, punch, obra, cod_obra):
         ParagraphStyle('sub', fontSize=8, textColor=GREY)))
     el.append(Spacer(1, 0.5*cm))
 
-    # Sumário
     total = len(insts) if not insts.empty else 0
     n_conc = len(insts[insts['Status'].isin(['3','4'])]) if not insts.empty else 0
     punch_a = len(punch[(punch['Categoria']=='A')&(punch['Status']=='Aberto')]) \
@@ -1726,7 +2324,6 @@ def _gerar_handover_pdf(tags, insts, itr_a, itr_b, punch, obra, cod_obra):
     el.append(tbl_sum)
     el.append(PageBreak())
 
-    # Ficha por instrumento
     for tag in tags:
         inst_rows = insts[insts['Tag']==tag] if not insts.empty else pd.DataFrame()
         if inst_rows.empty:
@@ -1741,7 +2338,6 @@ def _gerar_handover_pdf(tags, insts, itr_a, itr_b, punch, obra, cod_obra):
             f"{inst.get('Modelo','')} | P&ID: {inst.get('PID_Ref','')}",
             ts_body))
 
-        # Calibração
         itr_a_tag = itr_a[itr_a['Tag']==tag] if not itr_a.empty else pd.DataFrame()
         el.append(Paragraph("Calibração (ITR-A)", ts_h3))
         if not itr_a_tag.empty:
@@ -1770,7 +2366,6 @@ def _gerar_handover_pdf(tags, insts, itr_a, itr_b, punch, obra, cod_obra):
             el.append(Paragraph("— Sem ITR-A registado —",
                 ParagraphStyle('na', fontSize=7, textColor=RED)))
 
-        # Instalação
         itr_b_tag = itr_b[itr_b['Tag']==tag] if not itr_b.empty else pd.DataFrame()
         el.append(Paragraph("Instalação (ITR-B)", ts_h3))
         if not itr_b_tag.empty:
@@ -1805,7 +2400,6 @@ def _gerar_handover_pdf(tags, insts, itr_a, itr_b, punch, obra, cod_obra):
         el.append(Paragraph("─" * 80, ParagraphStyle('sep', fontSize=4, textColor=GREY)))
         el.append(Spacer(1, 0.2*cm))
 
-    # Rodapé final
     el.append(PageBreak())
     el.append(Paragraph(
         f"Documento gerado automaticamente pelo GESTNOW v3 | {datetime.now().strftime('%d/%m/%Y %H:%M')}",
@@ -1814,6 +2408,67 @@ def _gerar_handover_pdf(tags, insts, itr_a, itr_b, punch, obra, cod_obra):
         "Este documento constitui o Dossier de Handover da obra e deve ser entregue ao cliente.",
         ts_tiny))
 
+    doc.build(el)
+    buf.seek(0)
+    return buf.read()
+def _gerar_pdf_calibracao(cal_data, tag):
+    """Gera PDF com a folha de calibração completa."""
+    from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
+        Table, TableStyle, PageBreak)
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    import ast
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+        leftMargin=1.5*cm, rightMargin=1.5*cm,
+        topMargin=1.5*cm, bottomMargin=1.5*cm)
+
+    NAVY = colors.HexColor('#0A2463')
+    GREY = colors.HexColor('#7A8BA6')
+    BLACK = colors.black
+
+    ts_title = ParagraphStyle('Title', fontSize=14, fontName='Helvetica-Bold',
+        textColor=NAVY, alignment=1, spaceAfter=12)
+    ts_h2 = ParagraphStyle('H2', fontSize=11, fontName='Helvetica-Bold',
+        textColor=NAVY, spaceAfter=6)
+    ts_body = ParagraphStyle('Body', fontSize=8, textColor=BLACK, spaceAfter=3)
+    
+    el = []
+    
+    # Título
+    el.append(Paragraph("FOLHA DE CALIBRAÇÃO - ITR-A", ts_title))
+    el.append(Paragraph(f"Instrumento: {tag}", ts_h2))
+    el.append(Spacer(1, 0.5*cm))
+    
+    # Dados do instrumento
+    data_table = [
+        ["Marca", cal_data.get('Marca','—'), "Modelo", cal_data.get('Modelo','—')],
+        ["Nº Série", cal_data.get('NSerie','—'), "Tipo", cal_data.get('Tipo','—')],
+        ["Faixa", f"{cal_data.get('RangeMin','')} – {cal_data.get('RangeMax','')} {cal_data.get('Unidade','')}", "Data", cal_data.get('DataCalibracao','—')],
+    ]
+    tbl = Table(data_table, colWidths=[3*cm, 5*cm, 3*cm, 5*cm])
+    tbl.setStyle(TableStyle([
+        ('FONTSIZE', (0,0),(-1,-1), 8),
+        ('GRID', (0,0),(-1,-1), 0.5, GREY),
+        ('BACKGROUND', (0,0),(-1,-1), colors.HexColor('#F8FAFF')),
+    ]))
+    el.append(tbl)
+    el.append(Spacer(1, 0.5*cm))
+    
+    # Resultado
+    pf = cal_data.get('PassFail','')
+    pf_text = "APROVADO" if pf == "PASS" else "REPROVADO"
+    pf_color = colors.HexColor('#10B981') if pf == "PASS" else colors.HexColor('#EF4444')
+    el.append(Paragraph(f"Resultado: {pf_text} | Erro máximo: {cal_data.get('ErroMaximo',0):.2f}%", 
+        ParagraphStyle('Result', fontSize=10, fontName='Helvetica-Bold', textColor=pf_color)))
+    el.append(Spacer(1, 0.5*cm))
+    
+    # Assinaturas
+    el.append(Paragraph(f"Técnico: {cal_data.get('Instrumentista','—')}", ts_body))
+    el.append(Paragraph(f"Responsável: {cal_data.get('Responsavel','—')}", ts_body))
+    
     doc.build(el)
     buf.seek(0)
     return buf.read()
