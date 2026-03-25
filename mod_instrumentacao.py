@@ -578,7 +578,7 @@ def render_instrumentacao(**DB):
 
     # Nível de acesso: admin > chefe > tecnico
     is_admin_inst  = tipo_atual == "Admin"
-    is_chefe_inst  = cargo_inst in ['Chefe de Equipa','Supervisor'] or                      cargo_atual in ['Chefe de Equipa','Encarregado','Supervisor']
+    is_chefe_inst  = cargo_inst in ['Chefe de Equipa','Supervisor'] or cargo_atual in ['Chefe de Equipa','Encarregado','Supervisor']
     is_instr_inst  = cargo_inst == 'Instrumentista'
     # Técnico de campo ou instrumentista veem as mesmas tabs operacionais
 
@@ -633,44 +633,40 @@ def render_instrumentacao(**DB):
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ── Tabs ──────────────────────────────────────────────────
-# ── Tabs filtradas por cargo ────────────────────────────────
-if is_admin_inst or is_chefe_inst:
-    # Admin e Chefe — acesso total
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-        "📋 Instrument Index",
-        "🔩 Hook-Ups & BOM",
-        "📦 Packing List",
-        "🔬 Calibração ITR-A",
-        "🏗️ Instalação ITR-B",
-        "⚠️ Punch List",
-        "📄 Handover",
-    ])
-    tab2_visivel = True
-    tab3_visivel = True
-    tab6_visivel = True
-    tab7_visivel = True
-    # Definir tabs para uso posterior (mesmo nome para todos os casos)
-    tab_inst = tab1
-    tab_cal = tab4
-    tab_instal = tab5
-else:
-    # Técnico / Instrumentista — só tabs operacionais
-    tab_inst, tab_cal, tab_instal = st.tabs([
-        "📋 Os Meus Instrumentos",
-        "🔬 Calibração ITR-A",
-        "🏗️ Instalação ITR-B",
-    ])
-    tab2 = None
-    tab3 = None
-    tab6 = None
-    tab7 = None
-    tab1 = tab_inst
-    tab4 = tab_cal
-    tab5 = tab_instal
-    tab2_visivel = False
-    tab3_visivel = False
-    tab6_visivel = False
-    tab7_visivel = False
+    # ── Tabs filtradas por cargo ────────────────────────────────
+    if is_admin_inst or is_chefe_inst:
+        # Admin e Chefe — acesso total
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+            "📋 Instrument Index",
+            "🔩 Hook-Ups & BOM",
+            "📦 Packing List",
+            "🔬 Calibração ITR-A",
+            "🏗️ Instalação ITR-B",
+            "⚠️ Punch List",
+            "📄 Handover",
+        ])
+        tab2_visivel = True
+        tab3_visivel = True
+        tab6_visivel = True
+        tab7_visivel = True
+    else:
+        # Técnico / Instrumentista — só tabs operacionais
+        tab_inst, tab_cal, tab_instal = st.tabs([
+            "📋 Os Meus Instrumentos",
+            "🔬 Calibração ITR-A",
+            "🏗️ Instalação ITR-B",
+        ])
+        tab1 = tab_inst
+        tab2 = None
+        tab3 = None
+        tab4 = tab_cal
+        tab5 = tab_instal
+        tab6 = None
+        tab7 = None
+        tab2_visivel = False
+        tab3_visivel = False
+        tab6_visivel = False
+        tab7_visivel = False
 
     # ══════════════════════════════════════════════════════════
     # TAB 1 — INSTRUMENT INDEX
@@ -1368,7 +1364,7 @@ else:
                             unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════════════
-    # TAB 4 — CALIBRAÇÃO ITR-A (com validação de material completo)
+    # TAB 4 — CALIBRAÇÃO ITR-A (com formulário completo)
     # ══════════════════════════════════════════════════════════
     with tab4:
         st.markdown('<div class="section-title">🔬 Calibração em Bancada — ITR-A</div>',
@@ -1384,14 +1380,13 @@ else:
                     if material_completo:
                         inst_para_cal.append(inst)
                     else:
-                        # Se material incompleto, manter status pendente
                         st.warning(f"⚠️ {tag}: {msg} - pendente de material para calibração")
         
         inst_para_cal = pd.DataFrame(inst_para_cal) if inst_para_cal else pd.DataFrame()
         inst_calibrados = insts[insts['Status'].isin(['2','3','4'])] \
             if not insts.empty else pd.DataFrame()
 
-        sub_cal1, sub_cal2 = st.tabs(["🔬 Calibrar", "📋 Histórico ITR-A"])
+        sub_cal1, sub_cal2 = st.tabs(["🔬 Nova Calibração", "📋 Histórico ITR-A"])
 
         with sub_cal1:
             if inst_para_cal.empty:
@@ -1427,344 +1422,245 @@ else:
                         f"</div></div>",
                         unsafe_allow_html=True)
 
-                    with st.form("cal_form"):
-                        st.markdown("**Parâmetros de Calibração:**")
-                        ca1, ca2, ca3 = st.columns(3)
-                        with ca1:
-                            cal_range_min = st.number_input("Range Mín",
-                                value=0.0, step=0.1, key="cal_rmin")
-                            cal_resultado = st.number_input("Resultado Real",
-                                value=0.0, step=0.01, key="cal_res")
-                        with ca2:
-                            cal_range_max = st.number_input("Range Máx",
-                                value=100.0, step=0.1, key="cal_rmax")
-                            cal_desvio = st.number_input("Desvio (%)",
-                                value=0.0, step=0.001, key="cal_dev")
-                        with ca3:
-                            cal_unidade = st.text_input("Unidade de Engenharia",
-                                placeholder="Ex: mbar, °C, m³/h", key="cal_unid")
-                            cal_setpoint = st.number_input("Set Point",
-                                value=50.0, step=0.1, key="cal_sp")
+                    # ──────────────────────────────────────────────────────────
+                    # FORMULÁRIO COMPLETO DE CALIBRAÇÃO
+                    # ──────────────────────────────────────────────────────────
+                    with st.form("cal_form_completo"):
+                        st.markdown("#### 📋 Identificação do Equipamento")
+                        col_id1, col_id2, col_id3, col_id4 = st.columns(4)
+                        with col_id1:
+                            cal_marca = st.text_input("Marca", key="cal_marca")
+                        with col_id2:
+                            cal_modelo = st.text_input("Modelo", value=inst_sel.get('Modelo',''), key="cal_modelo")
+                        with col_id3:
+                            cal_nserie = st.text_input("Nº Série", key="cal_nserie")
+                        with col_id4:
+                            cal_tipo = st.text_input("Tipo", value=inst_sel.get('Tipo',''), key="cal_tipo")
 
-                        cal_pass = st.radio("Resultado",
-                            ["✅ PASS", "❌ FAIL"], horizontal=True, key="cal_pf")
-                        cal_obs = st.text_area("Observações", height=80, key="cal_obs")
-                        cal_inst_nome = st.text_input("Instrumentista responsável",
-                            value=st.session_state.get('user',''), key="cal_inst")
+                        st.markdown("#### 🔧 Estado do Equipamento")
+                        col_est1, col_est2, col_est3, col_est4 = st.columns(4)
+                        with col_est1:
+                            cal_carcaca = st.selectbox("Carcaça", ["OK", "Danificado", "Não aplicável"], key="cal_carcaca")
+                        with col_est2:
+                            cal_roscas = st.selectbox("Roscas", ["OK", "Danificado", "Não aplicável"], key="cal_roscas")
+                        with col_est3:
+                            cal_eletronica = st.selectbox("Eletrónica", ["OK", "Danificado", "Não aplicável"], key="cal_eletronica")
+                        with col_est4:
+                            cal_sensor = st.selectbox("Elemento sensorial", ["OK", "Danificado", "Não aplicável"], key="cal_sensor")
 
-                        if st.form_submit_button("💾 Registar ITR-A",
-                                use_container_width=True, type="primary"):
+                        st.markdown("#### 📊 Dados de Processo / Parâmetros")
+                        col_dp1, col_dp2, col_dp3, col_dp4 = st.columns(4)
+                        with col_dp1:
+                            cal_funcao = st.text_input("Função", key="cal_funcao")
+                        with col_dp2:
+                            cal_faixa_min = st.number_input("Faixa de medição (min)", value=0.0, step=0.1, key="cal_faixa_min")
+                        with col_dp3:
+                            cal_faixa_max = st.number_input("Faixa de medição (max)", value=100.0, step=0.1, key="cal_faixa_max")
+                        with col_dp4:
+                            cal_unidade = st.text_input("Unidades", key="cal_unidade")
+
+                        # ──────────────────────────────────────────────────────
+                        # TESTE SUBIDA - 5 pontos
+                        # ──────────────────────────────────────────────────────
+                        st.markdown("#### 📈 Teste de Subida")
+                        st.markdown("Preencha os valores para os pontos 0%, 25%, 50%, 75% e 100%")
+                        
+                        col_sub1, col_sub2, col_sub3, col_sub4, col_sub5 = st.columns(5)
+                        
+                        pontos = [0, 0.25, 0.5, 0.75, 1]
+                        valores_subida = {}
+                        
+                        for i, ponto in enumerate(pontos):
+                            pct = int(ponto * 100)
+                            with [col_sub1, col_sub2, col_sub3, col_sub4, col_sub5][i]:
+                                st.markdown(f"**{pct}%**")
+                                val_teorico = cal_faixa_min + ponto * (cal_faixa_max - cal_faixa_min)
+                                st.caption(f"Teórico: {val_teorico:.1f}")
+                                valores_subida[f"simulado_{pct}"] = st.number_input(
+                                    "Simulado", value=val_teorico, step=0.1, key=f"sub_sim_{i}",
+                                    label_visibility="collapsed"
+                                )
+                                valores_subida[f"lido_{pct}"] = st.number_input(
+                                    "Lido", value=val_teorico, step=0.01, key=f"sub_li_{i}",
+                                    label_visibility="collapsed"
+                                )
+
+                        # ──────────────────────────────────────────────────────
+                        # TESTE DESCIDA - 5 pontos
+                        # ──────────────────────────────────────────────────────
+                        st.markdown("#### 📉 Teste de Descida")
+                        st.markdown("Preencha os valores para os pontos 100%, 75%, 50%, 25% e 0%")
+                        
+                        col_desc1, col_desc2, col_desc3, col_desc4, col_desc5 = st.columns(5)
+                        
+                        pontos_desc = [1, 0.75, 0.5, 0.25, 0]
+                        valores_descida = {}
+                        
+                        for i, ponto in enumerate(pontos_desc):
+                            pct = int(ponto * 100)
+                            with [col_desc1, col_desc2, col_desc3, col_desc4, col_desc5][i]:
+                                st.markdown(f"**{pct}%**")
+                                val_teorico = cal_faixa_min + ponto * (cal_faixa_max - cal_faixa_min)
+                                st.caption(f"Teórico: {val_teorico:.1f}")
+                                valores_descida[f"simulado_{pct}"] = st.number_input(
+                                    "Simulado", value=val_teorico, step=0.1, key=f"desc_sim_{i}",
+                                    label_visibility="collapsed"
+                                )
+                                valores_descida[f"lido_{pct}"] = st.number_input(
+                                    "Lido", value=val_teorico, step=0.01, key=f"desc_li_{i}",
+                                    label_visibility="collapsed"
+                                )
+
+                        # ──────────────────────────────────────────────────────
+                        # DIAGNÓSTICO E VEREDITO
+                        # ──────────────────────────────────────────────────────
+                        st.markdown("#### 📝 Diagnóstico e Veredito")
+                        
+                        col_diag1, col_diag2 = st.columns(2)
+                        with col_diag1:
+                            st.markdown("**Antes da Calibração**")
+                            cal_estado_antes = st.selectbox("Estado", ["OK", "Fora de especificação", "Não testado"], key="cal_estado_antes")
+                            cal_calibrar_antes = st.selectbox("Necessário calibrar?", ["Sim", "Não", "Parcialmente"], key="cal_calibrar_antes")
+                            cal_obs_antes = st.text_area("Comentário", height=60, key="cal_obs_antes")
+                        
+                        with col_diag2:
+                            st.markdown("**Após Calibração**")
+                            cal_estado_depois = st.selectbox("Estado", ["OK", "Fora de especificação", "Não testado"], key="cal_estado_depois")
+                            cal_calibrar_depois = st.selectbox("Necessário calibrar?", ["Sim", "Não", "Parcialmente"], key="cal_calibrar_depois")
+                            cal_obs_depois = st.text_area("Comentário", height=60, key="cal_obs_depois")
+
+                        # ──────────────────────────────────────────────────────
+                        # VEREDITO FINAL E ASSINATURAS
+                        # ──────────────────────────────────────────────────────
+                        st.markdown("#### ✅ Veredito Final e Assinaturas")
+                        
+                        col_ver1, col_ver2 = st.columns(2)
+                        with col_ver1:
+                            cal_veredito = st.selectbox("Estado Final", ["Aprovado", "Reprovado", "Condicional"], key="cal_veredito")
+                            cal_tecnico = st.text_input("Técnico", value=st.session_state.get('user',''), key="cal_tecnico")
+                            cal_data = st.date_input("Data", value=datetime.now().date(), key="cal_data")
+                        
+                        with col_ver2:
+                            cal_necessario = st.selectbox("Necessário calibrar?", ["Sim", "Não"], key="cal_necessario")
+                            cal_responsavel = st.text_input("Responsável", key="cal_responsavel")
+                            cal_data_resp = st.date_input("Data (Responsável)", value=datetime.now().date(), key="cal_data_resp")
+
+                        # Botão de submissão
+                        if st.form_submit_button("💾 Registar Calibração ITR-A", use_container_width=True, type="primary"):
+                            # Calcular erros máximos
+                            erro_max_subida = 0
+                            for ponto in [0, 25, 50, 75, 100]:
+                                teorico = cal_faixa_min + (ponto/100) * (cal_faixa_max - cal_faixa_min)
+                                lido = valores_subida.get(f"lido_{ponto/100}", teorico)
+                                if teorico != 0:
+                                    erro = abs((lido - teorico) / teorico) * 100
+                                    erro_max_subida = max(erro_max_subida, erro)
+                            
+                            erro_max_descida = 0
+                            for ponto in [100, 75, 50, 25, 0]:
+                                teorico = cal_faixa_min + (ponto/100) * (cal_faixa_max - cal_faixa_min)
+                                lido = valores_descida.get(f"lido_{ponto}", teorico)
+                                if teorico != 0:
+                                    erro = abs((lido - teorico) / teorico) * 100
+                                    erro_max_descida = max(erro_max_descida, erro)
+                            
+                            erro_max_global = max(erro_max_subida, erro_max_descida)
+                            pass_fail = "PASS" if erro_max_global <= 1.0 else "FAIL"
+                            
+                            # Criar registro
                             novo_itr = pd.DataFrame([{
                                 "ID": "ITRA"+_uuid_inst.uuid4().hex[:8].upper(),
-                                "Tag": tag_cal, "Obra": obra_sel,
-                                "Instrumentista": cal_inst_nome,
-                                "DataCalibracao": datetime.now().strftime('%d/%m/%Y %H:%M'),
-                                "RangeMin": cal_range_min, "RangeMax": cal_range_max,
-                                "Unidade": cal_unidade, "SetPoint": cal_setpoint,
-                                "ResultadoReal": cal_resultado, "Desvio": cal_desvio,
-                                "PassFail": "PASS" if "PASS" in cal_pass else "FAIL",
-                                "Observacoes": cal_obs, "Assinatura_b64": "",
+                                "Tag": tag_cal,
+                                "Obra": obra_sel,
+                                "Instrumentista": cal_tecnico,
+                                "DataCalibracao": cal_data.strftime('%d/%m/%Y'),
+                                "Marca": cal_marca,
+                                "Modelo": cal_modelo,
+                                "NSerie": cal_nserie,
+                                "Tipo": cal_tipo,
+                                "Estado_Carcaca": cal_carcaca,
+                                "Estado_Roscas": cal_roscas,
+                                "Estado_Eletronica": cal_eletronica,
+                                "Estado_Sensor": cal_sensor,
+                                "Funcao": cal_funcao,
+                                "RangeMin": cal_faixa_min,
+                                "RangeMax": cal_faixa_max,
+                                "Unidade": cal_unidade,
+                                "ValsSubida": str(valores_subida),
+                                "ValsDescida": str(valores_descida),
+                                "ErroMaximo": erro_max_global,
+                                "PassFail": pass_fail,
+                                "EstadoAntes": cal_estado_antes,
+                                "CalibrarAntes": cal_calibrar_antes,
+                                "ObsAntes": cal_obs_antes,
+                                "EstadoDepois": cal_estado_depois,
+                                "CalibrarDepois": cal_calibrar_depois,
+                                "ObsDepois": cal_obs_depois,
+                                "Veredito": cal_veredito,
+                                "Responsavel": cal_responsavel,
+                                "DataResponsavel": cal_data_resp.strftime('%d/%m/%Y'),
+                                "Assinatura_b64": "",
                             }])
                             _save_inst(pd.concat([itr_a, novo_itr], ignore_index=True),
                                 obra_key, "itr_a")
-# ══════════════════════════════════════════════════════════
-# TAB 4 — CALIBRAÇÃO ITR-A (com formulário completo)
-# ══════════════════════════════════════════════════════════
-with tab4:
-    st.markdown('<div class="section-title">🔬 Calibração em Bancada — ITR-A</div>',
-        unsafe_allow_html=True)
 
-    # Verificar material completo para cada instrumento antes de mostrar
-    inst_para_cal = []
-    if not insts.empty:
-        for _, inst in insts.iterrows():
-            if inst['Status'] == '1':  # Material OK
-                tag = inst['Tag']
-                material_completo, msg = _check_material_completo(tag, packing, bom, hookups)
-                if material_completo:
-                    inst_para_cal.append(inst)
-                else:
-                    st.warning(f"⚠️ {tag}: {msg} - pendente de material para calibração")
-    
-    inst_para_cal = pd.DataFrame(inst_para_cal) if inst_para_cal else pd.DataFrame()
-    inst_calibrados = insts[insts['Status'].isin(['2','3','4'])] \
-        if not insts.empty else pd.DataFrame()
+                            if pass_fail == "PASS":
+                                inst_upd = insts.copy()
+                                inst_upd.loc[inst_upd['Tag']==tag_cal, 'Status'] = '2'
+                                _save_inst(inst_upd, obra_key, "index")
 
-    sub_cal1, sub_cal2 = st.tabs(["🔬 Nova Calibração", "📋 Histórico ITR-A"])
+                            inv()
+                            st.success(f"✅ Calibração registada para {tag_cal}!")
+                            st.success(f"📊 Erro máximo: {erro_max_global:.2f}% — {pass_fail}")
+                            st.rerun()
 
-    with sub_cal1:
-        if inst_para_cal.empty:
-            st.info("Sem instrumentos prontos para calibrar. "
-                "Verifica o Packing List — os instrumentos precisam de estar com "
-                "🟢 Material OK e com o material do Hook-Up completo.")
-        else:
-            # Instrumentistas só vêem os atribuídos a eles via ITR-A
-            if not is_admin_inst and not is_chefe_inst:
-                tags_ja_minhas = itr_a[itr_a['Instrumentista']==user_atual]['Tag'].tolist() \
-                    if not itr_a.empty else []
-                inst_para_cal = inst_para_cal[
-                    ~inst_para_cal['Tag'].isin(tags_ja_minhas)
-                ]
-            st.caption(f"{len(inst_para_cal)} instrumento(s) prontos para calibração.")
-
-            tag_cal = st.selectbox("Seleccionar instrumento",
-                inst_para_cal['Tag'].tolist() if not inst_para_cal.empty else [],
-                key="cal_tag_sel")
-
-            if tag_cal and not inst_para_cal.empty:
-                inst_sel = inst_para_cal[inst_para_cal['Tag']==tag_cal].iloc[0]
-                _, cor = TIPOS_TAG.get(inst_sel.get('Tipo','XX'), ("","#7F8C8D"))
-
-                st.markdown(
-                    f"<div class='inst-tag-card'>"
-                    f"<div class='inst-tag-badge' style='background:{cor}'>"
-                    f"{inst_sel.get('Tipo','?')}</div>"
-                    f"<div class='inst-tag-desc'>"
-                    f"<div class='tag-nome'>{tag_cal}</div>"
-                    f"<div class='tag-sub'>{inst_sel.get('Descricao','—')} | "
-                    f"{inst_sel.get('Fabricante','')} {inst_sel.get('Modelo','')}</div>"
-                    f"</div></div>",
-                    unsafe_allow_html=True)
-
-                # ──────────────────────────────────────────────────────────
-                # FORMULÁRIO COMPLETO DE CALIBRAÇÃO
-                # ──────────────────────────────────────────────────────────
-                with st.form("cal_form_completo"):
-                    st.markdown("#### 📋 Identificação do Equipamento")
-                    col_id1, col_id2, col_id3, col_id4 = st.columns(4)
-                    with col_id1:
-                        cal_marca = st.text_input("Marca", key="cal_marca")
-                    with col_id2:
-                        cal_modelo = st.text_input("Modelo", value=inst_sel.get('Modelo',''), key="cal_modelo")
-                    with col_id3:
-                        cal_nserie = st.text_input("Nº Série", key="cal_nserie")
-                    with col_id4:
-                        cal_tipo = st.text_input("Tipo", value=inst_sel.get('Tipo',''), key="cal_tipo")
-
-                    st.markdown("#### 🔧 Estado do Equipamento")
-                    col_est1, col_est2, col_est3, col_est4 = st.columns(4)
-                    with col_est1:
-                        cal_carcaca = st.selectbox("Carcaça", ["OK", "Danificado", "Não aplicável"], key="cal_carcaca")
-                    with col_est2:
-                        cal_roscas = st.selectbox("Roscas", ["OK", "Danificado", "Não aplicável"], key="cal_roscas")
-                    with col_est3:
-                        cal_eletronica = st.selectbox("Eletrónica", ["OK", "Danificado", "Não aplicável"], key="cal_eletronica")
-                    with col_est4:
-                        cal_sensor = st.selectbox("Elemento sensorial", ["OK", "Danificado", "Não aplicável"], key="cal_sensor")
-
-                    st.markdown("#### 📊 Dados de Processo / Parâmetros")
-                    col_dp1, col_dp2, col_dp3, col_dp4 = st.columns(4)
-                    with col_dp1:
-                        cal_funcao = st.text_input("Função", key="cal_funcao")
-                    with col_dp2:
-                        cal_faixa_min = st.number_input("Faixa de medição (min)", value=0.0, step=0.1, key="cal_faixa_min")
-                    with col_dp3:
-                        cal_faixa_max = st.number_input("Faixa de medição (max)", value=100.0, step=0.1, key="cal_faixa_max")
-                    with col_dp4:
-                        cal_unidade = st.text_input("Unidades", key="cal_unidade")
-
-                    # ──────────────────────────────────────────────────────
-                    # TESTE SUBIDA - 5 pontos
-                    # ──────────────────────────────────────────────────────
-                    st.markdown("#### 📈 Teste de Subida")
-                    st.markdown("Preencha os valores para os pontos 0%, 25%, 50%, 75% e 100%")
-                    
-                    col_sub1, col_sub2, col_sub3, col_sub4, col_sub5 = st.columns(5)
-                    
-                    pontos = [0, 0.25, 0.5, 0.75, 1]
-                    valores_subida = {}
-                    
-                    for i, ponto in enumerate(pontos):
-                        pct = int(ponto * 100)
-                        with [col_sub1, col_sub2, col_sub3, col_sub4, col_sub5][i]:
-                            st.markdown(f"**{pct}%**")
-                            val_teorico = cal_faixa_min + ponto * (cal_faixa_max - cal_faixa_min)
-                            st.caption(f"Teórico: {val_teorico:.1f}")
-                            valores_subida[f"simulado_{pct}"] = st.number_input(
-                                "Simulado", value=val_teorico, step=0.1, key=f"sub_sim_{i}",
-                                label_visibility="collapsed"
-                            )
-                            valores_subida[f"lido_{pct}"] = st.number_input(
-                                "Lido", value=val_teorico, step=0.01, key=f"sub_li_{i}",
-                                label_visibility="collapsed"
-                            )
-
-                    # ──────────────────────────────────────────────────────
-                    # TESTE DESCIDA - 5 pontos
-                    # ──────────────────────────────────────────────────────
-                    st.markdown("#### 📉 Teste de Descida")
-                    st.markdown("Preencha os valores para os pontos 100%, 75%, 50%, 25% e 0%")
-                    
-                    col_desc1, col_desc2, col_desc3, col_desc4, col_desc5 = st.columns(5)
-                    
-                    pontos_desc = [1, 0.75, 0.5, 0.25, 0]
-                    valores_descida = {}
-                    
-                    for i, ponto in enumerate(pontos_desc):
-                        pct = int(ponto * 100)
-                        with [col_desc1, col_desc2, col_desc3, col_desc4, col_desc5][i]:
-                            st.markdown(f"**{pct}%**")
-                            val_teorico = cal_faixa_min + ponto * (cal_faixa_max - cal_faixa_min)
-                            st.caption(f"Teórico: {val_teorico:.1f}")
-                            valores_descida[f"simulado_{pct}"] = st.number_input(
-                                "Simulado", value=val_teorico, step=0.1, key=f"desc_sim_{i}",
-                                label_visibility="collapsed"
-                            )
-                            valores_descida[f"lido_{pct}"] = st.number_input(
-                                "Lido", value=val_teorico, step=0.01, key=f"desc_li_{i}",
-                                label_visibility="collapsed"
-                            )
-
-                    # ──────────────────────────────────────────────────────
-                    # DIAGNÓSTICO E VEREDITO
-                    # ──────────────────────────────────────────────────────
-                    st.markdown("#### 📝 Diagnóstico e Veredito")
-                    
-                    col_diag1, col_diag2 = st.columns(2)
-                    with col_diag1:
-                        st.markdown("**Antes da Calibração**")
-                        cal_estado_antes = st.selectbox("Estado", ["OK", "Fora de especificação", "Não testado"], key="cal_estado_antes")
-                        cal_calibrar_antes = st.selectbox("Necessário calibrar?", ["Sim", "Não", "Parcialmente"], key="cal_calibrar_antes")
-                        cal_obs_antes = st.text_area("Comentário", height=60, key="cal_obs_antes")
-                    
-                    with col_diag2:
-                        st.markdown("**Após Calibração**")
-                        cal_estado_depois = st.selectbox("Estado", ["OK", "Fora de especificação", "Não testado"], key="cal_estado_depois")
-                        cal_calibrar_depois = st.selectbox("Necessário calibrar?", ["Sim", "Não", "Parcialmente"], key="cal_calibrar_depois")
-                        cal_obs_depois = st.text_area("Comentário", height=60, key="cal_obs_depois")
-
-                    # ──────────────────────────────────────────────────────
-                    # VEREDITO FINAL E ASSINATURAS
-                    # ──────────────────────────────────────────────────────
-                    st.markdown("#### ✅ Veredito Final e Assinaturas")
-                    
-                    col_ver1, col_ver2 = st.columns(2)
-                    with col_ver1:
-                        cal_veredito = st.selectbox("Estado Final", ["Aprovado", "Reprovado", "Condicional"], key="cal_veredito")
-                        cal_tecnico = st.text_input("Técnico", value=st.session_state.get('user',''), key="cal_tecnico")
-                        cal_data = st.date_input("Data", value=datetime.now().date(), key="cal_data")
-                    
-                    with col_ver2:
-                        cal_necessario = st.selectbox("Necessário calibrar?", ["Sim", "Não"], key="cal_necessario")
-                        cal_responsavel = st.text_input("Responsável", key="cal_responsavel")
-                        cal_data_resp = st.date_input("Data (Responsável)", value=datetime.now().date(), key="cal_data_resp")
-
-                    # Botão de submissão
-                    if st.form_submit_button("💾 Registar Calibração ITR-A", use_container_width=True, type="primary"):
-                        # Calcular erros máximos
-                        erro_max_subida = 0
-                        for ponto in [0, 25, 50, 75, 100]:
-                            teorico = cal_faixa_min + (ponto/100) * (cal_faixa_max - cal_faixa_min)
-                            lido = valores_subida.get(f"lido_{ponto/100}", teorico)
-                            if teorico != 0:
-                                erro = abs((lido - teorico) / teorico) * 100
-                                erro_max_subida = max(erro_max_subida, erro)
-                        
-                        erro_max_descida = 0
-                        for ponto in [100, 75, 50, 25, 0]:
-                            teorico = cal_faixa_min + (ponto/100) * (cal_faixa_max - cal_faixa_min)
-                            lido = valores_descida.get(f"lido_{ponto}", teorico)
-                            if teorico != 0:
-                                erro = abs((lido - teorico) / teorico) * 100
-                                erro_max_descida = max(erro_max_descida, erro)
-                        
-                        erro_max_global = max(erro_max_subida, erro_max_descida)
-                        pass_fail = "PASS" if erro_max_global <= 1.0 else "FAIL"
-                        
-                        # Criar registro
-                        novo_itr = pd.DataFrame([{
-                            "ID": "ITRA"+_uuid_inst.uuid4().hex[:8].upper(),
-                            "Tag": tag_cal,
-                            "Obra": obra_sel,
-                            "Instrumentista": cal_tecnico,
-                            "DataCalibracao": cal_data.strftime('%d/%m/%Y'),
-                            "Marca": cal_marca,
-                            "Modelo": cal_modelo,
-                            "NSerie": cal_nserie,
-                            "Tipo": cal_tipo,
-                            "Estado_Carcaca": cal_carcaca,
-                            "Estado_Roscas": cal_roscas,
-                            "Estado_Eletronica": cal_eletronica,
-                            "Estado_Sensor": cal_sensor,
-                            "Funcao": cal_funcao,
-                            "RangeMin": cal_faixa_min,
-                            "RangeMax": cal_faixa_max,
-                            "Unidade": cal_unidade,
-                            "ValsSubida": str(valores_subida),
-                            "ValsDescida": str(valores_descida),
-                            "ErroMaximo": erro_max_global,
-                            "PassFail": pass_fail,
-                            "EstadoAntes": cal_estado_antes,
-                            "CalibrarAntes": cal_calibrar_antes,
-                            "ObsAntes": cal_obs_antes,
-                            "EstadoDepois": cal_estado_depois,
-                            "CalibrarDepois": cal_calibrar_depois,
-                            "ObsDepois": cal_obs_depois,
-                            "Veredito": cal_veredito,
-                            "Responsavel": cal_responsavel,
-                            "DataResponsavel": cal_data_resp.strftime('%d/%m/%Y'),
-                            "Assinatura_b64": "",
-                        }])
-                        _save_inst(pd.concat([itr_a, novo_itr], ignore_index=True),
-                            obra_key, "itr_a")
-
-                        if pass_fail == "PASS":
-                            inst_upd = insts.copy()
-                            inst_upd.loc[inst_upd['Tag']==tag_cal, 'Status'] = '2'
-                            _save_inst(inst_upd, obra_key, "index")
-
-                        inv()
-                        st.success(f"✅ Calibração registada para {tag_cal}!")
-                        st.success(f"📊 Erro máximo: {erro_max_global:.2f}% — {pass_fail}")
-                        st.rerun()
-
-    with sub_cal2:
-        if itr_a.empty:
-            st.info("Sem calibrações registadas.")
-        else:
-            st.markdown("#### 📋 Histórico de Calibrações")
-            
-            # Filtros
-            col_f1, col_f2 = st.columns(2)
-            with col_f1:
-                filtro_tag = st.multiselect("Filtrar por Tag", 
-                    itr_a['Tag'].unique().tolist() if not itr_a.empty else [],
-                    key="hist_filtro_tag")
-            with col_f2:
-                filtro_result = st.multiselect("Resultado", ["PASS", "FAIL"],
-                    default=["PASS", "FAIL"], key="hist_filtro_res")
-            
-            df_hist = itr_a.copy()
-            if filtro_tag:
-                df_hist = df_hist[df_hist['Tag'].isin(filtro_tag)]
-            if filtro_result:
-                df_hist = df_hist[df_hist['PassFail'].isin(filtro_result)]
-            
-            for _, itr_row in df_hist.sort_values('DataCalibracao',
-                    ascending=False).iterrows():
-                pf = itr_row.get('PassFail','')
-                cls_ = "pass" if pf=="PASS" else "fail"
-                ic_  = "✅" if pf=="PASS" else "❌"
+        with sub_cal2:
+            if itr_a.empty:
+                st.info("Sem calibrações registadas.")
+            else:
+                st.markdown("#### 📋 Histórico de Calibrações")
                 
-                with st.expander(f"{ic_} {itr_row.get('Tag','—')} — {itr_row.get('DataCalibracao','—')} — Erro: {itr_row.get('ErroMaximo',0):.2f}%"):
-                    st.markdown(f"**Marca:** {itr_row.get('Marca','—')} | **Modelo:** {itr_row.get('Modelo','—')} | **Nº Série:** {itr_row.get('NSerie','—')}")
-                    st.markdown(f"**Faixa:** {itr_row.get('RangeMin','')} – {itr_row.get('RangeMax','')} {itr_row.get('Unidade','')}")
-                    st.markdown(f"**Estado do equipamento:** Carcaça: {itr_row.get('Estado_Carcaca','—')} | Roscas: {itr_row.get('Estado_Roscas','—')}")
-                    st.markdown(f"**Veredito Final:** {itr_row.get('Veredito','—')} | Responsável: {itr_row.get('Responsavel','—')}")
-                    st.markdown(f"**Observações:** {itr_row.get('ObsDepois','—')}")
+                # Filtros
+                col_f1, col_f2 = st.columns(2)
+                with col_f1:
+                    filtro_tag = st.multiselect("Filtrar por Tag", 
+                        itr_a['Tag'].unique().tolist() if not itr_a.empty else [],
+                        key="hist_filtro_tag")
+                with col_f2:
+                    filtro_result = st.multiselect("Resultado", ["PASS", "FAIL"],
+                        default=["PASS", "FAIL"], key="hist_filtro_res")
+                
+                df_hist = itr_a.copy()
+                if filtro_tag:
+                    df_hist = df_hist[df_hist['Tag'].isin(filtro_tag)]
+                if filtro_result:
+                    df_hist = df_hist[df_hist['PassFail'].isin(filtro_result)]
+                
+                for _, itr_row in df_hist.sort_values('DataCalibracao',
+                        ascending=False).iterrows():
+                    pf = itr_row.get('PassFail','')
+                    cls_ = "pass" if pf=="PASS" else "fail"
+                    ic_  = "✅" if pf=="PASS" else "❌"
                     
-                    if st.button("📄 Gerar PDF da Calibração", key=f"pdf_{itr_row.get('ID','')}"):
-                        try:
-                            pdf_bytes = _gerar_pdf_calibracao(itr_row, tag_cal if 'tag_cal' in dir() else itr_row.get('Tag',''))
-                            st.download_button(
-                                label="⬇️ Descarregar PDF",
-                                data=pdf_bytes,
-                                file_name=f"Calibracao_{itr_row.get('Tag','')}_{itr_row.get('DataCalibracao','')}.pdf",
-                                mime="application/pdf",
-                                key=f"download_{itr_row.get('ID','')}"
-                            )
-                        except Exception as e:
-                            st.error(f"Erro ao gerar PDF: {e}")
+                    with st.expander(f"{ic_} {itr_row.get('Tag','—')} — {itr_row.get('DataCalibracao','—')} — Erro: {itr_row.get('ErroMaximo',0):.2f}%"):
+                        st.markdown(f"**Marca:** {itr_row.get('Marca','—')} | **Modelo:** {itr_row.get('Modelo','—')} | **Nº Série:** {itr_row.get('NSerie','—')}")
+                        st.markdown(f"**Faixa:** {itr_row.get('RangeMin','')} – {itr_row.get('RangeMax','')} {itr_row.get('Unidade','')}")
+                        st.markdown(f"**Estado do equipamento:** Carcaça: {itr_row.get('Estado_Carcaca','—')} | Roscas: {itr_row.get('Estado_Roscas','—')}")
+                        st.markdown(f"**Veredito Final:** {itr_row.get('Veredito','—')} | Responsável: {itr_row.get('Responsavel','—')}")
+                        st.markdown(f"**Observações:** {itr_row.get('ObsDepois','—')}")
+                        
+                        if st.button("📄 Gerar PDF da Calibração", key=f"pdf_{itr_row.get('ID','')}"):
+                            try:
+                                pdf_bytes = _gerar_pdf_calibracao(itr_row, tag_cal if 'tag_cal' in dir() else itr_row.get('Tag',''))
+                                st.download_button(
+                                    label="⬇️ Descarregar PDF",
+                                    data=pdf_bytes,
+                                    file_name=f"Calibracao_{itr_row.get('Tag','')}_{itr_row.get('DataCalibracao','')}.pdf",
+                                    mime="application/pdf",
+                                    key=f"download_{itr_row.get('ID','')}"
+                                )
+                            except Exception as e:
+                                st.error(f"Erro ao gerar PDF: {e}")
 
     # ══════════════════════════════════════════════════════════
     # TAB 5 — INSTALAÇÃO ITR-B + GPS
@@ -2421,6 +2317,8 @@ def _gerar_handover_pdf(tags, insts, itr_a, itr_b, punch, obra, cod_obra):
     doc.build(el)
     buf.seek(0)
     return buf.read()
+
+
 def _gerar_pdf_calibracao(cal_data, tag):
     """Gera PDF com a folha de calibração completa."""
     from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
