@@ -1676,88 +1676,230 @@ def render_instrumentacao(**DB):
             "🗺️ Mapa da Obra",
         ])
 
-        with sub_it1:
+                with sub_it1:
             st.markdown("#### 📍 Levantamento de Posições — Chefe vai ao Terreno")
-            st.caption("Vai ao local de cada instrumento, captura o GPS e define a elevação. "
-                "Os técnicos seguirão estas coordenadas.")
-
+            st.caption("Vai ao local de cada instrumento, captura o GPS, tira uma foto e define a elevação. "
+                "Os técnicos seguirão estas coordenadas e terão a foto como referência.")
+            
+            # Botão de refresh manual
+            col_refresh, col_gps_info = st.columns([1, 3])
+            with col_refresh:
+                if st.button("🔄 Atualizar GPS", use_container_width=True, type="primary", key="btn_refresh_gps"):
+                    st.query_params["refresh_gps"] = str(datetime.now().timestamp())
+                    st.rerun()
+            
+            # Componente HTML/JS para captura de GPS com atualização automática
             gps_inst_html = """
 <div id="gps-inst-status" style="color:#7A8BA6;font-size:.82rem;padding:.3rem 0;
   background:#F0F9FF;border-radius:8px;padding:8px 12px;margin-bottom:8px;">
   📍 A obter GPS...
 </div>
+<div id="gps-coords" style="display:none;"></div>
 <script>
 (function(){
-  if(!navigator.geolocation){
-    document.getElementById('gps-inst-status').textContent='⚠️ GPS não suportado';return;
+  function updatePosition(pos) {
+    var lat = pos.coords.latitude.toFixed(6);
+    var lon = pos.coords.longitude.toFixed(6);
+    var acc = Math.round(pos.coords.accuracy);
+    var timestamp = new Date().toLocaleTimeString();
+    
+    var statusDiv = document.getElementById('gps-inst-status');
+    statusDiv.innerHTML = '📍 GPS: <b style="color:#0A2463">'+lat+', '+lon+'</b> (±'+acc+'m) - Atualizado às '+timestamp;
+    statusDiv.style.color = '#059669';
+    statusDiv.style.background = '#D1FAE5';
+    
+    var url = new URL(window.location.href);
+    url.searchParams.set('inst_lat', lat);
+    url.searchParams.set('inst_lon', lon);
+    url.searchParams.set('gps_timestamp', timestamp);
+    window.history.replaceState({}, '', url);
+    
+    window.dispatchEvent(new Event('gps-updated'));
   }
-  navigator.geolocation.getCurrentPosition(
-    function(pos){
-      var lat=pos.coords.latitude.toFixed(6);
-      var lon=pos.coords.longitude.toFixed(6);
-      var acc=Math.round(pos.coords.accuracy);
-      document.getElementById('gps-inst-status').innerHTML=
-        '📍 GPS: <b style="color:#0A2463">'+lat+', '+lon+'</b> (±'+acc+'m)';
-      document.getElementById('gps-inst-status').style.color='#059669';
-      var url=new URL(window.location.href);
-      url.searchParams.set('inst_lat',lat);
-      url.searchParams.set('inst_lon',lon);
-      window.history.replaceState({},'',url);
-    },
-    function(err){
-      document.getElementById('gps-inst-status').innerHTML=
-        '⚠️ GPS indisponível: '+err.message;
-      document.getElementById('gps-inst-status').style.color='#D97706';
-    },
-    {enableHighAccuracy:true,timeout:10000}
-  );
+  
+  function showError(err) {
+    var statusDiv = document.getElementById('gps-inst-status');
+    var errorMsg = '';
+    switch(err.code) {
+      case err.PERMISSION_DENIED:
+        errorMsg = 'Permissão negada. Permita acesso à localização.';
+        break;
+      case err.POSITION_UNAVAILABLE:
+        errorMsg = 'Localização indisponível. Verifique o GPS.';
+        break;
+      case err.TIMEOUT:
+        errorMsg = 'Tempo esgotado. Tente novamente.';
+        break;
+      default:
+        errorMsg = 'Erro: ' + err.message;
+    }
+    statusDiv.innerHTML = '⚠️ GPS: ' + errorMsg;
+    statusDiv.style.color = '#D97706';
+    statusDiv.style.background = '#FEF3C7';
+  }
+  
+  if(!navigator.geolocation){
+    document.getElementById('gps-inst-status').innerHTML = '⚠️ GPS não suportado neste navegador';
+    return;
+  }
+  
+  function getLocation() {
+    navigator.geolocation.getCurrentPosition(updatePosition, showError, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    });
+  }
+  
+  getLocation();
+  
+  var urlParams = new URLSearchParams(window.location.search);
+  if(urlParams.has('refresh_gps')) {
+    getLocation();
+  }
+  
+  setInterval(function() {
+    getLocation();
+  }, 30000);
+  
 })();
 </script>"""
-            st.components.v1.html(gps_inst_html, height=50)
-            gps_lat = st.query_params.get("inst_lat","")
-            gps_lon = st.query_params.get("inst_lon","")
-
+            
+            st.components.v1.html(gps_inst_html, height=80)
+            
+            # Obter coordenadas dos query params (atualizadas automaticamente)
+            gps_lat = st.query_params.get("inst_lat", "")
+            gps_lon = st.query_params.get("inst_lon", "")
+            gps_timestamp = st.query_params.get("gps_timestamp", "")
+            
+            # Mostrar timestamp se disponível
+            if gps_timestamp:
+                st.caption(f"🕐 Última atualização GPS: {gps_timestamp}")
+            
+            # Lista de instrumentos sem GPS
             sem_gps = insts[
                 (insts['GPS_Lat'].isna() | (insts['GPS_Lat']=='') | (insts['GPS_Lat']=='nan'))
             ] if not insts.empty else pd.DataFrame()
-
+            
+            # Instrumentos com GPS já registado
+            com_gps = insts[
+                insts['GPS_Lat'].notna() & 
+                (insts['GPS_Lat'] != '') & 
+                (insts['GPS_Lat'] != 'nan')
+            ] if not insts.empty else pd.DataFrame()
+            
+            # Mostrar contadores
+            col_count1, col_count2 = st.columns(2)
+            with col_count1:
+                st.metric("📌 Instrumentos sem GPS", len(sem_gps))
+            with col_count2:
+                st.metric("📍 Instrumentos com GPS", len(com_gps))
+            
             if sem_gps.empty:
                 st.success("✅ Todos os instrumentos têm localização GPS!")
             else:
-                st.caption(f"{len(sem_gps)} instrumento(s) sem GPS.")
+                st.caption(f"Selecione um instrumento da lista abaixo para marcar a localização atual e tirar foto.")
+                
                 tag_gps = st.selectbox("Instrumento a localizar",
                     sem_gps['Tag'].tolist(), key="gps_tag_sel")
-
+                
+                # Preencher automaticamente os campos com o GPS capturado
                 col_g1, col_g2, col_g3 = st.columns(3)
                 with col_g1:
                     lat_man = st.text_input("Latitude",
-                        value=gps_lat, key="gps_lat_man")
+                        value=gps_lat, key="gps_lat_man",
+                        help="Valor capturado automaticamente do GPS")
                 with col_g2:
                     lon_man = st.text_input("Longitude",
-                        value=gps_lon, key="gps_lon_man")
+                        value=gps_lon, key="gps_lon_man",
+                        help="Valor capturado automaticamente do GPS")
                 with col_g3:
                     elev_man = st.number_input("Elevação (m)",
                         value=0.0, step=0.5,
                         help="0m=piso 0, 6m=plataforma 1, 12m=plataforma 2",
                         key="gps_elev_man")
-
-                obs_local = st.text_area("Notas do local",
-                    placeholder="Ex: Entre linha P-101 e coluna C-14, face norte",
-                    height=60, key="gps_obs_man")
-
-                if st.button("📍 Guardar Localização",
-                        use_container_width=True, type="primary", key="gps_guardar"):
-                    if not lat_man or not lon_man:
-                        st.error("Latitude e Longitude obrigatórias.")
-                    else:
+                
+                # Nota sobre o preenchimento automático
+                if gps_lat and gps_lon:
+                    st.info("✅ Latitude e Longitude preenchidas automaticamente com o GPS atual!")
+                else:
+                    st.warning("⏳ Aguardando leitura do GPS... Clique em '🔄 Atualizar GPS' se necessário.")
+                
+                # ──────────────────────────────────────────────────────────────
+                # SEÇÃO DE FOTO - NOVO!
+                # ──────────────────────────────────────────────────────────────
+                st.markdown("#### 📸 Foto do Instrumento")
+                st.caption("Tire uma foto do instrumento para ajudar os técnicos a encontrá-lo no terreno.")
+                
+                # Verificar se já existe foto para este instrumento
+                inst_sel = insts[insts['Tag'] == tag_gps].iloc[0] if not insts.empty and tag_gps in insts['Tag'].values else None
+                if inst_sel and inst_sel.get('Foto_Local_b64') and inst_sel.get('Foto_Local_b64') != '':
+                    try:
+                        st.image(base64.b64decode(inst_sel['Foto_Local_b64']), 
+                                 caption=f"📸 Foto atual de {tag_gps}", 
+                                 width=300,
+                                 use_container_width=True)
+                        if st.button("🗑️ Remover foto", key=f"del_foto_{tag_gps}"):
+                            inst_upd = insts.copy()
+                            inst_upd.loc[inst_upd['Tag'] == tag_gps, 'Foto_Local_b64'] = ''
+                            _save_inst(inst_upd, obra_key, "index")
+                            inv()
+                            st.rerun()
+                    except Exception as e:
+                        st.warning(f"Não foi possível carregar a foto: {e}")
+                
+                # Upload de foto
+                foto_file = st.file_uploader("📸 Tirar foto ou fazer upload", 
+                                             type=["jpg", "jpeg", "png"], 
+                                             key=f"foto_upload_{tag_gps}",
+                                             help="Tire uma foto com o telemóvel ou faça upload de uma imagem existente")
+                
+                if foto_file:
+                    img_bytes = foto_file.read()
+                    img_b64 = base64.b64encode(img_bytes).decode()
+                    st.image(img_bytes, caption="Pré-visualização", width=200)
+                    
+                    if st.button("💾 Guardar Foto", key=f"guardar_foto_{tag_gps}"):
                         inst_upd = insts.copy()
-                        inst_upd.loc[inst_upd['Tag']==tag_gps, 'GPS_Lat'] = lat_man
-                        inst_upd.loc[inst_upd['Tag']==tag_gps, 'GPS_Lng'] = lon_man
-                        inst_upd.loc[inst_upd['Tag']==tag_gps, 'Elevacao'] = elev_man
+                        inst_upd.loc[inst_upd['Tag'] == tag_gps, 'Foto_Local_b64'] = img_b64
                         _save_inst(inst_upd, obra_key, "index")
                         inv()
-                        st.success(f"✅ {tag_gps} localizado — {lat_man}, {lon_man} (+{elev_man}m)")
+                        st.success(f"✅ Foto guardada para {tag_gps}!")
                         st.rerun()
+                
+                st.markdown("---")
+                
+                obs_local = st.text_area("Notas do local",
+                    placeholder="Ex: Entre linha P-101 e coluna C-14, face norte. Próximo ao tanque T-123.",
+                    height=60, key="gps_obs_man")
+                
+                # Botão para guardar localização
+                col_btn1, col_btn2 = st.columns(2)
+                with col_btn1:
+                    if st.button("📍 Guardar Localização", use_container_width=True, type="primary", key="gps_guardar"):
+                        if not lat_man or not lon_man:
+                            st.error("Latitude e Longitude obrigatórias. Aguarde a leitura do GPS ou clique em 'Atualizar GPS'.")
+                        else:
+                            inst_upd = insts.copy()
+                            inst_upd.loc[inst_upd['Tag']==tag_gps, 'GPS_Lat'] = lat_man
+                            inst_upd.loc[inst_upd['Tag']==tag_gps, 'GPS_Lng'] = lon_man
+                            inst_upd.loc[inst_upd['Tag']==tag_gps, 'Elevacao'] = elev_man
+                            _save_inst(inst_upd, obra_key, "index")
+                            inv()
+                            st.success(f"✅ {tag_gps} localizado — {lat_man}, {lon_man} (+{elev_man}m)")
+                            st.rerun()
+                
+                with col_btn2:
+                    if st.button("➡️ Próximo Instrumento", use_container_width=True, key="gps_proximo"):
+                        sem_gps_atualizado = insts[
+                            (insts['GPS_Lat'].isna() | (insts['GPS_Lat']=='') | (insts['GPS_Lat']=='nan'))
+                        ] if not insts.empty else pd.DataFrame()
+                        if not sem_gps_atualizado.empty and len(sem_gps_atualizado) > 0:
+                            next_tag = sem_gps_atualizado['Tag'].iloc[0]
+                            st.session_state['gps_tag_sel'] = next_tag
+                            st.rerun()
+                        else:
+                            st.success("✅ Todos os instrumentos já têm GPS!")
 
         with sub_it2:
             st.markdown("#### 🔧 Registar Instalação — ITR-B")
@@ -1794,31 +1936,105 @@ def render_instrumentacao(**DB):
                             value=st.session_state.get('user',''), key="itb_tec")
                         it_loop = st.selectbox("Loop Check",
                             ["✅ OK","❌ Falhou","⏳ Pendente"], key="itb_loop")
-                    with it2:
-                        it_obs = st.text_area("Observações", height=80, key="itb_obs")
+                    with sub_it2:
+    st.markdown("#### 🔧 Registar Instalação — ITR-B")
 
-                    if st.form_submit_button("✅ Confirmar Instalação",
-                            use_container_width=True, type="primary"):
-                        novo_itb = pd.DataFrame([{
-                            "ID": "ITRB"+_uuid_inst.uuid4().hex[:8].upper(),
-                            "Tag": tag_it, "Obra": obra_sel,
-                            "Tecnico": it_tecnico,
-                            "DataInstalacao": datetime.now().strftime('%d/%m/%Y %H:%M'),
-                            "GPS_Lat": lat_it, "GPS_Lng": lon_it, "Elevacao": elv_it,
-                            "Foto_b64": "", "LoopCheck": it_loop,
-                            "Observacoes": it_obs, "Assinatura_b64": "",
-                        }])
-                        _save_inst(pd.concat([itr_b, novo_itb], ignore_index=True),
-                            obra_key, "itr_b")
+    inst_para_instalar = insts[insts['Status']=='2'] \
+        if not insts.empty else pd.DataFrame()
 
-                        if "OK" in it_loop:
-                            inst_upd = insts.copy()
-                            inst_upd.loc[inst_upd['Tag']==tag_it, 'Status'] = '3'
-                            _save_inst(inst_upd, obra_key, "index")
+    if inst_para_instalar.empty:
+        st.info("Sem instrumentos calibrados prontos para instalar.")
+    else:
+        tag_it = st.selectbox("Instrumento a instalar",
+            inst_para_instalar['Tag'].tolist(), key="itb_tag_sel")
 
-                        inv()
-                        st.success(f"✅ ITR-B registado para {tag_it}!")
-                        st.rerun()
+        inst_it = inst_para_instalar[inst_para_instalar['Tag']==tag_it].iloc[0]
+        lat_it = str(inst_it.get('GPS_Lat',''))
+        lon_it = str(inst_it.get('GPS_Lng',''))
+        elv_it = str(inst_it.get('Elevacao',''))
+
+        # ──────────────────────────────────────────────────────────────
+        # MOSTRAR LOCALIZAÇÃO
+        # ──────────────────────────────────────────────────────────────
+        if lat_it and lat_it not in ('','nan'):
+            nav_url = f"https://maps.google.com/?q={lat_it},{lon_it}"
+            st.markdown(
+                f"📍 **Localização:** {lat_it}, {lon_it} &nbsp;|&nbsp; "
+                f"Elevação: **+{elv_it}m** &nbsp;|&nbsp; "
+                f"<a href='{nav_url}' target='_blank'>🗺️ Navegar no Google Maps</a>",
+                unsafe_allow_html=True)
+        else:
+            st.warning("⚠️ Este instrumento não tem GPS definido. "
+                "Pede ao chefe para marcar a localização.")
+        
+        st.markdown("---")
+        
+        # ──────────────────────────────────────────────────────────────
+        # MOSTRAR FOTO DO INSTRUMENTO (para técnicos)
+        # ──────────────────────────────────────────────────────────────
+        st.markdown("#### 📸 Foto de Referência")
+        st.caption("Foto tirada pelo chefe de equipa no momento do levantamento GPS")
+        
+        # Buscar a foto do instrumento
+        inst_foto = insts[insts['Tag'] == tag_it].iloc[0] if not insts.empty and tag_it in insts['Tag'].values else None
+        
+        if inst_foto is not None:
+            foto_b64 = inst_foto.get('Foto_Local_b64', '')
+            if foto_b64 and foto_b64 != '' and foto_b64 != 'nan':
+                try:
+                    import base64
+                    # Decodificar a imagem base64
+                    img_data = base64.b64decode(foto_b64)
+                    st.image(img_data, 
+                             caption=f"📸 {tag_it} - Foto tirada pelo chefe de equipa", 
+                             width=300,
+                             use_container_width=True)
+                    st.success("✅ Foto disponível! Use esta imagem como referência para localizar o instrumento.")
+                except Exception as e:
+                    st.warning(f"⚠️ Não foi possível carregar a foto: {e}")
+            else:
+                st.info("📸 Nenhuma foto disponível para este instrumento. Pode solicitar ao chefe de equipa que tire uma foto.")
+        else:
+            st.info("📸 Nenhuma foto disponível para este instrumento.")
+        
+        st.markdown("---")
+
+        # ──────────────────────────────────────────────────────────────
+        # FORMULÁRIO DE INSTALAÇÃO
+        # ──────────────────────────────────────────────────────────────
+        with st.form("itb_form"):
+            it1, it2 = st.columns(2)
+            with it1:
+                it_tecnico = st.text_input("Técnico instalador",
+                    value=st.session_state.get('user',''), key="itb_tec")
+                it_loop = st.selectbox("Loop Check",
+                    ["✅ OK","❌ Falhou","⏳ Pendente"], key="itb_loop")
+            with it2:
+                it_obs = st.text_area("Observações", height=80, key="itb_obs")
+
+            # Botão de submissão
+            if st.form_submit_button("✅ Confirmar Instalação",
+                    use_container_width=True, type="primary"):
+                novo_itb = pd.DataFrame([{
+                    "ID": "ITRB"+_uuid_inst.uuid4().hex[:8].upper(),
+                    "Tag": tag_it, "Obra": obra_sel,
+                    "Tecnico": it_tecnico,
+                    "DataInstalacao": datetime.now().strftime('%d/%m/%Y %H:%M'),
+                    "GPS_Lat": lat_it, "GPS_Lng": lon_it, "Elevacao": elv_it,
+                    "Foto_b64": "", "LoopCheck": it_loop,
+                    "Observacoes": it_obs, "Assinatura_b64": "",
+                }])
+                _save_inst(pd.concat([itr_b, novo_itb], ignore_index=True),
+                    obra_key, "itr_b")
+
+                if "OK" in it_loop:
+                    inst_upd = insts.copy()
+                    inst_upd.loc[inst_upd['Tag']==tag_it, 'Status'] = '3'
+                    _save_inst(inst_upd, obra_key, "index")
+
+                inv()
+                st.success(f"✅ ITR-B registado para {tag_it}!")
+                st.rerun()
 
         with sub_it3:
             st.markdown("#### 🗺️ Mapa da Obra — Instrumentos Geolocalizados")
