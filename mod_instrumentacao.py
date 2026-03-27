@@ -32,6 +32,14 @@ try:
 except Exception:
     pass  # Serão importados novamente dentro do render_instrumentacao
 
+# Importar sistema de tradução
+try:
+    from translations import t
+except Exception:
+    # Fallback se translations não estiver disponível
+    def t(key):
+        return key
+
 # ── Tipos ISA standard + cores de identificação ──────────────
 TIPOS_TAG = {
     "PT": ("Transmissor de Pressão",     "#E74C3C"),
@@ -605,6 +613,10 @@ def render_instrumentacao(**DB):
     with col_ob:
         obra_sel = st.selectbox("🏗️ Obra de Instrumentação", obras_filtradas,
             key="inst_obra_sel")
+        
+        # ⭐ NOVO: Guardar obra selecionada no session_state para o Dashboard
+        st.session_state['obra_sel'] = obra_sel
+        
     obra_cod = ""
     if not obras_db.empty and obra_sel in obras_db['Obra'].values:
         obra_cod = obras_db[obras_db['Obra']==obra_sel].iloc[0].get('Codigo','')
@@ -1663,7 +1675,7 @@ def render_instrumentacao(**DB):
                             except Exception as e:
                                 st.error(f"Erro ao gerar PDF: {e}")
 
-            # ══════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════
     # TAB 5 — INSTALAÇÃO ITR-B + GPS
     # ══════════════════════════════════════════════════════════
     with tab5:
@@ -1676,9 +1688,6 @@ def render_instrumentacao(**DB):
             "🗺️ Mapa da Obra",
         ])
 
-        # =========================================================
-        # SUB_TAB 1 - MARCAR LOCALIZAÇÃO (Chefe de Equipa)
-        # =========================================================
         with sub_it1:
             st.markdown("#### 📍 Levantamento de Posições — Chefe vai ao Terreno")
             st.caption("Vai ao local de cada instrumento, captura o GPS, tira uma foto e define a elevação. "
@@ -1893,9 +1902,6 @@ def render_instrumentacao(**DB):
                         else:
                             st.success("✅ Todos os instrumentos já têm GPS!")
 
-        # =========================================================
-        # SUB_TAB 2 - REGISTAR INSTALAÇÃO (Técnico)
-        # =========================================================
         with sub_it2:
             st.markdown("#### 🔧 Registar Instalação — ITR-B")
 
@@ -1990,9 +1996,6 @@ def render_instrumentacao(**DB):
                         st.success(f"✅ ITR-B registado para {tag_it}!")
                         st.rerun()
 
-        # =========================================================
-        # SUB_TAB 3 - MAPA DA OBRA
-        # =========================================================
         with sub_it3:
             st.markdown("#### 🗺️ Mapa da Obra — Instrumentos Geolocalizados")
 
