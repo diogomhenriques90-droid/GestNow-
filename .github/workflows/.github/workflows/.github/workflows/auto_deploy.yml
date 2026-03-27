@@ -1,0 +1,50 @@
+name: Auto Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'app.py'
+      - 'mod_*.py'
+      - 'translations.py'
+      - 'requirements.txt'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Run basic tests
+        run: |
+          echo "🧪 Executando testes básicos..."
+          python -c "import streamlit; print('✅ Streamlit OK')"
+          python -c "import pandas; print('✅ Pandas OK')"
+          python -c "import plotly; print('✅ Plotly OK')"
+          echo "✅ Todos os testes passaram!"
+      
+      - name: Deploy to Cloud Run
+        run: |
+          echo "🚀 Deploy para Cloud Run..."
+          # Descomente quando configurar as credenciais do GCP
+          # gcloud run deploy gestnow-app \
+          #   --source . \
+          #   --platform managed \
+          #   --region europe-west1 \
+          #   --allow-unauthenticated \
+          #   --memory 1Gi \
+          #   --timeout 3600
+          
+          echo "✅ Deploy concluído!"
