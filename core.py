@@ -394,14 +394,14 @@ CATEGORIAS_SAFETY_WALK = ["EPI Industrial", "Lockout/Tagout", "Espaços Confinad
 REGRAS_OURO = [
     (f"{ICONS['safety'].split()[0]}", "EPI Industrial Obrigatório", "Capacete, óculos, luvas e calçado de segurança em área operacional."),
     (f"{ICONS['safety'].split()[1]}", "LOTO - Lockout/Tagout", "Bloqueio e etiquetagem de energias antes de qualquer intervenção."),
-    (f"🪜", "Trabalho em Altura", "Arnés e linha de vida obrigatórios acima de 1.8m."),
-    (f"⚡", "Energias Perigosas", "Verificar ausência de tensão com equipamento calibrado."),
-    (f"🧪", "Calibração Certificada", "Usar apenas equipamentos com certificado de calibração válido."),
-    (f"📍", "Procedimentos de Campo", "Seguir ITRs e checklists aprovados para cada atividade."),
-    (f"🔒", "Acesso Restrito", "Áreas de instrumentação são de acesso controlado."),
-    (f"📋", "Análise de Risco", "JSA/JHA obrigatório antes de atividades não rotineiras."),
-    (f"🧤", "Mãos Limpas", "Nunca tocar em instrumentos sensíveis sem luvas adequadas."),
-    (f"📱", "Zona Livre de Telemóvel", "Dispositivos pessoais proibidos em áreas classificadas."),
+    ("🪜", "Trabalho em Altura", "Arnés e linha de vida obrigatórios acima de 1.8m."),
+    ("⚡", "Energias Perigosas", "Verificar ausência de tensão com equipamento calibrado."),
+    ("🧪", "Calibração Certificada", "Usar apenas equipamentos com certificado de calibração válido."),
+    ("📍", "Procedimentos de Campo", "Seguir ITRs e checklists aprovados para cada atividade."),
+    ("🔒", "Acesso Restrito", "Áreas de instrumentação são de acesso controlado."),
+    ("📋", "Análise de Risco", "JSA/JHA obrigatório antes de atividades não rotineiras."),
+    ("🧤", "Mãos Limpas", "Nunca tocar em instrumentos sensíveis sem luvas adequadas."),
+    ("📱", "Zona Livre de Telemóvel", "Dispositivos pessoais proibidos em áreas classificadas."),
 ]
 
 # =============================================================================
