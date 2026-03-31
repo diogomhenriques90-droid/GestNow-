@@ -2,8 +2,8 @@
 GESTNOW v3 — mod_voz_assistente.py
 Assistente de Voz Global com resposta falada
 Funciona em toda a aplicação
+Design System Industrial Atualizado
 """
-
 import streamlit as st
 import pandas as pd
 import base64
@@ -11,60 +11,69 @@ import re
 from datetime import datetime
 from translations import t
 
-# CSS para o botão flutuante de voz
-_VOZ_CSS = """
-<style>
-.voice-assistant {
+# =============================================================================
+# 🎨 CSS DO ASSISTENTE DE VOZ - DESIGN SYSTEM INDUSTRIAL
+# =============================================================================
+_VOZ_CSS = f"""
+.voice-assistant {{
     position: fixed;
     bottom: 20px;
     right: 20px;
     z-index: 999;
-    background: linear-gradient(135deg, #0A2463, #3E92CC);
+    background: linear-gradient(135deg, #3B82F6, #60A5FA);
     border-radius: 50%;
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.5);
     transition: all 0.3s ease;
-}
-.voice-assistant:hover {
+    font-size: 1.8rem;
+}}
+.voice-assistant:hover {{
     transform: scale(1.1);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
-}
-.voice-assistant.listening {
+    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.7);
+}}
+.voice-assistant.listening {{
     background: linear-gradient(135deg, #EF4444, #F59E0B);
-    animation: pulse 1.5s infinite;
-}
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-.voice-response {
+    animation: pulse-voice 1.5s infinite;
+}}
+@keyframes pulse-voice {{
+    0% {{ transform: scale(1); box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5); }}
+    50% {{ transform: scale(1.15); box-shadow: 0 8px 40px rgba(239, 68, 68, 0.8); }}
+    100% {{ transform: scale(1); box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5); }}
+}}
+.voice-response {{
     position: fixed;
     bottom: 100px;
     right: 20px;
-    background: white;
-    border-radius: 12px;
-    padding: 12px 16px;
-    max-width: 300px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    border-left: 4px solid #0A2463;
+    background: linear-gradient(135deg, #1E293B, #0F172A);
+    border-radius: 16px;
+    padding: 16px 20px;
+    max-width: 350px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    border-left: 4px solid #3B82F6;
     z-index: 998;
-    font-size: 14px;
-    animation: slideIn 0.3s ease;
-}
-@keyframes slideIn {
-    from { opacity: 0; transform: translateX(50px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-</style>
+    font-size: 0.9rem;
+    color: #F8FAFC;
+    animation: slideInVoice 0.3s ease;
+    backdrop-filter: blur(10px);
+}}
+@keyframes slideInVoice {{
+    from {{ opacity: 0; transform: translateX(50px); }}
+    to {{ opacity: 1; transform: translateX(0); }}
+}}
+.voice-response.error {{
+    border-left-color: #EF4444;
+}}
+.voice-response.success {{
+    border-left-color: #10B981;
+}}
 """
 
-# Mapeamento de status para português (usado nos comandos de voz)
+# Mapeamento de status para português (SEM ESPAÇOS NAS STRINGS - CRÍTICO!)
 STATUS_VOZ = {
     "0": "Pendente",
     "1": "Material OK",
@@ -75,65 +84,65 @@ STATUS_VOZ = {
 
 STATUS_ICON = {
     "0": "⏳",
-    "1": "📦",
-    "2": "🔬",
-    "3": "🏗️",
-    "4": "✅",
+    "1": "📦✅",
+    "2": "🧪",
+    "3": "📍",
+    "4": "✅🎯",
 }
 
-
-def render_voice_assistant_global(user_tipo, user_nome, obra_sel=None, insts=None, 
+# =============================================================================
+# 🎤 FUNÇÃO PRINCIPAL DO ASSISTENTE DE VOZ
+# =============================================================================
+def render_voice_assistant_global(user_tipo, user_nome, obra_sel=None, insts=None,
                                    itr_a=None, itr_b=None, punch=None):
     """
     Renderiza o assistente de voz global (botão flutuante)
     Funciona em toda a aplicação
     """
-    
     st.markdown(_VOZ_CSS, unsafe_allow_html=True)
     
     # Componente HTML/JS para reconhecimento de voz e resposta falada
-    voice_html = """
+    voice_html = f"""
     <div id="voice-assistant-container">
         <div id="voice-assistant-btn" class="voice-assistant" onclick="startListening()">
             🎤
         </div>
         <div id="voice-response" style="display: none;"></div>
     </div>
-    
+
     <script>
     let isListening = false;
     let recognition = null;
     const btn = document.getElementById('voice-assistant-btn');
     const responseDiv = document.getElementById('voice-response');
-    
-    function showResponse(text, isError = false) {
+
+    function showResponse(text, isError = false) {{
         responseDiv.style.display = 'block';
-        responseDiv.className = 'voice-response';
+        responseDiv.className = 'voice-response ' + (isError ? 'error' : 'success');
         responseDiv.innerHTML = text;
-        responseDiv.style.borderLeftColor = isError ? '#EF4444' : '#10B981';
         
         // Falar a resposta
-        if ('speechSynthesis' in window) {
+        if ('speechSynthesis' in window) {{
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'pt-PT';
             utterance.rate = 0.9;
             utterance.pitch = 1.0;
             window.speechSynthesis.speak(utterance);
-        }
+        }}
         
-        setTimeout(() => {
+        setTimeout(() => {{
             responseDiv.style.display = 'none';
-        }, 5000);
-    }
-    
-    function startListening() {
+        }}, 6000);
+    }}
+
+    function startListening() {{
         if (isListening) return;
         
-        if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {{
             showResponse('⚠️ Reconhecimento de voz não suportado neste navegador.', true);
             return;
-        }
+        }}
         
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
@@ -146,7 +155,7 @@ def render_voice_assistant_global(user_tipo, user_nome, obra_sel=None, insts=Non
         isListening = true;
         showResponse('🎤 Ouvindo... Fale agora', false);
         
-        recognition.onresult = function(event) {
+        recognition.onresult = function(event) {{
             const transcript = event.results[0][0].transcript;
             btn.classList.remove('listening');
             btn.innerHTML = '🎤';
@@ -156,25 +165,25 @@ def render_voice_assistant_global(user_tipo, user_nome, obra_sel=None, insts=Non
             // Enviar comando para o Streamlit via query params
             const url = new URL(window.location.href);
             url.searchParams.set('voice_command', transcript);
-            window.history.replaceState({}, '', url);
+            window.history.replaceState({{}}, '', url);
             window.location.reload();
-        };
+        }};
         
-        recognition.onerror = function(event) {
+        recognition.onerror = function(event) {{
             btn.classList.remove('listening');
             btn.innerHTML = '🎤';
             isListening = false;
             showResponse('❌ Erro: ' + event.error, true);
-        };
+        }};
         
-        recognition.onend = function() {
+        recognition.onend = function() {{
             btn.classList.remove('listening');
             btn.innerHTML = '🎤';
             isListening = false;
-        };
+        }};
         
         recognition.start();
-    }
+    }}
     </script>
     """
     
@@ -185,7 +194,7 @@ def render_voice_assistant_global(user_tipo, user_nome, obra_sel=None, insts=Non
     
     if voice_command:
         resposta = _processar_comando_voz(
-            voice_command, user_tipo, user_nome, obra_sel, 
+            voice_command, user_tipo, user_nome, obra_sel,
             insts, itr_a, itr_b, punch
         )
         
@@ -216,10 +225,11 @@ def render_voice_assistant_global(user_tipo, user_nome, obra_sel=None, insts=Non
     
     return None
 
-
+# =============================================================================
+# 🧠 PROCESSADOR DE COMANDOS DE VOZ
+# =============================================================================
 def _processar_comando_voz(comando, user_tipo, user_nome, obra_sel, insts, itr_a, itr_b, punch):
     """Processa o comando de voz e retorna a resposta"""
-    
     comando_lower = comando.lower()
     
     # =========================================================
@@ -272,7 +282,7 @@ def _processar_comando_voz(comando, user_tipo, user_nome, obra_sel, insts, itr_a
             return f"{pendentes} instrumentos pendentes."
         
         # Buscar instrumento específico por tag
-        tag_match = re.search(r'([A-Z]{2,3}-\d+[A-Z]?)', comando.upper())
+        tag_match = re.search(r'([A-Z]{{2,3}}-\\d+[A-Z]?)', comando.upper())
         if tag_match:
             tag = tag_match.group(1)
             inst = insts[insts['Tag'] == tag]
@@ -373,20 +383,21 @@ def _processar_comando_voz(comando, user_tipo, user_nome, obra_sel, insts, itr_a
     
     return "Comando não reconhecido. Diga 'Ajuda' para ver os comandos disponíveis."
 
-
+# =============================================================================
+# 📋 AJUDA DE COMANDOS
+# =============================================================================
 def _get_comandos_ajuda(user_tipo):
     """Retorna lista de comandos disponíveis para o perfil"""
-    
     comandos = """
-🎤 **Comandos de Voz Disponíveis:**
+🎤 Comandos de Voz Disponíveis:
 
-**Gerais:**
+Gerais:
 • "Que horas são?"
 • "Que dia é hoje?"
 • "Qual é a obra atual?"
 • "Meu nome"
 
-**Instrumentos:**
+Instrumentos: 
 • "Total de instrumentos"
 • "Material OK"
 • "Calibrados"
@@ -398,23 +409,18 @@ def _get_comandos_ajuda(user_tipo):
 • "Próximo instrumento pendente"
 • "Progresso da obra"
 """
-    
     if user_tipo in ['Admin', 'Chefe de Equipa']:
         comandos += """
-    
-**Admin/Chefe:**
+Admin/Chefe:
 • "Punch Items abertos"
 • "Calibração pendente"
 • "Material em falta"
 """
-    
     if user_tipo in ['Técnico', 'Instrumentista']:
         comandos += """
-    
-**Técnico:**
+Técnico:
 • "Minhas calibrações"
 • "Minhas instalações"
 • "O que fazer?"
 """
-    
     return comandos
