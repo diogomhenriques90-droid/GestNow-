@@ -1,12 +1,13 @@
 import streamlit as st
 import secrets
+from datetime import datetime
 from core import load_all, cp, hp, ICONS, COLORS
 from translations import t
 
 def render_login():
-    """Renderiza página de login com design industrial futurista PROFISSIONAL"""
+    """Renderiza página de login com design industrial profissional - TOP MARKET"""
     
-    # CSS AGRESSIVO - Forçar imagem de fundo e glassmorphism
+    # CSS PROFISSIONAL - Design Premium
     st.markdown("""
     <style>
     /* ESCONDER elementos Streamlit */
@@ -23,7 +24,7 @@ def render_login():
         width: 100vw;
         height: 100vh;
         background: 
-            linear-gradient(135deg, rgba(15,23,42,0.85), rgba(30,41,59,0.80)),
+            linear-gradient(135deg, rgba(15,23,42,0.88), rgba(30,41,59,0.85)),
             url('https://images.unsplash.com/photo-1532601224a21-38e4cb705588?w=2560&q=90');
         background-size: cover;
         background-position: center;
@@ -47,8 +48,8 @@ def render_login():
         -webkit-backdrop-filter: blur(30px) saturate(180%);
         border: 1px solid rgba(255, 255, 255, 0.125);
         border-radius: 30px;
-        padding: 60px 50px;
-        max-width: 500px;
+        padding: 50px 45px;
+        max-width: 480px;
         width: 100%;
         box-shadow: 
             0 25px 50px rgba(0, 0, 0, 0.5),
@@ -68,40 +69,29 @@ def render_login():
         }
     }
     
-    /* LOGO e TÍTULO */
+    /* TÍTULO - SEM LOGO */
     .brand {
         text-align: center;
-        margin-bottom: 50px;
-    }
-    
-    .brand-icon {
-        font-size: 5rem;
-        margin-bottom: 20px;
-        filter: drop-shadow(0 0 30px rgba(59, 130, 246, 0.8));
-        animation: glow 2s ease-in-out infinite;
-    }
-    
-    @keyframes glow {
-        0%, 100% { filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.6)); }
-        50% { filter: drop-shadow(0 0 40px rgba(96, 165, 250, 0.9)); }
+        margin-bottom: 45px;
     }
     
     .brand h1 {
-        font-size: 3rem;
+        font-size: 2.8rem;
         font-weight: 900;
         background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 50%, #2563EB 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        margin: 15px 0;
+        margin: 0 0 12px 0;
         letter-spacing: -2px;
     }
     
     .brand p {
-        font-size: 1.1rem;
+        font-size: 1rem;
         color: rgba(255, 255, 255, 0.75);
         font-weight: 400;
         margin: 0;
+        letter-spacing: 0.5px;
     }
     
     /* TABS PREMIUM */
@@ -137,7 +127,7 @@ def render_login():
     
     /* INPUTS FUTURISTAS */
     .input-group {
-        margin-bottom: 25px;
+        margin-bottom: 22px;
     }
     
     .input-group label {
@@ -145,15 +135,16 @@ def render_login():
         color: rgba(255, 255, 255, 0.9);
         font-weight: 600;
         margin-bottom: 10px;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
+        letter-spacing: 0.3px;
     }
     
     .input-group input {
         width: 100%;
-        padding: 18px 25px;
+        padding: 16px 22px;
         background: rgba(255, 255, 255, 0.08);
         border: 2px solid rgba(59, 130, 246, 0.25);
-        border-radius: 15px;
+        border-radius: 12px;
         color: white;
         font-size: 1rem;
         transition: all 0.3s ease;
@@ -176,13 +167,13 @@ def render_login():
     /* BOTÃO LOGIN ÉPICO */
     .login-btn {
         width: 100%;
-        padding: 20px;
+        padding: 18px;
         background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 50%, #3B82F6 100%);
         background-size: 200% 200%;
         border: none;
-        border-radius: 15px;
+        border-radius: 12px;
         color: white;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         font-weight: 800;
         cursor: pointer;
         transition: all 0.3s ease;
@@ -190,6 +181,8 @@ def render_login():
             0 10px 40px rgba(59, 130, 246, 0.5),
             0 0 60px rgba(59, 130, 246, 0.3);
         animation: gradientShift 3s ease infinite;
+        letter-spacing: 1px;
+        text-transform: uppercase;
     }
     
     @keyframes gradientShift {
@@ -220,9 +213,9 @@ def render_login():
     /* FOOTER */
     .footer {
         text-align: center;
-        margin-top: 40px;
+        margin-top: 35px;
         color: rgba(255, 255, 255, 0.5);
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
     
     /* ÍCONES FLUTUANTES */
@@ -264,7 +257,7 @@ def render_login():
     # Ícones flutuantes
     st.markdown("""
     <div class="float-icons">
-        <div class="float-icon fi-1">️</div>
+        <div class="float-icon fi-1">⚙️</div>
         <div class="float-icon fi-2">📊</div>
         <div class="float-icon fi-3">🔧</div>
         <div class="float-icon fi-4">⚡</div>
@@ -274,11 +267,10 @@ def render_login():
     # Container principal
     st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
     
-    # Card principal
+    # Card principal - SEM LOGO
     st.markdown("""
     <div class="glass-card">
         <div class="brand">
-            <div class="brand-icon">🎛️</div>
             <h1>GESTNOW v3</h1>
             <p>Gestão de Empresas e de Obras Industriais</p>
         </div>
@@ -313,7 +305,7 @@ def render_login():
                                 st.session_state['user'] = username
                                 st.session_state['tipo'] = user.get('Tipo', 'Técnico')
                                 st.session_state['cargo'] = user.get('Cargo', 'Técnico')
-                                st.session_state['last_activity'] = secrets.token_hex(16)
+                                st.session_state['last_activity'] = datetime.now()
                                 
                                 st.success(f"✅ Bem-vindo, {username}!")
                                 st.balloons()
@@ -357,7 +349,7 @@ def render_login():
                         st.session_state['user'] = match.iloc[0]['Nome']
                         st.session_state['tipo'] = match.iloc[0]['Tipo']
                         st.session_state['cargo'] = match.iloc[0].get('Cargo', 'Técnico')
-                        st.session_state['last_activity'] = secrets.token_hex(16)
+                        st.session_state['last_activity'] = datetime.now()
                         
                         st.success(f"✅ Bem-vindo, {u_pin}!")
                         st.balloons()
@@ -375,7 +367,7 @@ def render_login():
     # Footer
     st.markdown("""
     <div class="footer">
-        <p>🎛️ GESTNOW v3.0 - Sistema de Gestão Industrial</p>
+        <p>GESTNOW v3.0 - Sistema de Gestão Industrial</p>
         <p style="font-size: 0.75rem; margin-top: 5px; opacity: 0.7;">© 2024 - Todos os direitos reservados</p>
     </div>
     """, unsafe_allow_html=True)
