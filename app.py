@@ -1,20 +1,16 @@
 import streamlit as st
 from core import init_session, check_timeout, load_all, inject_pwa_meta, inject_global_css, datetime, ICONS
 from translations import init_language, t, get_language_options, set_language
+import os
 
 # =============================================================================
 # 1. CONFIGURAÇÃO DA PÁGINA
 # =============================================================================
 st.set_page_config(
-    page_title="GESTNOW v3 - Instrumentação Industrial",
+    page_title="GESTNOW v3",
     page_icon=ICONS["app"],
     layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items={
-        'Get Help': 'https://github.com/seu-org/gestnow-v3',
-        'Report a bug': "https://github.com/seu-org/gestnow-v3/issues",
-        'About': "# GESTNOW v3\nSistema de Gestão de Instrumentação Industrial"
-    }
+    initial_sidebar_state="expanded"
 )
 
 inject_pwa_meta()
@@ -24,7 +20,18 @@ check_timeout()
 init_language()
 
 # =============================================================================
-# 2. SIDEBAR (APENAS SE LOGADO)
+# 2. ROUTING - Verificar qual página mostrar
+# =============================================================================
+page = st.query_params.get("page", "")
+
+# Se for criar_admin, mostrar essa página
+if page == "criar_admin":
+    from criar_admin import render_criar_admin
+    render_criar_admin()
+    st.stop()
+
+# =============================================================================
+# 3. SIDEBAR (APENAS SE LOGADO)
 # =============================================================================
 if st.session_state.get('user'):
     with st.sidebar:
@@ -82,39 +89,23 @@ if st.session_state.get('user'):
         if st.button(f"{ICONS['logout']} {t('logout')}", use_container_width=True, type="secondary"):
             st.session_state.clear()
             st.rerun()
-        
-        st.markdown("""
-        <div style="position:fixed; bottom:20px; left:20px; right:20px; text-align:center; font-size:0.75rem; color:#64748B;">
-            GESTNOW v3.0<br>Instrumentação Industrial
-        </div>
-        """, unsafe_allow_html=True)
 
 # =============================================================================
-# 3. ROUTING PRINCIPAL
+# 4. ROUTING PRINCIPAL
 # =============================================================================
 if not st.session_state.get('user'):
-    # >>> LOGIN - CHAMA DIRETAMENTE mod_login (SEM HEADER EXTRA) <<<
+    # LOGIN
     from mod_login import render_login
     render_login()
     
 else:
-    # =============================================================================
-    # APLICAÇÃO PRINCIPAL (LOGADO)
-    # =============================================================================
+    # APLICAÇÃO PRINCIPAL
     DATA = load_all()
     (users, obras_db, frentes_db, registos_db, fats, docs, incs, sw, obs, equip,
      diags, diags_u, folhas, comuns, comuns_u, req_fer, req_mat, req_epi, avals, inst_acessos_db) = DATA
     
     tipo = st.session_state.get('tipo', '')
     user_nome = st.session_state.get('user', '')
-    
-    tem_inst = False
-    if not inst_acessos_db.empty:
-        acesso_inst = inst_acessos_db[
-            (inst_acessos_db['Utilizador'] == user_nome) & 
-            (inst_acessos_db['Ativo'].isin(['Sim', 'Ativo', 'True']))
-        ]
-        tem_inst = not acesso_inst.empty
     
     if tipo == 'Admin':
         menu = st.session_state.get('menu_selected', f"{ICONS['dashboard']} Dashboard")
@@ -137,7 +128,6 @@ else:
             
         elif f"{ICONS['dashboard']} Dashboard" in menu:
             st.markdown(f"# {ICONS['dashboard']} Dashboard de Produção")
-            
             if not obras_db.empty:
                 obras_list = obras_db[obras_db['Ativa'] == 'Ativa']['Obra'].tolist()
                 if obras_list:
@@ -162,7 +152,7 @@ else:
             st.rerun()
 
 # =============================================================================
-# 4. FOOTER GLOBAL
+# 5. FOOTER
 # =============================================================================
 st.markdown("""
 <style>
@@ -181,7 +171,6 @@ st.markdown("""
 }
 </style>
 <div class="footer">
-    🎛️ GESTNOW v3.0 - Sistema de Gestão de Instrumentação Industrial | 
-    Última atualização: """ + datetime.now().strftime('%d/%m/%Y %H:%M') + """
+    🎛️ GESTNOW v3.0 | Última atualização: """ + datetime.now().strftime('%d/%m/%Y %H:%M') + """
 </div>
 """, unsafe_allow_html=True)
