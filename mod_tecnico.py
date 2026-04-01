@@ -3,19 +3,26 @@ import pandas as pd
 import uuid, secrets
 from datetime import datetime, timedelta, date
 from streamlit_drawable_canvas import st_canvas
-from core import save_db, inv, fh, sl, render_metric, ICONS, COLORS, TIPOS_FRENTE, REGRAS_OURO, CATEGORIAS_SAFETY_W...
+
+# Imports do core (divididos em múltiplas linhas)
+from core import (
+    save_db, inv, fh, sl, render_metric,
+    ICONS, COLORS, TIPOS_FRENTE, REGRAS_OURO,
+    CATEGORIAS_SAFETY_WALK
+)
 from translations import t
+
 def render_tecnico(*args):
     """Renderiza módulo Técnico com design industrial moderno"""
     
     # 1. Desempacotamento das variáveis
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db, sw_db, obs_db, equip_db,
      diags_db, diags_u_db, folhas_db, comuns_db, comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = args
-    
+
     user_nome = st.session_state.get('user', 'Usuário')
     cargo_user = st.session_state.get('cargo', 'Técnico')
     user_tipo = st.session_state.get('tipo', 'Técnico')
-    
+
     # Lógica de Permissões
     is_chefe = user_tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or cargo_user in ['Chefe de Equipa', 'Encarregado']
     
