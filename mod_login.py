@@ -1,6 +1,6 @@
 import streamlit as st
 import secrets
-from core import load_all, cp, hp, t, ICONS, COLORS
+from core import load_all, cp, hp, ICONS, COLORS
 from translations import t
 def render_login():
     """Renderiza página de login com design industrial moderno"""
