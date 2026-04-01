@@ -14,7 +14,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 
 # =============================================================================
-# 🎨 DESIGN SYSTEM - INSTRUMENTAÇÃO INDUSTRIAL (TOP TIER)
+# 🎨 DESIGN SYSTEM
 # =============================================================================
 COLORS = {
     "primary": "#0F172A",
@@ -31,7 +31,7 @@ COLORS = {
     "text_secondary": "#94A3B8",
 }
 
-# Ícones por categoria (COM ESPAÇOS E ÍCONE LOGOUT ADICIONADO)
+# TODOS OS ÍCONES NECESSÁRIOS
 ICONS = {
     "app": "🎛️",
     "login": "🔐",
@@ -39,16 +39,45 @@ ICONS = {
     "technician": "👨‍🔧",
     "dashboard": "📈",
     "instrumentation": "🧪",
-    "voice": "🎤 ",
-    "safety": "🛡️ ️",
-    "profile": "👤 ️",
-    "reports": "📊 🔍",
-    "handover": "✅ 🎯",
-    "gps": "📍 🛰️",
-    "calibration": "🔬 ",
-    "material": "📦 ✅",
-    "pending": "⏳ 🔄",
-    "logout": "🚪",  # ← ADICIONADO!
+    "voice": "🎤",
+    "safety": "🛡️",
+    "profile": "👤",
+    "reports": "📊",
+    "handover": "✅",
+    "gps": "📍",
+    "calibration": "🔬",
+    "material": "📦",
+    "pending": "⏳",
+    "logout": "🚪",
+    "save": "💾",      # ← ADICIONADO
+    "edit": "✏️",       # ← ADICIONADO
+    "delete": "🗑️",     # ← ADICIONADO
+    "add": "➕",        # ← ADICIONADO
+    "search": "🔍",     # ← ADICIONADO
+    "filter": "🔽",     # ← ADICIONADO
+    "download": "📥",   # ← ADICIONADO
+    "upload": "📤",     # ← ADICIONADO
+    "check": "✅",      # ← ADICIONADO
+    "close": "❌",      # ← ADICIONADO
+    "warning": "⚠️",     # ← ADICIONADO
+    "info": "ℹ️",       # ← ADICIONADO
+    "calendar": "📅",   # ← ADICIONADO
+    "clock": "⏰",      # ← ADICIONADO
+    "user": "👤",       # ← ADICIONADO
+    "users": "👥",      # ← ADICIONADO
+    "settings": "⚙️",    # ← ADICIONADO
+    "home": "🏠",       # ← ADICIONADO
+    "work": "🏗️",       # ← ADICIONADO
+    "tools": "🔧",      # ← ADICIONADO
+    "equipment": "🔩",  # ← ADICIONADO
+    "document": "📄",   # ← ADICIONADO
+    "documents": "📁",  # ← ADICIONADO
+    "chart": "📊",      # ← ADICIONADO
+    "graph": "📈",      # ← ADICIONADO
+    "email": "📧",      # ← ADICIONADO
+    "phone": "📞",      # ← ADICIONADO
+    "location": "📍",   # ← ADICIONADO
+    "time": "⏱️",       # ← ADICIONADO
 }
 
 logging.basicConfig(
@@ -59,7 +88,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# ⚙️ CONFIGURAÇÕES DE STORAGE (GCS + Local Fallback)
+# ⚙️ CONFIGURAÇÕES DE STORAGE
 # =============================================================================
 GCS_BUCKET = os.environ.get("GCS_BUCKET", "gestnow-dados")
 
@@ -97,13 +126,13 @@ def _gcs_write(fn, content_bytes):
             return True
     except Exception as e:
         logger.error(f"❌ Erro crítico GCS write {fn}: {e}")
-        st.toast(f"⚠️ Dados guardados localmente (GCS indisponível)", icon="⚙️")
+        st.toast(f"⚠️ Dados guardados localmente", icon="⚙️")
     return False
 
 # =============================================================================
-# 🗄️ GESTÃO DE DADOS COM CACHE INTELIGENTE
+# 🗄️ GESTÃO DE DADOS
 # =============================================================================
-@st.cache_data(ttl=300, show_spinner="🔄 A sincronizar dados industriais...")
+@st.cache_data(ttl=300, show_spinner="🔄 A sincronizar dados...")
 def load_db(fn, cols):
     buf = _gcs_read(fn)
     if buf:
@@ -157,7 +186,7 @@ def inv():
     st.cache_data.clear()
 
 # =============================================================================
-# ⚡ UTILITÁRIOS DE FORMATAÇÃO INDUSTRIAL
+# ⚡ UTILITÁRIOS
 # =============================================================================
 def fh(h): 
     if h is None or pd.isna(h):
@@ -237,7 +266,7 @@ def cp(p, h):
     try:
         return bcrypt.checkpw(p.encode('utf-8'), h.encode('utf-8'))
     except Exception as e:
-        logger.warning(f"⚠️ Erro na verificação de password: {e}")
+        logger.warning(f"⚠️ Erro na verificação: {e}")
         return False
 
 # =============================================================================
@@ -268,8 +297,8 @@ CARGOS = ["Instrumentista Senior", "Técnico de Campo", "Engenheiro de Instrumen
 CATEGORIAS_SAFETY_WALK = ["EPI Industrial", "Lockout/Tagout", "Espaços Confinados", "Trabalho em Altura", "Elétrica", "Pressão", "Outro"]
 
 REGRAS_OURO = [
-    (f"{ICONS['safety'].split()[0]}", "EPI Industrial Obrigatório", "Capacete, óculos, luvas e calçado de segurança."),
-    (f"{ICONS['safety'].split()[1]}", "LOTO - Lockout/Tagout", "Bloqueio e etiquetagem de energias."),
+    ("🛡️", "EPI Industrial Obrigatório", "Capacete, óculos, luvas e calçado de segurança."),
+    ("⚡", "LOTO - Lockout/Tagout", "Bloqueio e etiquetagem de energias."),
     ("🪜", "Trabalho em Altura", "Arnés e linha de vida acima de 1.8m."),
     ("⚡", "Energias Perigosas", "Verificar ausência de tensão."),
     ("🧪", "Calibração Certificada", "Usar equipamentos com certificado válido."),
