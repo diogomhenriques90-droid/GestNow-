@@ -3,6 +3,7 @@ from core import hp, save_db, load_all
 import pandas as pd
 
 def render_criar_admin():
+    """Página para criar utilizador Admin"""
     st.title("🔧 Criar Utilizador Admin")
     st.info("Este script cria o utilizador 'Admin' com password 'admin'")
     
