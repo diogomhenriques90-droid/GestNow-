@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta, date
-from core import load_all, save_db, inv, fh, sl, render_metric, t, ICONS, COLORS
+from core import load_all, save_db, inv, fh, sl, render_metric, ICONS, COLORS
+from translations import t
 import plotly.express as px
 
 def render_admin(*args):
