@@ -49,35 +49,38 @@ ICONS = {
     "material": "📦",
     "pending": "⏳",
     "logout": "🚪",
-    "save": "💾",      # ← ADICIONADO
-    "edit": "✏️",       # ← ADICIONADO
-    "delete": "🗑️",     # ← ADICIONADO
-    "add": "➕",        # ← ADICIONADO
-    "search": "🔍",     # ← ADICIONADO
-    "filter": "🔽",     # ← ADICIONADO
-    "download": "📥",   # ← ADICIONADO
-    "upload": "📤",     # ← ADICIONADO
-    "check": "✅",      # ← ADICIONADO
-    "close": "❌",      # ← ADICIONADO
-    "warning": "⚠️",     # ← ADICIONADO
-    "info": "ℹ️",       # ← ADICIONADO
-    "calendar": "📅",   # ← ADICIONADO
-    "clock": "⏰",      # ← ADICIONADO
-    "user": "👤",       # ← ADICIONADO
-    "users": "👥",      # ← ADICIONADO
-    "settings": "⚙️",    # ← ADICIONADO
-    "home": "🏠",       # ← ADICIONADO
-    "work": "🏗️",       # ← ADICIONADO
-    "tools": "🔧",      # ← ADICIONADO
-    "equipment": "🔩",  # ← ADICIONADO
-    "document": "📄",   # ← ADICIONADO
-    "documents": "📁",  # ← ADICIONADO
-    "chart": "📊",      # ← ADICIONADO
-    "graph": "📈",      # ← ADICIONADO
-    "email": "📧",      # ← ADICIONADO
-    "phone": "📞",      # ← ADICIONADO
-    "location": "📍",   # ← ADICIONADO
-    "time": "⏱️",       # ← ADICIONADO
+    "save": "💾",
+    "edit": "✏️",
+    "delete": "🗑️",
+    "add": "➕",
+    "search": "🔍",
+    "filter": "🔽",
+    "download": "📥",
+    "upload": "📤",
+    "check": "✅",
+    "close": "❌",
+    "warning": "⚠️",
+    "info": "ℹ️",
+    "calendar": "📅",
+    "clock": "⏰",
+    "user": "👤",
+    "users": "👥",
+    "settings": "⚙️",
+    "home": "🏠",
+    "work": "🏗️",
+    "tools": "🔧",
+    "equipment": "🔩",
+    "document": "📄",
+    "documents": "📁",
+    "chart": "📊",
+    "graph": "📈",
+    "email": "📧",
+    "phone": "📞",
+    "location": "📍",
+    "time": "⏱️",
+    "approved": "✅",        # ← ADICIONAR
+    "rejected": "❌",        # ← ADICIONAR
+    "pending_approval": "⏳", # ← ADICIONAR
 }
 
 logging.basicConfig(
