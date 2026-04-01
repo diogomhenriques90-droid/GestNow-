@@ -3,8 +3,8 @@ import pandas as pd
 import uuid, secrets
 from datetime import datetime, timedelta, date
 from streamlit_drawable_canvas import st_canvas
-from core import save_db, inv, fh, sl, render_metric, t, ICONS, COLORS, TIPOS_FRENTE, REGRAS_OURO, CATEGORIAS_SAFETY_WALK, CARGOS
-
+from core import save_db, inv, fh, sl, render_metric, ICONS, COLORS, TIPOS_FRENTE, REGRAS_OURO, CATEGORIAS_SAFETY_W...
+from translations import t
 def render_tecnico(*args):
     """Renderiza módulo Técnico com design industrial moderno"""
     
