@@ -1,16 +1,20 @@
 import streamlit as st
 from core import init_session, check_timeout, load_all, inject_pwa_meta, inject_global_css, datetime, ICONS
 from translations import init_language, t, get_language_options, set_language
-import os
 
 # =============================================================================
 # 1. CONFIGURAÇÃO DA PÁGINA
 # =============================================================================
 st.set_page_config(
-    page_title="GESTNOW v3",
+    page_title="GESTNOW v3 - Instrumentação Industrial",
     page_icon=ICONS["app"],
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://github.com/diogomhenriques90-droid/GestNow',
+        'Report a bug': "https://github.com/diogomhenriques90-droid/GestNow/issues",
+        'About': "# GESTNOW v3\nSistema de Gestão de Instrumentação Industrial"
+    }
 )
 
 inject_pwa_meta()
@@ -20,11 +24,10 @@ check_timeout()
 init_language()
 
 # =============================================================================
-# 2. ROUTING - Verificar qual página mostrar
+# 2. ROUTING - Páginas Especiais
 # =============================================================================
 page = st.query_params.get("page", "")
 
-# Se for criar_admin, mostrar essa página
 if page == "criar_admin":
     from criar_admin import render_criar_admin
     render_criar_admin()
@@ -35,6 +38,7 @@ if page == "criar_admin":
 # =============================================================================
 if st.session_state.get('user'):
     with st.sidebar:
+        # Header com branding
         st.markdown(f"""
         <div style="text-align:center; padding:20px; background:linear-gradient(135deg, #1E293B, #0F172A); border-radius:16px; margin-bottom:20px;">
             <div style="font-size:3rem; margin-bottom:10px;">{ICONS["app"]}</div>
@@ -43,13 +47,15 @@ if st.session_state.get('user'):
         </div>
         """, unsafe_allow_html=True)
         
+        # Perfil do utilizador
         st.markdown(f"""
         <div style="padding:12px; background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:16px;">
             <div style="font-size:1rem; font-weight:600; color:#F8FAFC;">👤 {st.session_state.user}</div>
-            <div style="font-size:0.85rem; color:#94A3B8;">{ICONS["profile"]} {st.session_state.tipo}</div>
+            <div style="font-size:0.85rem; color:#94A3B8;">{st.session_state.tipo} | {st.session_state.cargo}</div>
         </div>
         """, unsafe_allow_html=True)
         
+        # Seletor de Idioma
         st.markdown(f"**{ICONS['app']} {t('language')}**")
         lang_opts = get_language_options()
         curr_lang = st.session_state.language
@@ -65,60 +71,135 @@ if st.session_state.get('user'):
             st.rerun()
         
         st.divider()
-        st.markdown(f"**📋 {t('dashboard')}**")
+        
+        # Menu de Navegação
+        st.markdown(f"**📋 Navegação**")
         
         tipo = st.session_state.get('tipo', '')
+        cargo = st.session_state.get('cargo', '')
+        
+        # Verificar acesso a instrumentação
+        tem_acesso_inst = (tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or 
+                          cargo in ['Chefe de Equipa', 'Encarregado', 'Instrumentista'])
         
         if tipo == 'Admin':
             menu_item = st.radio(
                 "Navegação",
-                [f"{ICONS['dashboard']} Dashboard", f"{ICONS['admin']} Admin", f"{ICONS['logout']} Logout"],
+                [f"{ICONS['dashboard']} Dashboard", 
+                 f"{ICONS['admin']} Admin", 
+                 f"{ICONS['instrumentation']} Instrumentação",
+                 f"{ICONS['logout']} Logout"],
                 label_visibility="collapsed"
             )
             st.session_state.menu_selected = menu_item
+            
+        elif tem_acesso_inst:
+            menu_item = st.radio(
+                "Navegação",
+                [f"{ICONS['technician']} Obra", 
+                 f"{ICONS['instrumentation']} Instrumentação",
+                 f"{ICONS['dashboard']} Dashboard", 
+                 f"{ICONS['logout']} Logout"],
+                label_visibility="collapsed"
+            )
+            st.session_state.menu_selected = menu_item
+            
         else:
             menu_item = st.radio(
                 "Navegação",
-                [f"{ICONS['technician']} Obra", f"{ICONS['dashboard']} Dashboard", f"{ICONS['logout']} Logout"],
+                [f"{ICONS['technician']} Obra", 
+                 f"{ICONS['dashboard']} Dashboard", 
+                 f"{ICONS['logout']} Logout"],
                 label_visibility="collapsed"
             )
             st.session_state.menu_selected = menu_item
         
         st.divider()
         
+        # Botão de Logout
         if st.button(f"{ICONS['logout']} {t('logout')}", use_container_width=True, type="secondary"):
             st.session_state.clear()
             st.rerun()
+        
+        # Footer
+        st.markdown("""
+        <div style="position:fixed; bottom:20px; left:20px; right:20px; text-align:center; font-size:0.75rem; color:#64748B;">
+            GESTNOW v3.0<br>Instrumentação Industrial
+        </div>
+        """, unsafe_allow_html=True)
 
 # =============================================================================
 # 4. ROUTING PRINCIPAL
 # =============================================================================
 if not st.session_state.get('user'):
-    # LOGIN
+    # =============================================================================
+    # PÁGINA DE LOGIN
+    # =============================================================================
     from mod_login import render_login
     render_login()
     
 else:
-    # APLICAÇÃO PRINCIPAL
+    # =============================================================================
+    # APLICAÇÃO PRINCIPAL (LOGADO)
+    # =============================================================================
+    
+    # Carregar Dados Globais (20 DataFrames)
     DATA = load_all()
+    
+    # Desempacotar dados
     (users, obras_db, frentes_db, registos_db, fats, docs, incs, sw, obs, equip,
      diags, diags_u, folhas, comuns, comuns_u, req_fer, req_mat, req_epi, avals, inst_acessos_db) = DATA
     
     tipo = st.session_state.get('tipo', '')
     user_nome = st.session_state.get('user', '')
+    cargo = st.session_state.get('cargo', '')
+    
+    # Verificar acesso a instrumentação
+    tem_acesso_inst = (tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or 
+                      cargo in ['Chefe de Equipa', 'Encarregado', 'Instrumentista'])
+    
+    # =============================================================================
+    # ROUTING POR PERFIL
+    # =============================================================================
     
     if tipo == 'Admin':
+        # =============================================================================
+        # MODO ADMIN
+        # =============================================================================
         menu = st.session_state.get('menu_selected', f"{ICONS['dashboard']} Dashboard")
         
         if f"{ICONS['admin']} Admin" in menu:
             st.markdown(f"# {ICONS['admin']} Painel Administrativo")
             from mod_admin import render_admin
             render_admin(*DATA)
-        else:
+            
+        elif f"{ICONS['instrumentation']} Instrumentação" in menu:
+            st.markdown(f"# {ICONS['instrumentation']} Instrumentação Industrial")
+            from mod_instrumentacao import render_instrumentacao
+            render_instrumentacao(*DATA)
+            
+        elif f"{ICONS['dashboard']} Dashboard" in menu:
             st.markdown(f"# {ICONS['dashboard']} Dashboard Geral")
-            st.info("Dashboard em desenvolvimento...")
+            
+            # Métricas gerais
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("👥 Utilizadores", len(users))
+            with col2:
+                st.metric("🏭 Obras Ativas", len(obras_db[obras_db['Ativa'] == 'Ativa']) if not obras_db.empty else 0)
+            with col3:
+                st.metric("📋 Registos", len(registos_db) if not registos_db.empty else 0)
+            with col4:
+                st.metric("⚠️ Incidentes", len(incs_db) if not incs_db.empty else 0)
+        
+        else:
+            st.session_state.clear()
+            st.rerun()
     
     else:
+        # =============================================================================
+        # MODO TÉCNICO / CHEFE DE EQUIPA
+        # =============================================================================
         menu = st.session_state.get('menu_selected', f"{ICONS['technician']} Obra")
         
         if f"{ICONS['technician']} Obra" in menu:
@@ -126,14 +207,25 @@ else:
             from mod_tecnico import render_tecnico
             render_tecnico(*DATA)
             
+        elif f"{ICONS['instrumentation']} Instrumentação" in menu:
+            if tem_acesso_inst:
+                st.markdown(f"# {ICONS['instrumentation']} Instrumentação Industrial")
+                from mod_instrumentacao import render_instrumentacao
+                render_instrumentacao(*DATA)
+            else:
+                st.warning("⚠️ Não tem acesso a este módulo.")
+        
         elif f"{ICONS['dashboard']} Dashboard" in menu:
             st.markdown(f"# {ICONS['dashboard']} Dashboard de Produção")
+            
+            # Selecionar obra
             if not obras_db.empty:
                 obras_list = obras_db[obras_db['Ativa'] == 'Ativa']['Obra'].tolist()
                 if obras_list:
                     obra_sel = st.selectbox("🏗️ Selecionar Obra", obras_list)
                     st.session_state.obra_ativa = obra_sel
                     
+                    # Métricas da obra
                     st.markdown("### 📊 Métricas da Obra")
                     col1, col2, col3 = st.columns(3)
                     with col1:
@@ -152,7 +244,7 @@ else:
             st.rerun()
 
 # =============================================================================
-# 5. FOOTER
+# 5. FOOTER GLOBAL
 # =============================================================================
 st.markdown("""
 <style>
@@ -171,6 +263,7 @@ st.markdown("""
 }
 </style>
 <div class="footer">
-    🎛️ GESTNOW v3.0 | Última atualização: """ + datetime.now().strftime('%d/%m/%Y %H:%M') + """
+    🎛️ GESTNOW v3.0 - Sistema de Gestão de Instrumentação Industrial | 
+    Última atualização: """ + datetime.now().strftime('%d/%m/%Y %H:%M') + """
 </div>
 """, unsafe_allow_html=True)
