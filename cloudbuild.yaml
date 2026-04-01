@@ -17,16 +17,20 @@ steps:
       - '--image'
       - 'gcr.io/$PROJECT_ID/gestnow-app'
       - '--region'
-      - 'europe-west1' # Altera para a tua região se necessário
+      - 'europe-west1'
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
       - '--port'
       - '8080'
       - '--memory'
-      - '2Gi' # IA e PDFs exigem memória
+      - '2Gi'
       - '--cpu'
       - '2'
+      - '--timeout'
+      - '3600'
+      - '--set-env-vars'
+      - 'GCS_BUCKET=gestnow-dados'
 
 images:
   - 'gcr.io/$PROJECT_ID/gestnow-app'
