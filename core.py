@@ -32,7 +32,7 @@ COLORS = {
     "text_secondary": "#94A3B8", # Slate 400 - Texto secundário
 }
 
-# Ícones por categoria (SUBSTITUIR 🏗️ por ícones de instrumentação)
+# Ícones por categoria (COM ESPAÇOS ENTRE EMOJIS MÚLTIPLOS - CRÍTICO!)
 ICONS = {
     "app": "🎛️",           # APP principal - Painel de controlo
     "login": "🔐",          # Autenticação
@@ -40,15 +40,15 @@ ICONS = {
     "technician": "👨‍🔧",    # Técnico - Especialista
     "dashboard": "📈",       # Dashboard - Gráficos dinâmicos
     "instrumentation": "🧪", # Instrumentação - Laboratório industrial
-    "voice": "🎤✨",         # Voz - Com inteligência
-    "safety": "🛡️⚙️",        # HSE - Segurança industrial
-    "profile": "👤⚙️",        # Perfil técnico
-    "reports": "📊🔍",        # Relatórios analíticos
-    "handover": "✅🎯",       # Handover - Entrega premium
-    "gps": "📍🛰️",           # GPS - Precisão industrial
-    "calibration": "🔬⚡",    # Calibração - Alta precisão
-    "material": "📦✅",       # Material - Verificado
-    "pending": "⏳🔄",        # Pendente - Em processo
+    "voice": "🎤 ",         # Voz - Com inteligência (COM ESPAÇO)
+    "safety": "🛡️ ️",        # HSE - Segurança industrial (COM ESPAÇO)
+    "profile": "👤 ️",        # Perfil técnico (COM ESPAÇO)
+    "reports": "📊 🔍",        # Relatórios analíticos (COM ESPAÇO)
+    "handover": "✅ 🎯",       # Handover - Entrega premium (COM ESPAÇO)
+    "gps": "📍 🛰️",           # GPS - Precisão industrial (COM ESPAÇO)
+    "calibration": "🔬 ",    # Calibração - Alta precisão (COM ESPAÇO)
+    "material": "📦 ✅",       # Material - Verificado (COM ESPAÇO)
+    "pending": "⏳ 🔄",        # Pendente - Em processo (COM ESPAÇO)
 }
 
 # Configuração de logging profissional
