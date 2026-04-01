@@ -32,5 +32,10 @@ steps:
       - '--set-env-vars'
       - 'GCS_BUCKET=gestnow-dados'
 
+# Configurar logs para Cloud Logging (solução do erro)
+options:
+  logging: CLOUD_LOGGING_ONLY
+  default_logs_bucket_behavior: REGIONAL_USER_OWNED_BUCKET
+
 images:
   - 'gcr.io/$PROJECT_ID/gestnow-app'
