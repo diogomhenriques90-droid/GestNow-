@@ -64,10 +64,10 @@ def render_admin(*args):
     "💼 Comercial",
     "🎯 Qualidade",
     "📋 Planeamento",
-    "💻 IT",  # ← ADICIONAR ESTA
-    "🛡️ HSE"
+    "💻 IT",
+    "🛡️ HSE",
+    "📋 Logs Audit"
 ])
-
 
     # ========== TAB 0: VALIDAÇÕES ==========
     with tabs[0]:
@@ -144,4 +144,39 @@ def render_admin(*args):
             else:
                 st.info("📋 Sem safety walks registados.")
 
-
+    
+       # ========== TAB 13: LOGS DE AUDITORIA ==========
+    with tabs[13]:
+        st.markdown("### 📋 Logs de Auditoria - Compliance SGS/ISO", unsafe_allow_html=True)
+        
+        from core import get_audit_logs
+        
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            filtro_usuario = st.selectbox(
+                "Filtrar por Utilizador",
+                ["Todos"] + users['Nome'].tolist(),
+                key="log_filt_user"
+            )
+        with col_f2:
+            limite = st.number_input("Limite de Registos", min_value=10, max_value=1000, value=100, key="log_limite")
+        
+        usuario_f = None if filtro_usuario == "Todos" else filtro_usuario
+        
+        logs_df = get_audit_logs(filtro_usuario=usuario_f, limite=limite)
+        
+        if not logs_df.empty:
+            st.metric("Total Ações", len(logs_df))
+            st.divider()
+            st.dataframe(logs_df[['Data', 'Hora', 'Usuario', 'Acao', 'Tabela', 'Registro_ID', 'Detalhes']], use_container_width=True, hide_index=True)
+            
+            csv_logs = logs_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                "📥 Exportar Logs (CSV)",
+                csv_logs,
+                f"audit_logs_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                "text/csv",
+                use_container_width=True
+            )
+        else:
+            st.info("📋 Sem registos de auditoria encontrados.")
