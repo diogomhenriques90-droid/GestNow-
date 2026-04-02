@@ -190,7 +190,7 @@ else:
             with col3:
                 st.metric("📋 Registos", len(registos_db) if not registos_db.empty else 0)
             with col4:
-                st.metric("⚠️ Incidentes", len(incs_db) if not incs_db.empty else 0)
+                st.metric("⚠️ Incidentes", len(incs) if not incs.empty else 0)
         
         else:
             st.session_state.clear()
