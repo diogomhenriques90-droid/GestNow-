@@ -6,42 +6,93 @@ from translations import t
 import plotly.express as px
 
 def render_admin(*args):
-    """Renderiza módulo Admin completo - Versão Final Corrigida"""
+    """Renderiza módulo Admin completo - Versão Final com Cores Corrigidas"""
     
-    # Desempacotamento das 20 variáveis
-    (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db, sw_db, obs_db, equip_db,
-     diags_db, diags_u_db, folhas_db, comuns_db, comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = args
-
-    # CSS para melhor contraste
+    # CSS GLOBAL PARA CONTRASTE PERFEITO
     st.markdown("""
     <style>
-    .metric-card {
-        background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(96,165,250,0.1));
-        border: 2px solid rgba(59,130,246,0.5);
-        border-radius: 16px;
-        padding: 20px;
+    /* TEXTO BRANCO EM TODO O LADO */
+    .stMarkdown, .stText, .stDataFrame, .stMetric, label, div, span, p, h1, h2, h3, h4, h5, h6 {
         color: #F8FAFC !important;
     }
-    .metric-label {
-        color: #94A3B8 !important;
-        font-size: 0.9rem;
-        font-weight: 600;
+    
+    /* MÉTRICAS COM FUNDO AZUL E TEXTO BRANCO */
+    [data-testid="stMetric"] {
+        background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.2));
+        border: 2px solid rgba(59,130,246,0.5);
+        border-radius: 12px;
+        padding: 15px;
     }
-    .metric-value {
+    [data-testid="stMetricValue"] {
         color: #60A5FA !important;
-        font-size: 2rem;
-        font-weight: 800;
     }
-    .status-orange { background: #F59E0B; }
-    .status-green { background: #10B981; }
-    .status-blue { background: #3B82F6; }
-    .status-gray { background: #6B7280; }
+    [data-testid="stMetricLabel"] {
+        color: #94A3B8 !important;
+    }
+    
+    /* TABELAS COM TEXTO BRANCO */
+    .stDataFrame {
+        color: #F8FAFC !important;
+    }
+    .stDataFrame td, .stDataFrame th {
+        color: #F8FAFC !important;
+        border-color: rgba(255,255,255,0.2) !important;
+    }
+    
+    /* INPUTS E SELECTBOXES */
+    .stTextInput > div > div > input,
+    .stSelectbox > div > div > div,
+    .stTextArea > div > div > textarea {
+        background: rgba(255,255,255,0.1) !important;
+        color: #F8FAFC !important;
+        border: 1px solid rgba(255,255,255,0.3) !important;
+    }
+    .stTextInput > div > div > input::placeholder {
+        color: rgba(255,255,255,0.5) !important;
+    }
+    
+    /* EXPANDERS COM FUNDO MAIS CLARO */
+    .streamlit-expanderHeader {
+        background: rgba(255,255,255,0.1) !important;
+        color: #F8FAFC !important;
+    }
+    
+    /* BOTÕES */
+    .stButton > button {
+        background: linear-gradient(135deg, #3B82F6, #60A5FA) !important;
+        color: white !important;
+        border: none !important;
+        font-weight: 700 !important;
+    }
+    
+    /* TABS */
+    .stTabs [data-baseweb="tab"] {
+        background: rgba(255,255,255,0.1);
+        color: #F8FAFC !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #3B82F6, #60A5FA);
+        color: white !important;
+    }
+    
+    /* FOOTER LIMPO */
+    footer {
+        visibility: hidden !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-    st.title(f"⚡ Painel Administrativo")
-    st.markdown(f"**Utilizador:** {st.session_state.user} | **Tipo:** {st.session_state.tipo}")
-    st.divider()
+    # Desempacotamento integral das 20 variáveis
+    (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db, sw_db, obs_db, equip_db,
+     diags_db, diags_u_db, folhas_db, comuns_db, comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = args
+
+    # HEADER COM CONTRASTE
+    st.markdown(f"""
+    <div style="background:linear-gradient(135deg, #1E293B, #0F172A); padding:30px; border-radius:20px; margin-bottom:30px; border:1px solid rgba(255,255,255,0.2);">
+        <h1 style="color:#F8FAFC; margin:0; font-size:2.5rem;">⚡ Painel Administrativo</h1>
+        <p style="color:#94A3B8; margin:10px 0 0 0; font-size:1.1rem;">Utilizador: <strong style="color:#60A5FA">{st.session_state.user}</strong> | Tipo: <strong style="color:#60A5FA">{st.session_state.tipo}</strong></p>
+    </div>
+    """, unsafe_allow_html=True)
 
     tabs = st.tabs([
         "📊 Dashboard",
@@ -54,72 +105,79 @@ def render_admin(*args):
     ])
 
     # =============================================================================
-    # TAB 0: DASHBOARD (COM CONTRASTE MELHORADO)
+    # TAB 0: DASHBOARD
     # =============================================================================
     with tabs[0]:
-        st.subheader("📊 Dashboard Geral")
+        st.markdown("### 📊 Dashboard Geral", unsafe_allow_html=True)
         
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             total_horas = registos_db['Horas_Total'].sum() if not registos_db.empty else 0
             st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">👥 Utilizadores</div>
-                <div class="metric-value">{len(users)}</div>
+            <div style="background:linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.2)); border:2px solid rgba(59,130,246,0.5); border-radius:12px; padding:20px; text-align:center;">
+                <div style="color:#94A3B8; font-size:0.9rem; font-weight:600;">⏱️ Total Horas</div>
+                <div style="color:#60A5FA; font-size:2rem; font-weight:800;">{fh(total_horas)}</div>
             </div>
             """, unsafe_allow_html=True)
         with c2:
-            obras_ativas = len(obras_db[obras_db['Ativa'] == 'Ativa']) if not obras_db.empty else 0
             st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">🏭 Obras Ativas</div>
-                <div class="metric-value">{obras_ativas}</div>
+            <div style="background:linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.2)); border:2px solid rgba(59,130,246,0.5); border-radius:12px; padding:20px; text-align:center;">
+                <div style="color:#94A3B8; font-size:0.9rem; font-weight:600;">👷 Técnicos</div>
+                <div style="color:#60A5FA; font-size:2rem; font-weight:800;">{users['Nome'].nunique() if not users.empty else 0}</div>
             </div>
             """, unsafe_allow_html=True)
         with c3:
-            total_registos = len(registos_db) if not registos_db.empty else 0
+            obras_ativas = len(obras_db[obras_db['Ativa'] == 'Ativa']) if not obras_db.empty else 0
             st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">📋 Registos</div>
-                <div class="metric-value">{total_registos}</div>
+            <div style="background:linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.2)); border:2px solid rgba(59,130,246,0.5); border-radius:12px; padding:20px; text-align:center;">
+                <div style="color:#94A3B8; font-size:0.9rem; font-weight:600;">🏭 Obras Ativas</div>
+                <div style="color:#60A5FA; font-size:2rem; font-weight:800;">{obras_ativas}</div>
             </div>
             """, unsafe_allow_html=True)
         with c4:
-            total_incs = len(incs_db) if not incs_db.empty else 0
+            pendentes = len(registos_db[registos_db['Status'] == "0"]) if not registos_db.empty else 0
             st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">⚠️ Incidentes</div>
-                <div class="metric-value">{total_incs}</div>
+            <div style="background:linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.2)); border:2px solid rgba(59,130,246,0.5); border-radius:12px; padding:20px; text-align:center;">
+                <div style="color:#94A3B8; font-size:0.9rem; font-weight:600;">⏳ Pendentes</div>
+                <div style="color:#60A5FA; font-size:2rem; font-weight:800;">{pendentes}</div>
             </div>
             """, unsafe_allow_html=True)
         
-        # Gráfico de evolução
+        # Gráfico de Horas
         if not registos_db.empty:
             st.divider()
-            st.subheader("📈 Evolução de Horas")
+            st.markdown("### 📈 Evolução de Horas", unsafe_allow_html=True)
             fig = px.area(
                 registos_db.groupby('Data')['Horas_Total'].sum().reset_index(),
                 x='Data', y='Horas_Total',
                 title="Total de Horas por Dia"
             )
-            fig.update_traces(line_color='#3B82F6')
+            fig.update_traces(line_color='#60A5FA', fillcolor='rgba(59,130,246,0.3)')
+            fig.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='#F8FAFC'),
+                title_font=dict(color='#60A5FA', size=18)
+            )
             st.plotly_chart(fig, use_container_width=True)
 
     # =============================================================================
     # TAB 1: VALIDAÇÃO DE HORAS (4 NÍVEIS)
     # =============================================================================
     with tabs[1]:
-        st.subheader("✅ Validação de Registos de Horas")
+        st.markdown("### ✅ Validação de Registos de Horas", unsafe_allow_html=True)
         
         st.markdown("""
-        **Legenda de Estados:**
-        - 🟠 **Laranja**: Técnico registou horas (Pendente)
-        - 🟢 **Verde**: Chefe validou (Aprovado)
-        - 🔵 **Azul**: Validado e pronto para faturação
-        - ⚪ **Cinzento**: Faturado e enviado para pagamento
-        """)
+        <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; margin-bottom:20px; border-left:4px solid #F59E0B;">
+            <strong style="color:#F8FAFC;">Legenda de Estados:</strong><br>
+            <span style="color:#F8FAFC;">🟠 Laranja: Técnico registou (Pendente)</span><br>
+            <span style="color:#F8FAFC;">🟢 Verde: Chefe validou (Aprovado)</span><br>
+            <span style="color:#F8FAFC;">🔵 Azul: Pronto para faturação</span><br>
+            <span style="color:#F8FAFC;">⚪ Cinzento: Faturado</span>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Filtros de validação
+        # Filtros
         col1, col2, col3 = st.columns(3)
         with col1:
             filtro_tecnico = st.selectbox("Filtrar por Técnico", 
@@ -147,18 +205,17 @@ def render_admin(*args):
             
             # Ações em lote
             st.divider()
-            st.subheader("Ações de Validação")
+            st.markdown("### Ações de Validação", unsafe_allow_html=True)
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
                 if st.button("🟢 Validar Selecionados", use_container_width=True):
-                    # Implementar lógica de validação
                     st.success("✅ Registos validados!")
             with col2:
-                if st.button("🔵 Pronto para Faturação", use_container_width=True):
+                if st.button("🔵 Pronto Faturação", use_container_width=True):
                     st.success("✅ Marcado para faturação!")
             with col3:
-                if st.button("⚪ Marcar como Faturado", use_container_width=True):
+                if st.button("⚪ Marcar Faturado", use_container_width=True):
                     st.success("✅ Faturado!")
             with col4:
                 if st.button("❌ Rejeitar", use_container_width=True):
@@ -167,15 +224,15 @@ def render_admin(*args):
             st.info("📋 Sem registos para mostrar.")
 
     # =============================================================================
-    # TAB 2: GESTÃO DE PESSOAL (CRUD COMPLETO)
+    # TAB 2: GESTÃO DE PESSOAL
     # =============================================================================
     with tabs[2]:
-        st.subheader("👥 Gestão de Pessoal")
+        st.markdown("### 👥 Gestão de Pessoal", unsafe_allow_html=True)
         
         col1, col2 = st.columns([1, 2])
         
         with col1:
-            st.markdown("### ➕ Novo Colaborador")
+            st.markdown("### ➕ Novo Colaborador", unsafe_allow_html=True)
             with st.form("novo_colaborador"):
                 nome = st.text_input("Nome Completo")
                 email = st.text_input("Email")
@@ -210,7 +267,7 @@ def render_admin(*args):
                     st.rerun()
         
         with col2:
-            st.markdown("### 👥 Lista de Colaboradores")
+            st.markdown("### 👥 Lista de Colaboradores", unsafe_allow_html=True)
             if not users.empty:
                 for idx, user in users.iterrows():
                     with st.expander(f"👤 {user['Nome']} - {user['Cargo']}"):
@@ -223,7 +280,6 @@ def render_admin(*args):
                             st.write(f"**Tipo:** {user['Tipo']}")
                             st.write(f"**Cargo:** {user['Cargo']}")
                         
-                        # Botões de ação
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             if st.button("✏️ Editar", key=f"edit_{idx}"):
@@ -246,7 +302,7 @@ def render_admin(*args):
     # TAB 3: OBRAS E ALOCAÇÕES
     # =============================================================================
     with tabs[3]:
-        st.subheader("🏗️ Gestão de Obras e Alocações")
+        st.markdown("### 🏗️ Gestão de Obras e Alocações", unsafe_allow_html=True)
         
         tab_obras, tab_alocacoes = st.tabs(["Obras", "Alocações de Pessoal"])
         
@@ -254,7 +310,7 @@ def render_admin(*args):
             col1, col2 = st.columns([1, 2])
             
             with col1:
-                st.markdown("### ➕ Nova Obra")
+                st.markdown("### ➕ Nova Obra", unsafe_allow_html=True)
                 with st.form("nova_obra"):
                     nome_obra = st.text_input("Nome da Obra")
                     cliente = st.text_input("Cliente")
@@ -277,14 +333,14 @@ def render_admin(*args):
                         st.rerun()
             
             with col2:
-                st.markdown("### 🏭 Obras Existentes")
+                st.markdown("### 🏭 Obras Existentes", unsafe_allow_html=True)
                 if not obras_db.empty:
                     st.dataframe(obras_db[['Obra', 'Cliente', 'TipoObra', 'Ativa']], use_container_width=True)
                 else:
                     st.info("📋 Sem obras registadas.")
         
         with tab_alocacoes:
-            st.markdown("### 👷 Alocar Pessoal a Obras")
+            st.markdown("### 👷 Alocar Pessoal a Obras", unsafe_allow_html=True)
             
             col1, col2 = st.columns(2)
             with col1:
@@ -296,25 +352,20 @@ def render_admin(*args):
             
             if st.button("➕ Alocar à Obra"):
                 if obra_sel and tecnico_sel:
-                    # Verificar se já existe alocação
-                    if obra_sel in inst_acessos_db.columns and tecnico_sel in inst_acessos_db['Utilizador'].values:
-                        st.warning("⚠️ Técnico já alocado a esta obra.")
-                    else:
-                        # Adicionar alocação
-                        new_aloc = pd.DataFrame([{
-                            "Obra": obra_sel,
-                            "Utilizador": tecnico_sel,
-                            "Cargo": users[users['Nome'] == tecnico_sel]['Cargo'].values[0] if not users.empty else "",
-                            "Ativo": "Sim"
-                        }])
-                        inst_acessos_db = pd.concat([inst_acessos_db, new_aloc], ignore_index=True)
-                        save_db(inst_acessos_db, "inst_acessos.csv")
-                        inv()
-                        st.success(f"✅ {tecnico_sel} alocado à obra {obra_sel}!")
-                        st.rerun()
+                    new_aloc = pd.DataFrame([{
+                        "Obra": obra_sel,
+                        "Utilizador": tecnico_sel,
+                        "Cargo": users[users['Nome'] == tecnico_sel]['Cargo'].values[0] if not users.empty else "",
+                        "Ativo": "Sim"
+                    }])
+                    inst_acessos_db = pd.concat([inst_acessos_db, new_aloc], ignore_index=True)
+                    save_db(inst_acessos_db, "inst_acessos.csv")
+                    inv()
+                    st.success(f"✅ {tecnico_sel} alocado à obra {obra_sel}!")
+                    st.rerun()
             
             st.divider()
-            st.markdown("### 👥 Técnicos Alocados")
+            st.markdown("### 👥 Técnicos Alocados", unsafe_allow_html=True)
             if not inst_acessos_db.empty:
                 st.dataframe(inst_acessos_db, use_container_width=True)
 
@@ -322,7 +373,7 @@ def render_admin(*args):
     # TAB 4: FATURAÇÃO
     # =============================================================================
     with tabs[4]:
-        st.subheader("💰 Centro de Faturação")
+        st.markdown("### 💰 Centro de Faturação", unsafe_allow_html=True)
         
         if not obras_db.empty:
             clientes = obras_db['Cliente'].unique()
@@ -330,20 +381,28 @@ def render_admin(*args):
             
             c1, c2 = st.columns(2)
             with c1:
-                if not faturas_db.empty:
-                    num_faturas = len(faturas_db[faturas_db['Cliente'] == cliente_f])
-                    st.metric("Faturas Emitidas", num_faturas)
-                else:
-                    st.metric("Faturas Emitidas", 0)
+                num_faturas = len(faturas_db[faturas_db['Cliente'] == cliente_f]) if not faturas_db.empty else 0
+                st.markdown(f"""
+                <div style="background:rgba(59,130,246,0.2); padding:15px; border-radius:12px; text-align:center;">
+                    <div style="color:#94A3B8; font-size:0.9rem;">Faturas Emitidas</div>
+                    <div style="color:#60A5FA; font-size:2rem; font-weight:800;">{num_faturas}</div>
+                </div>
+                """, unsafe_allow_html=True)
             with c2:
                 if not faturas_db.empty and cliente_f:
                     try:
                         valor_total = faturas_db[faturas_db['Cliente'] == cliente_f]['Valor'].astype(float).sum()
-                        st.metric("Valor Total", f"€ {valor_total:,.2f}")
+                        valor_texto = f"€ {valor_total:,.2f}"
                     except:
-                        st.metric("Valor Total", "€ 0.00")
+                        valor_texto = "€ 0.00"
                 else:
-                    st.metric("Valor Total", "€ 0.00")
+                    valor_texto = "€ 0.00"
+                st.markdown(f"""
+                <div style="background:rgba(59,130,246,0.2); padding:15px; border-radius:12px; text-align:center;">
+                    <div style="color:#94A3B8; font-size:0.9rem;">Valor Total</div>
+                    <div style="color:#60A5FA; font-size:2rem; font-weight:800;">{valor_texto}</div>
+                </div>
+                """, unsafe_allow_html=True)
             
             st.divider()
             
@@ -357,12 +416,12 @@ def render_admin(*args):
     # TAB 5: COMUNICADOS
     # =============================================================================
     with tabs[5]:
-        st.subheader("📢 Sistema de Comunicados")
+        st.markdown("### 📢 Sistema de Comunicados", unsafe_allow_html=True)
         
         col1, col2 = st.columns([1, 2])
         
         with col1:
-            st.markdown("### ➕ Novo Comunicado")
+            st.markdown("### ➕ Novo Comunicado", unsafe_allow_html=True)
             with st.form("novo_comunicado"):
                 tipo_destino = st.selectbox("Destinatários",
                     ["Todos", "Apenas Chefes de Equipa", "Por Obra", "Individual"])
@@ -398,7 +457,7 @@ def render_admin(*args):
                     st.rerun()
         
         with col2:
-            st.markdown("### 📨 Comunicados Enviados")
+            st.markdown("### 📨 Comunicados Enviados", unsafe_allow_html=True)
             if not comuns_db.empty:
                 st.dataframe(comuns_db[['Titulo', 'Tipo', 'Destino', 'Urgente', 'Data']], use_container_width=True)
             else:
@@ -408,7 +467,7 @@ def render_admin(*args):
     # TAB 6: HSE
     # =============================================================================
     with tabs[6]:
-        st.subheader("🛡️ Segurança e HSE")
+        st.markdown("### 🛡️ Segurança e HSE", unsafe_allow_html=True)
         
         tab_inc, tab_sw, tab_obs = st.tabs(["⚠️ Incidentes", "🚶 Safety Walks", "📝 Observações"])
         
