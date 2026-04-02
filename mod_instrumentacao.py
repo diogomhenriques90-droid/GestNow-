@@ -14,20 +14,22 @@ from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm
+# Importações do core.py
+from core import (
+    load_db, save_db, inv, fh, render_metric,
+    process_and_compress_image, ICONS, COLORS
+)
+
+# Importações do translations
+from translations import t
+
+# Importações do reportlab (NÃO são do core!)
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import cm
 from reportlab.lib import colors as rl_colors
 
-# Importações do core.py
-try:
-    from core import (
-        load_db, save_db, inv, fh, render_metric, render_metric_red,
-        t, process_and_compress_image, _qr_drawing, ICONS, COLORS,
-        A4 as core_A4, SimpleDocTemplate as core_SimpleDoc, 
-        Table as core_Table, TableStyle as core_TableStyle,
-        Paragraph as core_Paragraph, Spacer as core_Spacer, cm as core_cm
-    )
-except ImportError:
-    st.error("❌ Erro: O arquivo 'core.py' não foi encontrado ou faltam funções nele.")
-    logging.error("ImportError em mod_instrumentacao: core.py não encontrado")
 
 # Logger do módulo
 logger = logging.getLogger(__name__)
