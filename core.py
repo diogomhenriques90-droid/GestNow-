@@ -388,3 +388,71 @@ GLOBAL_CSS = f"""
 
 def inject_global_css():
     st.markdown(f"<style>{GLOBAL_CSS}</style>", unsafe_allow_html=True)
+
+# =============================================================================
+# AUDIT TRAIL - Logs de Auditoria (SGS/ISO Compliance)
+# =============================================================================
+
+def log_audit(usuario, acao, tabela, registro_id, detalhes="", ip=""):
+    """Regista ação no log de auditoria para compliance SGS/ISO"""
+    try:
+        import pandas as pd
+        from datetime import datetime
+        import uuid
+        
+        try:
+            logs = load_db("logs_audit.csv", [
+                "ID", "Data", "Hora", "Usuario", "Acao", 
+                "Tabela", "Registro_ID", "Detalhes", "IP"
+            ])
+        except:
+            logs = pd.DataFrame(columns=[
+                "ID", "Data", "Hora", "Usuario", "Acao", 
+                "Tabela", "Registro_ID", "Detalhes", "IP"
+            ])
+        
+        novo_log = pd.DataFrame([{
+            "ID": str(uuid.uuid4())[:8].upper(),
+            "Data": datetime.now().strftime("%d/%m/%Y"),
+            "Hora": datetime.now().strftime("%H:%M:%S"),
+            "Usuario": usuario,
+            "Acao": acao,
+            "Tabela": tabela,
+            "Registro_ID": str(registro_id),
+            "Detalhes": detalhes,
+            "IP": ip
+        }])
+        
+        logs = pd.concat([logs, novo_log], ignore_index=True)
+        save_db(logs, "logs_audit.csv")
+        
+        return True
+        
+    except Exception as e:
+        print(f"Erro ao criar log de auditoria: {e}")
+        return False
+
+
+def get_audit_logs(filtro_usuario=None, filtro_data=None, limite=100):
+    """Obtém logs de auditoria com filtros opcionais"""
+    try:
+        logs = load_db("logs_audit.csv", [
+            "ID", "Data", "Hora", "Usuario", "Acao", 
+            "Tabela", "Registro_ID", "Detalhes", "IP"
+        ])
+        
+        if not logs.empty:
+            if filtro_usuario:
+                logs = logs[logs['Usuario'] == filtro_usuario]
+            if filtro_data:
+                logs = logs[logs['Data'] == filtro_data]
+            
+            logs = logs.sort_values(['Data', 'Hora'], ascending=False)
+            
+            return logs.head(limite)
+        
+        return pd.DataFrame()
+        
+    except Exception as e:
+        print(f"Erro ao obter logs: {e}")
+        return pd.DataFrame()
