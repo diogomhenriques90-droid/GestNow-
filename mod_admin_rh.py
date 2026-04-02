@@ -4,20 +4,60 @@ from datetime import datetime
 from core import save_db, inv, hp
 
 def render_rh(users, avals_db, obras_db, inst_acessos_db):
-    """Módulo de Recursos Humanos - Versão Corrigida"""
+    """Módulo de Recursos Humanos - Versão 100% Robusta"""
     
-    # ✅ CORRIGIR: Adicionar colunas em falta se não existirem
-    if 'Local' not in users.columns:
-        users['Local'] = "Não"
-    if 'PrecoHora' not in users.columns:
-        users['PrecoHora'] = "15.0"
-    if 'Morada' not in users.columns:
-        users['Morada'] = ""
+    # ✅ GARANTIR que todas as colunas existem em users
+    cols_obrigatorias_users = {
+        'Local': 'Não',
+        'PrecoHora': '15.0',
+        'Morada': '',
+        'NIF': '',
+        'Telefone': '',
+        'Email': '',
+        'Cargo': 'Técnico',
+        'Tipo': 'Técnico',
+        'Password': '',
+        'NISS': '',
+        'CC': '',
+        'DataNasc': '',
+        'Nacionalidade': 'Portugal',
+        'Foto': '',
+        'PrecoHoraStatus': '',
+        'PrecoHoraData': '',
+        'PIN': '0000'
+    }
+    
+    for col, valor_padrao in cols_obrigatorias_users.items():
+        if col not in users.columns:
+            users[col] = valor_padrao
+    
+    # ✅ GARANTIR que avals_db tem a estrutura correta
+    if avals_db.empty:
+        avals_db = pd.DataFrame(columns=[
+            'Data', 'Trabalhador', 'Nota_Tecnica', 'Nota_Pontualidade',
+            'Nota_Trabalho_Eq', 'Nota_Proatividade', 'Nota_Comunicacao',
+            'Media', 'Comentarios'
+        ])
+    else:
+        cols_obrigatorias_avals = {
+            'Data': '',
+            'Trabalhador': '',
+            'Nota_Tecnica': 5,
+            'Nota_Pontualidade': 5,
+            'Nota_Trabalho_Eq': 5,
+            'Nota_Proatividade': 5,
+            'Nota_Comunicacao': 5,
+            'Media': 0.0,
+            'Comentarios': ''
+        }
+        for col, valor_padrao in cols_obrigatorias_avals.items():
+            if col not in avals_db.columns:
+                avals_db[col] = valor_padrao
     
     st.markdown("### 👥 Gestão de Recursos Humanos", unsafe_allow_html=True)
     
-    tab_pessoal, tab_avaliacoes, tab_historico, tab_acessos = st.tabs([
-        "Gestão de Pessoal", "Avaliações", "Histórico", "Acessos"
+    tab_pessoal, tab_avaliacoes, tab_historico = st.tabs([
+        "Gestão de Pessoal", "Avaliações", "Histórico"
     ])
     
     with tab_pessoal:
@@ -38,48 +78,48 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                 password = st.text_input("Password", type="password", value="gestnow123", key="rh_pass")
                 
                 if st.form_submit_button("💾 Criar Colaborador", use_container_width=True):
-                    new_user = pd.DataFrame([{
-                        "Nome": nome,
-                        "Password": hp(password),
-                        "Tipo": tipo,
-                        "Cargo": cargo,
-                        "Email": email,
-                        "Telefone": telefone,
-                        "NIF": nif,
-                        "Morada": morada,
-                        "Local": "Sim" if local else "Não",
-                        "PrecoHora": str(preco_hora),
-                        "NISS": "",
-                        "CC": "",
-                        "DataNasc": "",
-                        "Nacionalidade": "Portugal",
-                        "Foto": "",
-                        "PrecoHoraStatus": "",
-                        "PrecoHoraData": "",
-                        "PIN": "0000"
-                    }])
-                    users = pd.concat([users, new_user], ignore_index=True)
-                    save_db(users, "usuarios.csv")
-                    inv()
-                    st.success(f"✅ {nome} criado!")
-                    st.rerun()
+                    if nome and password:
+                        new_user = pd.DataFrame([{
+                            "Nome": nome,
+                            "Password": hp(password),
+                            "Tipo": tipo,
+                            "Cargo": cargo,
+                            "Email": email,
+                            "Telefone": telefone,
+                            "NIF": nif,
+                            "Morada": morada,
+                            "Local": "Sim" if local else "Não",
+                            "PrecoHora": str(preco_hora),
+                            "NISS": "",
+                            "CC": "",
+                            "DataNasc": "",
+                            "Nacionalidade": "Portugal",
+                            "Foto": "",
+                            "PrecoHoraStatus": "",
+                            "PrecoHoraData": "",
+                            "PIN": "0000"
+                        }])
+                        users = pd.concat([users, new_user], ignore_index=True)
+                        save_db(users, "usuarios.csv")
+                        inv()
+                        st.success(f"✅ {nome} criado!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Nome e password são obrigatórios!")
         
         with col2:
             st.markdown("### 👥 Lista de Colaboradores", unsafe_allow_html=True)
             if not users.empty:
-                # ✅ CORRIGIR: Mostrar apenas colunas que existem
-                cols_para_mostrar = []
-                for col in ['Nome', 'Tipo', 'Cargo', 'Email', 'Telefone', 'Local', 'PrecoHora']:
-                    if col in users.columns:
-                        cols_para_mostrar.append(col)
-                
-                st.dataframe(users[cols_para_mostrar], use_container_width=True)
+                # Mostrar apenas colunas seguras
+                cols_visiveis = [col for col in ['Nome', 'Tipo', 'Cargo', 'Email', 'Telefone', 'Local', 'PrecoHora'] if col in users.columns]
+                st.dataframe(users[cols_visiveis], use_container_width=True)
                 
                 st.divider()
-                st.markdown("### Gestão de Colaboradores", unsafe_allow_html=True)
+                st.markdown("### Gestão Individual", unsafe_allow_html=True)
                 
                 for idx, user in users.iterrows():
-                    with st.expander(f"👤 {user['Nome']} - {user['Cargo']}", key=f"exp_{idx}"):
+                    nome_user = user.get('Nome', f'Utilizador_{idx}')
+                    with st.expander(f"👤 {nome_user} - {user.get('Cargo', 'N/A')}", key=f"exp_{idx}"):
                         c1, c2 = st.columns(2)
                         with c1:
                             st.write(f"**Email:** {user.get('Email', 'N/A')}")
@@ -95,13 +135,14 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             if st.button("✏️ Editar", key=f"edit_{idx}"):
-                                st.info("Editar funcionalidade")
+                                st.info("Funcionalidade em desenvolvimento")
                         with col2:
                             if st.button("📊 Avaliar", key=f"eval_{idx}"):
-                                st.info("Avaliação funcionalidade")
+                                st.session_state['avaliar_user'] = nome_user
+                                st.rerun()
                         with col3:
                             if st.button("🗑️ Dispensar", key=f"del_{idx}", type="secondary"):
-                                if st.session_state.user != user['Nome']:
+                                if st.session_state.get('user') != nome_user:
                                     users = users.drop(idx)
                                     save_db(users, "usuarios.csv")
                                     inv()
@@ -113,8 +154,14 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
     with tab_avaliacoes:
         st.markdown("### 📊 Avaliações de Desempenho", unsafe_allow_html=True)
         
-        if not users.empty:
+        if not users.empty and not avals_db.empty:
             trabalhador_sel = st.selectbox("Selecionar Trabalhador", users['Nome'].tolist(), key="avalia_trab")
+            
+            # ✅ VERIFICAR se a coluna 'Trabalhador' existe antes de filtrar
+            if 'Trabalhador' in avals_db.columns:
+                aval_trab = avals_db[avals_db['Trabalhador'] == trabalhador_sel]
+            else:
+                aval_trab = pd.DataFrame()
             
             col1, col2 = st.columns(2)
             with col1:
@@ -137,7 +184,7 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                     "Nota_Trabalho_Eq": nota_trabalho_eq,
                     "Nota_Proatividade": nota_proatividade,
                     "Nota_Comunicacao": nota_comunicacao,
-                    "Media": media,
+                    "Media": round(media, 2),
                     "Comentarios": comentarios
                 }])
                 avals_db = pd.concat([avals_db, nova_avalia], ignore_index=True)
@@ -146,18 +193,17 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                 st.success("✅ Avaliação guardada!")
                 st.rerun()
             
-            # Histórico de avaliações
-            if not avals_db.empty:
+            # Mostrar histórico se existir
+            if not aval_trab.empty:
                 st.divider()
                 st.markdown("### Histórico de Avaliações", unsafe_allow_html=True)
-                aval_trab = avals_db[avals_db['Trabalhador'] == trabalhador_sel]
-                if not aval_trab.empty:
-                    st.dataframe(aval_trab, use_container_width=True)
+                st.dataframe(aval_trab, use_container_width=True)
+        
+        elif users.empty:
+            st.warning("⚠️ Não existem utilizadores para avaliar.")
+        else:
+            st.info("📋 Sem avaliações registadas. Cria a primeira avaliação!")
 
     with tab_historico:
         st.markdown("### 📜 Histórico de Trabalhadores", unsafe_allow_html=True)
-        st.info("Funcionalidade em desenvolvimento...")
-
-    with tab_acessos:
-        st.markdown("### 🔐 Acessos a Obras", unsafe_allow_html=True)
         st.info("Funcionalidade em desenvolvimento...")
