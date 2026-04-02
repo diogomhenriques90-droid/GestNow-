@@ -53,19 +53,21 @@ def render_admin(*args):
 
     # TABS PRINCIPAIS - CADA TAB CHAMA UM SUB-MÓDULO
     tabs = st.tabs([
-        "✅ Validações",
-        "👥 RH",
-        "🏗️ Obras",
-        "🚗 Frota",
-        "🏨 Dormidas",
-        "🛒 Compras",
-        "💰 Faturação",
-        "📊 Orçamentação",
-        "💼 Comercial",
-        "🎯 Qualidade",
-        "📋 Planeamento",
-        "🛡️ HSE"
-    ])
+    "✅ Validações",
+    "👥 RH",
+    "🏗️ Obras",
+    "🚗 Frota",
+    "🏨 Dormidas",
+    "🛒 Compras",
+    "💰 Faturação",
+    "📊 Orçamentação",
+    "💼 Comercial",
+    "🎯 Qualidade",
+    "📋 Planeamento",
+    "💻 IT",  # ← ADICIONAR ESTA
+    "🛡️ HSE"
+])
+
 
     # ========== TAB 0: VALIDAÇÕES ==========
     with tabs[0]:
@@ -136,3 +138,8 @@ def render_admin(*args):
                 st.dataframe(sw_db, use_container_width=True)
             else:
                 st.info("📋 Sem safety walks registados.")
+
+# ========== TAB 12: IT ==========
+with tabs[11]:  # Ou o número correto conforme a ordem
+    from mod_admin_it import render_it
+    render_it()
