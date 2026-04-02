@@ -46,8 +46,9 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
         with col2:
             st.markdown("### 👥 Lista de Colaboradores", unsafe_allow_html=True)
             if not users.empty:
-                st.dataframe(users[['Nome', 'Tipo', 'Cargo', 'Email', 'Telefone', 'Local', 'PrecoHora']], use_container_width=True)
-
+                # Verificar quais colunas existem
+cols_disponiveis = [col for col in ['Nome', 'Tipo', 'Cargo', 'Email', 'Telefone', 'Local', 'PrecoHora'] if col in users.columns]
+st.dataframe(users[cols_disponiveis], use_container_width=True)
     with tab_avaliacoes:
         st.markdown("### 📊 Avaliações de Desempenho", unsafe_allow_html=True)
         if not users.empty:
