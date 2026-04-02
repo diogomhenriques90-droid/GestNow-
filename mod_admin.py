@@ -124,7 +124,12 @@ def render_admin(*args):
         from mod_admin_planeamento import render_planeamento
         render_planeamento()
 
-    # ========== TAB 11: HSE ==========
+    # ========== TAB 11: IT ==========
+with tabs[11]:  # Ou o número correto conforme a ordem
+    from mod_admin_it import render_it
+    render_it()
+
+    # ========== TAB 12: HSE ==========
     with tabs[11]:
         st.markdown("### 🛡️ Segurança e HSE", unsafe_allow_html=True)
         tab_inc, tab_sw = st.tabs(["⚠️ Incidentes", "🚶 Safety Walks"])
@@ -139,7 +144,4 @@ def render_admin(*args):
             else:
                 st.info("📋 Sem safety walks registados.")
 
-# ========== TAB 12: IT ==========
-with tabs[11]:  # Ou o número correto conforme a ordem
-    from mod_admin_it import render_it
-    render_it()
+
