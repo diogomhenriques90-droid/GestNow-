@@ -191,14 +191,14 @@ def render_admin(*args):
             with c1:
                 st.metric("Faturas Emitidas", len(faturas_db[faturas_db['Cliente'] == cliente_f]) if not faturas_db.empty else 0)
             with c2:
-             if not faturas_db.empty and cliente_f:
-    try:
+   if not faturas_db.empty and cliente_f:
+    try:  # ← 4 espaços de indentação
         valor_total = faturas_db[faturas_db['Cliente'] == cliente_f]['Valor'].astype(float).sum()
         st.metric("Valor Total", f"€ {valor_total:,.2f}")
     except:
         st.metric("Valor Total", "€ 0.00")
 else:
-    st.metric("Valor Total", "€ 0.00") 
+    st.metric("Valor Total", "€ 0.00")
             
             if st.button("📄 Gerar Fatura PDF", use_container_width=True, type="primary"):
                 st.info(f"A processar fatura para {cliente_f}...")
