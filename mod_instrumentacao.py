@@ -9,6 +9,7 @@ import io, re, json, base64, uuid, secrets, logging, hashlib
 from datetime import datetime, date
 import anthropic
 import fitz  # PyMuPDF
+from core import log_audit, criar_notificacao
 
 # Importações do core.py
 try:
@@ -353,6 +354,15 @@ def render_instrumentacao(*args):
                             st.download_button("📥 Descarregar Certificado PDF", pdf_cert, f"ITR-A_{tag_c}_{esign}.pdf", "application/pdf")
                         st.rerun()
 
+    # 🔔 NOTIFICAR GESTOR SOBRE CALIBRAÇÃO
+criar_notificacao(
+    destinatario=st.session_state.user,
+    titulo="🔬 Calibração Concluída",
+    mensagem=f"{tag_c} calibrado com erro máx de {err:.4f} {unit}",
+    tipo="success",
+    acao_url="/instrumentacao?tab=itra"
+)
+
     # --- TAB ITR-B: INSTALAÇÃO + GPS + ASSINATURA ---
     with t_itrb:
         st.markdown("### 🏗️ Instalação + GPS + ✍️ Assinatura")
@@ -403,6 +413,16 @@ def render_instrumentacao(*args):
                     st.rerun()
             elif f_foto and not assinatura_inst:
                 st.warning("⚠️ Por favor, assine para validar a instalação.")
+
+
+    # 🔔 NOTIFICAR GESTOR SOBRE INSTALAÇÃO
+criar_notificacao(
+    destinatario=st.session_state.user,
+    titulo="🏗️ Instalação Concluída",
+    mensagem=f"{tag_f} instalado com GPS e foto",
+    tipo="success",
+    acao_url="/instrumentacao?tab=itrb"
+)
 
     # --- TAB HANDOVER ---
     with t_hand:
