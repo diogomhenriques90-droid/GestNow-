@@ -514,3 +514,188 @@ def validar_assinatura(assinatura_b64, usuario_esperado, tag_esperada):
         return False
     except:
         return False
+
+# =============================================================================
+# 🔔 SISTEMA DE NOTIFICAÇÕES - Push + Email + In-App
+# =============================================================================
+
+def criar_notificacao(destinatario, titulo, mensagem, tipo="info", acao_url=""):
+    """
+    Cria uma notificação para um utilizador
+    
+    Args:
+        destinatario: Nome do utilizador ou email
+        titulo: Título da notificação
+        mensagem: Conteúdo da notificação
+        tipo: info, warning, error, success
+        acao_url: Link para ação (opcional)
+    """
+    try:
+        import pandas as pd
+        from datetime import datetime
+        import uuid
+        
+        # Carregar notificações existentes
+        try:
+            notifs = load_db("notificacoes.csv", [
+                "ID", "Data", "Hora", "Destinatario", "Titulo", 
+                "Mensagem", "Tipo", "Lida", "Acao_URL"
+            ])
+        except:
+            notifs = pd.DataFrame(columns=[
+                "ID", "Data", "Hora", "Destinatario", "Titulo", 
+                "Mensagem", "Tipo", "Lida", "Acao_URL"
+            ])
+        
+        # Criar nova notificação
+        nova_notif = pd.DataFrame([{
+            "ID": str(uuid.uuid4())[:8].upper(),
+            "Data": datetime.now().strftime("%d/%m/%Y"),
+            "Hora": datetime.now().strftime("%H:%M:%S"),
+            "Destinatario": destinatario,
+            "Titulo": titulo,
+            "Mensagem": mensagem,
+            "Tipo": tipo,
+            "Lida": "Não",
+            "Acao_URL": acao_url
+        }])
+        
+        notifs = pd.concat([notifs, nova_notif], ignore_index=True)
+        save_db(notifs, "notificacoes.csv")
+        
+        return True
+        
+    except Exception as e:
+        print(f"Erro ao criar notificação: {e}")
+        return False
+
+
+def get_notificacoes(destinatario, apenas_nao_lidas=True, limite=50):
+    """
+    Obtém notificações de um utilizador
+    
+    Args:
+        destinatario: Nome do utilizador
+        apenas_nao_lidas: Se True, retorna só não lidas
+        limite: Máximo de notificações a retornar
+    
+    Returns:
+        DataFrame: Notificações filtradas
+    """
+    try:
+        notifs = load_db("notificacoes.csv", [
+            "ID", "Data", "Hora", "Destinatario", "Titulo", 
+            "Mensagem", "Tipo", "Lida", "Acao_URL"
+        ])
+        
+        if not notifs.empty:
+            notifs = notifs[notifs['Destinatario'] == destinatario]
+            if apenas_nao_lidas:
+                notifs = notifs[notifs['Lida'] == "Não"]
+            notifs = notifs.sort_values(['Data', 'Hora'], ascending=False)
+            return notifs.head(limite)
+        
+        return pd.DataFrame()
+        
+    except Exception as e:
+        print(f"Erro ao obter notificações: {e}")
+        return pd.DataFrame()
+
+
+def marcar_notificacao_lida(notif_id):
+    """Marca uma notificação como lida"""
+    try:
+        import pandas as pd
+        
+        notifs = load_db("notificacoes.csv", [
+            "ID", "Data", "Hora", "Destinatario", "Titulo", 
+            "Mensagem", "Tipo", "Lida", "Acao_URL"
+        ])
+        
+        if not notifs.empty:
+            notifs.loc[notifs['ID'] == notif_id, 'Lida'] = "Sim"
+            save_db(notifs, "notificacoes.csv")
+            return True
+        
+        return False
+        
+    except Exception as e:
+        print(f"Erro ao marcar notificação como lida: {e}")
+        return False
+
+
+def contar_notificacoes_nao_lidas(destinatario):
+    """Conta notificações não lidas de um utilizador"""
+    try:
+        notifs = get_notificacoes(destinatario, apenas_nao_lidas=True, limite=1000)
+        return len(notifs)
+    except:
+        return 0
+
+
+def enviar_email_notificacao(destinatario_email, titulo, mensagem):
+    """
+    Envia email de notificação (requer SMTP configurado)
+    
+    Args:
+        destinatario_email: Email do destinatário
+        titulo: Assunto do email
+        mensagem: Corpo do email
+    """
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        
+        # Configurações SMTP (preencher com os teus dados)
+        smtp_server = st.secrets.get("SMTP_SERVER", "")
+        smtp_port = st.secrets.get("SMTP_PORT", 587)
+        smtp_user = st.secrets.get("SMTP_USER", "")
+        smtp_password = st.secrets.get("SMTP_PASSWORD", "")
+        
+        if not smtp_server or not smtp_user:
+            # SMTP não configurado, apenas log
+            print(f"Email não enviado (SMTP não configurado): {destinatario_email} - {titulo}")
+            return False
+        
+        # Criar email
+        msg = MIMEMultipart()
+        msg['From'] = smtp_user
+        msg['To'] = destinatario_email
+        msg['Subject'] = f"[GestNow] {titulo}"
+        msg.attach(MIMEText(mensagem, 'html'))
+        
+        # Enviar
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.send_message(msg)
+        server.quit()
+        
+        return True
+        
+    except Exception as e:
+        print(f"Erro ao enviar email: {e}")
+        return False
+
+
+def notificar_validacao_pendente(tecnico, obra, horas, gestor):
+    """Notifica gestor sobre horas pendentes de validação"""
+    titulo = "⏳ Validação de Horas Pendente"
+    mensagem = f"{tecnico} registou {horas}h em {obra}. Por favor valide."
+    criar_notificacao(gestor, titulo, mensagem, tipo="warning", acao_url="/admin?tab=validacoes")
+    # Opcional: enviar email também
+
+
+def notificar_instrumento_por_calibrar(tag, obra, responsavel):
+    """Notifica sobre instrumento pendente de calibração"""
+    titulo = "🔬 Instrumento Por Calibrar"
+    mensagem = f"{tag} em {obra} está com material OK mas ainda não foi calibrado."
+    criar_notificacao(responsavel, titulo, mensagem, tipo="info", acao_url="/instrumentacao?tab=itra")
+
+
+def notificar_incidente_hse(tipo, local, gravidade, responsavel):
+    """Notifica sobre incidente HSE registado"""
+    titulo = f"🚨 Incidente HSE - {gravidade}"
+    mensagem = f"{tipo} registado em {local}. Ação necessária."
+    criar_notificacao(responsavel, titulo, mensagem, tipo="error", acao_url="/admin?tab=hse")
