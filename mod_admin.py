@@ -24,16 +24,11 @@ def render_admin(*args):
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db, sw_db, obs_db, equip_db,
      diags_db, diags_u_db, folhas_db, comuns_db, comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = args
 
-        # 📴 INDICADOR DE CONEXÃO + MODO OFFLINE
+    # 📴 INDICADOR DE CONEXÃO + MODO OFFLINE
     from core import render_connection_indicator, render_offline_banner, sync_data_when_online
     
-    # Renderizar indicador de conexão
     render_connection_indicator()
-    
-    # Renderizar banner offline (se aplicável)
     render_offline_banner()
-    
-    # Tentar sincronizar se voltou online
     sync_data_when_online()
     
     # HEADER
@@ -45,13 +40,12 @@ def render_admin(*args):
     </div>
     """, unsafe_allow_html=True)
 
-        # 🔔 CENTRO DE NOTIFICAÇÕES
+    # 🔔 CENTRO DE NOTIFICAÇÕES
     from core import get_notificacoes, marcar_notificacao_lida, contar_notificacoes_nao_lidas
     
     user = st.session_state.user
     notifs_nao_lidas = contar_notificacoes_nao_lidas(user)
     
-    # Ícone de sino com contador
     col_notif1, col_notif2 = st.columns([10, 1])
     with col_notif2:
         if notifs_nao_lidas > 0:
@@ -64,7 +58,6 @@ def render_admin(*args):
         else:
             st.markdown("<div style='text-align:right;'><span style='font-size:1.5rem; opacity:0.5;'>🔔</span></div>", unsafe_allow_html=True)
     
-    # Expander para ver notificações
     with st.expander("🔔 Ver Notificações", expanded=notifs_nao_lidas > 0):
         notifs_df = get_notificacoes(user, apenas_nao_lidas=True, limite=20)
         
@@ -83,7 +76,6 @@ def render_admin(*args):
                 </div>
                 """, unsafe_allow_html=True)
             
-            # Botão para marcar todas como lidas
             if st.button("✅ Marcar Todas como Lidas", key="marcar_lidas"):
                 for _, notif in notifs_df.iterrows():
                     marcar_notificacao_lida(notif['ID'])
@@ -112,23 +104,23 @@ def render_admin(*args):
     
     st.divider()
 
-    # TABS PRINCIPAIS - CADA TAB CHAMA UM SUB-MÓDULO
+    # TABS PRINCIPAIS
     tabs = st.tabs([
-    "✅ Validações",
-    "👥 RH",
-    "🏗️ Obras",
-    "🚗 Frota",
-    "🏨 Dormidas",
-    "🛒 Compras",
-    "💰 Faturação",
-    "📊 Orçamentação",
-    "💼 Comercial",
-    "🎯 Qualidade",
-    "📋 Planeamento",
-    "💻 IT",
-    "🛡️ HSE",
-    "📋 Logs Audit"
-])
+        "✅ Validações",
+        "👥 RH",
+        "🏗️ Obras",
+        "🚗 Frota",
+        "🏨 Dormidas",
+        "🛒 Compras",
+        "💰 Faturação",
+        "📊 Orçamentação",
+        "💼 Comercial",
+        "🎯 Qualidade",
+        "📋 Planeamento",
+        "💻 IT",
+        "🛡️ HSE",
+        "📋 Logs Audit"
+    ])
 
     # ========== TAB 0: VALIDAÇÕES ==========
     with tabs[0]:
@@ -186,7 +178,7 @@ def render_admin(*args):
         render_planeamento()
 
     # ========== TAB 11: IT ==========
-    with tabs[11]:  # Ou o número correto conforme a ordem
+    with tabs[11]:
         from mod_admin_it import render_it
         render_it()
 
@@ -205,14 +197,14 @@ def render_admin(*args):
             else:
                 st.info("📋 Sem safety walks registados.")
 
-    
-       # ========== TAB 13: LOGS DE AUDITORIA ==========
+    # ========== TAB 13: LOGS DE AUDITORIA ==========
     with tabs[13]:
         st.markdown("### 📋 Logs de Auditoria - Compliance SGS/ISO", unsafe_allow_html=True)
         
         from core import get_audit_logs
         
-        col_f1, col_f2 = st.columns(2)
+        # Filtros
+        col_f1, col_f2, col_f3 = st.columns(3)
         with col_f1:
             filtro_usuario = st.selectbox(
                 "Filtrar por Utilizador",
@@ -220,11 +212,18 @@ def render_admin(*args):
                 key="log_filt_user"
             )
         with col_f2:
-            limite = st.number_input("Limite de Registos", min_value=10, max_value=1000, value=100, key="log_limite")
+            # ✅ FILTRO PARA CLIENTES
+            apenas_clientes = st.checkbox("👥 Apenas Clientes", key="log_filt_clientes")
+        with col_f3:
+            limite = st.number_input("Limite", min_value=10, max_value=1000, value=100, key="log_limite")
         
+        # Obter logs
         usuario_f = None if filtro_usuario == "Todos" else filtro_usuario
-        
         logs_df = get_audit_logs(filtro_usuario=usuario_f, limite=limite)
+        
+        # ✅ FILTRAR APENAS AÇÕES DE CLIENTES
+        if apenas_clientes and not logs_df.empty:
+            logs_df = logs_df[logs_df['Usuario'].str.contains("CLIENTE:", na=False)]
         
         if not logs_df.empty:
             st.metric("Total Ações", len(logs_df))
