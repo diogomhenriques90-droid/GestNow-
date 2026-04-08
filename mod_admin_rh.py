@@ -69,8 +69,11 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                 nome = st.text_input("Nome Completo", key="rh_nome")
                 email = st.text_input("Email", key="rh_email")
                 telefone = st.text_input("Telefone", key="rh_tel")
-                tipo = st.selectbox("Tipo", ["Técnico", "Chefe de Equipa", "Admin", "Comercial"], key="rh_tipo")
-                cargo = st.selectbox("Cargo", ["Instrumentista", "Técnico de Campo", "Chefe de Equipa", "Engenheiro"], key="rh_cargo")
+                
+                # ✅ ADICIONADO "Cliente" COMO TIPO
+                tipo = st.selectbox("Tipo", ["Técnico", "Chefe de Equipa", "Admin", "Comercial", "Cliente"], key="rh_tipo")
+                
+                cargo = st.selectbox("Cargo", ["Instrumentista", "Técnico de Campo", "Chefe de Equipa", "Engenheiro", "Gestor de Projeto"], key="rh_cargo")
                 nif = st.text_input("NIF", key="rh_nif")
                 morada = st.text_input("Morada Completa", key="rh_morada")
                 local = st.checkbox("É Local? (Não precisa dormida)", key="rh_local")
