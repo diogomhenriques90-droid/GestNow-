@@ -1,6 +1,6 @@
 """
 GESTNOW v3 — mod_instrumentacao.py
-Módulo de Instrumentação Industrial com IA Vision + Assinatura Digital + Modo Offline
+Módulo de Instrumentação Industrial com IA Vision + Assinatura Digital + QR Code + Modo Offline
 ITR-A (Calibração), ITR-B (Instalação), Handover Digital
 """
 import streamlit as st
@@ -17,7 +17,8 @@ try:
         process_and_compress_image, ICONS, COLORS, log_audit, criar_notificacao,
         gerar_hash_assinatura, render_signature_pad, validar_assinatura,
         render_connection_indicator, render_offline_banner, sync_data_when_online,
-        save_to_local_cache, add_action_to_queue, check_connection_status
+        save_to_local_cache, add_action_to_queue, check_connection_status,
+        gerar_qr_code_data, parse_qr_code_data, render_qr_code_image, render_camera_scanner
     )
 except ImportError as e:
     st.error(f"Erro ao importar do core.py: {e}")
@@ -82,15 +83,12 @@ def _save_inst(insts_df, obra_key, tabela_tipo="index"):
             if c not in insts_df.columns:
                 insts_df[c] = ""
         
-        # Verificar conexão
         if check_connection_status():
-            # Online - guarda diretamente
             result = save_db(insts_df[cols].fillna(""), filename)
             if result:
                 st.success("✅ Dados guardados!")
             return result
         else:
-            # Offline - guarda em cache local e adiciona à fila
             save_to_local_cache(filename, insts_df[cols])
             add_action_to_queue(
                 acao="SAVE_DB",
@@ -276,7 +274,10 @@ def render_instrumentacao(*args):
     bom = load_db(f"inst_{o_key}_bom.csv", ["HookupID","Item","Descricao","Quantidade","Unidade"])
     packing = load_db(f"inst_{o_key}_packing.csv", ["ID","Tag","Descricao","QtdEsperada","QtdRecebida","Estado"])
 
-    t_conv, t_idx, t_itra, t_itrb, t_hand = st.tabs(["🤖 IA Vision", "📋 Index", "🔬 ITR-A", "🏗️ ITR-B & GPS", "📄 Handover"])
+    # ✅ TABS ATUALIZADAS COM SCAN QR
+    t_conv, t_idx, t_scan, t_itra, t_itrb, t_hand = st.tabs([
+        "🤖 IA Vision", "📋 Index", "📱 Scan QR", "🔬 ITR-A", "🏗️ ITR-B & GPS", "📄 Handover"
+    ])
 
     # --- TAB IA VISION ---
     with t_conv:
@@ -296,20 +297,48 @@ def render_instrumentacao(*args):
                         st.info("Gravação em desenvolvimento...")
                         st.balloons()
 
-    # --- TAB INDEX ---
+    # --- TAB INDEX (COM QR CODE) ---
     with t_idx:
-        st.markdown("### 📋 Index de Instrumentos")
+        st.markdown("### 📋 Index de Instrumentos", unsafe_allow_html=True)
         if not insts.empty:
             col_f1, col_f2 = st.columns(2)
             with col_f1:
-                filtro_tipo = st.multiselect("Tipo", insts['Tipo'].unique(), default=[])
+                filtro_tipo = st.multiselect("Tipo", insts['Tipo'].unique(), default=[], key="idx_filt_tipo")
             with col_f2:
-                filtro_status = st.multiselect("Status", [v[0] for v in STATUS_INST.values()], default=[])
+                filtro_status = st.multiselect("Status", [v[0] for v in STATUS_INST.values()], default=[], key="idx_filt_status")
+            
             df_f = insts.copy()
-            if filtro_tipo: df_f = df_f[df_f['Tipo'].isin(filtro_tipo)]
-            if filtro_status: df_f = df_f[df_f['Status'].isin([k for k,v in STATUS_INST.items() if v[0] in filtro_status])]
-            edited = st.data_editor(df_f, use_container_width=True, num_rows="dynamic")
-            if st.button("💾 Guardar Alterações", use_container_width=True, type="primary"):
+            if filtro_tipo:
+                df_f = df_f[df_f['Tipo'].isin(filtro_tipo)]
+            if filtro_status:
+                df_f = df_f[df_f['Status'].isin([k for k,v in STATUS_INST.items() if v[0] in filtro_status])]
+            
+            edited = st.data_editor(df_f, use_container_width=True, num_rows="dynamic", key="idx_editor")
+            
+            # ✅ QR CODE VIEWER
+            if 'Tag' in edited.columns and not edited.empty:
+                st.divider()
+                st.markdown("### 🔍 Visualizar QR Code", unsafe_allow_html=True)
+                tag_qr_sel = st.selectbox("Selecionar Tag para ver QR:", [""] + edited['Tag'].tolist(), key="qr_view_sel")
+                if tag_qr_sel:
+                    row_data = edited[edited['Tag'] == tag_qr_sel].iloc[0]
+                    qr_data = gerar_qr_code_data(tag_qr_sel, obra_sel, row_data.get('Tipo', 'XX'))
+                    
+                    col_qr1, col_qr2 = st.columns([1, 2])
+                    with col_qr1:
+                        st.image(render_qr_code_image(qr_data['short'], size=150), caption=f"QR: {tag_qr_sel}")
+                    with col_qr2:
+                        st.markdown(f"""
+                        <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:10px;">
+                            <p><strong>Tag:</strong> {tag_qr_sel}</p>
+                            <p><strong>Obra:</strong> {obra_sel}</p>
+                            <p><strong>Tipo:</strong> {row_data.get('Tipo', 'N/A')}</p>
+                            <p><strong>Status:</strong> {row_data.get('Status', 'N/A')}</p>
+                            <p style="font-family:monospace; font-size:0.8rem; color:#64748B;">Dados: {qr_data['short']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+            
+            if st.button("💾 Guardar Alterações", use_container_width=True, type="primary", key="idx_save"):
                 for _, row in edited.iterrows():
                     log_audit(usuario=st.session_state.user, acao="EDITAR_INSTRUMENTO", tabela=f"inst_{o_key}_index.csv", registro_id=row.get('Tag', ''), detalhes=f"Editado: {row.get('Tag')} - Status: {row.get('Status')}", ip="")
                 _save_inst(edited, o_key, "index")
@@ -319,36 +348,105 @@ def render_instrumentacao(*args):
         else:
             st.info("ℹ️ Sem instrumentos. Use IA Vision para extrair tags.")
 
+    # --- TAB SCAN QR (NOVA) ---
+    with t_scan:
+        st.markdown("### 📱 Scan QR Code de Instrumento", unsafe_allow_html=True)
+        
+        qr_result = render_camera_scanner("Ler QR Code do Instrumento", "inst_scan")
+        
+        if qr_result:
+            qr_parsed = parse_qr_code_data(qr_result)
+            
+            if qr_parsed:
+                tag_scan = qr_parsed.get('tag')
+                obra_scan = qr_parsed.get('obra', obra_sel)
+                
+                st.success(f"✅ QR Code lido: **{tag_scan}**")
+                
+                if not insts.empty and 'Tag' in insts.columns:
+                    inst_found = insts[insts['Tag'] == tag_scan]
+                    
+                    if not inst_found.empty:
+                        inst = inst_found.iloc[0]
+                        
+                        st.markdown(f"""
+                        <div style="background:rgba(59,130,246,0.1); border:2px solid rgba(59,130,246,0.3); border-radius:15px; padding:20px; margin-bottom:20px;">
+                            <h3 style="margin:0 0 15px 0; color:#60A5FA;">🔧 {tag_scan}</h3>
+                            <p><strong>Tipo:</strong> {inst.get('Tipo', 'N/A')}</p>
+                            <p><strong>Descrição:</strong> {inst.get('Descricao', 'N/A')}</p>
+                            <p><strong>Status:</strong> {STATUS_INST.get(inst.get('Status', '0'), ('Desconhecido', '', '❓'))[0]}</p>
+                            <p><strong>Obra:</strong> {obra_scan}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        status = inst.get('Status', '0')
+                        
+                        if status == '1':
+                            st.info("🔬 Este instrumento está pronto para calibração.")
+                            if st.button("🔬 Ir para Calibração (ITR-A)", use_container_width=True, type="primary", key="btn_goto_itra"):
+                                st.session_state['qr_tag_selected'] = tag_scan
+                                st.rerun()
+                        elif status == '2':
+                            st.info("🏗️ Este instrumento está calibrado e pronto para instalação.")
+                            if st.button("🏗️ Ir para Instalação (ITR-B)", use_container_width=True, type="primary", key="btn_goto_itrb"):
+                                st.session_state['qr_tag_selected'] = tag_scan
+                                st.rerun()
+                        elif status in ['3', '4']:
+                            st.success("✅ Instrumento instalado e concluído.")
+                            if st.button("📄 Ver Certificado", use_container_width=True, key="btn_view_cert"):
+                                st.info("📄 Funcionalidade em desenvolvimento.")
+                        else:
+                            st.warning(f"⏳ Instrumento em status: {STATUS_INST.get(status, ('Pendente', '', '⏳'))[0]}")
+                    else:
+                        st.warning(f"⚠️ Instrumento {tag_scan} não encontrado na base de dados desta obra.")
+                else:
+                    st.info("ℹ️ Sem instrumentos carregados para esta obra.")
+            else:
+                st.error("❌ QR Code inválido ou não reconhecido.")
+        else:
+            st.info("📱 Aguardando leitura de QR Code...")
+            with st.expander("ℹ️ Formato esperado do QR Code"):
+                st.markdown("""
+                **Formato curto:** `GN|PT-101|Obra_Exemplo`
+                
+                **Formato JSON:** `{"tag":"PT-101","obra":"Obra Exemplo","app":"GESTNOW"}`
+                """)
+
     # --- TAB ITR-A: CALIBRAÇÃO COM ASSINATURA DIGITAL ---
     with t_itra:
-        st.markdown("### 🔬 Calibração ITR-A (5 pontos) + ✍️ Assinatura Digital")
+        st.markdown("### 🔬 Calibração ITR-A (5 pontos) + ✍️ Assinatura Digital", unsafe_allow_html=True)
+        
+        # Suporte para QR Code selecionado
+        tag_default = st.session_state.get('qr_tag_selected', None)
         lista = insts[insts['Status']=='1']['Tag'].tolist() if not insts.empty else []
-        tag_c = st.selectbox("Tag para Calibrar", lista)
+        if tag_default and tag_default in lista:
+            lista = [tag_default] + [t for t in lista if t != tag_default]
+        
+        tag_c = st.selectbox("Tag para Calibrar", lista, key="itra_tag_sel")
         
         if tag_c:
             with st.form("form_itra"):
-                st.markdown(f"#### Certificado Rise/Fall: {tag_c}")
+                st.markdown(f"#### Certificado Rise/Fall: {tag_c}", unsafe_allow_html=True)
                 c1, c2, c3 = st.columns(3)
-                r_min = c1.number_input("Range Mín", value=0.0)
-                r_max = c2.number_input("Range Máx", value=100.0)
-                unit = c3.selectbox("Unidade", ["bar", "ºC", "mA", "mm"])
+                r_min = c1.number_input("Range Mín", value=0.0, key="itra_rmin")
+                r_max = c2.number_input("Range Máx", value=100.0, key="itra_rmax")
+                unit = c3.selectbox("Unidade", ["bar", "ºC", "mA", "mm"], key="itra_unit")
                 
                 st.divider()
                 pts = [0, 25, 50, 75, 100]
                 rise, fall = {}, {}
-                st.markdown("**Tabela de Leituras (Lido vs Teórico)**")
+                st.markdown("**Tabela de Leituras (Lido vs Teórico)**", unsafe_allow_html=True)
                 for p in pts:
                     row = st.columns([1, 2, 2])
                     theo = r_min + (r_max - r_min) * (p/100)
                     row[0].write(f"**{p}%** ({theo:.2f} {unit})")
-                    rise[p] = row[1].number_input(f"R{p}", value=theo, label_visibility="collapsed")
-                    fall[p] = row[2].number_input(f"F{p}", value=theo, label_visibility="collapsed")
+                    rise[p] = row[1].number_input(f"R{p}", value=theo, label_visibility="collapsed", key=f"itra_r{p}")
+                    fall[p] = row[2].number_input(f"F{p}", value=theo, label_visibility="collapsed", key=f"itra_f{p}")
                 
                 st.divider()
-                # ✍️ ASSINATURA DIGITAL
                 assinatura = render_signature_pad("Assinatura do Técnico Calibrador", f"sig_{tag_c}")
                 
-                if st.form_submit_button("💾 Gerar Certificado com Assinatura", use_container_width=True, type="primary"):
+                if st.form_submit_button("💾 Gerar Certificado com Assinatura", use_container_width=True, type="primary", key="btn_itra_submit"):
                     if not assinatura:
                         st.warning("⚠️ Por favor, assine para validar o certificado.")
                     else:
@@ -356,20 +454,16 @@ def render_instrumentacao(*args):
                         err = max([abs(rise[p] - (r_min + (r_max - r_min) * (p/100))) for p in pts])
                         hash_val = gerar_hash_assinatura(st.session_state.user, tag_c, datetime.now().isoformat(), err)
                         
-                        # Atualizar instrumento
                         insts.loc[insts['Tag'] == tag_c, 'Status'] = '2'
                         insts.loc[insts['Tag'] == tag_c, 'Assinatura_Calibracao_b64'] = assinatura
                         insts.loc[insts['Tag'] == tag_c, 'Hash_Validacao'] = hash_val
                         _save_inst(insts, o_key, "index")
                         
-                        # Gerar PDF
                         dados_calib = {"r_min": r_min, "r_max": r_max, "unit": unit, "erro": err, "rise": rise, "fall": fall, "esign_id": esign, "hash": hash_val}
                         pdf_cert = _gerar_certificado_itr_a(tag_c, dados_calib, assinatura, st.session_state.user, obra_sel)
                         
-                        # Log de auditoria
                         log_audit(usuario=st.session_state.user, acao="CALIBRAR_INSTRUMENTO", tabela=f"inst_{o_key}_index.csv", registro_id=tag_c, detalhes=f"Calibração ITR-A: {tag_c} | Erro: {err:.4f} {unit} | Certificado: {esign} | Hash: {hash_val}", ip="")
                         
-                        # 🔔 NOTIFICAR GESTOR SOBRE CALIBRAÇÃO (DENTRO DO BLOCO!)
                         criar_notificacao(
                             destinatario=st.session_state.user,
                             titulo="🔬 Calibração Concluída",
@@ -380,17 +474,22 @@ def render_instrumentacao(*args):
                         
                         st.success(f"✅ Certificado {esign} gerado com assinatura!")
                         if pdf_cert:
-                            st.download_button("📥 Descarregar Certificado PDF", pdf_cert, f"ITR-A_{tag_c}_{esign}.pdf", "application/pdf")
+                            st.download_button("📥 Descarregar Certificado PDF", pdf_cert, f"ITR-A_{tag_c}_{esign}.pdf", "application/pdf", key=f"dl_{esign}")
                         st.rerun()
 
     # --- TAB ITR-B: INSTALAÇÃO + GPS + ASSINATURA ---
     with t_itrb:
-        st.markdown("### 🏗️ Instalação + GPS + ✍️ Assinatura")
+        st.markdown("### 🏗️ Instalação + GPS + ✍️ Assinatura", unsafe_allow_html=True)
+        
+        tag_default = st.session_state.get('qr_tag_selected', None)
         inst_f = insts[insts['Status'] == '2']
+        if tag_default and tag_default in inst_f['Tag'].values:
+            inst_f = pd.concat([inst_f[inst_f['Tag'] == tag_default], inst_f[inst_f['Tag'] != tag_default]])
+        
         if inst_f.empty:
             st.info("ℹ️ Aguardando instrumentos calibrados.")
         else:
-            tag_f = st.selectbox("Localizar Instrumento", inst_f['Tag'].tolist())
+            tag_f = st.selectbox("Localizar Instrumento", inst_f['Tag'].tolist(), key="itrb_tag_sel")
             row_f = inst_f[inst_f['Tag'] == tag_f].iloc[0]
             lat, lon = row_f['GPS_Lat'], row_f['GPS_Lng']
             
@@ -411,14 +510,12 @@ def render_instrumentacao(*args):
                 st.warning("⚠️ GPS não registado.")
 
             st.divider()
-            f_foto = st.camera_input("📸 Foto da Instalação")
-            
-            # ✍️ ASSINATURA PARA INSTALAÇÃO
+            f_foto = st.camera_input("📸 Foto da Instalação", key="itrb_foto")
             assinatura_inst = render_signature_pad("Assinatura do Técnico Instalador", f"sig_inst_{tag_f}")
             
             if f_foto and assinatura_inst:
                 foto_comp = process_and_compress_image(f_foto)
-                if st.button("✅ Registar Instalação com Assinatura", use_container_width=True, type="primary"):
+                if st.button("✅ Registar Instalação com Assinatura", use_container_width=True, type="primary", key="btn_itrb_submit"):
                     insts.loc[insts['Tag'] == tag_f, 'Status'] = '3'
                     if 'Foto_Local_b64' in insts.columns:
                         insts.loc[insts['Tag'] == tag_f, 'Foto_Local_b64'] = foto_comp
@@ -429,7 +526,6 @@ def render_instrumentacao(*args):
                     
                     log_audit(usuario=st.session_state.user, acao="INSTALAR_INSTRUMENTO", tabela=f"inst_{o_key}_index.csv", registro_id=tag_f, detalhes=f"Instalação ITR-B: {tag_f} | GPS: {lat},{lon} | Foto: Sim | Hash: {hash_val}", ip="")
                     
-                    # 🔔 NOTIFICAR GESTOR SOBRE INSTALAÇÃO (DENTRO DO BLOCO!)
                     criar_notificacao(
                         destinatario=st.session_state.user,
                         titulo="🏗️ Instalação Concluída",
@@ -443,21 +539,38 @@ def render_instrumentacao(*args):
             elif f_foto and not assinatura_inst:
                 st.warning("⚠️ Por favor, assine para validar a instalação.")
 
-    # --- TAB HANDOVER ---
+    # --- TAB HANDOVER (COM QR CODE EM LOTE) ---
     with t_hand:
-        st.markdown("### 📄 Handover Digital")
+        st.markdown("### 📄 Handover Digital", unsafe_allow_html=True)
         c_z, c_h = st.columns(2)
+        
         with c_z:
-            if st.button("🖨️ Gerar Etiquetas Zebra (50x30mm)", use_container_width=True, type="secondary"):
-                tags = insts['Tag'].head(20).tolist()
+            if st.button("🖨️ Gerar Etiquetas Zebra (50x30mm)", use_container_width=True, type="secondary", key="btn_zebra"):
+                tags = insts['Tag'].head(20).tolist() if not insts.empty else []
                 pdf_z = _gerar_etiquetas_zebra(tags, obra_sel)
                 log_audit(usuario=st.session_state.user, acao="GERAR_ETIQUETAS_ZEBRA", tabela=f"inst_{o_key}_index.csv", registro_id=f"{len(tags)}_tags", detalhes=f"Geradas {len(tags)} etiquetas Zebra para obra {obra_sel}", ip="")
                 if pdf_z:
-                    st.download_button("📥 Descarregar Etiquetas", pdf_z, f"etiquetas_{obra_sel}.pdf", "application/pdf")
+                    st.download_button("📥 Descarregar Etiquetas", pdf_z, f"etiquetas_{obra_sel}.pdf", "application/pdf", key="dl_zebra")
                 else:
                     st.info("ℹ️ Reportlab não disponível.")
+            
+            # ✅ QR CODES EM LOTE
+            if st.button("📱 Gerar QR Codes para Imprimir", use_container_width=True, type="secondary", key="btn_qr_lote"):
+                tags_qr = insts['Tag'].head(50).tolist() if not insts.empty else []
+                if tags_qr:
+                    st.markdown("### 📱 QR Codes Gerados", unsafe_allow_html=True)
+                    cols = st.columns(5)
+                    for i, tag in enumerate(tags_qr):
+                        tipo = insts[insts['Tag']==tag]['Tipo'].iloc[0] if 'Tipo' in insts.columns and not insts[insts['Tag']==tag].empty else 'XX'
+                        qr_data = gerar_qr_code_data(tag, obra_sel, tipo)
+                        with cols[i % 5]:
+                            st.image(render_qr_code_image(qr_data['short'], size=100), caption=tag)
+                    st.info("💡 Dica: Capture screenshot para guardar as etiquetas QR.")
+                else:
+                    st.info("ℹ️ Sem instrumentos para gerar QR Codes.")
+        
         with c_h:
-            if st.button("📄 Gerar Handover COMPLETO", use_container_width=True, type="primary"):
-                tags = insts[insts['Status'].isin(['3','4'])]['Tag'].tolist()
+            if st.button("📄 Gerar Handover COMPLETO", use_container_width=True, type="primary", key="btn_handover"):
+                tags = insts[insts['Status'].isin(['3','4'])]['Tag'].tolist() if not insts.empty else []
                 log_audit(usuario=st.session_state.user, acao="GERAR_HANDOVER", tabela=f"inst_{o_key}_index.csv", registro_id=obra_sel, detalhes=f"Handover gerado para {len(tags)} instrumentos concluídos", ip="")
                 st.success(f"✅ Dossier pronto para {len(tags)} instrumentos!")
