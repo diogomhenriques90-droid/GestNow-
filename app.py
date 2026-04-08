@@ -82,7 +82,21 @@ if st.session_state.get('user'):
         tem_acesso_inst = (tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or 
                           cargo in ['Chefe de Equipa', 'Encarregado', 'Instrumentista'])
         
-        if tipo == 'Admin':
+        # Verificar se é cliente
+        eh_cliente = (tipo == 'Cliente')
+        
+        if eh_cliente:
+            # MENU CLIENTE
+            menu_item = st.radio(
+                "Navegação",
+                [f"{ICONS['dashboard']} Portal", 
+                 f"{ICONS['logout']} Logout"],
+                label_visibility="collapsed"
+            )
+            st.session_state.menu_selected = menu_item
+            
+        elif tipo == 'Admin':
+            # MENU ADMIN
             menu_item = st.radio(
                 "Navegação",
                 [f"{ICONS['dashboard']} Dashboard", 
@@ -94,6 +108,7 @@ if st.session_state.get('user'):
             st.session_state.menu_selected = menu_item
             
         elif tem_acesso_inst:
+            # MENU TÉCNICO/CHEFE
             menu_item = st.radio(
                 "Navegação",
                 [f"{ICONS['technician']} Obra", 
@@ -105,6 +120,7 @@ if st.session_state.get('user'):
             st.session_state.menu_selected = menu_item
             
         else:
+            # MENU BÁSICO
             menu_item = st.radio(
                 "Navegação",
                 [f"{ICONS['technician']} Obra", 
@@ -158,11 +174,28 @@ else:
     tem_acesso_inst = (tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or 
                       cargo in ['Chefe de Equipa', 'Encarregado', 'Instrumentista'])
     
+    # Verificar se é cliente
+    eh_cliente = (tipo == 'Cliente')
+    
     # =============================================================================
     # ROUTING POR PERFIL
     # =============================================================================
     
-    if tipo == 'Admin':
+    if eh_cliente:
+        # =============================================================================
+        # MODO CLIENTE - PORTAL
+        # =============================================================================
+        menu = st.session_state.get('menu_selected', f"{ICONS['dashboard']} Portal")
+        
+        if f"{ICONS['dashboard']} Portal" in menu:
+            st.markdown(f"# {ICONS['dashboard']} Portal do Cliente")
+            from mod_cliente import render_cliente_portal
+            render_cliente_portal()
+        else:
+            st.session_state.clear()
+            st.rerun()
+    
+    elif tipo == 'Admin':
         # =============================================================================
         # MODO ADMIN
         # =============================================================================
