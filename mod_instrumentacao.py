@@ -14,7 +14,7 @@ import fitz  # PyMuPDF
 try:
     from core import (
         load_db, save_db, inv, fh, render_metric,
-        process_and_compress_image, ICONS, COLORS
+        process_and_compress_image, ICONS, COLORS, log_audit
     )
 except ImportError as e:
     st.error(f"Erro ao importar do core.py: {e}")
@@ -75,7 +75,6 @@ def _save_inst(insts_df, obra_key, tabela_tipo="index"):
             "packing": ["ID", "Tag", "Descricao", "QtdEsperada", "QtdRecebida", "Estado"]
         }
         cols = expected_cols.get(tabela_tipo, list(insts_df.columns))
-        # Garantir que todas as colunas existem
         for c in cols:
             if c not in insts_df.columns:
                 insts_df[c] = ""
@@ -99,12 +98,10 @@ def _gerar_etiquetas_zebra(tags, obra_sel):
         buf = io.BytesIO()
         c = canvas.Canvas(buf, pagesize=(50*mm, 30*mm))
         for tag in tags:
-            # Texto da etiqueta
             c.setFont("Helvetica-Bold", 8)
             c.drawString(2*mm, 25*mm, f"GESTNOW | {tag}")
             c.setFont("Helvetica", 6)
             c.drawString(2*mm, 20*mm, f"{obra_sel}")
-            # QR Code simples (placeholder - substituir por biblioteca QR)
             c.rect(20*mm, 5*mm, 20*mm, 20*mm)
             c.drawString(21*mm, 14*mm, "QR")
             c.showPage()
@@ -128,8 +125,6 @@ def _processar_ia_vision(file, modo):
         client = anthropic.Anthropic(api_key=api_key)
         pdf_bytes = file.read()
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        
-        # 3x Zoom para leitura de tags minúsculas
         imgs = [base64.b64encode(p.get_pixmap(matrix=fitz.Matrix(3,3)).tobytes("png")).decode() for p in doc]
         
         prompts = {
@@ -230,6 +225,15 @@ def render_instrumentacao(*args):
                     k = list(res.keys())[0]
                     edited = st.data_editor(pd.DataFrame(res[k]), use_container_width=True, num_rows="dynamic")
                     if st.button("✅ Confirmar e Gravar", use_container_width=True, type="primary"):
+                        # Log de auditoria para IA Vision
+                        log_audit(
+                            usuario=st.session_state.user,
+                            acao="IA_VISION_EXTRACAO",
+                            tabela=f"inst_{o_key}_index.csv",
+                            registro_id=c_mode,
+                            detalhes=f"Extração via IA: {c_mode} para obra {obra_sel}",
+                            ip=""
+                        )
                         st.info("Gravação em desenvolvimento...")
                         st.balloons()
 
@@ -249,8 +253,19 @@ def render_instrumentacao(*args):
             
             edited = st.data_editor(df_f, use_container_width=True, num_rows="dynamic")
             if st.button("💾 Guardar Alterações", use_container_width=True, type="primary"):
+                # Log de auditoria para edição em massa
+                for _, row in edited.iterrows():
+                    log_audit(
+                        usuario=st.session_state.user,
+                        acao="EDITAR_INSTRUMENTO",
+                        tabela=f"inst_{o_key}_index.csv",
+                        registro_id=row.get('Tag', ''),
+                        detalhes=f"Editado: {row.get('Tag')} - Status: {row.get('Status')}",
+                        ip=""
+                    )
                 _save_inst(edited, o_key, "index")
                 inv()
+                st.success("✅ Alterações guardadas!")
                 st.rerun()
         else:
             st.info("ℹ️ Sem instrumentos. Use IA Vision para extrair tags.")
@@ -284,10 +299,21 @@ def render_instrumentacao(*args):
                     err = max([abs(rise[p] - (r_min + (r_max - r_min) * (p/100))) for p in pts])
                     insts.loc[insts['Tag'] == tag_c, 'Status'] = '2'
                     _save_inst(insts, o_key, "index")
-                    st.success(f"✅ Certificado {esign} | Erro máx: {err:.4f}")
+                    
+                    # ✅ LOG DE AUDITORIA - CALIBRAÇÃO
+                    log_audit(
+                        usuario=st.session_state.user,
+                        acao="CALIBRAR_INSTRUMENTO",
+                        tabela=f"inst_{o_key}_index.csv",
+                        registro_id=tag_c,
+                        detalhes=f"Calibração ITR-A: {tag_c} | Erro máx: {err:.4f} {unit} | Certificado: {esign}",
+                        ip=""
+                    )
+                    
+                    st.success(f"✅ Certificado {esign} | Erro máx: {err:.4f} {unit}")
                     st.rerun()
 
-    # --- TAB ITR-B: INSTALAÇÃO + GOOGLE MAPS (RESTAURADO!) ---
+    # --- TAB ITR-B: INSTALAÇÃO + GOOGLE MAPS ---
     with t_itrb:
         st.markdown("### 🏗️ Instalação + GPS")
         inst_f = insts[insts['Status'] == '2']
@@ -298,7 +324,6 @@ def render_instrumentacao(*args):
             row_f = inst_f[inst_f['Tag'] == tag_f].iloc[0]
             lat, lon = row_f['GPS_Lat'], row_f['GPS_Lng']
             
-            # ✅ GOOGLE MAPS LINK - RESTAURADO!
             if lat and str(lat) != "" and str(lat) != "nan":
                 nav_url = f"https://www.google.com/maps/dir/?api=1&destination={lat},{lon}&travelmode=walking"
                 st.markdown(f"""
@@ -321,31 +346,60 @@ def render_instrumentacao(*args):
                 foto_comp = process_and_compress_image(f_foto)
                 if st.button("✅ Registar Instalação", use_container_width=True, type="primary"):
                     insts.loc[insts['Tag'] == tag_f, 'Status'] = '3'
-                    # ✅ GUARDAR FOTO COMPROMIDA - RESTAURADO!
                     if 'Foto_Local_b64' in insts.columns:
                         insts.loc[insts['Tag'] == tag_f, 'Foto_Local_b64'] = foto_comp
                     _save_inst(insts, o_key, "index")
+                    
+                    # ✅ LOG DE AUDITORIA - INSTALAÇÃO
+                    log_audit(
+                        usuario=st.session_state.user,
+                        acao="INSTALAR_INSTRUMENTO",
+                        tabela=f"inst_{o_key}_index.csv",
+                        registro_id=tag_f,
+                        detalhes=f"Instalação ITR-B: {tag_f} | GPS: {lat},{lon} | Foto: {'Sim' if foto_comp else 'Não'}",
+                        ip=""
+                    )
+                    
                     st.success("✅ Instalação registada com foto!")
                     st.rerun()
 
-    # --- TAB HANDOVER: ZEBRA + DOSSIER (RESTAURADO!) ---
+    # --- TAB HANDOVER: ZEBRA + DOSSIER ---
     with t_hand:
         st.markdown("### 📄 Handover Digital")
         c_z, c_h = st.columns(2)
         
         with c_z:
-            # ✅ ETIQUETAS ZEBRA - RESTAURADO!
             if st.button("🖨️ Gerar Etiquetas Zebra (50x30mm)", use_container_width=True, type="secondary"):
                 tags = insts['Tag'].head(20).tolist()
                 pdf_z = _gerar_etiquetas_zebra(tags, obra_sel)
+                
+                # ✅ LOG DE AUDITORIA - ETIQUETAS
+                log_audit(
+                    usuario=st.session_state.user,
+                    acao="GERAR_ETIQUETAS_ZEBRA",
+                    tabela=f"inst_{o_key}_index.csv",
+                    registro_id=f"{len(tags)}_tags",
+                    detalhes=f"Geradas {len(tags)} etiquetas Zebra para obra {obra_sel}",
+                    ip=""
+                )
+                
                 if pdf_z:
                     st.download_button("📥 Descarregar Etiquetas", pdf_z, f"etiquetas_{obra_sel}.pdf", "application/pdf")
                 else:
                     st.info("ℹ️ Reportlab não disponível ou a processar...")
         
         with c_h:
-            # ✅ HANDOVER DOSSIER - RESTAURADO!
             if st.button("📄 Gerar Handover COMPLETO", use_container_width=True, type="primary"):
                 tags = insts[insts['Status'].isin(['3','4'])]['Tag'].tolist()
+                
+                # ✅ LOG DE AUDITORIA - HANDOVER
+                log_audit(
+                    usuario=st.session_state.user,
+                    acao="GERAR_HANDOVER",
+                    tabela=f"inst_{o_key}_index.csv",
+                    registro_id=obra_sel,
+                    detalhes=f"Handover gerado para {len(tags)} instrumentos concluídos",
+                    ip=""
+                )
+                
                 st.success(f"✅ Dossier pronto para {len(tags)} instrumentos!")
-                # Aqui integrarias a geração real do PDF consolidado
