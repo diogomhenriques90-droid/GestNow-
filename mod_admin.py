@@ -33,6 +33,55 @@ def render_admin(*args):
     </div>
     """, unsafe_allow_html=True)
 
+        # 🔔 CENTRO DE NOTIFICAÇÕES
+    from core import get_notificacoes, marcar_notificacao_lida, contar_notificacoes_nao_lidas
+    
+    user = st.session_state.user
+    notifs_nao_lidas = contar_notificacoes_nao_lidas(user)
+    
+    # Ícone de sino com contador
+    col_notif1, col_notif2 = st.columns([10, 1])
+    with col_notif2:
+        if notifs_nao_lidas > 0:
+            st.markdown(f"""
+            <div style="text-align:right;">
+                <span style="font-size:1.5rem;">🔔</span>
+                <span style="background:#EF4444; color:white; border-radius:50%; padding:2px 8px; font-size:0.8rem; margin-left:-10px;">{notifs_nao_lidas}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("<div style='text-align:right;'><span style='font-size:1.5rem; opacity:0.5;'>🔔</span></div>", unsafe_allow_html=True)
+    
+    # Expander para ver notificações
+    with st.expander("🔔 Ver Notificações", expanded=notifs_nao_lidas > 0):
+        notifs_df = get_notificacoes(user, apenas_nao_lidas=True, limite=20)
+        
+        if not notifs_df.empty:
+            for _, notif in notifs_df.iterrows():
+                cor_tipo = {"info":"#3B82F6", "warning":"#F59E0B", "error":"#EF4444", "success":"#10B981"}.get(notif['Tipo'], "#6B7280")
+                st.markdown(f"""
+                <div style="background:{cor_tipo}22; border-left:4px solid {cor_tipo}; padding:15px; border-radius:8px; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <strong style="color:{cor_tipo};">{notif['Titulo']}</strong>
+                            <p style="margin:5px 0 0 0; color:#94A3B8;">{notif['Mensagem']}</p>
+                            <small style="color:#6B7280;">{notif['Data']} {notif['Hora']}</small>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Botão para marcar todas como lidas
+            if st.button("✅ Marcar Todas como Lidas", key="marcar_lidas"):
+                for _, notif in notifs_df.iterrows():
+                    marcar_notificacao_lida(notif['ID'])
+                inv()
+                st.rerun()
+        else:
+            st.info("✅ Sem notificações pendentes.")
+    
+    st.divider()
+
     # DASHBOARD MÉTRICAS GERAIS
     st.markdown("### 📊 Visão Geral", unsafe_allow_html=True)
     c1, c2, c3, c4, c5, c6 = st.columns(6)
