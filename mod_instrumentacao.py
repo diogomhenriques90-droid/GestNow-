@@ -1,6 +1,6 @@
 """
 GESTNOW v3 — mod_instrumentacao.py
-Módulo de Instrumentação Industrial com IA Vision + Assinatura Digital
+Módulo de Instrumentação Industrial com IA Vision + Assinatura Digital + Modo Offline
 ITR-A (Calibração), ITR-B (Instalação), Handover Digital
 """
 import streamlit as st
@@ -9,14 +9,15 @@ import io, re, json, base64, uuid, secrets, logging, hashlib
 from datetime import datetime, date
 import anthropic
 import fitz  # PyMuPDF
-from core import log_audit, criar_notificacao
 
 # Importações do core.py
 try:
     from core import (
         load_db, save_db, inv, fh, render_metric,
-        process_and_compress_image, ICONS, COLORS, log_audit,
-        gerar_hash_assinatura, render_signature_pad, validar_assinatura
+        process_and_compress_image, ICONS, COLORS, log_audit, criar_notificacao,
+        gerar_hash_assinatura, render_signature_pad, validar_assinatura,
+        render_connection_indicator, render_offline_banner, sync_data_when_online,
+        save_to_local_cache, add_action_to_queue, check_connection_status
     )
 except ImportError as e:
     st.error(f"Erro ao importar do core.py: {e}")
@@ -64,9 +65,10 @@ STATUS_INST = {
 }
 
 # =============================================================================
-# ✅ FUNÇÃO: _save_inst
+# ✅ FUNÇÃO: _save_inst (COM SUPORTE OFFLINE)
 # =============================================================================
 def _save_inst(insts_df, obra_key, tabela_tipo="index"):
+    """Guarda dados de instrumentos com suporte offline"""
     try:
         filename = f"inst_{obra_key}_{tabela_tipo}.csv"
         expected_cols = {
@@ -79,10 +81,25 @@ def _save_inst(insts_df, obra_key, tabela_tipo="index"):
         for c in cols:
             if c not in insts_df.columns:
                 insts_df[c] = ""
-        result = save_db(insts_df[cols].fillna(""), filename)
-        if result:
-            st.success("✅ Dados guardados!")
-        return result
+        
+        # Verificar conexão
+        if check_connection_status():
+            # Online - guarda diretamente
+            result = save_db(insts_df[cols].fillna(""), filename)
+            if result:
+                st.success("✅ Dados guardados!")
+            return result
+        else:
+            # Offline - guarda em cache local e adiciona à fila
+            save_to_local_cache(filename, insts_df[cols])
+            add_action_to_queue(
+                acao="SAVE_DB",
+                dados={"filename": filename, "data": insts_df[cols].to_dict()},
+                usuario=st.session_state.user
+            )
+            st.warning("⚠️ Offline - Dados guardados localmente. Sincronizará quando voltar online.")
+            return True
+            
     except Exception as e:
         logger.error(f"Erro em _save_inst: {e}")
         st.error(f"❌ Erro ao guardar: {e}")
@@ -92,6 +109,7 @@ def _save_inst(insts_df, obra_key, tabela_tipo="index"):
 # ✅ FUNÇÃO: _gerar_etiquetas_zebra
 # =============================================================================
 def _gerar_etiquetas_zebra(tags, obra_sel):
+    """Gera PDF de etiquetas térmicas 50x30mm para impressora Zebra"""
     if not REPORTLAB_AVAILABLE:
         return None
     try:
@@ -124,13 +142,11 @@ def _gerar_certificado_itr_a(tag, dados_calibracao, assinatura_b64, usuario, obr
         elements = []
         styles = getSampleStyleSheet()
         
-        # Cabeçalho
         elements.append(Paragraph(f"<b>CERTIFICADO DE CALIBRAÇÃO ITR-A</b>", styles['Title']))
         elements.append(Paragraph(f"Obra: {obra_sel} | Tag: {tag}", styles['Normal']))
         elements.append(Paragraph(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
         elements.append(Spacer(1, 1*cm))
         
-        # Dados da calibração
         elements.append(Paragraph("<b>Dados Técnicos</b>", styles['Heading2']))
         data_calib = [
             ["Parâmetro", "Valor"],
@@ -145,7 +161,6 @@ def _gerar_certificado_itr_a(tag, dados_calibracao, assinatura_b64, usuario, obr
         elements.append(t_calib)
         elements.append(Spacer(1, 1*cm))
         
-        # Tabela Rise/Fall
         elements.append(Paragraph("<b>Leituras Rise/Fall (5 pontos)</b>", styles['Heading2']))
         dados_tabela = [["Ponto %", "Teórico", "Subida", "Descida", "Desvio"]]
         for p in [0, 25, 50, 75, 100]:
@@ -159,18 +174,15 @@ def _gerar_certificado_itr_a(tag, dados_calibracao, assinatura_b64, usuario, obr
         elements.append(t_leituras)
         elements.append(Spacer(1, 2*cm))
         
-        # Assinatura
         elements.append(Paragraph("<b>Assinatura do Técnico</b>", styles['Heading2']))
         if assinatura_b64:
             elements.append(Paragraph(f"<i>Assinado digitalmente por: {usuario}</i>", styles['Normal']))
             elements.append(Paragraph(f"<i>Hash: {dados_calibracao['hash']}</i>", styles['Normal']))
-            # Placeholder para imagem da assinatura (implementar com st-canvas no futuro)
             elements.append(Spacer(1, 1*cm))
             elements.append(Paragraph("✍️ __________________________", styles['Normal']))
         else:
             elements.append(Paragraph("<i style='color:red;'>⚠️ Assinatura não capturada</i>", styles['Normal']))
         
-        # Rodapé
         elements.append(Spacer(1, 2*cm))
         elements.append(Paragraph(f"<i>Documento gerado por GESTNOW v3 | Compliance SGS/ISO 9001</i>", styles['Normal']))
         
@@ -184,6 +196,7 @@ def _gerar_certificado_itr_a(tag, dados_calibracao, assinatura_b64, usuario, obr
 # 🤖 MOTOR DE IA VISION
 # =============================================================================
 def _processar_ia_vision(file, modo):
+    """Motor de Visão de Alta Resolução para Documentos Técnicos"""
     try:
         api_key = st.secrets.get("ANTHROPIC_API_KEY", "")
         if not api_key:
@@ -213,6 +226,7 @@ def _processar_ia_vision(file, modo):
 # ✅ VALIDAÇÃO DE MATERIAL
 # =============================================================================
 def _validar_material_tag(tag, packing_df, hookups_df, bom_df):
+    """Verifica se o material necessário para a tag já foi recebido"""
     try:
         tipo = re.sub(r'[0-9]', '', tag.split('-')[0])[:3]
         h_tipo = hookups_df[hookups_df['Tipo_Tag'] == tipo]
@@ -232,8 +246,14 @@ def _validar_material_tag(tag, packing_df, hookups_df, bom_df):
 # 🎯 INTERFACE PRINCIPAL
 # =============================================================================
 def render_instrumentacao(*args):
+    """Render principal do módulo de instrumentação"""
     (users, obras_db, frentes_db, registos_db, fats, docs, incs, sw, obs, equip,
      diags, diags_u, folhas, comuns, comuns_u, req_fer, req_mat, req_epi, avals, inst_acessos) = args
+    
+    # 📴 MODO OFFLINE - INDICADORES
+    render_connection_indicator()
+    render_offline_banner()
+    sync_data_when_online()
     
     st.markdown(f"""
     <div style="text-align:center; padding:30px 20px; background:linear-gradient(135deg, #1E293B, #0F172A); border-radius:20px; margin-bottom:30px;">
@@ -349,19 +369,19 @@ def render_instrumentacao(*args):
                         # Log de auditoria
                         log_audit(usuario=st.session_state.user, acao="CALIBRAR_INSTRUMENTO", tabela=f"inst_{o_key}_index.csv", registro_id=tag_c, detalhes=f"Calibração ITR-A: {tag_c} | Erro: {err:.4f} {unit} | Certificado: {esign} | Hash: {hash_val}", ip="")
                         
+                        # 🔔 NOTIFICAR GESTOR SOBRE CALIBRAÇÃO (DENTRO DO BLOCO!)
+                        criar_notificacao(
+                            destinatario=st.session_state.user,
+                            titulo="🔬 Calibração Concluída",
+                            mensagem=f"{tag_c} calibrado com erro máx de {err:.4f} {unit}",
+                            tipo="success",
+                            acao_url="/instrumentacao?tab=itra"
+                        )
+                        
                         st.success(f"✅ Certificado {esign} gerado com assinatura!")
                         if pdf_cert:
                             st.download_button("📥 Descarregar Certificado PDF", pdf_cert, f"ITR-A_{tag_c}_{esign}.pdf", "application/pdf")
                         st.rerun()
-
-    # 🔔 NOTIFICAR GESTOR SOBRE CALIBRAÇÃO
-criar_notificacao(
-    destinatario=st.session_state.user,
-    titulo="🔬 Calibração Concluída",
-    mensagem=f"{tag_c} calibrado com erro máx de {err:.4f} {unit}",
-    tipo="success",
-    acao_url="/instrumentacao?tab=itra"
-)
 
     # --- TAB ITR-B: INSTALAÇÃO + GPS + ASSINATURA ---
     with t_itrb:
@@ -409,20 +429,19 @@ criar_notificacao(
                     
                     log_audit(usuario=st.session_state.user, acao="INSTALAR_INSTRUMENTO", tabela=f"inst_{o_key}_index.csv", registro_id=tag_f, detalhes=f"Instalação ITR-B: {tag_f} | GPS: {lat},{lon} | Foto: Sim | Hash: {hash_val}", ip="")
                     
+                    # 🔔 NOTIFICAR GESTOR SOBRE INSTALAÇÃO (DENTRO DO BLOCO!)
+                    criar_notificacao(
+                        destinatario=st.session_state.user,
+                        titulo="🏗️ Instalação Concluída",
+                        mensagem=f"{tag_f} instalado com GPS e foto",
+                        tipo="success",
+                        acao_url="/instrumentacao?tab=itrb"
+                    )
+                    
                     st.success("✅ Instalação registada com foto e assinatura!")
                     st.rerun()
             elif f_foto and not assinatura_inst:
                 st.warning("⚠️ Por favor, assine para validar a instalação.")
-
-
-    # 🔔 NOTIFICAR GESTOR SOBRE INSTALAÇÃO
-criar_notificacao(
-    destinatario=st.session_state.user,
-    titulo="🏗️ Instalação Concluída",
-    mensagem=f"{tag_f} instalado com GPS e foto",
-    tipo="success",
-    acao_url="/instrumentacao?tab=itrb"
-)
 
     # --- TAB HANDOVER ---
     with t_hand:
@@ -442,4 +461,3 @@ criar_notificacao(
                 tags = insts[insts['Status'].isin(['3','4'])]['Tag'].tolist()
                 log_audit(usuario=st.session_state.user, acao="GERAR_HANDOVER", tabela=f"inst_{o_key}_index.csv", registro_id=obra_sel, detalhes=f"Handover gerado para {len(tags)} instrumentos concluídos", ip="")
                 st.success(f"✅ Dossier pronto para {len(tags)} instrumentos!")
-            
