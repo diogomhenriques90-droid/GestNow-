@@ -1,11 +1,11 @@
 """
 GESTNOW v3 — mod_cliente.py
-Portal do Cliente - Visualização de Projetos e Aprovações
+Portal do Cliente - Visualização de Projetos, Aprovações e QR Codes
 """
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from core import load_db, save_db, inv, log_audit, criar_notificacao
+from core import load_db, save_db, inv, log_audit, criar_notificacao, gerar_qr_code_data, parse_qr_code_data, render_qr_code_image
 
 def render_cliente_portal():
     """Portal do Cliente para visualização e aprovação de projetos"""
@@ -27,6 +27,11 @@ def render_cliente_portal():
         padding: 20px;
         margin-bottom: 20px;
     }
+    .status-pendente { color: #F59E0B; }
+    .status-ok { color: #10B981; }
+    .status-calibrado { color: #3B82F6; }
+    .status-instalado { color: #8B5CF6; }
+    .status-concluido { color: #10B981; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
     
@@ -41,8 +46,7 @@ def render_cliente_portal():
     
     # Carregar dados
     try:
-        obras_db = load_db("obras_lista.csv", ["Obra", "Cliente", "TipoObra", "Ativa"])
-        insts_db = pd.DataFrame()
+        obras_db = load_db("obras_lista.csv", ["Obra", "Cliente", "TipoObra", "Ativa"], silent=True)
         logs_db = load_db("logs_audit.csv", ["ID", "Data", "Hora", "Usuario", "Acao", "Tabela", "Registro_ID", "Detalhes", "IP"], silent=True)
     except:
         st.error("❌ Erro ao carregar dados.")
@@ -50,7 +54,7 @@ def render_cliente_portal():
     
     # Filtrar obras do cliente
     cliente_nome = st.session_state.user
-    obras_cliente = obras_db[(obras_db['Cliente'] == cliente_nome) & (obras_db['Ativa'] == 'Ativa')]
+    obras_cliente = obras_db[(obras_db['Cliente'] == cliente_nome) & (obras_db['Ativa'] == 'Ativa')] if not obras_db.empty else pd.DataFrame()
     
     if obras_cliente.empty:
         st.warning("⚠️ Não tem obras ativas no momento.")
@@ -67,9 +71,20 @@ def render_cliente_portal():
     
     # Carregar instrumentos da obra
     try:
-        insts_db = load_db(f"inst_{o_key}_index.csv", ["ID", "Tag", "Tipo", "Descricao", "Status", "GPS_Lat", "GPS_Lng", "Assinatura_Calibracao_b64", "Assinatura_Instalacao_b64"])
+        insts_db = load_db(f"inst_{o_key}_index.csv", [
+            "ID", "Tag", "Tipo", "Descricao", "Status", "GPS_Lat", "GPS_Lng",
+            "Assinatura_Calibracao_b64", "Assinatura_Instalacao_b64", "Hash_Validacao"
+        ], silent=True)
     except:
         insts_db = pd.DataFrame()
+    
+    # Carregar punch list
+    try:
+        punch_db = load_db(f"punch_{o_key}.csv", [
+            "ID", "Data", "Autor", "Tag", "Descricao", "Prioridade", "Estado"
+        ], silent=True)
+    except:
+        punch_db = pd.DataFrame(columns=["ID", "Data", "Autor", "Tag", "Descricao", "Prioridade", "Estado"])
     
     # Dashboard de Progresso
     st.markdown("### 📊 Progresso da Obra", unsafe_allow_html=True)
@@ -84,15 +99,15 @@ def render_cliente_portal():
     
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
-        st.metric("Total Instrumentos", total)
+        st.metric("📦 Total", total)
     with col2:
-        st.metric("Pendentes", pendentes)
+        st.metric("⏳ Pendentes", pendentes)
     with col3:
-        st.metric("Material OK", material_ok)
+        st.metric("📦 Material OK", material_ok)
     with col4:
-        st.metric("Calibrados", calibrados)
+        st.metric("🔬 Calibrados", calibrados)
     with col5:
-        st.metric("Instalados", instalados)
+        st.metric("✅ Instalados", instalados)
     
     # Barra de progresso
     st.progress(progresso / 100)
@@ -101,15 +116,16 @@ def render_cliente_portal():
     st.divider()
     
     # Tabs
-    tab_resumo, tab_instrumentos, tab_aprovar, tab_docs, tab_punch = st.tabs([
+    tab_resumo, tab_instrumentos, tab_qr, tab_aprovar, tab_docs, tab_punch = st.tabs([
         "📋 Resumo", 
         "🔧 Instrumentos", 
+        "📱 QR Codes",
         "✅ Aprovações", 
         "📄 Documentação",
         "💬 Punch List"
     ])
     
-    # TAB RESUMO
+    # ========== TAB RESUMO ==========
     with tab_resumo:
         st.markdown("### 📋 Resumo do Projeto", unsafe_allow_html=True)
         
@@ -143,7 +159,7 @@ def render_cliente_portal():
         else:
             st.info("📋 Sem logs disponíveis.")
     
-    # TAB INSTRUMENTOS
+    # ========== TAB INSTRUMENTOS ==========
     with tab_instrumentos:
         st.markdown("### 🔧 Lista de Instrumentos", unsafe_allow_html=True)
         
@@ -180,11 +196,60 @@ def render_cliente_portal():
         else:
             st.info("ℹ️ Sem instrumentos registados para esta obra.")
     
-    # TAB APROVAR
+    # ========== TAB QR CODES (NOVA) ==========
+    with tab_qr:
+        st.markdown("### 📱 QR Codes dos Instrumentos", unsafe_allow_html=True)
+        
+        if not insts_db.empty and 'Tag' in insts_db.columns:
+            st.info("📱 Scanneie os QR Codes para aceder rapidamente aos dados de cada instrumento.")
+            
+            # Selecionar instrumento para ver QR
+            tag_sel = st.selectbox("🔍 Selecionar Instrumento", insts_db['Tag'].tolist(), key="cliente_qr_sel")
+            
+            if tag_sel:
+                inst = insts_db[insts_db['Tag'] == tag_sel].iloc[0]
+                qr_data = gerar_qr_code_data(tag_sel, obra_sel, inst.get('Tipo', 'XX'))
+                
+                col_qr1, col_qr2 = st.columns([1, 2])
+                with col_qr1:
+                    st.image(render_qr_code_image(qr_data['short'], size=200), caption=f"QR: {tag_sel}")
+                with col_qr2:
+                    st.markdown(f"""
+                    <div class="cliente-card">
+                        <h4>🔧 {tag_sel}</h4>
+                        <p><strong>Tipo:</strong> {inst.get('Tipo', 'N/A')}</p>
+                        <p><strong>Descrição:</strong> {inst.get('Descricao', 'N/A')}</p>
+                        <p><strong>Status:</strong> {status_map.get(inst.get('Status', '0'), 'N/A')}</p>
+                        <p><strong>Obra:</strong> {obra_sel}</p>
+                        <p style="font-family:monospace; font-size:0.8rem; color:#64748B;">Dados QR: {qr_data['short']}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+            
+            st.divider()
+            
+            # Gerar QR Codes em lote para impressão
+            st.markdown("### 🖨️ QR Codes para Imprimir", unsafe_allow_html=True)
+            
+            if st.button("📱 Gerar Todos os QR Codes", use_container_width=True, type="primary"):
+                tags_qr = insts_db['Tag'].head(50).tolist()
+                if tags_qr:
+                    st.markdown(f"**{len(tags_qr)} QR Codes gerados**")
+                    cols = st.columns(5)
+                    for i, tag in enumerate(tags_qr):
+                        inst = insts_db[insts_db['Tag'] == tag].iloc[0] if not insts_db[insts_db['Tag'] == tag].empty else None
+                        tipo = inst.get('Tipo', 'XX') if inst is not None else 'XX'
+                        qr_data = gerar_qr_code_data(tag, obra_sel, tipo)
+                        with cols[i % 5]:
+                            st.image(render_qr_code_image(qr_data['short'], size=100), caption=tag)
+                    
+                    st.info("💡 Dica: Faça screenshot ou use Print Screen para guardar as etiquetas QR.")
+        else:
+            st.info("ℹ️ Sem instrumentos disponíveis para gerar QR Codes.")
+    
+    # ========== TAB APROVAR ==========
     with tab_aprovar:
         st.markdown("### ✅ Aprovação de ITRs", unsafe_allow_html=True)
         
-        # Instrumentos prontos para aprovação (instalados)
         if not insts_db.empty and 'Status' in insts_db.columns:
             prontos_aprovar = insts_db[insts_db['Status'].isin(['2', '3', '4'])]
             
@@ -201,20 +266,18 @@ def render_cliente_portal():
                         <h4>🔧 {tag_aprovar}</h4>
                         <p><strong>Tipo:</strong> {inst.get('Tipo', 'N/A')}</p>
                         <p><strong>Descrição:</strong> {inst.get('Descricao', 'N/A')}</p>
-                        <p><strong>Status:</strong> {inst.get('Status', 'N/A')}</p>
+                        <p><strong>Status:</strong> {status_map.get(inst.get('Status', 'N/A'), 'N/A')}</p>
                         <p><strong>Calibração:</strong> {'✅ Assinada' if inst.get('Assinatura_Calibracao_b64') else '⏳ Pendente'}</p>
                         <p><strong>Instalação:</strong> {'✅ Assinada' if inst.get('Assinatura_Instalacao_b64') else '⏳ Pendente'}</p>
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    # Checkbox de aprovação
                     aprovar = st.checkbox("✅ Confirmo que este instrumento está instalado e funcional", key=f"aprov_{tag_aprovar}")
                     
                     if aprovar:
                         comentario = st.text_area("Comentários (opcional)", key=f"coment_{tag_aprovar}")
                         
                         if st.button("✅ Aprovar Instrumento", use_container_width=True, type="primary", key=f"btn_aprov_{tag_aprovar}"):
-                            # Log de aprovação
                             log_audit(
                                 usuario=f"CLIENTE: {cliente_nome}",
                                 acao="APROVAR_INSTRUMENTO_CLIENTE",
@@ -224,7 +287,6 @@ def render_cliente_portal():
                                 ip=""
                             )
                             
-                            # Notificar admin
                             criar_notificacao(
                                 destinatario="admin",
                                 titulo="✅ Cliente Aprovou Instrumento",
@@ -240,31 +302,64 @@ def render_cliente_portal():
         else:
             st.info("ℹ️ Sem instrumentos disponíveis.")
     
-    # TAB DOCUMENTAÇÃO
+    # ========== TAB DOCUMENTAÇÃO ==========
     with tab_docs:
         st.markdown("### 📄 Documentação da Obra", unsafe_allow_html=True)
         
-        st.info("📋 Documentação em desenvolvimento. Em breve poderá descarregar:\n- Relatórios de Calibração (ITR-A)\n- Relatórios de Instalação (ITR-B)\n- Handover Completo\n- Certificados")
+        st.info("""
+        📋 **Documentação Disponível:**
+        
+        - ✅ Relatórios de Calibração (ITR-A) - Por instrumento
+        - ✅ Relatórios de Instalação (ITR-B) - Por instrumento
+        - ✅ Certificados com Assinatura Digital
+        - 🔄 Handover Completo - Em breve
+        - 🔄 Dossier Final da Obra - Em breve
+        
+        **Para descarregar documentos:**
+        1. Vá à tab "Aprovações"
+        2. Selecione o instrumento
+        3. Após aprovação, poderá descarregar o certificado
+        """)
     
-    # TAB PUNCH LIST
+    # ========== TAB PUNCH LIST ==========
     with tab_punch:
         st.markdown("### 💬 Punch List / Comentários", unsafe_allow_html=True)
         
-        # Carregar punch list existente
-        try:
-            punch_db = load_db(f"punch_{o_key}.csv", ["ID", "Data", "Autor", "Tag", "Descricao", "Prioridade", "Estado"], silent=True)
-        except:
-            punch_db = pd.DataFrame(columns=["ID", "Data", "Autor", "Tag", "Descricao", "Prioridade", "Estado"])
-        
         # Mostrar punch list existente
         if not punch_db.empty:
-            st.markdown("#### 📋 Punch List Existente")
-            st.dataframe(punch_db, use_container_width=True, hide_index=True)
+            st.markdown("#### 📋 Punch List Existente", unsafe_allow_html=True)
+            
+            # Filtro por estado
+            filtro_estado = st.selectbox("Filtrar por Estado", ["Todos", "Aberto", "Em Progresso", "Fechado"], key="punch_filt_estado")
+            
+            punch_f = punch_db.copy()
+            if filtro_estado != "Todos":
+                punch_f = punch_f[punch_f['Estado'] == filtro_estado]
+            
+            if not punch_f.empty:
+                # Cores por prioridade
+                def cor_prioridade(p):
+                    return {"Baixa": "#10B981", "Média": "#F59E0B", "Alta": "#EF4444", "Crítica": "#DC2626"}.get(p, "#6B7280")
+                
+                for _, item in punch_f.iterrows():
+                    cor = cor_prioridade(item.get('Prioridade', 'Média'))
+                    st.markdown(f"""
+                    <div style="background:rgba(255,255,255,0.05); border-left:4px solid {cor}; padding:15px; border-radius:8px; margin-bottom:15px;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <strong style="color:{cor};">{item.get('Prioridade', 'Média')} - {item.get('Tag', 'N/A')}</strong>
+                            <small style="color:#64748B;">{item.get('Data', 'N/A')}</small>
+                        </div>
+                        <p style="margin:10px 0;">{item.get('Descricao', 'N/A')}</p>
+                        <small style="color:#94A3B8;">Autor: {item.get('Autor', 'N/A')} | Estado: {item.get('Estado', 'Aberto')}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.info("📋 Sem itens neste filtro.")
         
         st.divider()
         
         # Adicionar novo item
-        st.markdown("#### ➕ Adicionar Novo Item")
+        st.markdown("#### ➕ Adicionar Novo Item", unsafe_allow_html=True)
         
         with st.form("form_punch_cliente"):
             col1, col2 = st.columns(2)
@@ -277,9 +372,8 @@ def render_cliente_portal():
             
             if st.form_submit_button("💬 Adicionar à Punch List", use_container_width=True, type="primary"):
                 if descricao:
-                    import uuid
                     novo_item = pd.DataFrame([{
-                        "ID": str(uuid.uuid4())[:8].upper(),
+                        "ID": str(uuid.uuid4())[:8].upper() if 'uuid' in globals() else f"ITEM_{len(punch_db)+1}",
                         "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
                         "Autor": f"CLIENTE: {cliente_nome}",
                         "Tag": tag_punch if tag_punch else "N/A",
@@ -295,7 +389,6 @@ def render_cliente_portal():
                     
                     save_db(punch_db, f"punch_{o_key}.csv")
                     
-                    # Log
                     log_audit(
                         usuario=f"CLIENTE: {cliente_nome}",
                         acao="CRIAR_PUNCH_ITEM",
@@ -305,7 +398,6 @@ def render_cliente_portal():
                         ip=""
                     )
                     
-                    # Notificar
                     criar_notificacao(
                         destinatario="admin",
                         titulo="💬 Novo Punch Item",
