@@ -1092,3 +1092,281 @@ def render_camera_scanner(label="Scan QR Code", key_prefix="qr_scan"):
         return qr_manual.strip()
     
     return None
+
+ # =============================================================================
+# 📧 SMTP - Envio de Emails Reais
+# =============================================================================
+
+def get_smtp_config():
+    """
+    Obtém configuração SMTP dos secrets
+    
+    Returns:
+        dict: Configuração SMTP ou None se não configurado
+    """
+    import streamlit as st
+    
+    try:
+        smtp_server = st.secrets.get("SMTP_SERVER", "")
+        smtp_port = st.secrets.get("SMTP_PORT", 587)
+        smtp_user = st.secrets.get("SMTP_USER", "")
+        smtp_password = st.secrets.get("SMTP_PASSWORD", "")
+        smtp_from_name = st.secrets.get("SMTP_FROM_NAME", "GestNow")
+        
+        if smtp_server and smtp_user and smtp_password:
+            return {
+                "server": smtp_server,
+                "port": int(smtp_port),
+                "user": smtp_user,
+                "password": smtp_password,
+                "from_name": smtp_from_name,
+                "from_email": smtp_user
+            }
+        return None
+    except:
+        return None
+
+
+def enviar_email(destinatario, assunto, conteudo_html, conteudo_texto=""):
+    """
+    Envia email via SMTP
+    
+    Args:
+        destinatario: Email do destinatário
+        assunto: Assunto do email
+        conteudo_html: Corpo do email em HTML
+        conteudo_texto: Corpo do email em texto simples (fallback)
+    
+    Returns:
+        bool: True se enviado com sucesso
+    """
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    import logging
+    
+    config = get_smtp_config()
+    
+    if not config:
+        logging.warning("SMTP não configurado. Email não enviado.")
+        return False
+    
+    try:
+        # Criar email
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"[GestNow] {assunto}"
+        msg["From"] = f"{config['from_name']} <{config['from_email']}>"
+        msg["To"] = destinatario
+        
+        # Anexar conteúdos
+        if conteudo_texto:
+            msg.attach(MIMEText(conteudo_texto, "plain", "utf-8"))
+        msg.attach(MIMEText(conteudo_html, "html", "utf-8"))
+        
+        # Conectar e enviar
+        server = smtplib.SMTP(config["server"], config["port"])
+        server.starttls()
+        server.login(config["user"], config["password"])
+        server.send_message(msg)
+        server.quit()
+        
+        # Log de auditoria
+        log_audit(
+            usuario="SYSTEM",
+            acao="ENVIAR_EMAIL",
+            tabela="emails_enviados",
+            registro_id=destinatario,
+            detalhes=f"Email enviado: {assunto}",
+            ip=""
+        )
+        
+        return True
+        
+    except Exception as e:
+        logging.error(f"Erro ao enviar email: {e}")
+        return False
+
+
+def get_email_template(tipo, dados=None):
+    """
+    Retorna template de email formatado
+    
+    Args:
+        tipo: Tipo de email (validacao, aprovacao, punch, etc.)
+        dados: Dict com dados para preencher o template
+    
+    Returns:
+        tuple: (assunto, html, texto)
+    """
+    templates = {
+        "validacao_horas": {
+            "assunto": "Horas Validadas - {obra}",
+            "html": """
+            <html>
+            <body style="font-family:Arial,sans-serif; background:#F8FAFC; padding:20px;">
+                <div style="max-width:600px; margin:0 auto; background:white; border-radius:10px; padding:30px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+                    <div style="background:linear-gradient(135deg, #1E293B, #0F172A); padding:20px; border-radius:10px 10px 0 0; text-align:center;">
+                        <h1 style="color:#F8FAFC; margin:0;">⚡ GESTNOW</h1>
+                        <p style="color:#94A3B8; margin:10px 0 0 0;">Sistema de Gestão de Instrumentação</p>
+                    </div>
+                    <div style="padding:30px 20px;">
+                        <h2 style="color:#1E293B; margin:0 0 20px 0;">✅ Horas Validadas</h2>
+                        <p style="color:#64748B; line-height:1.6;">
+                            Olá <strong>{tecnico}</strong>,<br><br>
+                            As suas horas foram validadas com sucesso!<br><br>
+                            <strong>Obra:</strong> {obra}<br>
+                            <strong>Horas:</strong> {horas}h<br>
+                            <strong>Data:</strong> {data}<br>
+                            <strong>Validado por:</strong> {validador}
+                        </p>
+                        <div style="background:#F1F5F9; padding:15px; border-radius:8px; margin:20px 0;">
+                            <p style="margin:0; color:#64748B; font-size:0.9rem;">
+                                📋 Este é um email automático. Não responda a esta mensagem.
+                            </p>
+                        </div>
+                    </div>
+                    <div style="background:#F8FAFC; padding:20px; text-align:center; border-radius:0 0 10px 10px;">
+                        <p style="color:#94A3B8; margin:0; font-size:0.85rem;">
+                            © 2025 GESTNOW v3.0 - Todos os direitos reservados
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """,
+            "texto": "Horas validadas com sucesso. Obra: {obra}, Horas: {horas}h"
+        },
+        "aprovacao_cliente": {
+            "assunto": "Cliente Aprovou Instrumento - {tag}",
+            "html": """
+            <html>
+            <body style="font-family:Arial,sans-serif; background:#F8FAFC; padding:20px;">
+                <div style="max-width:600px; margin:0 auto; background:white; border-radius:10px; padding:30px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+                    <div style="background:linear-gradient(135deg, #1E293B, #0F172A); padding:20px; border-radius:10px 10px 0 0; text-align:center;">
+                        <h1 style="color:#F8FAFC; margin:0;">⚡ GESTNOW</h1>
+                    </div>
+                    <div style="padding:30px 20px;">
+                        <h2 style="color:#10B981; margin:0 0 20px 0;">✅ Aprovação do Cliente</h2>
+                        <p style="color:#64748B; line-height:1.6;">
+                            Olá,<br><br>
+                            Um cliente aprovou um instrumento.<br><br>
+                            <strong>Cliente:</strong> {cliente}<br>
+                            <strong>Tag:</strong> {tag}<br>
+                            <strong>Obra:</strong> {obra}<br>
+                            <strong>Comentário:</strong> {comentario}
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """,
+            "texto": "Cliente aprovou instrumento. Tag: {tag}, Obra: {obra}"
+        },
+        "punch_list": {
+            "assunto": "Novo Item na Punch List - {obra}",
+            "html": """
+            <html>
+            <body style="font-family:Arial,sans-serif; background:#F8FAFC; padding:20px;">
+                <div style="max-width:600px; margin:0 auto; background:white; border-radius:10px; padding:30px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+                    <div style="background:linear-gradient(135deg, #1E293B, #0F172A); padding:20px; border-radius:10px 10px 0 0; text-align:center;">
+                        <h1 style="color:#F8FAFC; margin:0;">⚡ GESTNOW</h1>
+                    </div>
+                    <div style="padding:30px 20px;">
+                        <h2 style="color:#F59E0B; margin:0 0 20px 0;">💬 Novo Item na Punch List</h2>
+                        <p style="color:#64748B; line-height:1.6;">
+                            Olá,<br><br>
+                            Um novo item foi adicionado à punch list.<br><br>
+                            <strong>Obra:</strong> {obra}<br>
+                            <strong>Prioridade:</strong> {prioridade}<br>
+                            <strong>Autor:</strong> {autor}<br>
+                            <strong>Descrição:</strong> {descricao}
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """,
+            "texto": "Novo item na punch list. Obra: {obra}, Prioridade: {prioridade}"
+        },
+        "calibracao_concluida": {
+            "assunto": "Calibração Concluída - {tag}",
+            "html": """
+            <html>
+            <body style="font-family:Arial,sans-serif; background:#F8FAFC; padding:20px;">
+                <div style="max-width:600px; margin:0 auto; background:white; border-radius:10px; padding:30px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+                    <div style="background:linear-gradient(135deg, #1E293B, #0F172A); padding:20px; border-radius:10px 10px 0 0; text-align:center;">
+                        <h1 style="color:#F8FAFC; margin:0;">⚡ GESTNOW</h1>
+                    </div>
+                    <div style="padding:30px 20px;">
+                        <h2 style="color:#3B82F6; margin:0 0 20px 0;">🔬 Calibração Concluída</h2>
+                        <p style="color:#64748B; line-height:1.6;">
+                            Olá,<br><br>
+                            Instrumento calibrado com sucesso.<br><br>
+                            <strong>Tag:</strong> {tag}<br>
+                            <strong>Obra:</strong> {obra}<br>
+                            <strong>Erro Máx:</strong> {erro}<br>
+                            <strong>Certificado:</strong> {certificado}
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """,
+            "texto": "Calibração concluída. Tag: {tag}, Erro: {erro}"
+        }
+    }
+    
+    if tipo not in templates:
+        return ("Notificação GestNow", "<p>Notificação do sistema GestNow</p>", "Notificação do sistema")
+    
+    template = templates[tipo]
+    dados = dados or {}
+    
+    assunto = template["assunto"]
+    html = template["html"]
+    texto = template["texto"]
+    
+    # Preencher placeholders
+    for key, value in dados.items():
+        assunto = assunto.replace("{" + key + "}", str(value))
+        html = html.replace("{" + key + "}", str(value))
+        texto = texto.replace("{" + key + "}", str(value))
+    
+    return (assunto, html, texto)
+
+
+def notificar_por_email(destinatario_email, tipo_notificacao, dados):
+    """
+    Envia notificação por email com template
+    
+    Args:
+        destinatario_email: Email do destinatário
+        tipo_notificacao: Tipo de template a usar
+        dados: Dados para preencher o template
+    
+    Returns:
+        bool: True se enviado com sucesso
+    """
+    assunto, html, texto = get_email_template(tipo_notificacao, dados)
+    return enviar_email(destinatario_email, assunto, html, texto)
+
+
+def testar_smtp(email_teste):
+    """
+    Testa configuração SMTP enviando email de teste
+    
+    Args:
+        email_teste: Email para receber o teste
+    
+    Returns:
+        bool: True se teste bem sucedido
+    """
+    assunto, html, texto = get_email_template("validacao_horas", {
+        "tecnico": "Teste",
+        "obra": "Obra Teste",
+        "horas": "8",
+        "data": datetime.now().strftime("%d/%m/%Y"),
+        "validador": "SYSTEM"
+    })
+    
+    return enviar_email(email_teste, f"TESTE SMTP - {assunto}", html, texto)
