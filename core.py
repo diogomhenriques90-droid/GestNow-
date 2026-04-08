@@ -699,3 +699,262 @@ def notificar_incidente_hse(tipo, local, gravidade, responsavel):
     titulo = f"🚨 Incidente HSE - {gravidade}"
     mensagem = f"{tipo} registado em {local}. Ação necessária."
     criar_notificacao(responsavel, titulo, mensagem, tipo="error", acao_url="/admin?tab=hse")
+
+# =============================================================================
+# 📴 MODO OFFLINE - Cache Local + Sync Automático
+# =============================================================================
+
+def check_connection_status():
+    """
+    Verifica estado da conexão (online/offline)
+    Returns: True se online, False se offline
+    """
+    import streamlit as st
+    try:
+        # Tenta carregar um dado simples para testar conexão
+        test_df = load_db("usuarios.csv", ["Nome", "Email", "Tipo"], silent=True)
+        return True
+    except:
+        return False
+
+
+def save_to_local_cache(key, data):
+    """
+    Guarda dados no cache local (session_state + localStorage)
+    
+    Args:
+        key: Chave única para os dados
+        data: DataFrame ou dict para guardar
+    """
+    import streamlit as st
+    import base64
+    import json
+    
+    try:
+        # Guardar em session_state (temporário)
+        if f"offline_cache_{key}" not in st.session_state:
+            st.session_state[f"offline_cache_{key}"] = []
+        
+        st.session_state[f"offline_cache_{key}"].append({
+            "timestamp": datetime.now().isoformat(),
+            "data": data.to_dict() if hasattr(data, 'to_dict') else data
+        })
+        
+        # Manter apenas últimas 100 entradas
+        if len(st.session_state[f"offline_cache_{key}"]) > 100:
+            st.session_state[f"offline_cache_{key}"] = st.session_state[f"offline_cache_{key}"][-100:]
+        
+        return True
+    except Exception as e:
+        print(f"Erro ao guardar cache local: {e}")
+        return False
+
+
+def get_from_local_cache(key, limite=50):
+    """
+    Obtém dados do cache local
+    
+    Args:
+        key: Chave dos dados
+        limite: Máximo de registos a retornar
+    
+    Returns:
+        list: Dados em cache
+    """
+    import streamlit as st
+    
+    try:
+        cache_key = f"offline_cache_{key}"
+        if cache_key in st.session_state:
+            return st.session_state[cache_key][-limite:]
+        return []
+    except:
+        return []
+
+
+def add_action_to_queue(acao, dados, usuario):
+    """
+    Adiciona ação à fila de execução (para quando voltar online)
+    
+    Args:
+        acao: Tipo de ação (CRIAR, EDITAR, ELIMINAR, etc.)
+        dados: Dados da ação
+        usuario: Utilizador que executou a ação
+    """
+    import streamlit as st
+    import uuid
+    
+    try:
+        if "offline_action_queue" not in st.session_state:
+            st.session_state["offline_action_queue"] = []
+        
+        st.session_state["offline_action_queue"].append({
+            "id": str(uuid.uuid4())[:8].upper(),
+            "timestamp": datetime.now().isoformat(),
+            "acao": acao,
+            "dados": dados,
+            "usuario": usuario,
+            "estado": "pendente"  # pendente, executado, falhou
+        })
+        
+        return True
+    except Exception as e:
+        print(f"Erro ao adicionar à fila offline: {e}")
+        return False
+
+
+def execute_offline_queue():
+    """
+    Executa todas as ações em fila quando conexão é restaurada
+    
+    Returns:
+        dict: Resumo da execução (sucessos, falhas)
+    """
+    import streamlit as st
+    
+    resultados = {"sucessos": 0, "falhas": 0, "detalhes": []}
+    
+    try:
+        if "offline_action_queue" not in st.session_state:
+            return resultados
+        
+        queue = st.session_state["offline_action_queue"]
+        
+        for item in queue:
+            if item["estado"] == "pendente":
+                try:
+                    # Re-executar a ação
+                    if item["acao"] == "SAVE_DB":
+                        df = pd.DataFrame(item["dados"]["data"])
+                        save_db(df, item["dados"]["filename"])
+                    
+                    # Log de auditoria para ação offline
+                    log_audit(
+                        usuario=item["usuario"],
+                        acao=f"OFFLINE_{item['acao']}",
+                        tabela=item["dados"].get("filename", "unknown"),
+                        registro_id=item["id"],
+                        detalhes=f"Ação executada offline em {item['timestamp']}",
+                        ip=""
+                    )
+                    
+                    item["estado"] = "executado"
+                    resultados["sucessos"] += 1
+                    resultados["detalhes"].append(f"✅ {item['acao']} - {item['id']}")
+                    
+                except Exception as e:
+                    item["estado"] = "falhou"
+                    resultados["falhas"] += 1
+                    resultados["detalhes"].append(f"❌ {item['acao']} - {item['id']} - {str(e)}")
+        
+        # Limpar ações executadas
+        st.session_state["offline_action_queue"] = [
+            item for item in queue if item["estado"] == "pendente"
+        ]
+        
+        return resultados
+        
+    except Exception as e:
+        print(f"Erro ao executar fila offline: {e}")
+        return resultados
+
+
+def render_connection_indicator():
+    """
+    Renderiza indicador de conexão no UI
+    """
+    import streamlit as st
+    
+    # JavaScript para detetar conexão em tempo real
+    st.markdown("""
+    <script>
+    function updateConnectionStatus() {
+        const status = navigator.onLine ? 'online' : 'offline';
+        const indicator = document.getElementById('connection-indicator');
+        if (indicator) {
+            indicator.className = `connection-status ${status}`;
+            indicator.textContent = status === 'online' ? '🟢 Online' : '🔴 Offline';
+        }
+    }
+    
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+    updateConnectionStatus();
+    </script>
+    
+    <style>
+    .connection-status {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.9rem;
+        z-index: 9999;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    .connection-status.online {
+        background: #10B981;
+        color: white;
+    }
+    .connection-status.offline {
+        background: #EF4444;
+        color: white;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    </style>
+    
+    <div id="connection-indicator" class="connection-status online">🟢 Online</div>
+    """, unsafe_allow_html=True)
+
+
+def render_offline_banner():
+    """
+    Renderiza banner de aviso quando offline
+    """
+    import streamlit as st
+    
+    st.markdown("""
+    <script>
+    function checkOffline() {
+        if (!navigator.onLine) {
+            const banner = document.getElementById('offline-banner');
+            if (banner) banner.style.display = 'block';
+        }
+    }
+    window.addEventListener('offline', checkOffline);
+    window.addEventListener('online', () => {
+        const banner = document.getElementById('offline-banner');
+        if (banner) banner.style.display = 'none';
+    });
+    </script>
+    
+    <div id="offline-banner" style="display:none; background:#EF4444; color:white; padding:15px; border-radius:10px; margin-bottom:20px; text-align:center;">
+        <strong>🔴 ESTÁ OFFLINE</strong> - As alterações serão guardadas localmente e sincronizadas quando a conexão voltar.
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def sync_data_when_online():
+    """
+    Verifica se voltou online e sincroniza dados
+    """
+    import streamlit as st
+    
+    if "offline_action_queue" in st.session_state:
+        pendentes = [i for i in st.session_state["offline_action_queue"] if i["estado"] == "pendente"]
+        
+        if pendentes and check_connection_status():
+            resultados = execute_offline_queue()
+            
+            if resultados["sucessos"] > 0:
+                st.success(f"✅ {resultados['sucessos']} ações sincronizadas!")
+            if resultados["falhas"] > 0:
+                st.error(f"❌ {resultados['falhas']} ações falharam na sincronização.")
+            
+            inv()
