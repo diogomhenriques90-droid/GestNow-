@@ -958,3 +958,137 @@ def sync_data_when_online():
                 st.error(f"❌ {resultados['falhas']} ações falharam na sincronização.")
             
             inv()
+
+  # =============================================================================
+# 📱 QR CODE - Geração e Leitura para Instrumentos
+# =============================================================================
+
+def gerar_qr_code_data(tag, obra, tipo_inst, url_base=""):
+    """
+    Gera dados para QR Code de instrumento
+    
+    Args:
+        tag: Tag do instrumento (ex: PT-101)
+        obra: Nome da obra
+        tipo_inst: Tipo de instrumento
+        url_base: URL base da app (opcional)
+    
+    Returns:
+        dict: Dados estruturados para QR Code
+    """
+    import base64
+    import json
+    
+    qr_data = {
+        "tag": tag,
+        "obra": obra,
+        "tipo": tipo_inst,
+        "app": "GESTNOW",
+        "v": "3.0",
+        "url": f"{url_base}/instrumentacao?tag={tag}&obra={obra}" if url_base else f"/instrumentacao?tag={tag}"
+    }
+    
+    return {
+        "json": json.dumps(qr_data),
+        "b64": base64.b64encode(json.dumps(qr_data).encode()).decode(),
+        "short": f"GN|{tag}|{obra.replace(' ', '_')}"
+    }
+
+
+def parse_qr_code_data(qr_string):
+    """
+    Parse de dados de QR Code lido
+    
+    Args:
+        qr_string: String lida do QR Code
+    
+    Returns:
+        dict: Dados parseados ou None se inválido
+    """
+    import json
+    import base64
+    
+    try:
+        # Tentar formato JSON direto
+        if qr_string.startswith("{"):
+            return json.loads(qr_string)
+        
+        # Tentar formato base64
+        if qr_string.startswith("ey"):
+            decoded = base64.b64decode(qr_string).decode()
+            return json.loads(decoded)
+        
+        # Tentar formato curto: GN|TAG|OBRA
+        if qr_string.startswith("GN|"):
+            parts = qr_string.split("|")
+            if len(parts) >= 3:
+                return {
+                    "tag": parts[1],
+                    "obra": parts[2].replace("_", " "),
+                    "app": "GESTNOW"
+                }
+        
+        return None
+    except:
+        return None
+
+
+def render_qr_code_image(qr_data, size=200):
+    """
+    Renderiza imagem QR Code no Streamlit (usando API externa)
+    
+    Args:
+        qr_ String para codificar no QR
+        size: Tamanho em pixels
+    
+    Returns:
+        URL da imagem QR Code
+    """
+    import urllib.parse
+    
+    encoded = urllib.parse.quote(qr_data)
+    return f"https://api.qrserver.com/v1/create-qr-code/?size={size}x{size}&data={encoded}"
+
+
+def render_camera_scanner(label="Scan QR Code", key_prefix="qr_scan"):
+    """
+    Renderiza interface de scanner de QR Code com câmara
+    
+    Args:
+        label: Texto do botão/input
+        key_prefix: Prefixo para keys do Streamlit
+    
+    Returns:
+        string: Dados do QR Code lido ou None
+    """
+    import streamlit as st
+    
+    st.markdown(f"### 📱 {label}", unsafe_allow_html=True)
+    
+    # Instruções
+    st.markdown("""
+    <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:10px; margin-bottom:15px;">
+        <p style="margin:0; color:#94A3B8; font-size:0.9rem;">
+            📷 Aponte a câmara para o QR Code do instrumento
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Opção 1: Upload de imagem (fallback)
+    uploaded = st.file_uploader("Ou faça upload de uma foto do QR Code", type=["png", "jpg", "jpeg"], key=f"{key_prefix}_upload")
+    
+    if uploaded:
+        # Em produção, aqui integrarias uma lib de leitura de QR (ex: pyzbar)
+        # Por enquanto, simulamos com input manual para demo
+        st.info("🔧 Leitura automática de QR em desenvolvimento. Para teste, use o campo abaixo:")
+        qr_manual = st.text_input("Cole os dados do QR Code (para teste)", key=f"{key_prefix}_manual")
+        if qr_manual:
+            return qr_manual
+    
+    # Opção 2: Input manual como fallback principal
+    qr_manual = st.text_input("Dados do QR Code (formato: GN|TAG|OBRA ou JSON)", key=f"{key_prefix}_input")
+    
+    if qr_manual and len(qr_manual.strip()) > 5:
+        return qr_manual.strip()
+    
+    return None
