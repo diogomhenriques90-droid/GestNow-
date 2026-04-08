@@ -24,6 +24,18 @@ def render_admin(*args):
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db, sw_db, obs_db, equip_db,
      diags_db, diags_u_db, folhas_db, comuns_db, comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = args
 
+        # 📴 INDICADOR DE CONEXÃO + MODO OFFLINE
+    from core import render_connection_indicator, render_offline_banner, sync_data_when_online
+    
+    # Renderizar indicador de conexão
+    render_connection_indicator()
+    
+    # Renderizar banner offline (se aplicável)
+    render_offline_banner()
+    
+    # Tentar sincronizar se voltou online
+    sync_data_when_online()
+    
     # HEADER
     st.markdown(f"""
     <div style="background:linear-gradient(135deg, #1E293B, #0F172A); padding:30px; border-radius:20px; margin-bottom:30px; border:1px solid rgba(255,255,255,0.2);">
