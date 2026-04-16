@@ -104,7 +104,7 @@ def render_admin(*args):
     
     st.divider()
 
-    # TABS PRINCIPAIS
+    # TABS PRINCIPAIS - ATUALIZADO COM CONFIG EMAIL
     tabs = st.tabs([
         "✅ Validações",
         "👥 RH",
@@ -119,7 +119,8 @@ def render_admin(*args):
         "📋 Planeamento",
         "💻 IT",
         "🛡️ HSE",
-        "📋 Logs Audit"
+        "📋 Logs Audit",
+        "📧 Config Email"  # ← NOVA TAB ADICIONADA
     ])
 
     # ========== TAB 0: VALIDAÇÕES ==========
@@ -203,7 +204,6 @@ def render_admin(*args):
         
         from core import get_audit_logs
         
-        # Filtros
         col_f1, col_f2, col_f3 = st.columns(3)
         with col_f1:
             filtro_usuario = st.selectbox(
@@ -212,16 +212,13 @@ def render_admin(*args):
                 key="log_filt_user"
             )
         with col_f2:
-            # ✅ FILTRO PARA CLIENTES
             apenas_clientes = st.checkbox("👥 Apenas Clientes", key="log_filt_clientes")
         with col_f3:
             limite = st.number_input("Limite", min_value=10, max_value=1000, value=100, key="log_limite")
         
-        # Obter logs
         usuario_f = None if filtro_usuario == "Todos" else filtro_usuario
         logs_df = get_audit_logs(filtro_usuario=usuario_f, limite=limite)
         
-        # ✅ FILTRAR APENAS AÇÕES DE CLIENTES
         if apenas_clientes and not logs_df.empty:
             logs_df = logs_df[logs_df['Usuario'].str.contains("CLIENTE:", na=False)]
         
@@ -240,3 +237,57 @@ def render_admin(*args):
             )
         else:
             st.info("📋 Sem registos de auditoria encontrados.")
+
+    # ========== TAB 14: CONFIG EMAIL (NOVA) ==========
+    with tabs[14]:
+        st.markdown("### 📧 Configuração de Email SMTP", unsafe_allow_html=True)
+        
+        st.info("""
+        **Para configurar emails:**
+        
+        1. Vai ao Google Cloud Console → Secret Manager
+        2. Adiciona os secrets: SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM_NAME
+        3. Volta aqui e clica em "Testar Configuração"
+        """)
+        
+        from core import get_smtp_config, testar_smtp
+        
+        config = get_smtp_config()
+        
+        if config:
+            st.success("✅ SMTP Configurado!")
+            st.markdown(f"""
+            <div style="background:rgba(16,185,129,0.1); border:2px solid #10B981; border-radius:10px; padding:20px;">
+                <p><strong>Server:</strong> {config['server']}</p>
+                <p><strong>Porta:</strong> {config['port']}</p>
+                <p><strong>User:</strong> {config['user']}</p>
+                <p><strong>From:</strong> {config['from_name']} &lt;{config['from_email']}&gt;</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.divider()
+            st.markdown("### 🧪 Testar Envio de Email")
+            
+            email_teste = st.text_input("Email para teste", placeholder="exemplo@email.com", key="smtp_test_email")
+            
+            if st.button("📧 Enviar Email de Teste", use_container_width=True, type="primary"):
+                if email_teste:
+                    with st.spinner("A enviar..."):
+                        if testar_smtp(email_teste):
+                            st.success(f"✅ Email de teste enviado para {email_teste}!")
+                        else:
+                            st.error("❌ Falha ao enviar. Verifica os logs.")
+                else:
+                    st.warning("⚠️ Por favor, insere um email para teste.")
+        else:
+            st.warning("⚠️ SMTP Não Configurado")
+            st.markdown("""
+            <div style="background:rgba(245,158,11,0.1); border:2px solid #F59E0B; border-radius:10px; padding:20px;">
+                <p><strong>Passos para configurar:</strong></p>
+                <ol>
+                    <li>Vai ao <a href="https://console.cloud.google.com/security/secret-manager" target="_blank">Google Cloud Secret Manager</a></li>
+                    <li>Cria os secrets: SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM_NAME</li>
+                    <li>Reinicia o Cloud Run</li>
+                </ol>
+            </div>
+            """, unsafe_allow_html=True)
