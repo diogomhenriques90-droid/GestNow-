@@ -870,12 +870,15 @@ def render_camera_scanner(label="Scan QR Code", key_prefix="qr_scan"):
 # =============================================================================
 
 def get_smtp_config():
-    """Obtém configuração SMTP dos secrets"""
-    smtp_server = st.secrets.get("SMTP_SERVER", "")
-    smtp_port = st.secrets.get("SMTP_PORT", 587)
-    smtp_user = st.secrets.get("SMTP_USER", "")
-    smtp_password = st.secrets.get("SMTP_PASSWORD", "")
-    smtp_from_name = st.secrets.get("SMTP_FROM_NAME", "GestNow")
+    """Obtém configuração SMTP das variáveis de ambiente (Cloud Run)"""
+    import os
+    
+    # Ler de variáveis de ambiente (Cloud Run)
+    smtp_server = os.environ.get("SMTP_SERVER", "")
+    smtp_port = os.environ.get("SMTP_PORT", "587")
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_password = os.environ.get("SMTP_PASSWORD", "")
+    smtp_from_name = os.environ.get("SMTP_FROM_NAME", "GestNow")
     
     if smtp_server and smtp_user and smtp_password:
         return {
