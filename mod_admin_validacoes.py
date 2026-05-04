@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 from core import save_db, inv, log_audit, criar_notificacao, notificar_por_email
 
-def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, obras_db):
+def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, obras_db, incs_db):
     """Módulo de Validações Completo - Horas, EPIs, Ferramentas, Materiais, Gasóleos, Avarias"""
     
     st.markdown("### ✅ Centro de Validações", unsafe_allow_html=True)
@@ -68,7 +68,7 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         else:
             st.info("📋 Sem registos de horas.")
 
-    # ========== TAB EPIs - VALIDAÇÃO INDIVIDUAL ==========
+    # ========== TAB EPIs ==========
     with tab_epis:
         st.markdown("### 🦺 Validação de EPIs", unsafe_allow_html=True)
         
@@ -115,7 +115,7 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         else:
             st.info("📋 Sem pedidos de EPI.")
 
-    # ========== TAB FERRAMENTAS - VALIDAÇÃO INDIVIDUAL ==========
+    # ========== TAB FERRAMENTAS ==========
     with tab_ferramentas:
         st.markdown("### 🔧 Validação de Ferramentas", unsafe_allow_html=True)
         
@@ -137,9 +137,8 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        # Mostrar foto se existir
                         if ped.get('Foto_b64'):
-                            st.image(f"data:image/png;base64,{ped['Foto_b64']}", caption="Foto da ferramenta", width=200)
+                            st.image(f"image/png;base64,{ped['Foto_b64']}", caption="Foto da ferramenta", width=200)
                         
                         col_apr, col_rej = st.columns(2)
                         with col_apr:
@@ -165,12 +164,11 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         else:
             st.info("📋 Sem pedidos de ferramentas.")
 
-    # ========== TAB MATERIAIS - VALIDAÇÃO INDIVIDUAL ==========
+    # ========== TAB MATERIAIS ==========
     with tab_materiais:
         st.markdown("### 📦 Validação de Materiais", unsafe_allow_html=True)
         
         if not req_mat_db.empty:
-            # Filtrar apenas materiais (excluir gasóleos que também estão aqui)
             pendentes_mat = req_mat_db[(req_mat_db['Status'] == 'Pendente') & (req_mat_db.get('Tipo', '') != 'Gasóleo')]
             
             if not pendentes_mat.empty:
@@ -213,12 +211,11 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         else:
             st.info("📋 Sem pedidos de materiais.")
 
-    # ========== TAB GASÓLEOS - COM VISUALIZAÇÃO DE RECIBO ==========
+    # ========== TAB GASÓLEOS ==========
     with tab_gasoleos:
         st.markdown("### ⛽ Validação de Gasóleos", unsafe_allow_html=True)
         
         if not req_mat_db.empty:
-            # Filtrar apenas gasóleos
             pendentes_gas = req_mat_db[(req_mat_db['Status'] == 'Pendente') & (req_mat_db.get('Tipo', '') == 'Gasóleo')]
             
             if not pendentes_gas.empty:
@@ -238,12 +235,11 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        # Mostrar recibo se existir
                         if ped.get('Recibo_b64'):
                             if ped.get('Recibo_b64', '').startswith('JVBER'):
                                 st.info("📄 Recibo em formato PDF - descarrega para visualizar")
                             else:
-                                st.image(f"data:image/png;base64,{ped['Recibo_b64']}", caption="Recibo de Gasóleo", width=300)
+                                st.image(f"image/png;base64,{ped['Recibo_b64']}", caption="Recibo de Gasóleo", width=300)
                         
                         col_apr, col_rej = st.columns(2)
                         with col_apr:
@@ -269,12 +265,11 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         else:
             st.info("📋 Sem registos de gasóleo.")
 
-    # ========== TAB AVARIAS - COM VISUALIZAÇÃO DE FATURA ==========
+    # ========== TAB AVARIAS ==========
     with tab_avarias:
         st.markdown("### 🔧 Validação de Avarias / Reparações", unsafe_allow_html=True)
         
         if not incs_db.empty:
-            # Filtrar apenas avarias
             pendentes_avar = incs_db[(incs_db['Status'] == 'Pendente') & (incs_db.get('Tipo', '') == 'Avaria')]
             
             if not pendentes_avar.empty:
@@ -296,12 +291,11 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        # Mostrar fatura se existir
                         if ped.get('Fatura_b64'):
                             if ped.get('Fatura_b64', '').startswith('JVBER'):
                                 st.info("📄 Fatura em formato PDF - descarrega para visualizar")
                             else:
-                                st.image(f"data:image/png;base64,{ped['Fatura_b64']}", caption="Fatura/Orçamento", width=300)
+                                st.image(f"image/png;base64,{ped['Fatura_b64']}", caption="Fatura/Orçamento", width=300)
                         
                         col_apr, col_rej = st.columns(2)
                         with col_apr:
