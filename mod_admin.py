@@ -120,13 +120,13 @@ def render_admin(*args):
         "💻 IT",
         "🛡️ HSE",
         "📋 Logs Audit",
-        "📧 Config Email"  # ← NOVA TAB ADICIONADA
+        "📧 Config Email"
     ])
 
     # ========== TAB 0: VALIDAÇÕES ==========
     with tabs[0]:
         from mod_admin_validacoes import render_validacoes
-        render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, obras_db)
+        render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, obras_db, incs_db)
 
     # ========== TAB 1: RH ==========
     with tabs[1]:
