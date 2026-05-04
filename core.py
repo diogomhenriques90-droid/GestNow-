@@ -873,7 +873,6 @@ def get_smtp_config():
     """Obtém configuração SMTP das variáveis de ambiente (Cloud Run)"""
     import os
     
-    # Ler de variáveis de ambiente (Cloud Run)
     smtp_server = os.environ.get("SMTP_SERVER", "")
     smtp_port = os.environ.get("SMTP_PORT", "587")
     smtp_user = os.environ.get("SMTP_USER", "")
