@@ -1,6 +1,10 @@
+"""
+GESTNOW v3 - core.py
+Funções base, utilitários, segurança, UI components, notificações, offline, QR Code, SMTP
+"""
 import streamlit as st
 import pandas as pd
-import os, re, secrets, io, base64, bcrypt, logging
+import os, re, secrets, io, base64, bcrypt, logging, uuid, hashlib, json
 from datetime import datetime, timedelta, date
 from google.cloud import storage as gcs
 from PIL import Image
@@ -31,56 +35,20 @@ COLORS = {
     "text_secondary": "#94A3B8",
 }
 
-# TODOS OS ÍCONES NECESSÁRIOS
 ICONS = {
-    "app": "🎛️",
-    "login": "🔐",
-    "admin": "⚡",
-    "technician": "👨‍🔧",
-    "dashboard": "📈",
-    "instrumentation": "🧪",
-    "voice": "🎤",
-    "safety": "🛡️",
-    "profile": "👤",
-    "reports": "📊",
-    "handover": "✅",
-    "gps": "📍",
-    "calibration": "🔬",
-    "material": "📦",
-    "pending": "⏳",
-    "logout": "🚪",
-    "save": "💾",
-    "edit": "✏️",
-    "delete": "🗑️",
-    "add": "➕",
-    "search": "🔍",
-    "filter": "🔽",
-    "download": "📥",
-    "upload": "📤",
-    "check": "✅",
-    "close": "❌",
-    "warning": "⚠️",
-    "info": "ℹ️",
-    "calendar": "📅",
-    "clock": "⏰",
-    "user": "👤",
-    "users": "👥",
-    "settings": "⚙️",
-    "home": "🏠",
-    "work": "🏗️",
-    "tools": "🔧",
-    "equipment": "🔩",
-    "document": "📄",
-    "documents": "📁",
-    "chart": "📊",
-    "graph": "📈",
-    "email": "📧",
-    "phone": "📞",
-    "location": "📍",
-    "time": "⏱️",
-    "approved": "✅",        # ← ADICIONAR
-    "rejected": "❌",        # ← ADICIONAR
-    "pending_approval": "⏳", # ← ADICIONAR
+    "app": "🎛️", "login": "🔐", "admin": "⚡", "technician": "👨‍🔧",
+    "dashboard": "📈", "instrumentation": "🧪", "voice": "🎤", "safety": "🛡️",
+    "profile": "👤", "reports": "📊", "handover": "✅", "gps": "📍",
+    "calibration": "🔬", "material": "📦", "pending": "⏳", "logout": "🚪",
+    "save": "💾", "edit": "✏️", "delete": "🗑️", "add": "➕",
+    "search": "🔍", "filter": "🔽", "download": "📥", "upload": "📤",
+    "check": "✅", "close": "❌", "warning": "⚠️", "info": "ℹ️",
+    "calendar": "📅", "clock": "⏰", "user": "👤", "users": "👥",
+    "settings": "⚙️", "home": "🏠", "work": "🏗️", "tools": "🔧",
+    "equipment": "🔩", "document": "📄", "documents": "📁",
+    "chart": "📊", "graph": "📈", "email": "📧", "phone": "📞",
+    "location": "📍", "time": "⏱️", "approved": "✅", "rejected": "❌",
+    "pending_approval": "⏳",
 }
 
 logging.basicConfig(
@@ -131,8 +99,7 @@ def _gcs_write(fn, content_bytes):
         logger.error(f"❌ Erro crítico GCS write {fn}: {e}")
         st.toast(f"⚠️ Dados guardados localmente", icon="⚙️")
     return False
-
-# =============================================================================
+    # =============================================================================
 # 🗄️ GESTÃO DE DADOS
 # =============================================================================
 @st.cache_data(ttl=300, show_spinner="🔄 A sincronizar dados...")
@@ -291,8 +258,7 @@ def render_metric(icon, val, lbl, color=COLORS["accent"]):
         <div style="font-size:0.85rem;color:{COLORS['text_secondary']};margin-top:4px;">{lbl}</div>
     </div>
     """, unsafe_allow_html=True)
-
-# =============================================================================
+    # =============================================================================
 # ⚙️ CONSTANTES
 # =============================================================================
 TIPOS_FRENTE = ["Montagem", "Calibração", "Comissionamento", "Testes FAT/SAT", "Manutenção", "Troubleshooting", "Outro"]
@@ -313,20 +279,25 @@ REGRAS_OURO = [
 ]
 
 # =============================================================================
-# 🎨 CSS GLOBAL
+# 🎨 CSS GLOBAL COM CONTRASTE CORRETO - TODOS OS MÓDULOS
 # =============================================================================
 GLOBAL_CSS = f"""
 :root {{
-    --primary: {COLORS["primary"]};
-    --primary-light: {COLORS["primary_light"]};
-    --accent: {COLORS["accent"]};
-    --accent-hover: {COLORS["accent_hover"]};
-    --success: {COLORS["success"]};
-    --warning: {COLORS["warning"]};
-    --error: {COLORS["error"]};
-    --info: {COLORS["info"]};
-    --text-primary: {COLORS["text_primary"]};
-    --text-secondary: {COLORS["text_secondary"]};
+    --primary: #0F172A;
+    --primary-light: #1E293B;
+    --accent: #3B82F6;
+    --accent-hover: #60A5FA;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --error: #EF4444;
+    --info: #8B5CF6;
+    --text-primary: #FFFFFF;
+    --text-secondary: #94A3B8;
+    --text-dark: #1E293B;
+    --text-light: #F8FAFC;
+    --bg-white: #FFFFFF;
+    --bg-light: #F8FAFC;
+    --bg-dark: #0F172A;
 }}
 
 .stApp {{
@@ -335,71 +306,100 @@ GLOBAL_CSS = f"""
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }}
 
+.stTextInput > div > div > input,
+.stNumberInput > div > div > input,
+.stTextArea > div > div > textarea {{
+    background: var(--bg-white) !important;
+    color: var(--text-dark) !important;
+    border: 1px solid rgba(0,0,0,0.3) !important;
+    font-weight: 500;
+}}
+
+.stTextInput label,
+.stNumberInput label,
+.stTextArea label,
+.stDateInput label,
+.stTimeInput label,
+.stSelectbox label,
+.stMultiSelect label {{
+    color: var(--text-dark) !important;
+    font-weight: 600;
+}}
+
+.stSelectbox > div > div > div,
+.stMultiSelect > div > div > div {{
+    background: var(--bg-white) !important;
+    color: var(--text-dark) !important;
+    border: 1px solid rgba(0,0,0,0.3) !important;
+}}
+
+.stDataFrame {{
+    background: var(--bg-white) !important;
+    color: var(--text-dark) !important;
+}}
+
+.stDataFrame td,
+.stDataFrame th {{
+    color: var(--text-dark) !important;
+    background: var(--bg-white) !important;
+}}
+
+section[data-testid="stSidebar"] {{
+    background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%) !important;
+}}
+
+section[data-testid="stSidebar"] *,
+section[data-testid="stSidebar"] label {{
+    color: var(--text-light) !important;
+}}
+
 .dash-card, .rp-card, .metric-card {{
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 16px;
     padding: 20px;
     margin-bottom: 16px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
 }}
-.dash-card:hover, .rp-card:hover {{
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-    border-color: var(--accent);
+
+.dash-card *, .rp-card *, .metric-card * {{
+    color: var(--text-primary) !important;
 }}
 
 .stButton > button {{
     background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-    color: white;
+    color: white !important;
     border: none;
     border-radius: 12px;
     padding: 10px 24px;
     font-weight: 600;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
-}}
-.stButton > button:hover {{
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
 }}
 
-.status-pending {{ color: var(--warning); font-weight: 600; }}
-.status-ok {{ color: var(--success); font-weight: 600; }}
-.status-calibrated {{ color: var(--info); font-weight: 600; }}
-.status-installed {{ color: var(--accent); font-weight: 600; }}
-.status-completed {{ color: var(--success); font-weight: 700; }}
+.status-pending {{ color: var(--warning) !important; font-weight: 600; }}
+.status-ok {{ color: var(--success) !important; font-weight: 600; }}
+.status-calibrated {{ color: var(--info) !important; font-weight: 600; }}
+.status-installed {{ color: var(--accent) !important; font-weight: 600; }}
+.status-completed {{ color: var(--success) !important; font-weight: 700; }}
 
-.stTextInput > div > div > input,
-.stSelectbox > div > div > div {{
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
-    color: var(--text-primary);
+[data-testid="stMetric"] {{
+    background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.2));
+    border: 2px solid rgba(59,130,246,0.5);
+    border-radius: 12px;
+    padding: 15px;
 }}
-.stTextInput > div > div > input:focus,
-.stSelectbox > div > div > div:focus {{
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-}}
+[data-testid="stMetricValue"] {{ color: #60A5FA !important; }}
+[data-testid="stMetricLabel"] {{ color: #94A3B8 !important; }}
 """
 
 def inject_global_css():
     st.markdown(f"<style>{GLOBAL_CSS}</style>", unsafe_allow_html=True)
 
 # =============================================================================
-# AUDIT TRAIL - Logs de Auditoria (SGS/ISO Compliance)
+# 📋 AUDIT TRAIL - Logs de Auditoria (SGS/ISO Compliance)
 # =============================================================================
 
 def log_audit(usuario, acao, tabela, registro_id, detalhes="", ip=""):
     """Regista ação no log de auditoria para compliance SGS/ISO"""
     try:
-        import pandas as pd
-        from datetime import datetime
-        import uuid
-        
         try:
             logs = load_db("logs_audit.csv", [
                 "ID", "Data", "Hora", "Usuario", "Acao", 
@@ -463,7 +463,6 @@ def get_audit_logs(filtro_usuario=None, filtro_data=None, limite=100):
 
 def gerar_hash_assinatura(usuario, tag, data, valor):
     """Gera hash único para validar integridade da assinatura"""
-    import hashlib
     texto = f"{usuario}|{tag}|{data}|{valor}"
     return hashlib.sha256(texto.encode()).hexdigest()[:16].upper()
 
@@ -473,11 +472,8 @@ def render_signature_pad(label, key_prefix):
     Renderiza canvas de assinatura no Streamlit
     Returns: base64 da assinatura ou None
     """
-    import streamlit as st
-    
     st.markdown(f"### {label}", unsafe_allow_html=True)
     
-    # Instruções
     st.markdown("""
     <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:10px; margin-bottom:15px;">
         <p style="margin:0; color:#94A3B8; font-size:0.9rem;">
@@ -486,7 +482,6 @@ def render_signature_pad(label, key_prefix):
     </div>
     """, unsafe_allow_html=True)
     
-    # Canvas simples via HTML/JS
     signature = st.text_area(
         f"{label} (digite o seu nome completo para validar)",
         key=f"{key_prefix}_nome",
@@ -495,7 +490,6 @@ def render_signature_pad(label, key_prefix):
     )
     
     if signature and len(signature.strip()) >= 3:
-        # Simular assinatura base64 (placeholder para implementação com st-canvas)
         import base64
         fake_sig = base64.b64encode(f"SIGN:{signature.strip()}:{datetime.now().isoformat()}".encode()).decode()
         return fake_sig
@@ -506,7 +500,6 @@ def render_signature_pad(label, key_prefix):
 def validar_assinatura(assinatura_b64, usuario_esperado, tag_esperada):
     """Valida se a assinatura corresponde aos dados esperados"""
     try:
-        import base64
         decoded = base64.b64decode(assinatura_b64).decode()
         parts = decoded.split(":")
         if len(parts) >= 3 and parts[0] == "SIGN":
@@ -520,22 +513,8 @@ def validar_assinatura(assinatura_b64, usuario_esperado, tag_esperada):
 # =============================================================================
 
 def criar_notificacao(destinatario, titulo, mensagem, tipo="info", acao_url=""):
-    """
-    Cria uma notificação para um utilizador
-    
-    Args:
-        destinatario: Nome do utilizador ou email
-        titulo: Título da notificação
-        mensagem: Conteúdo da notificação
-        tipo: info, warning, error, success
-        acao_url: Link para ação (opcional)
-    """
+    """Cria uma notificação para um utilizador"""
     try:
-        import pandas as pd
-        from datetime import datetime
-        import uuid
-        
-        # Carregar notificações existentes
         try:
             notifs = load_db("notificacoes.csv", [
                 "ID", "Data", "Hora", "Destinatario", "Titulo", 
@@ -547,7 +526,6 @@ def criar_notificacao(destinatario, titulo, mensagem, tipo="info", acao_url=""):
                 "Mensagem", "Tipo", "Lida", "Acao_URL"
             ])
         
-        # Criar nova notificação
         nova_notif = pd.DataFrame([{
             "ID": str(uuid.uuid4())[:8].upper(),
             "Data": datetime.now().strftime("%d/%m/%Y"),
@@ -571,17 +549,7 @@ def criar_notificacao(destinatario, titulo, mensagem, tipo="info", acao_url=""):
 
 
 def get_notificacoes(destinatario, apenas_nao_lidas=True, limite=50):
-    """
-    Obtém notificações de um utilizador
-    
-    Args:
-        destinatario: Nome do utilizador
-        apenas_nao_lidas: Se True, retorna só não lidas
-        limite: Máximo de notificações a retornar
-    
-    Returns:
-        DataFrame: Notificações filtradas
-    """
+    """Obtém notificações de um utilizador"""
     try:
         notifs = load_db("notificacoes.csv", [
             "ID", "Data", "Hora", "Destinatario", "Titulo", 
@@ -605,8 +573,6 @@ def get_notificacoes(destinatario, apenas_nao_lidas=True, limite=50):
 def marcar_notificacao_lida(notif_id):
     """Marca uma notificação como lida"""
     try:
-        import pandas as pd
-        
         notifs = load_db("notificacoes.csv", [
             "ID", "Data", "Hora", "Destinatario", "Titulo", 
             "Mensagem", "Tipo", "Lida", "Acao_URL"
@@ -632,86 +598,13 @@ def contar_notificacoes_nao_lidas(destinatario):
     except:
         return 0
 
-
-def enviar_email_notificacao(destinatario_email, titulo, mensagem):
-    """
-    Envia email de notificação (requer SMTP configurado)
-    
-    Args:
-        destinatario_email: Email do destinatário
-        titulo: Assunto do email
-        mensagem: Corpo do email
-    """
-    try:
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        
-        # Configurações SMTP (preencher com os teus dados)
-        smtp_server = st.secrets.get("SMTP_SERVER", "")
-        smtp_port = st.secrets.get("SMTP_PORT", 587)
-        smtp_user = st.secrets.get("SMTP_USER", "")
-        smtp_password = st.secrets.get("SMTP_PASSWORD", "")
-        
-        if not smtp_server or not smtp_user:
-            # SMTP não configurado, apenas log
-            print(f"Email não enviado (SMTP não configurado): {destinatario_email} - {titulo}")
-            return False
-        
-        # Criar email
-        msg = MIMEMultipart()
-        msg['From'] = smtp_user
-        msg['To'] = destinatario_email
-        msg['Subject'] = f"[GestNow] {titulo}"
-        msg.attach(MIMEText(mensagem, 'html'))
-        
-        # Enviar
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(smtp_user, smtp_password)
-        server.send_message(msg)
-        server.quit()
-        
-        return True
-        
-    except Exception as e:
-        print(f"Erro ao enviar email: {e}")
-        return False
-
-
-def notificar_validacao_pendente(tecnico, obra, horas, gestor):
-    """Notifica gestor sobre horas pendentes de validação"""
-    titulo = "⏳ Validação de Horas Pendente"
-    mensagem = f"{tecnico} registou {horas}h em {obra}. Por favor valide."
-    criar_notificacao(gestor, titulo, mensagem, tipo="warning", acao_url="/admin?tab=validacoes")
-    # Opcional: enviar email também
-
-
-def notificar_instrumento_por_calibrar(tag, obra, responsavel):
-    """Notifica sobre instrumento pendente de calibração"""
-    titulo = "🔬 Instrumento Por Calibrar"
-    mensagem = f"{tag} em {obra} está com material OK mas ainda não foi calibrado."
-    criar_notificacao(responsavel, titulo, mensagem, tipo="info", acao_url="/instrumentacao?tab=itra")
-
-
-def notificar_incidente_hse(tipo, local, gravidade, responsavel):
-    """Notifica sobre incidente HSE registado"""
-    titulo = f"🚨 Incidente HSE - {gravidade}"
-    mensagem = f"{tipo} registado em {local}. Ação necessária."
-    criar_notificacao(responsavel, titulo, mensagem, tipo="error", acao_url="/admin?tab=hse")
-
 # =============================================================================
 # 📴 MODO OFFLINE - Cache Local + Sync Automático
 # =============================================================================
 
 def check_connection_status():
-    """
-    Verifica estado da conexão (online/offline)
-    Returns: True se online, False se offline
-    """
-    import streamlit as st
+    """Verifica estado da conexão (online/offline)"""
     try:
-        # Tenta carregar um dado simples para testar conexão
         test_df = load_db("usuarios.csv", ["Nome", "Email", "Tipo"], silent=True)
         return True
     except:
@@ -719,19 +612,8 @@ def check_connection_status():
 
 
 def save_to_local_cache(key, data):
-    """
-    Guarda dados no cache local (session_state + localStorage)
-    
-    Args:
-        key: Chave única para os dados
-        data: DataFrame ou dict para guardar
-    """
-    import streamlit as st
-    import base64
-    import json
-    
+    """Guarda dados no cache local"""
     try:
-        # Guardar em session_state (temporário)
         if f"offline_cache_{key}" not in st.session_state:
             st.session_state[f"offline_cache_{key}"] = []
         
@@ -740,7 +622,6 @@ def save_to_local_cache(key, data):
             "data": data.to_dict() if hasattr(data, 'to_dict') else data
         })
         
-        # Manter apenas últimas 100 entradas
         if len(st.session_state[f"offline_cache_{key}"]) > 100:
             st.session_state[f"offline_cache_{key}"] = st.session_state[f"offline_cache_{key}"][-100:]
         
@@ -751,18 +632,7 @@ def save_to_local_cache(key, data):
 
 
 def get_from_local_cache(key, limite=50):
-    """
-    Obtém dados do cache local
-    
-    Args:
-        key: Chave dos dados
-        limite: Máximo de registos a retornar
-    
-    Returns:
-        list: Dados em cache
-    """
-    import streamlit as st
-    
+    """Obtém dados do cache local"""
     try:
         cache_key = f"offline_cache_{key}"
         if cache_key in st.session_state:
@@ -773,17 +643,7 @@ def get_from_local_cache(key, limite=50):
 
 
 def add_action_to_queue(acao, dados, usuario):
-    """
-    Adiciona ação à fila de execução (para quando voltar online)
-    
-    Args:
-        acao: Tipo de ação (CRIAR, EDITAR, ELIMINAR, etc.)
-        dados: Dados da ação
-        usuario: Utilizador que executou a ação
-    """
-    import streamlit as st
-    import uuid
-    
+    """Adiciona ação à fila de execução (para quando voltar online)"""
     try:
         if "offline_action_queue" not in st.session_state:
             st.session_state["offline_action_queue"] = []
@@ -794,7 +654,7 @@ def add_action_to_queue(acao, dados, usuario):
             "acao": acao,
             "dados": dados,
             "usuario": usuario,
-            "estado": "pendente"  # pendente, executado, falhou
+            "estado": "pendente"
         })
         
         return True
@@ -804,14 +664,7 @@ def add_action_to_queue(acao, dados, usuario):
 
 
 def execute_offline_queue():
-    """
-    Executa todas as ações em fila quando conexão é restaurada
-    
-    Returns:
-        dict: Resumo da execução (sucessos, falhas)
-    """
-    import streamlit as st
-    
+    """Executa todas as ações em fila quando conexão é restaurada"""
     resultados = {"sucessos": 0, "falhas": 0, "detalhes": []}
     
     try:
@@ -823,12 +676,10 @@ def execute_offline_queue():
         for item in queue:
             if item["estado"] == "pendente":
                 try:
-                    # Re-executar a ação
                     if item["acao"] == "SAVE_DB":
                         df = pd.DataFrame(item["dados"]["data"])
                         save_db(df, item["dados"]["filename"])
                     
-                    # Log de auditoria para ação offline
                     log_audit(
                         usuario=item["usuario"],
                         acao=f"OFFLINE_{item['acao']}",
@@ -847,7 +698,6 @@ def execute_offline_queue():
                     resultados["falhas"] += 1
                     resultados["detalhes"].append(f"❌ {item['acao']} - {item['id']} - {str(e)}")
         
-        # Limpar ações executadas
         st.session_state["offline_action_queue"] = [
             item for item in queue if item["estado"] == "pendente"
         ]
@@ -860,12 +710,7 @@ def execute_offline_queue():
 
 
 def render_connection_indicator():
-    """
-    Renderiza indicador de conexão no UI
-    """
-    import streamlit as st
-    
-    # JavaScript para detetar conexão em tempo real
+    """Renderiza indicador de conexão no UI"""
     st.markdown("""
     <script>
     function updateConnectionStatus() {
@@ -876,7 +721,6 @@ def render_connection_indicator():
             indicator.textContent = status === 'online' ? '🟢 Online' : '🔴 Offline';
         }
     }
-    
     window.addEventListener('online', updateConnectionStatus);
     window.addEventListener('offline', updateConnectionStatus);
     updateConnectionStatus();
@@ -894,19 +738,9 @@ def render_connection_indicator():
         z-index: 9999;
         box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
-    .connection-status.online {
-        background: #10B981;
-        color: white;
-    }
-    .connection-status.offline {
-        background: #EF4444;
-        color: white;
-        animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-    }
+    .connection-status.online { background: #10B981; color: white; }
+    .connection-status.offline { background: #EF4444; color: white; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
     </style>
     
     <div id="connection-indicator" class="connection-status online">🟢 Online</div>
@@ -914,11 +748,7 @@ def render_connection_indicator():
 
 
 def render_offline_banner():
-    """
-    Renderiza banner de aviso quando offline
-    """
-    import streamlit as st
-    
+    """Renderiza banner de aviso quando offline"""
     st.markdown("""
     <script>
     function checkOffline() {
@@ -941,11 +771,7 @@ def render_offline_banner():
 
 
 def sync_data_when_online():
-    """
-    Verifica se voltou online e sincroniza dados
-    """
-    import streamlit as st
-    
+    """Verifica se voltou online e sincroniza dados"""
     if "offline_action_queue" in st.session_state:
         pendentes = [i for i in st.session_state["offline_action_queue"] if i["estado"] == "pendente"]
         
@@ -959,26 +785,12 @@ def sync_data_when_online():
             
             inv()
 
-  # =============================================================================
+# =============================================================================
 # 📱 QR CODE - Geração e Leitura para Instrumentos
 # =============================================================================
 
 def gerar_qr_code_data(tag, obra, tipo_inst, url_base=""):
-    """
-    Gera dados para QR Code de instrumento
-    
-    Args:
-        tag: Tag do instrumento (ex: PT-101)
-        obra: Nome da obra
-        tipo_inst: Tipo de instrumento
-        url_base: URL base da app (opcional)
-    
-    Returns:
-        dict: Dados estruturados para QR Code
-    """
-    import base64
-    import json
-    
+    """Gera dados para QR Code de instrumento"""
     qr_data = {
         "tag": tag,
         "obra": obra,
@@ -996,29 +808,15 @@ def gerar_qr_code_data(tag, obra, tipo_inst, url_base=""):
 
 
 def parse_qr_code_data(qr_string):
-    """
-    Parse de dados de QR Code lido
-    
-    Args:
-        qr_string: String lida do QR Code
-    
-    Returns:
-        dict: Dados parseados ou None se inválido
-    """
-    import json
-    import base64
-    
+    """Parse de dados de QR Code lido"""
     try:
-        # Tentar formato JSON direto
         if qr_string.startswith("{"):
             return json.loads(qr_string)
         
-        # Tentar formato base64
         if qr_string.startswith("ey"):
             decoded = base64.b64decode(qr_string).decode()
             return json.loads(decoded)
         
-        # Tentar formato curto: GN|TAG|OBRA
         if qr_string.startswith("GN|"):
             parts = qr_string.split("|")
             if len(parts) >= 3:
@@ -1034,38 +832,16 @@ def parse_qr_code_data(qr_string):
 
 
 def render_qr_code_image(qr_data, size=200):
-    """
-    Renderiza imagem QR Code no Streamlit (usando API externa)
-    
-    Args:
-        qr_ String para codificar no QR
-        size: Tamanho em pixels
-    
-    Returns:
-        URL da imagem QR Code
-    """
+    """Renderiza imagem QR Code no Streamlit"""
     import urllib.parse
-    
     encoded = urllib.parse.quote(qr_data)
     return f"https://api.qrserver.com/v1/create-qr-code/?size={size}x{size}&data={encoded}"
 
 
 def render_camera_scanner(label="Scan QR Code", key_prefix="qr_scan"):
-    """
-    Renderiza interface de scanner de QR Code com câmara
-    
-    Args:
-        label: Texto do botão/input
-        key_prefix: Prefixo para keys do Streamlit
-    
-    Returns:
-        string: Dados do QR Code lido ou None
-    """
-    import streamlit as st
-    
+    """Renderiza interface de scanner de QR Code com câmara"""
     st.markdown(f"### 📱 {label}", unsafe_allow_html=True)
     
-    # Instruções
     st.markdown("""
     <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:10px; margin-bottom:15px;">
         <p style="margin:0; color:#94A3B8; font-size:0.9rem;">
@@ -1074,18 +850,14 @@ def render_camera_scanner(label="Scan QR Code", key_prefix="qr_scan"):
     </div>
     """, unsafe_allow_html=True)
     
-    # Opção 1: Upload de imagem (fallback)
     uploaded = st.file_uploader("Ou faça upload de uma foto do QR Code", type=["png", "jpg", "jpeg"], key=f"{key_prefix}_upload")
     
     if uploaded:
-        # Em produção, aqui integrarias uma lib de leitura de QR (ex: pyzbar)
-        # Por enquanto, simulamos com input manual para demo
         st.info("🔧 Leitura automática de QR em desenvolvimento. Para teste, use o campo abaixo:")
         qr_manual = st.text_input("Cole os dados do QR Code (para teste)", key=f"{key_prefix}_manual")
         if qr_manual:
             return qr_manual
     
-    # Opção 2: Input manual como fallback principal
     qr_manual = st.text_input("Dados do QR Code (formato: GN|TAG|OBRA ou JSON)", key=f"{key_prefix}_input")
     
     if qr_manual and len(qr_manual.strip()) > 5:
@@ -1093,57 +865,35 @@ def render_camera_scanner(label="Scan QR Code", key_prefix="qr_scan"):
     
     return None
 
- # =============================================================================
+# =============================================================================
 # 📧 SMTP - Envio de Emails Reais
 # =============================================================================
 
 def get_smtp_config():
-    """
-    Obtém configuração SMTP dos secrets
+    """Obtém configuração SMTP dos secrets"""
+    smtp_server = st.secrets.get("SMTP_SERVER", "")
+    smtp_port = st.secrets.get("SMTP_PORT", 587)
+    smtp_user = st.secrets.get("SMTP_USER", "")
+    smtp_password = st.secrets.get("SMTP_PASSWORD", "")
+    smtp_from_name = st.secrets.get("SMTP_FROM_NAME", "GestNow")
     
-    Returns:
-        dict: Configuração SMTP ou None se não configurado
-    """
-    import streamlit as st
-    
-    try:
-        smtp_server = st.secrets.get("SMTP_SERVER", "")
-        smtp_port = st.secrets.get("SMTP_PORT", 587)
-        smtp_user = st.secrets.get("SMTP_USER", "")
-        smtp_password = st.secrets.get("SMTP_PASSWORD", "")
-        smtp_from_name = st.secrets.get("SMTP_FROM_NAME", "GestNow")
-        
-        if smtp_server and smtp_user and smtp_password:
-            return {
-                "server": smtp_server,
-                "port": int(smtp_port),
-                "user": smtp_user,
-                "password": smtp_password,
-                "from_name": smtp_from_name,
-                "from_email": smtp_user
-            }
-        return None
-    except:
-        return None
+    if smtp_server and smtp_user and smtp_password:
+        return {
+            "server": smtp_server,
+            "port": int(smtp_port),
+            "user": smtp_user,
+            "password": smtp_password,
+            "from_name": smtp_from_name,
+            "from_email": smtp_user
+        }
+    return None
 
 
 def enviar_email(destinatario, assunto, conteudo_html, conteudo_texto=""):
-    """
-    Envia email via SMTP
-    
-    Args:
-        destinatario: Email do destinatário
-        assunto: Assunto do email
-        conteudo_html: Corpo do email em HTML
-        conteudo_texto: Corpo do email em texto simples (fallback)
-    
-    Returns:
-        bool: True se enviado com sucesso
-    """
+    """Envia email via SMTP"""
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
-    import logging
     
     config = get_smtp_config()
     
@@ -1152,33 +902,22 @@ def enviar_email(destinatario, assunto, conteudo_html, conteudo_texto=""):
         return False
     
     try:
-        # Criar email
         msg = MIMEMultipart("alternative")
         msg["Subject"] = f"[GestNow] {assunto}"
         msg["From"] = f"{config['from_name']} <{config['from_email']}>"
         msg["To"] = destinatario
         
-        # Anexar conteúdos
         if conteudo_texto:
             msg.attach(MIMEText(conteudo_texto, "plain", "utf-8"))
         msg.attach(MIMEText(conteudo_html, "html", "utf-8"))
         
-        # Conectar e enviar
         server = smtplib.SMTP(config["server"], config["port"])
         server.starttls()
         server.login(config["user"], config["password"])
         server.send_message(msg)
         server.quit()
         
-        # Log de auditoria
-        log_audit(
-            usuario="SYSTEM",
-            acao="ENVIAR_EMAIL",
-            tabela="emails_enviados",
-            registro_id=destinatario,
-            detalhes=f"Email enviado: {assunto}",
-            ip=""
-        )
+        log_audit(usuario="SYSTEM", acao="ENVIAR_EMAIL", tabela="emails_enviados", registro_id=destinatario, detalhes=f"Email enviado: {assunto}", ip="")
         
         return True
         
@@ -1188,22 +927,12 @@ def enviar_email(destinatario, assunto, conteudo_html, conteudo_texto=""):
 
 
 def get_email_template(tipo, dados=None):
-    """
-    Retorna template de email formatado
-    
-    Args:
-        tipo: Tipo de email (validacao, aprovacao, punch, etc.)
-        dados: Dict com dados para preencher o template
-    
-    Returns:
-        tuple: (assunto, html, texto)
-    """
+    """Retorna template de email formatado"""
     templates = {
         "validacao_horas": {
             "assunto": "Horas Validadas - {obra}",
             "html": """
-            <html>
-            <body style="font-family:Arial,sans-serif; background:#F8FAFC; padding:20px;">
+            <html><body style="font-family:Arial,sans-serif; background:#F8FAFC; padding:20px;">
                 <div style="max-width:600px; margin:0 auto; background:white; border-radius:10px; padding:30px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
                     <div style="background:linear-gradient(135deg, #1E293B, #0F172A); padding:20px; border-radius:10px 10px 0 0; text-align:center;">
                         <h1 style="color:#F8FAFC; margin:0;">⚡ GESTNOW</h1>
@@ -1219,37 +948,27 @@ def get_email_template(tipo, dados=None):
                             <strong>Data:</strong> {data}<br>
                             <strong>Validado por:</strong> {validador}
                         </p>
-                        <div style="background:#F1F5F9; padding:15px; border-radius:8px; margin:20px 0;">
-                            <p style="margin:0; color:#64748B; font-size:0.9rem;">
-                                📋 Este é um email automático. Não responda a esta mensagem.
-                            </p>
-                        </div>
                     </div>
                     <div style="background:#F8FAFC; padding:20px; text-align:center; border-radius:0 0 10px 10px;">
-                        <p style="color:#94A3B8; margin:0; font-size:0.85rem;">
-                            © 2025 GESTNOW v3.0 - Todos os direitos reservados
-                        </p>
+                        <p style="color:#94A3B8; margin:0; font-size:0.85rem;">© 2025 GESTNOW v3.0</p>
                     </div>
                 </div>
-            </body>
-            </html>
+            </body></html>
             """,
             "texto": "Horas validadas com sucesso. Obra: {obra}, Horas: {horas}h"
         },
         "aprovacao_cliente": {
             "assunto": "Cliente Aprovou Instrumento - {tag}",
             "html": """
-            <html>
-            <body style="font-family:Arial,sans-serif; background:#F8FAFC; padding:20px;">
-                <div style="max-width:600px; margin:0 auto; background:white; border-radius:10px; padding:30px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+            <html><body style="font-family:Arial,sans-serif; background:#F8FAFC; padding:20px;">
+                <div style="max-width:600px; margin:0 auto; background:white; border-radius:10px; padding:30px;">
                     <div style="background:linear-gradient(135deg, #1E293B, #0F172A); padding:20px; border-radius:10px 10px 0 0; text-align:center;">
                         <h1 style="color:#F8FAFC; margin:0;">⚡ GESTNOW</h1>
                     </div>
                     <div style="padding:30px 20px;">
                         <h2 style="color:#10B981; margin:0 0 20px 0;">✅ Aprovação do Cliente</h2>
                         <p style="color:#64748B; line-height:1.6;">
-                            Olá,<br><br>
-                            Um cliente aprovou um instrumento.<br><br>
+                            Olá,<br><br>Um cliente aprovou um instrumento.<br><br>
                             <strong>Cliente:</strong> {cliente}<br>
                             <strong>Tag:</strong> {tag}<br>
                             <strong>Obra:</strong> {obra}<br>
@@ -1257,25 +976,22 @@ def get_email_template(tipo, dados=None):
                         </p>
                     </div>
                 </div>
-            </body>
-            </html>
+            </body></html>
             """,
             "texto": "Cliente aprovou instrumento. Tag: {tag}, Obra: {obra}"
         },
         "punch_list": {
             "assunto": "Novo Item na Punch List - {obra}",
             "html": """
-            <html>
-            <body style="font-family:Arial,sans-serif; background:#F8FAFC; padding:20px;">
-                <div style="max-width:600px; margin:0 auto; background:white; border-radius:10px; padding:30px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+            <html><body style="font-family:Arial,sans-serif; background:#F8FAFC; padding:20px;">
+                <div style="max-width:600px; margin:0 auto; background:white; border-radius:10px; padding:30px;">
                     <div style="background:linear-gradient(135deg, #1E293B, #0F172A); padding:20px; border-radius:10px 10px 0 0; text-align:center;">
                         <h1 style="color:#F8FAFC; margin:0;">⚡ GESTNOW</h1>
                     </div>
                     <div style="padding:30px 20px;">
                         <h2 style="color:#F59E0B; margin:0 0 20px 0;">💬 Novo Item na Punch List</h2>
                         <p style="color:#64748B; line-height:1.6;">
-                            Olá,<br><br>
-                            Um novo item foi adicionado à punch list.<br><br>
+                            Olá,<br><br>Um novo item foi adicionado à punch list.<br><br>
                             <strong>Obra:</strong> {obra}<br>
                             <strong>Prioridade:</strong> {prioridade}<br>
                             <strong>Autor:</strong> {autor}<br>
@@ -1283,25 +999,22 @@ def get_email_template(tipo, dados=None):
                         </p>
                     </div>
                 </div>
-            </body>
-            </html>
+            </body></html>
             """,
             "texto": "Novo item na punch list. Obra: {obra}, Prioridade: {prioridade}"
         },
         "calibracao_concluida": {
             "assunto": "Calibração Concluída - {tag}",
             "html": """
-            <html>
-            <body style="font-family:Arial,sans-serif; background:#F8FAFC; padding:20px;">
-                <div style="max-width:600px; margin:0 auto; background:white; border-radius:10px; padding:30px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+            <html><body style="font-family:Arial,sans-serif; background:#F8FAFC; padding:20px;">
+                <div style="max-width:600px; margin:0 auto; background:white; border-radius:10px; padding:30px;">
                     <div style="background:linear-gradient(135deg, #1E293B, #0F172A); padding:20px; border-radius:10px 10px 0 0; text-align:center;">
                         <h1 style="color:#F8FAFC; margin:0;">⚡ GESTNOW</h1>
                     </div>
                     <div style="padding:30px 20px;">
                         <h2 style="color:#3B82F6; margin:0 0 20px 0;">🔬 Calibração Concluída</h2>
                         <p style="color:#64748B; line-height:1.6;">
-                            Olá,<br><br>
-                            Instrumento calibrado com sucesso.<br><br>
+                            Olá,<br><br>Instrumento calibrado com sucesso.<br><br>
                             <strong>Tag:</strong> {tag}<br>
                             <strong>Obra:</strong> {obra}<br>
                             <strong>Erro Máx:</strong> {erro}<br>
@@ -1309,8 +1022,7 @@ def get_email_template(tipo, dados=None):
                         </p>
                     </div>
                 </div>
-            </body>
-            </html>
+            </body></html>
             """,
             "texto": "Calibração concluída. Tag: {tag}, Erro: {erro}"
         }
@@ -1326,7 +1038,6 @@ def get_email_template(tipo, dados=None):
     html = template["html"]
     texto = template["texto"]
     
-    # Preencher placeholders
     for key, value in dados.items():
         assunto = assunto.replace("{" + key + "}", str(value))
         html = html.replace("{" + key + "}", str(value))
@@ -1336,31 +1047,13 @@ def get_email_template(tipo, dados=None):
 
 
 def notificar_por_email(destinatario_email, tipo_notificacao, dados):
-    """
-    Envia notificação por email com template
-    
-    Args:
-        destinatario_email: Email do destinatário
-        tipo_notificacao: Tipo de template a usar
-        dados: Dados para preencher o template
-    
-    Returns:
-        bool: True se enviado com sucesso
-    """
+    """Envia notificação por email com template"""
     assunto, html, texto = get_email_template(tipo_notificacao, dados)
     return enviar_email(destinatario_email, assunto, html, texto)
 
 
 def testar_smtp(email_teste):
-    """
-    Testa configuração SMTP enviando email de teste
-    
-    Args:
-        email_teste: Email para receber o teste
-    
-    Returns:
-        bool: True se teste bem sucedido
-    """
+    """Testa configuração SMTP enviando email de teste"""
     assunto, html, texto = get_email_template("validacao_horas", {
         "tecnico": "Teste",
         "obra": "Obra Teste",
@@ -1370,3 +1063,7 @@ def testar_smtp(email_teste):
     })
     
     return enviar_email(email_teste, f"TESTE SMTP - {assunto}", html, texto)
+
+# =============================================================================
+# FIM DO CORE.PY
+# =============================================================================
