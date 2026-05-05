@@ -13,7 +13,7 @@ from core import (
 from translations import t
 
 def render_tecnico(*args):
-    """Renderiza módulo Técnico com perfil editável, PDFs obrigatórios e validação de Preço Hora"""
+    """Renderiza módulo Técnico com perfil completo, PDFs obrigatórios e validação de Preço Hora"""
     
     # 1. Desempacotamento das variáveis
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db, sw_db, obs_db, equip_db,
@@ -115,6 +115,23 @@ def render_tecnico(*args):
     .pdf-card.validado {
         background: rgba(16, 185, 129, 0.1);
         border-color: #10B981;
+    }
+    .section-title {
+        background: linear-gradient(135deg, #3B82F6, #1E40AF);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin: 30px 0 20px 0;
+        font-size: 1.3rem;
+        font-weight: bold;
+    }
+    .subsection-title {
+        background: rgba(59, 130, 246, 0.1);
+        border-left: 4px solid #3B82F6;
+        padding: 10px 15px;
+        margin: 20px 0 15px 0;
+        font-size: 1.1rem;
+        font-weight: 600;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -452,7 +469,7 @@ def render_tecnico(*args):
                 st.rerun()
     
     # =============================================================================
-    # TAB PERFIL: EDITÁVEL COM VALIDAÇÕES
+    # TAB PERFIL: EDITÁVEL COM TODOS OS NOVOS CAMPOS
     # =============================================================================
     with tabs[-1 if not is_chefe else -2]:
         st.markdown(f"### {ICONS['profile']} Perfil do Colaborador", unsafe_allow_html=True)
@@ -532,8 +549,8 @@ def render_tecnico(*args):
                 st.warning("⚠️ O teu preço hora foi recusado. Contacta o admin para renegociação.")
                 st.stop()
             
-            # ========== FORMULÁRIO DE EDIÇÃO DE PERFIL ==========
-            st.markdown("### ✏️ Editar Perfil", unsafe_allow_html=True)
+            # ========== FORMULÁRIO DE EDIÇÃO DE PERFIL COMPLETO ==========
+            st.markdown('<div class="section-title">✏️ Editar Perfil</div>', unsafe_allow_html=True)
             
             # Carregar campos bloqueados
             try:
@@ -542,9 +559,448 @@ def render_tecnico(*args):
                 campos_bloqueados = []
             
             with st.form("form_editar_perfil"):
-                col1, col2 = st.columns(2)
+                # Secção 1: Identificação
+                st.markdown('<div class="subsection-title">📋 Identificação do Colaborador</div>', unsafe_allow_html=True)
                 
-                # Campos editáveis (exceto Preço Hora e bloqueados)
-                campos_editaveis = {
-                    'Email': user_data.get('Email', ''),
-                    'Telefone
+                col1, col2 = st.columns(2)
+                with col1:
+                    telefone = st.text_input("Contacto Telefónico", value=user_data.get('Telefone', ''), disabled='Telefone' in campos_bloqueados, key="edit_telefone")
+                    email = st.text_input("Email", value=user_data.get('Email', ''), disabled='Email' in campos_bloqueados, key="edit_email")
+                    contacto_emerg = st.text_input("Contacto Emergência", value=user_data.get('Contacto_Emergencia', ''), disabled='Contacto_Emergencia' in campos_bloqueados, key="edit_emerg_tel")
+                with col2:
+                    nome_emerg = st.text_input("Nome Emergência", value=user_data.get('Nome_Emergencia', ''), disabled='Nome_Emergencia' in campos_bloqueados, key="edit_emerg_nome")
+                    grau_parentesco = st.text_input("Grau Parentesco", value=user_data.get('Grau_Parentesco', ''), disabled='Grau_Parentesco' in campos_bloqueados, key="edit_emerg_grau")
+                
+                # Secção 2: Morada
+                st.markdown('<div class="subsection-title">📍 Morada</div>', unsafe_allow_html=True)
+                
+                morada = st.text_input("Morada", value=user_data.get('Morada', ''), disabled='Morada' in campos_bloqueados, key="edit_morada")
+                col3, col4, col5 = st.columns(3)
+                with col3:
+                    localidade = st.text_input("Localidade", value=user_data.get('Localidade', ''), disabled='Localidade' in campos_bloqueados, key="edit_localidade")
+                with col4:
+                    concelho = st.text_input("Concelho", value=user_data.get('Concelho', ''), disabled='Concelho' in campos_bloqueados, key="edit_concelho")
+                with col5:
+                    cod_postal = st.text_input("Código Postal", value=user_data.get('Codigo_Postal', ''), disabled='Codigo_Postal' in campos_bloqueados, key="edit_cp")
+                
+                # Secção 3: Dados Pessoais
+                st.markdown('<div class="subsection-title">🌍 Dados Pessoais</div>', unsafe_allow_html=True)
+                
+                col6, col7 = st.columns(2)
+                with col6:
+                    naturalidade = st.text_input("Naturalidade", value=user_data.get('Naturalidade', ''), disabled='Naturalidade' in campos_bloqueados, key="edit_naturalidade")
+                    estado_civil = st.selectbox("Estado Civil", ["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União de Facto"], index=["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União de Facto"].index(user_data.get('Estado_Civil', 'Solteiro(a)')) if user_data.get('Estado_Civil', '') in ["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União de Facto"] else 0, disabled='Estado_Civil' in campos_bloqueados, key="edit_ec")
+                with col7:
+                    nacionalidade = st.text_input("Nacionalidade", value=user_data.get('Nacionalidade', 'Portugal'), disabled='Nacionalidade' in campos_bloqueados, key="edit_nacionalidade")
+                    sexo = st.radio("Sexo", ["Masculino", "Feminino"], index=["Masculino", "Feminino"].index(user_data.get('Sexo', 'Masculino')) if user_data.get('Sexo', '') in ["Masculino", "Feminino"] else 0, horizontal=True, disabled='Sexo' in campos_bloqueados, key="edit_sexo")
+                
+                # Secção 4: Documentos
+                st.markdown('<div class="subsection-title">🆔 Documentos</div>', unsafe_allow_html=True)
+                
+                col8, col9 = st.columns(2)
+                with col8:
+                    nif = st.text_input("Nº Contribuinte (NIF)", value=user_data.get('NIF', ''), disabled=True, key="edit_nif")  # NIF nunca editável
+                    cc = st.text_input("Cartão Cidadão", value=user_data.get('CC', ''), disabled='CC' in campos_bloqueados, key="edit_cc")
+                    niss = st.text_input("Nº Segurança Social (NISS)", value=user_data.get('NISS', ''), disabled='NISS' in campos_bloqueados, key="edit_niss")
+                with col9:
+                    cc_validade = st.text_input("Validade CC", value=user_data.get('CC_Validade', ''), disabled='CC_Validade' in campos_bloqueados, key="edit_cc_val")
+                    dependentes = st.number_input("Dependentes", min_value=0, value=int(user_data.get('Dependentes', '0')), disabled='Dependentes' in campos_bloqueados, key="edit_dep")
+                
+                # Secção 5: Dados Profissionais
+                st.markdown('<div class="subsection-title">💼 Dados Profissionais</div>', unsafe_allow_html=True)
+                
+                profissao = st.text_input("Profissão", value=user_data.get('Profissao', ''), disabled='Profissao' in campos_bloqueados, key="edit_prof")
+                col10, col11 = st.columns(2)
+                with col10:
+                    categoria = st.text_input("Categoria Profissional", value=user_data.get('Categoria_Profissional', ''), disabled='Categoria_Profissional' in campos_bloqueados, key="edit_cat")
+                with col11:
+                    habilitacoes = st.selectbox("Habilitações Literárias", [
+                        "4º Ano", "6º Ano", "9º Ano", "12º Ano",
+                        "Curso Técnico", "Licenciatura", "Mestrado", "Doutoramento"
+                    ], index=0 if user_data.get('Habilitacoes_Literarias', '') not in ["4º Ano", "6º Ano", "9º Ano", "12º Ano", "Curso Técnico", "Licenciatura", "Mestrado", "Doutoramento"] else ["4º Ano", "6º Ano", "9º Ano", "12º Ano", "Curso Técnico", "Licenciatura", "Mestrado", "Doutoramento"].index(user_data.get('Habilitacoes_Literarias', '')), disabled='Habilitacoes_Literarias' in campos_bloqueados, key="edit_hab")
+                
+                # Secção 6: Dados Bancários
+                st.markdown('<div class="subsection-title">💰 Dados Bancários</div>', unsafe_allow_html=True)
+                
+                iban = st.text_input("IBAN", value=user_data.get('Banco_IBAN', ''), disabled='Banco_IBAN' in campos_bloqueados, key="edit_iban", placeholder="PT50 0000 0000 0000 00000 0000")
+                
+                # Secção 7: Fardamento
+                st.markdown('<div class="subsection-title">👕 Tamanhos de Fardamento</div>', unsafe_allow_html=True)
+                
+                col12, col13, col14 = st.columns(3)
+                with col12:
+                    tam_camisola = st.selectbox("Camisola/T-shirt", 
+                        ["XS", "S", "M", "L", "XL", "XXL", "XXXL"], 
+                        index=["XS", "S", "M", "L", "XL", "XXL", "XXXL"].index(user_data.get('Tamanho_Camisola', 'M')) if user_data.get('Tamanho_Camisola', '') in ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] else 2, 
+                        key="edit_tam_cam")
+                with col13:
+                    tam_calca = st.selectbox("Calça",
+                        ["XS (34/36)", "S (38)", "M (40/42)", "L (42/44)", "XL (46/48)", "XXL (50/52)"],
+                        index=0 if user_data.get('Tamanho_Calca', '') not in ["XS (34/36)", "S (38)", "M (40/42)", "L (42/44)", "XL (46/48)", "XXL (50/52)"] else ["XS (34/36)", "S (38)", "M (40/42)", "L (42/44)", "XL (46/48)", "XXL (50/52)"].index(user_data.get('Tamanho_Calca', '')),
+                        key="edit_tam_calc")
+                with col14:
+                    tam_botas = st.selectbox("Botas",
+                        ["40", "41", "42", "43", "44", "45", "Outro"],
+                        index=0 if user_data.get('Tamanho_Botas', '') not in ["40", "41", "42", "43", "44", "45", "Outro"] else ["40", "41", "42", "43", "44", "45", "Outro"].index(user_data.get('Tamanho_Botas', '')),
+                        key="edit_tam_bot")
+                
+                # Secção 8: Observações
+                st.markdown('<div class="subsection-title">📝 Observações</div>', unsafe_allow_html=True)
+                
+                observacoes = st.text_area("Observações", value=user_data.get('Observacoes', ''), disabled='Observacoes' in campos_bloqueados, key="edit_obs")
+                
+                # Informações de campos não editáveis
+                st.info("""
+                **🔒 Campos não editáveis:**
+                - Nome, Tipo, Cargo, NIF (contacta admin para alterar)
+                - Preço Hora (definido pelo admin)
+                
+                **Campos bloqueados pelo admin:** Serão mostrados como desativados acima.
+                """)
+                
+                if st.form_submit_button("💾 Guardar Alterações", use_container_width=True, type="primary"):
+                    # Atualizar campos editáveis
+                    campos_para_atualizar = {
+                        'Telefone': telefone,
+                        'Email': email,
+                        'Morada': morada,
+                        'Localidade': localidade,
+                        'Concelho': concelho,
+                        'Codigo_Postal': cod_postal,
+                        'Naturalidade': naturalidade,
+                        'Nacionalidade': nacionalidade,
+                        'Estado_Civil': estado_civil,
+                        'Sexo': sexo,
+                        'CC': cc,
+                        'CC_Validade': cc_validade,
+                        'NISS': niss,
+                        'Dependentes': str(dependentes),
+                        'Profissao': profissao,
+                        'Categoria_Profissional': categoria,
+                        'Habilitacoes_Literarias': habilitacoes,
+                        'Contacto_Emergencia': contacto_emerg,
+                        'Nome_Emergencia': nome_emerg,
+                        'Grau_Parentesco': grau_parentesco,
+                        'Banco_IBAN': iban,
+                        'Tamanho_Camisola': tam_camisola,
+                        'Tamanho_Calca': tam_calca,
+                        'Tamanho_Botas': tam_botas,
+                        'Observacoes': observacoes
+                    }
+                    
+                    for campo, valor in campos_para_atualizar.items():
+                        if campo not in campos_bloqueados:
+                            users.loc[user_idx, campo] = valor
+                    
+                    save_db(users, "usuarios.csv")
+                    
+                    log_audit(usuario=user_nome, acao="EDITAR_PERFIL", tabela="usuarios.csv", registro_id=user_nome, detalhes="Perfil atualizado", ip="")
+                    
+                    inv()
+                    st.success("✅ Perfil atualizado com sucesso!")
+                    st.rerun()
+            
+            # Informações de leitura apenas
+            st.divider()
+            st.markdown("### 📋 Informações do Perfil", unsafe_allow_html=True)
+            c1, c2 = st.columns(2)
+            with c1:
+                st.metric(f"{ICONS['profile']} Cargo", user_data.get('Cargo', 'N/A'))
+                st.metric(f"{ICONS['admin']} Tipo de Acesso", user_tipo)
+                st.metric("💰 Preço Hora", f"€ {user_data.get('PrecoHora', '15.0')}")
+            with c2:
+                st.metric("📧 Email", user_data.get('Email', 'N/A'))
+                st.metric("📞 Telefone", user_data.get('Telefone', 'N/A'))
+                st.metric("📍 Local", user_data.get('Local', 'Não'))
+            
+            st.divider()
+            if st.button(f"{ICONS['logout']} Sair do Sistema", use_container_width=True, type="secondary"):
+                st.session_state.clear()
+                st.rerun()
+        else:
+            st.warning("⚠️ Não foi possível carregar os dados do utilizador.")
+    
+    # =============================================================================
+    # TAB PEDIDOS & DOCUMENTOS
+    # =============================================================================
+    with tabs[-1]:
+        st.markdown(f"### {ICONS['material']} Pedidos & Documentos", unsafe_allow_html=True)
+        
+        sub_fer, sub_epi, sub_mat, sub_gas, sub_avar, sub_meus = st.tabs([
+            "🔧 Ferramentas", "🦺 EPIs", "📦 Materiais", "⛽ Gasóleo", "🔧 Avarias", "📋 Meus Pedidos"
+        ])
+        
+        # --- SUB-TAB: FERRAMENTAS ---
+        with sub_fer:
+            st.markdown("#### 🔧 Pedir Ferramentas")
+            with st.form("form_pedir_fer"):
+                obra_ped = st.selectbox("Obra", obras_db['Obra'].unique() if not obras_db.empty else ["Geral"], key="ped_fer_obra")
+                desc_fer = st.text_area("Descrição da ferramenta necessária", key="ped_fer_desc")
+                urgencia_fer = st.selectbox("Urgência", ["Baixa", "Média", "Alta"], key="ped_fer_urg")
+                foto_fer = st.file_uploader("Foto da ferramenta (opcional)", type=["png", "jpg", "jpeg"], key="ped_fer_foto")
+                
+                if st.form_submit_button("📤 Enviar Pedido de Ferramenta", use_container_width=True, type="primary"):
+                    if desc_fer:
+                        foto_b64 = None
+                        if foto_fer:
+                            foto_b64 = process_and_compress_image(foto_fer)
+                        
+                        novo_ped = pd.DataFrame([{
+                            "ID": str(uuid.uuid4())[:8].upper(),
+                            "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                            "Solicitante": user_nome,
+                            "Obra": obra_ped,
+                            "Descricao": desc_fer,
+                            "Urgencia": urgencia_fer,
+                            "Foto_b64": foto_b64,
+                            "Status": "Pendente"
+                        }])
+                        
+                        if not req_fer_db.empty:
+                            req_fer_db = pd.concat([req_fer_db, novo_ped], ignore_index=True)
+                        else:
+                            req_fer_db = novo_ped
+                        
+                        save_db(req_fer_db, "req_ferramentas.csv")
+                        
+                        log_audit(usuario=st.session_state.user, acao="PEDIR_FERRAMENTA", tabela="req_ferramentas.csv", registro_id=novo_ped['ID'].iloc[0], detalhes=f"Pedido de ferramenta por {user_nome} em {obra_ped}", ip="")
+                        
+                        criar_notificacao(destinatario="admin", titulo="🔧 Novo Pedido de Ferramenta", mensagem=f"{user_nome} pediu ferramenta em {obra_ped}: {desc_fer[:50]}...", tipo="warning", acao_url="/admin?tab=validacoes")
+                        
+                        st.success("✅ Pedido de ferramenta enviado!")
+                        inv()
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ Por favor, descreve a ferramenta necessária.")
+        
+        # --- SUB-TAB: EPIs ---
+        with sub_epi:
+            st.markdown("#### 🦺 Pedir EPIs")
+            with st.form("form_pedir_epi"):
+                obra_epi = st.selectbox("Obra", obras_db['Obra'].unique() if not obras_db.empty else ["Geral"], key="ped_epi_obra")
+                item_epi = st.selectbox("Tipo de EPI", ["Capacete", "Óculos de Proteção", "Luvas", "Botas de Segurança", "Arnés", "Protetor Auditivo", "Máscara", "Outro"], key="ped_epi_tipo")
+                tamanho_epi = st.selectbox("Tamanho", ["P", "M", "G", "XG", "Único"], key="ped_epi_tam")
+                qtd_epi = st.number_input("Quantidade", min_value=1, value=1, key="ped_epi_qtd")
+                desc_epi = st.text_area("Observações (opcional)", key="ped_epi_obs")
+                
+                if st.form_submit_button("📤 Enviar Pedido de EPI", use_container_width=True, type="primary"):
+                    novo_ped = pd.DataFrame([{
+                        "ID": str(uuid.uuid4())[:8].upper(),
+                        "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "Solicitante": user_nome,
+                        "Obra": obra_epi,
+                        "Item": item_epi,
+                        "Tamanho": tamanho_epi,
+                        "Quantidade": qtd_epi,
+                        "Descricao": desc_epi,
+                        "Status": "Pendente"
+                    }])
+                    
+                    if not req_epi_db.empty:
+                        req_epi_db = pd.concat([req_epi_db, novo_ped], ignore_index=True)
+                    else:
+                        req_epi_db = novo_ped
+                    
+                    save_db(req_epi_db, "req_epis.csv")
+                    
+                    log_audit(usuario=st.session_state.user, acao="PEDIR_EPI", tabela="req_epis.csv", registro_id=novo_ped['ID'].iloc[0], detalhes=f"Pedido de EPI por {user_nome}: {item_epi} ({tamanho_epi})", ip="")
+                    
+                    criar_notificacao(destinatario="admin", titulo="🦺 Novo Pedido de EPI", mensagem=f"{user_nome} pediu {qtd_epi}x {item_epi} ({tamanho_epi}) em {obra_epi}", tipo="warning", acao_url="/admin?tab=validacoes")
+                    
+                    st.success("✅ Pedido de EPI enviado!")
+                    inv()
+                    st.rerun()
+        
+        # --- SUB-TAB: MATERIAIS ---
+        with sub_mat:
+            st.markdown("#### 📦 Pedir Materiais")
+            with st.form("form_pedir_mat"):
+                obra_mat = st.selectbox("Obra", obras_db['Obra'].unique() if not obras_db.empty else ["Geral"], key="ped_mat_obra")
+                desc_mat = st.text_area("Descrição do material necessário", key="ped_mat_desc")
+                qtd_mat = st.number_input("Quantidade", min_value=1, value=1, key="ped_mat_qtd")
+                unidade_mat = st.selectbox("Unidade", ["un", "m", "kg", "l", "cx", "rol"], key="ped_mat_unid")
+                urgencia_mat = st.selectbox("Urgência", ["Baixa", "Média", "Alta"], key="ped_mat_urg")
+                
+                if st.form_submit_button("📤 Enviar Pedido de Material", use_container_width=True, type="primary"):
+                    if desc_mat:
+                        novo_ped = pd.DataFrame([{
+                            "ID": str(uuid.uuid4())[:8].upper(),
+                            "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                            "Solicitante": user_nome,
+                            "Obra": obra_mat,
+                            "Descricao": desc_mat,
+                            "Quantidade": qtd_mat,
+                            "Unidade": unidade_mat,
+                            "Urgencia": urgencia_mat,
+                            "Status": "Pendente"
+                        }])
+                        
+                        if not req_mat_db.empty:
+                            req_mat_db = pd.concat([req_mat_db, novo_ped], ignore_index=True)
+                        else:
+                            req_mat_db = novo_ped
+                        
+                        save_db(req_mat_db, "req_materiais.csv")
+                        
+                        log_audit(usuario=st.session_state.user, acao="PEDIR_MATERIAL", tabela="req_materiais.csv", registro_id=novo_ped['ID'].iloc[0], detalhes=f"Pedido de material por {user_nome}: {qtd_mat}{unidade_mat} - {desc_mat[:30]}", ip="")
+                        
+                        criar_notificacao(destinatario="admin", titulo="📦 Novo Pedido de Material", mensagem=f"{user_nome} pediu {qtd_mat}{unidade_mat} de {desc_mat[:30]} em {obra_mat}", tipo="warning", acao_url="/admin?tab=validacoes")
+                        
+                        st.success("✅ Pedido de material enviado!")
+                        inv()
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ Por favor, descreve o material necessário.")
+        
+        # --- SUB-TAB: GASÓLEO ---
+        with sub_gas:
+            st.markdown("#### ⛽ Registar Abastecimento de Gasóleo")
+            with st.form("form_pedir_gas"):
+                obra_gas = st.selectbox("Obra", obras_db['Obra'].unique() if not obras_db.empty else ["Geral"], key="ped_gas_obra")
+                litros_gas = st.number_input("Litros Abastecidos", min_value=0.0, value=0.0, step=0.1, key="ped_gas_litros")
+                valor_gas = st.number_input("Valor Total (€)", min_value=0.0, value=0.0, step=0.01, key="ped_gas_valor")
+                data_gas = st.date_input("Data do Abastecimento", value=date.today(), key="ped_gas_data")
+                desc_gas = st.text_area("Observações (viatura, km, etc.)", key="ped_gas_obs")
+                recibo_gas = st.file_uploader("📄 Foto do Recibo (obrigatório)", type=["png", "jpg", "jpeg", "pdf"], key="ped_gas_recibo")
+                
+                if st.form_submit_button("📤 Enviar Registo de Gasóleo", use_container_width=True, type="primary"):
+                    if recibo_gas and litros_gas > 0:
+                        recibo_b64 = None
+                        if recibo_gas.type == "application/pdf":
+                            recibo_b64 = base64.b64encode(recibo_gas.read()).decode()
+                        else:
+                            recibo_b64 = process_and_compress_image(recibo_gas)
+                        
+                        novo_gas = pd.DataFrame([{
+                            "ID": str(uuid.uuid4())[:8].upper(),
+                            "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                            "Solicitante": user_nome,
+                            "Obra": obra_gas,
+                            "Litros": litros_gas,
+                            "Valor": valor_gas,
+                            "Data_Abastecimento": data_gas.strftime("%d/%m/%Y"),
+                            "Descricao": desc_gas,
+                            "Recibo_b64": recibo_b64,
+                            "Status": "Pendente"
+                        }])
+                        
+                        novo_gas['Tipo'] = "Gasóleo"
+                        
+                        if not req_mat_db.empty:
+                            req_mat_db = pd.concat([req_mat_db, novo_gas], ignore_index=True)
+                        else:
+                            req_mat_db = novo_gas
+                        
+                        save_db(req_mat_db, "req_materiais.csv")
+                        
+                        log_audit(usuario=st.session_state.user, acao="REGISTAR_GASOLEO", tabela="req_materiais.csv", registro_id=novo_gas['ID'].iloc[0], detalhes=f"{user_nome} registou {litros_gas}L de gasóleo em {obra_gas}", ip="")
+                        
+                        criar_notificacao(destinatario="admin", titulo="⛽ Novo Registo de Gasóleo", mensagem=f"{user_nome} registou {litros_gas}L (€{valor_gas}) em {obra_gas}", tipo="info", acao_url="/admin?tab=validacoes")
+                        
+                        st.success("✅ Registo de gasóleo enviado com recibo!")
+                        inv()
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ Por favor, faz upload do recibo e indica os litros.")
+        
+        # --- SUB-TAB: AVARIAS ---
+        with sub_avar:
+            st.markdown("#### 🔧 Reportar Avaria / Reparação")
+            with st.form("form_pedir_avar"):
+                obra_avar = st.selectbox("Obra", obras_db['Obra'].unique() if not obras_db.empty else ["Geral"], key="ped_avar_obra")
+                equip_avar = st.text_input("Equipamento / Viatura", placeholder="Ex: Viatura ABC-123, Compressor XYZ", key="ped_avar_equip")
+                desc_avar = st.text_area("Descrição da Avaria", key="ped_avar_desc")
+                urgencia_avar = st.selectbox("Urgência", ["Baixa", "Média", "Alta", "Crítica - Paragem"], key="ped_avar_urg")
+                valor_avar = st.number_input("Valor Estimado da Reparação (€)", min_value=0.0, value=0.0, step=0.01, key="ped_avar_valor")
+                fatura_avar = st.file_uploader("📄 Foto da Fatura/Orçamento (obrigatório)", type=["png", "jpg", "jpeg", "pdf"], key="ped_avar_fatura")
+                
+                if st.form_submit_button("📤 Enviar Reporte de Avaria", use_container_width=True, type="primary"):
+                    if fatura_avar and desc_avar:
+                        fatura_b64 = None
+                        if fatura_avar.type == "application/pdf":
+                            fatura_b64 = base64.b64encode(fatura_avar.read()).decode()
+                        else:
+                            fatura_b64 = process_and_compress_image(fatura_avar)
+                        
+                        nova_avar = pd.DataFrame([{
+                            "ID": str(uuid.uuid4())[:8].upper(),
+                            "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                            "Solicitante": user_nome,
+                            "Obra": obra_avar,
+                            "Equipamento": equip_avar,
+                            "Descricao": desc_avar,
+                            "Urgencia": urgencia_avar,
+                            "Valor_Estimado": valor_avar,
+                            "Fatura_b64": fatura_b64,
+                            "Status": "Pendente"
+                        }])
+                        
+                        nova_avar['Tipo'] = "Avaria"
+                        
+                        if not incs_db.empty:
+                            incs_db = pd.concat([incs_db, nova_avar], ignore_index=True)
+                        else:
+                            incs_db = nova_avar
+                        
+                        save_db(incs_db, "incidentes.csv")
+                        
+                        log_audit(usuario=st.session_state.user, acao="REPORTAR_AVARIA", tabela="incidentes.csv", registro_id=nova_avar['ID'].iloc[0], detalhes=f"Avaria reportada por {user_nome}: {equip_avar} em {obra_avar}", ip="")
+                        
+                        criar_notificacao(destinatario="admin", titulo="🔧 Nova Avaria Reportada", mensagem=f"{urgencia_avar}: {equip_avar} em {obra_avar} - {desc_avar[:30]}...", tipo="error" if urgencia_avar == "Crítica - Paragem" else "warning", acao_url="/admin?tab=validacoes")
+                        
+                        st.success("✅ Reporte de avaria enviado com fatura!")
+                        inv()
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ Por favor, descreve a avaria e faz upload da fatura/orçamento.")
+        
+        # --- SUB-TAB: MEUS PEDIDOS ---
+        with sub_meus:
+            st.markdown("#### 📋 Histórico dos Meus Pedidos")
+            
+            if not req_fer_db.empty:
+                meus_fer = req_fer_db[req_fer_db['Solicitante'] == user_nome]
+                if not meus_fer.empty:
+                    st.markdown("##### 🔧 Ferramentas")
+                    for _, ped in meus_fer.iterrows():
+                        cor_status = {"Pendente": "#F59E0B", "Aprovado": "#10B981", "Rejeitado": "#EF4444"}.get(ped.get('Status', 'Pendente'), "#6B7280")
+                        st.markdown(f"""
+                        <div class="pedido-card" style="border-left-color: {cor_status};">
+                            <b>{ped.get('Descricao', 'N/A')}</b><br>
+                            <small>Data: {ped.get('Data', 'N/A')} | Urgência: {ped.get('Urgencia', 'N/A')}<br>
+                            Status: <span style="color:{cor_status}; font-weight:bold;">{ped.get('Status', 'Pendente')}</span></small>
+                        </div>
+                        """, unsafe_allow_html=True)
+            
+            if not req_epi_db.empty:
+                meus_epi = req_epi_db[req_epi_db['Solicitante'] == user_nome]
+                if not meus_epi.empty:
+                    st.markdown("##### 🦺 EPIs")
+                    for _, ped in meus_epi.iterrows():
+                        cor_status = {"Pendente": "#F59E0B", "Aprovado": "#10B981", "Rejeitado": "#EF4444"}.get(ped.get('Status', 'Pendente'), "#6B7280")
+                        st.markdown(f"""
+                        <div class="pedido-card" style="border-left-color: {cor_status};">
+                            <b>{ped.get('Item', 'N/A')} ({ped.get('Tamanho', 'N/A')}) x{ped.get('Quantidade', 1)}</b><br>
+                            <small>Data: {ped.get('Data', 'N/A')}<br>
+                            Status: <span style="color:{cor_status}; font-weight:bold;">{ped.get('Status', 'Pendente')}</span></small>
+                        </div>
+                        """, unsafe_allow_html=True)
+            
+            if not req_mat_db.empty:
+                meus_mat = req_mat_db[req_mat_db['Solicitante'] == user_nome]
+                if not meus_mat.empty:
+                    st.markdown("##### 📦 Materiais & Outros")
+                    for _, ped in meus_mat.iterrows():
+                        cor_status = {"Pendente": "#F59E0B", "Aprovado": "#10B981", "Rejeitado": "#EF4444"}.get(ped.get('Status', 'Pendente'), "#6B7280")
+                        st.markdown(f"""
+                        <div class="pedido-card" style="border-left-color: {cor_status};">
+                            <b>{ped.get('Descricao', ped.get('Equipamento', 'N/A'))}</b><br>
+                            <small>Data: {ped.get('Data', 'N/A')} | {ped.get('Quantidade', '')}{ped.get('Unidade', '')}<br>
+                            Status: <span style="color:{cor_status}; font-weight:bold;">{ped.get('Status', 'Pendente')}</span></small>
+                        </div>
+                        """, unsafe_allow_html=True)
+            
+            if (req_fer_db.empty or req_fer_db[req_fer_db['Solicitante'] == user_nome].empty) and \
+               (req_epi_db.empty or req_epi_db[req_epi_db['Solicitante'] == user_nome].empty) and \
+               (req_mat_db.empty or req_mat_db[req_mat_db['Solicitante'] == user_nome].empty):
+                st.info("📋 Ainda não fizeste nenhum pedido.")
