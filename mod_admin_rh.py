@@ -1,10 +1,11 @@
 import streamlit as st
 import pandas as pd
+import json
 from datetime import datetime
-from core import save_db, inv, hp, cp, log_audit
+from core import save_db, inv, hp, cp, log_audit, criar_notificacao
 
 def render_rh(users, avals_db, obras_db, inst_acessos_db):
-    """Módulo de Recursos Humanos - Gestão de Colaboradores"""
+    """Módulo de Recursos Humanos - Gestão de Colaboradores com campos bloqueáveis e PDFs"""
     
     # Garantir colunas obrigatórias
     cols_obrigatorias = {
@@ -22,9 +23,22 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
         'DataNasc': '',
         'Nacionalidade': 'Portugal',
         'Foto': '',
-        'PrecoHoraStatus': '',
+        'PrecoHoraStatus': '',  # '', 'Aceite', 'Recusado'
         'PrecoHoraData': '',
-        'PIN': '0000'
+        'PIN': '0000',
+        # Novos campos de tamanhos EPI
+        'Tamanho_Capacete': '',
+        'Tamanho_Camisola': '',
+        'Tamanho_Casaco': '',
+        'Tamanho_Calças': '',
+        'Tamanho_Botas': '',
+        'Tamanho_Luvas': '',
+        # Campos bloqueáveis (JSON string)
+        'Campos_Bloqueados': '[]',
+        # PDFs obrigatórios
+        'PDFs_Vistos': '[]',  # JSON: lista de PDFs vistos
+        'PDFs_Validados': 'Não',  # 'Sim' ou 'Não'
+        'PDFs_Validacao_Data': ''
     }
     
     for col, valor_padrao in cols_obrigatorias.items():
@@ -41,8 +55,8 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
     
     st.markdown("### 👥 Gestão de Recursos Humanos", unsafe_allow_html=True)
     
-    tab_pessoal, tab_avaliacoes, tab_historico = st.tabs([
-        "Gestão de Pessoal", "Avaliações", "Histórico"
+    tab_pessoal, tab_avaliacoes, tab_historico, tab_config = st.tabs([
+        "Gestão de Pessoal", "Avaliações", "Histórico", "⚙️ Configurações"
     ])
     
     with tab_pessoal:
@@ -64,13 +78,12 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                 
                 if st.form_submit_button("💾 Criar Colaborador", use_container_width=True):
                     if nome and password:
-                        # Verificar se já existe
                         if nome in users['Nome'].values:
                             st.error(f"❌ Já existe um colaborador com o nome '{nome}'!")
                         else:
                             new_user = pd.DataFrame([{
                                 "Nome": nome,
-                                "Password": hp(password),  # Hash da password
+                                "Password": hp(password),
                                 "Tipo": tipo,
                                 "Cargo": cargo,
                                 "Email": email,
@@ -86,20 +99,22 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                                 "Foto": "",
                                 "PrecoHoraStatus": "",
                                 "PrecoHoraData": "",
-                                "PIN": "0000"
+                                "PIN": "0000",
+                                "Tamanho_Capacete": "",
+                                "Tamanho_Camisola": "",
+                                "Tamanho_Casaco": "",
+                                "Tamanho_Calças": "",
+                                "Tamanho_Botas": "",
+                                "Tamanho_Luvas": "",
+                                "Campos_Bloqueados": json.dumps([]),
+                                "PDFs_Vistos": json.dumps([]),
+                                "PDFs_Validados": "Não",
+                                "PDFs_Validacao_Data": ""
                             }])
                             users = pd.concat([users, new_user], ignore_index=True)
                             save_db(users, "usuarios.csv")
                             
-                            # Log de auditoria
-                            log_audit(
-                                usuario=st.session_state.user,
-                                acao="CRIAR_COLABORADOR",
-                                tabela="usuarios.csv",
-                                registro_id=nome,
-                                detalhes=f"Novo colaborador criado: {nome} ({tipo}, {cargo})",
-                                ip=""
-                            )
+                            log_audit(usuario=st.session_state.user, acao="CRIAR_COLABORADOR", tabela="usuarios.csv", registro_id=nome, detalhes=f"Novo colaborador criado: {nome} ({tipo}, {cargo})", ip="")
                             
                             inv()
                             st.success(f"✅ {nome} criado com sucesso!")
@@ -132,15 +147,29 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                             st.write(f"**Cargo:** {user.get('Cargo', 'N/A')}")
                             st.write(f"**Preço Hora:** € {user.get('PrecoHora', '15.0')}")
                         
-                        # ✅ BOTÃO PARA ADMIN VER/RESETAR PASSWORD
+                        # Status do Preço Hora
+                        preco_status = user.get('PrecoHoraStatus', '')
+                        if preco_status == 'Aceite':
+                            st.success(f"✅ Preço Hora ACEITE em {user.get('PrecoHoraData', 'N/A')}")
+                        elif preco_status == 'Recusado':
+                            st.error(f"❌ Preço Hora RECUSADO em {user.get('PrecoHoraData', 'N/A')}")
+                        else:
+                            st.warning(f"⏳ Preço Hora AGUARDANDO validação")
+                        
+                        # Status dos PDFs
+                        pdfs_validados = user.get('PDFs_Validados', 'Não')
+                        if pdfs_validados == 'Sim':
+                            st.success(f"✅ PDFs validados em {user.get('PDFs_Validacao_Data', 'N/A')}")
+                        else:
+                            st.warning("⏳ PDFs AGUARDANDO visualização")
+                        
+                        # Gestão de Password (Admin)
                         if st.session_state.get('tipo') == 'Admin':
                             st.divider()
                             st.markdown("**🔐 Gestão de Password (Admin)**", unsafe_allow_html=True)
                             
                             col_pwd1, col_pwd2 = st.columns(2)
                             with col_pwd1:
-                                # Mostrar password atual (descomentar se quiseres - SEGURANÇA!)
-                                # st.write(f"**Password atual:** `{user.get('Password', 'N/A')}`")
                                 st.info("⚠️ Por segurança, a password não é visível (está encriptada)")
                             with col_pwd2:
                                 nova_password = st.text_input("Nova password", type="password", key=f"new_pwd_{idx}")
@@ -149,12 +178,38 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                                         users.loc[idx, 'Password'] = hp(nova_password)
                                         save_db(users, "usuarios.csv")
                                         st.success(f"✅ Password de {nome_user} atualizada!")
-                                        st.info(f"🔑 Nova password: `{nova_password}`")
                                         inv()
                                         st.rerun()
-                                    else:
-                                        st.warning("⚠️ Insere uma password")
                         
+                        # Configuração de campos bloqueáveis (Admin)
+                        if st.session_state.get('tipo') == 'Admin':
+                            st.divider()
+                            st.markdown("**🔒 Campos Bloqueáveis**", unsafe_allow_html=True)
+                            st.caption("Desmarca para permitir que o colaborador edite este campo")
+                            
+                            # Carregar campos bloqueados atuais
+                            try:
+                                campos_bloqueados = json.loads(user.get('Campos_Bloqueados', '[]'))
+                            except:
+                                campos_bloqueados = []
+                            
+                            campos_editaveis = ['Email', 'Telefone', 'Morada', 'NIF', 'NISS', 'CC', 'DataNasc', 'Nacionalidade',
+                                              'Tamanho_Capacete', 'Tamanho_Camisola', 'Tamanho_Casaco', 'Tamanho_Calças', 'Tamanho_Botas', 'Tamanho_Luvas']
+                            
+                            novos_bloqueados = []
+                            for campo in campos_editaveis:
+                                bloqueado = campo in campos_bloqueados
+                                if st.checkbox(f"🔒 {campo}", value=bloqueado, key=f"lock_{idx}_{campo}"):
+                                    novos_bloqueados.append(campo)
+                            
+                            if st.button("💾 Guardar Configuração de Campos", key=f"save_locks_{idx}"):
+                                users.loc[idx, 'Campos_Bloqueados'] = json.dumps(novos_bloqueados)
+                                save_db(users, "usuarios.csv")
+                                st.success(f"✅ Configuração guardada para {nome_user}!")
+                                inv()
+                                st.rerun()
+                        
+                        # Ações
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             if st.button("✏️ Editar", key=f"edit_{idx}"):
@@ -225,3 +280,30 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
     with tab_historico:
         st.markdown("### 📜 Histórico de Trabalhadores", unsafe_allow_html=True)
         st.info("Funcionalidade em desenvolvimento...")
+
+    with tab_config:
+        st.markdown("### ⚙️ Configurações de PDFs Obrigatórios", unsafe_allow_html=True)
+        
+        st.info("""
+        **PDFs que os colaboradores devem visualizar:**
+        
+        1. 📋 Regulamento Interno
+        2. 🛡️ Política de Segurança e HSE
+        3. 📊 Procedimentos de Qualidade
+        
+        Os colaboradores só podem usar a app após validar a visualização de todos os PDFs.
+        """)
+        
+        # Lista de PDFs (URLs ou caminhos)
+        pdfs_obrigatorios = [
+            {"nome": "Regulamento Interno", "url": "https://exemplo.com/regulamento.pdf"},
+            {"nome": "Política de Segurança e HSE", "url": "https://exemplo.com/hse.pdf"},
+            {"nome": "Procedimentos de Qualidade", "url": "https://exemplo.com/qualidade.pdf"}
+        ]
+        
+        st.markdown("#### 📋 Lista de PDFs Configurados")
+        for i, pdf in enumerate(pdfs_obrigatorios):
+            st.markdown(f"**{i+1}. {pdf['nome']}**")
+            st.code(pdf['url'], language="text")
+        
+        st.warning("⚠️ Para alterar os PDFs, edite a lista `pdfs_obrigatorios` no código.")
