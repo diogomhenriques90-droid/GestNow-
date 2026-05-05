@@ -3,9 +3,11 @@ import pandas as pd
 import json
 from datetime import datetime
 from core import save_db, inv, hp, cp, log_audit, criar_notificacao
+import base64
+import os
 
 def render_rh(users, avals_db, obras_db, inst_acessos_db):
-    """Módulo de Recursos Humanos - Gestão de Colaboradores com campos bloqueáveis e PDFs"""
+    """Módulo de Recursos Humanos - Gestão de Colaboradores com campos bloqueáveis e PDFs uploadáveis"""
     
     # Garantir colunas obrigatórias
     cols_obrigatorias = {
@@ -36,7 +38,7 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
         # Campos bloqueáveis (JSON string)
         'Campos_Bloqueados': '[]',
         # PDFs obrigatórios
-        'PDFs_Vistos': '[]',  # JSON: lista de PDFs vistos
+        'PDFs_Vistos': '[]',  # JSON: lista de IDs de PDFs vistos
         'PDFs_Validados': 'Não',  # 'Sim' ou 'Não'
         'PDFs_Validacao_Data': ''
     }
@@ -55,8 +57,8 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
     
     st.markdown("### 👥 Gestão de Recursos Humanos", unsafe_allow_html=True)
     
-    tab_pessoal, tab_avaliacoes, tab_historico, tab_config = st.tabs([
-        "Gestão de Pessoal", "Avaliações", "Histórico", "⚙️ Configurações"
+    tab_pessoal, tab_avaliacoes, tab_historico, tab_pdfs = st.tabs([
+        "Gestão de Pessoal", "Avaliações", "Histórico", "📄 PDFs Obrigatórios"
     ])
     
     with tab_pessoal:
@@ -281,29 +283,105 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
         st.markdown("### 📜 Histórico de Trabalhadores", unsafe_allow_html=True)
         st.info("Funcionalidade em desenvolvimento...")
 
-    with tab_config:
-        st.markdown("### ⚙️ Configurações de PDFs Obrigatórios", unsafe_allow_html=True)
+    # ========== TAB PDFs OBRIGATÓRIOS (NOVA) ==========
+    with tab_pdfs:
+        st.markdown("### 📄 Gestão de PDFs Obrigatórios", unsafe_allow_html=True)
         
         st.info("""
-        **PDFs que os colaboradores devem visualizar:**
-        
-        1. 📋 Regulamento Interno
-        2. 🛡️ Política de Segurança e HSE
-        3. 📊 Procedimentos de Qualidade
-        
-        Os colaboradores só podem usar a app após validar a visualização de todos os PDFs.
+        **Instruções:**
+        1. Faz upload dos PDFs obrigatórios (máximo 3)
+        2. Os colaboradores visualizarão estes PDFs no seu perfil
+        3. Devem validar a visualização de TODOS os PDFs
+        4. Receberás notificação quando validarem
         """)
         
-        # Lista de PDFs (URLs ou caminhos)
-        pdfs_obrigatorios = [
-            {"nome": "Regulamento Interno", "url": "https://exemplo.com/regulamento.pdf"},
-            {"nome": "Política de Segurança e HSE", "url": "https://exemplo.com/hse.pdf"},
-            {"nome": "Procedimentos de Qualidade", "url": "https://exemplo.com/qualidade.pdf"}
-        ]
+        # Carregar PDFs existentes do GCS ou base de dados
+        try:
+            # Tentar carregar de CSV primeiro (mais simples)
+            pdfs_db = load_db("pdfs_obrigatorios.csv", [
+                "ID", "Nome", "Descricao", "Data_Upload", "Upload_Por", "Ficheiro_b64"
+            ])
+        except:
+            pdfs_db = pd.DataFrame(columns=[
+                "ID", "Nome", "Descricao", "Data_Upload", "Upload_Por", "Ficheiro_b64"
+            ])
         
-        st.markdown("#### 📋 Lista de PDFs Configurados")
-        for i, pdf in enumerate(pdfs_obrigatorios):
-            st.markdown(f"**{i+1}. {pdf['nome']}**")
-            st.code(pdf['url'], language="text")
+        st.markdown("#### 📋 PDFs Atuais")
         
-        st.warning("⚠️ Para alterar os PDFs, edite a lista `pdfs_obrigatorios` no código.")
+        if not pdfs_db.empty and len(pdfs_db) > 0:
+            for idx, pdf in pdfs_db.iterrows():
+                with st.expander(f"📄 {pdf.get('Nome', 'PDF')} - Carregado em {pdf.get('Data_Upload', 'N/A')}", expanded=True):
+                    st.write(f"**Descrição:** {pdf.get('Descricao', 'N/A')}")
+                    st.write(f"**Upload por:** {pdf.get('Upload_Por', 'N/A')}")
+                    
+                    # Botão para visualizar/download
+                    if pdf.get('Ficheiro_b64'):
+                        try:
+                            pdf_data = base64.b64decode(pdf['Ficheiro_b64'])
+                            st.download_button(
+                                label="📥 Descarregar PDF",
+                                data=pdf_data,
+                                file_name=f"{pdf.get('Nome', 'documento')}.pdf",
+                                mime="application/pdf",
+                                key=f"download_pdf_{idx}"
+                            )
+                        except:
+                            st.error("❌ Erro ao descarregar PDF")
+                    
+                    # Botão para eliminar
+                    if st.button("🗑️ Eliminar PDF", key=f"delete_pdf_{idx}", type="secondary"):
+                        pdfs_db = pdfs_db.drop(idx)
+                        save_db(pdfs_db, "pdfs_obrigatorios.csv")
+                        st.success("✅ PDF eliminado!")
+                        inv()
+                        st.rerun()
+        else:
+            st.warning("📋 Nenhum PDF obrigatório carregado ainda.")
+        
+        st.divider()
+        
+        # Upload de novos PDFs
+        st.markdown("#### ➕ Upload de Novo PDF Obrigatório")
+        
+        if len(pdfs_db) >= 3:
+            st.warning("⚠️ Limite máximo de 3 PDFs atingido. Elimina um PDF existente antes de adicionar outro.")
+        else:
+            with st.form("form_upload_pdf"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    nome_pdf = st.text_input("Nome do Documento", placeholder="Ex: Regulamento Interno")
+                    descricao_pdf = st.text_area("Descrição", placeholder="Ex: Regulamento interno da empresa")
+                with col2:
+                    ficheiro_pdf = st.file_uploader("📄 Ficheiro PDF", type=["pdf"])
+                
+                if st.form_submit_button("📤 Upload de PDF", use_container_width=True, type="primary"):
+                    if nome_pdf and ficheiro_pdf:
+                        # Ler ficheiro PDF
+                        pdf_bytes = ficheiro_pdf.read()
+                        pdf_b64 = base64.b64encode(pdf_bytes).decode()
+                        
+                        # Criar novo registo
+                        import uuid
+                        novo_pdf = pd.DataFrame([{
+                            "ID": str(uuid.uuid4())[:8].upper(),
+                            "Nome": nome_pdf,
+                            "Descricao": descricao_pdf,
+                            "Data_Upload": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                            "Upload_Por": st.session_state.user,
+                            "Ficheiro_b64": pdf_b64
+                        }])
+                        
+                        if not pdfs_db.empty:
+                            pdfs_db = pd.concat([pdfs_db, novo_pdf], ignore_index=True)
+                        else:
+                            pdfs_db = novo_pdf
+                        
+                        save_db(pdfs_db, "pdfs_obrigatorios.csv")
+                        
+                        log_audit(usuario=st.session_state.user, acao="UPLOAD_PDF_OBRIGATORIO", tabela="pdfs_obrigatorios.csv", registro_id=novo_pdf['ID'].iloc[0], detalhes=f"PDF carregado: {nome_pdf}", ip="")
+                        
+                        st.success(f"✅ PDF '{nome_pdf}' carregado com sucesso!")
+                        inv()
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ Por favor, preenche o nome e faz upload do PDF.")
