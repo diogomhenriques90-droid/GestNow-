@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import uuid, secrets, base64, io
+import uuid, secrets, base64, io, json
 from datetime import datetime, timedelta, date
 from streamlit_drawable_canvas import st_canvas
 from PIL import Image
@@ -13,7 +13,7 @@ from core import (
 from translations import t
 
 def render_tecnico(*args):
-    """Renderiza módulo Técnico com design industrial moderno + Pedidos + Documentos"""
+    """Renderiza módulo Técnico com perfil editável, PDFs obrigatórios e validação de Preço Hora"""
     
     # 1. Desempacotamento das variáveis
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db, sw_db, obs_db, equip_db,
@@ -25,6 +25,15 @@ def render_tecnico(*args):
 
     # Lógica de Permissões
     is_chefe = user_tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or cargo_user in ['Chefe de Equipa', 'Encarregado']
+    
+    # Carregar dados do utilizador atual
+    user_data = None
+    user_idx = None
+    if not users.empty and 'Nome' in users.columns:
+        user_match = users[users['Nome'] == user_nome]
+        if not user_match.empty:
+            user_data = user_match.iloc[0]
+            user_idx = user_match.index[0]
     
     # =============================================================================
     # HEADER COM BRANDING INDUSTRIAL
@@ -85,11 +94,105 @@ def render_tecnico(*args):
         padding: 15px;
         margin-bottom: 10px;
     }
+    .pdf-card {
+        background: rgba(239, 68, 68, 0.1);
+        border: 2px solid #EF4444;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    .pdf-card.validado {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: #10B981;
+    }
     </style>
     """, unsafe_allow_html=True)
     
     # =============================================================================
-    # DEFINIÇÃO DE TABS - ATUALIZADO COM PEDIDOS
+    # VERIFICAÇÃO DE PDFs OBRIGATÓRIOS (BLOQUEIO)
+    # =============================================================================
+    if user_data is not None:
+        pdfs_validados = user_data.get('PDFs_Validados', 'Não')
+        
+        if pdfs_validados != 'Sim':
+            st.markdown("""
+            <div style="background:#EF4444; color:white; padding:20px; border-radius:15px; text-align:center; margin-bottom:30px;">
+                <h2 style="margin:0 0 10px 0;">⚠️ AÇÃO OBRIGATÓRIA</h2>
+                <p style="margin:0; font-size:1.1rem;">Deves visualizar e validar os documentos obrigatórios antes de continuar.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("### 📋 Documentos Obrigatórios", unsafe_allow_html=True)
+            
+            pdfs_obrigatorios = [
+                {"id": "regulamento", "nome": "📋 Regulamento Interno", "url": "https://exemplo.com/regulamento.pdf"},
+                {"id": "hse", "nome": "🛡️ Política de Segurança e HSE", "url": "https://exemplo.com/hse.pdf"},
+                {"id": "qualidade", "nome": "📊 Procedimentos de Qualidade", "url": "https://exemplo.com/qualidade.pdf"}
+            ]
+            
+            # Carregar PDFs já vistos
+            try:
+                pdfs_vistos = json.loads(user_data.get('PDFs_Vistos', '[]'))
+            except:
+                pdfs_vistos = []
+            
+            todos_vistos = True
+            for pdf in pdfs_obrigatorios:
+                visto = pdf['id'] in pdfs_vistos
+                
+                with st.container():
+                    st.markdown(f"""
+                    <div class="pdf-card {'validado' if visto else ''}">
+                        <h4 style="margin:0 0 10px 0;">{pdf['nome']}</h4>
+                        <a href="{pdf['url']}" target="_blank" style="text-decoration:none;">
+                            <button style="background:#3B82F6; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; margin-bottom:10px;">
+                                📄 Visualizar PDF
+                            </button>
+                        </a>
+                        <br>
+                        <small style="color:{'#10B981' if visto else '#EF4444'};">
+                            {'✅ Validado' if visto else '❌ Não validado'}
+                        </small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if not visto:
+                        todos_vistos = False
+                        if st.button(f"✅ Confirmar Visualização: {pdf['nome']}", key=f"validar_{pdf['id']}"):
+                            pdfs_vistos.append(pdf['id'])
+                            users.loc[user_idx, 'PDFs_Vistos'] = json.dumps(pdfs_vistos)
+                            
+                            # Se todos foram vistos, marcar como validado
+                            if len(pdfs_vistos) >= len(pdfs_obrigatorios):
+                                users.loc[user_idx, 'PDFs_Validados'] = 'Sim'
+                                users.loc[user_idx, 'PDFs_Validacao_Data'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                                
+                                # Notificar admin RH
+                                criar_notificacao(
+                                    destinatario="admin",
+                                    titulo="✅ Colaborador Validou PDFs",
+                                    mensagem=f"{user_nome} validou a visualização dos PDFs obrigatórios",
+                                    tipo="success",
+                                    acao_url="/admin?tab=rh"
+                                )
+                                
+                                log_audit(usuario=user_nome, acao="VALIDAR_PDFS_OBRIGATORIOS", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"PDFs validados: {pdfs_vistos}", ip="")
+                            
+                            save_db(users, "usuarios.csv")
+                            inv()
+                            st.success("✅ Validação registada!")
+                            st.rerun()
+            
+            if not todos_vistos:
+                st.warning("⚠️ Deves validar TODOS os PDFs antes de continuar.")
+                st.stop()  # Bloqueia o resto da página
+            else:
+                st.success("✅ Todos os PDFs validados! Podes continuar.")
+                st.divider()
+    
+    # =============================================================================
+    # DEFINIÇÃO DE TABS
     # =============================================================================
     menu = [f"{ICONS['dashboard']} Pontos", f"{ICONS['safety']} Segurança (HSE)", f"{ICONS['profile']} Perfil", f"{ICONS['material']} Pedidos"]
     if is_chefe:
@@ -98,12 +201,11 @@ def render_tecnico(*args):
     tabs = st.tabs(menu)
     
     # =============================================================================
-    # TAB 1: REGISTO DE PONTO (CALENDÁRIO & CARDS)
+    # TAB 1: REGISTO DE PONTO
     # =============================================================================
     with tabs[0]:
         st.markdown(f"### {ICONS['dashboard']} Registo de Ponto")
         
-        # Calendário Semanal Interativo
         hoje = date.today()
         if 'data_consulta' not in st.session_state:
             st.session_state.data_consulta = hoje
@@ -131,7 +233,6 @@ def render_tecnico(*args):
                     st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Formulário de Registo
         with st.expander(f"➕ Registar Trabalho em {st.session_state.data_consulta.strftime('%d/%m/%Y')}", expanded=(d_sel == hoje)):
             with st.form("ponto_form_elite"):
                 obras_list = obras_db['Obra'].unique() if not obras_db.empty else ["Geral"]
@@ -170,7 +271,6 @@ def render_tecnico(*args):
                         inv()
                         st.rerun()
         
-        # Visualização dos Cards do Dia Selecionado
         st.markdown(f"### Registos de {st.session_state.data_consulta.strftime('%d/%m/%Y')}")
         if not registos_db.empty:
             meus_regs = registos_db[registos_db['Técnico'] == user_nome]
@@ -193,7 +293,7 @@ def render_tecnico(*args):
                 """, unsafe_allow_html=True)
     
     # =============================================================================
-    # TAB 2 (CHEFE): FOLHA DE PONTO & E-SIGN - CORRIGIDO
+    # TAB 2 (CHEFE): FOLHA DE PONTO
     # =============================================================================
     offset = 0
     if is_chefe:
@@ -206,14 +306,12 @@ def render_tecnico(*args):
                                   obras_db['Obra'].unique() if not obras_db.empty else ["Sem Obras"], 
                                   key="esign_obra")
             
-            # Selecionar período
             col_p1, col_p2 = st.columns(2)
             with col_p1:
                 semana_inicio = st.date_input("Início da Semana", value=inicio_sem, key="fp_inicio")
             with col_p2:
                 semana_fim = st.date_input("Fim da Semana", value=inicio_sem + timedelta(days=6), key="fp_fim")
             
-            # Carregar registos do período
             if not registos_db.empty:
                 regs_periodo = registos_db[
                     (registos_db['Obra'] == obra_f) &
@@ -224,7 +322,6 @@ def render_tecnico(*args):
                 if not regs_periodo.empty:
                     st.markdown(f"### 📋 Registos de {semana_inicio.strftime('%d/%m')} a {semana_fim.strftime('%d/%m/%Y')}")
                     
-                    # Agrupar por técnico
                     for tecnico in regs_periodo['Técnico'].unique():
                         regs_tec = regs_periodo[regs_periodo['Técnico'] == tecnico]
                         total_horas = regs_tec['Horas_Total'].astype(float).sum()
@@ -236,7 +333,6 @@ def render_tecnico(*args):
                         </div>
                         """, unsafe_allow_html=True)
                     
-                    # Canvas para Assinatura
                     st.markdown("### ✍️ Assinatura do Responsável")
                     canvas_sig = st_canvas(
                         fill_color="rgba(255, 255, 255, 0)",
@@ -256,7 +352,6 @@ def render_tecnico(*args):
                             esign_id = secrets.token_hex(6).upper()
                             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                             
-                            # Guardar folha de ponto
                             nova_folha = pd.DataFrame([{
                                 "ID": str(uuid.uuid4())[:8].upper(),
                                 "Obra": obra_f,
@@ -333,7 +428,187 @@ def render_tecnico(*args):
                 st.rerun()
     
     # =============================================================================
-    # TAB PEDIDOS & DOCUMENTOS (NOVA!)
+    # TAB PERFIL: EDITÁVEL COM VALIDAÇÕES
+    # =============================================================================
+    with tabs[-1 if not is_chefe else -2]:
+        st.markdown(f"### {ICONS['profile']} Perfil do Colaborador", unsafe_allow_html=True)
+        
+        if user_data is not None:
+            # ========== VALIDAÇÃO DE PREÇO HORA (PRIMEIRO ACESSO) ==========
+            preco_status = user_data.get('PrecoHoraStatus', '')
+            
+            if preco_status == '':
+                st.markdown("""
+                <div style="background:#3B82F6; color:white; padding:20px; border-radius:15px; text-align:center; margin-bottom:30px;">
+                    <h3 style="margin:0 0 10px 0;">💰 Validação de Preço Hora</h3>
+                    <p style="margin:0;">Deves aceitar ou recusar o teu preço hora antes de continuar.</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown(f"""
+                <div style="background:rgba(255,255,255,0.1); padding:20px; border-radius:15px; text-align:center;">
+                    <p style="font-size:1.2rem; margin:0 0 20px 0;"><strong>Preço Hora Proposto:</strong></p>
+                    <p style="font-size:2.5rem; font-weight:bold; color:#10B981; margin:0 0 30px 0;">€ {user_data.get('PrecoHora', '15.0')}</p>
+                    
+                    <div style="display:flex; gap:20px; justify-content:center;">
+                        <button onclick="document.getElementById('aceitar_preco').click()" style="background:#10B981; color:white; border:none; padding:15px 40px; border-radius:10px; font-size:1.1rem; cursor:pointer;">
+                            ✅ Aceitar
+                        </button>
+                        <button onclick="document.getElementById('recusar_preco').click()" style="background:#EF4444; color:white; border:none; padding:15px 40px; border-radius:10px; font-size:1.1rem; cursor:pointer;">
+                            ❌ Recusar
+                        </button>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                col_acc1, col_acc2 = st.columns(2)
+                with col_acc1:
+                    if st.button("✅ Aceitar Preço Hora", key="aceitar_preco", use_container_width=True):
+                        users.loc[user_idx, 'PrecoHoraStatus'] = 'Aceite'
+                        users.loc[user_idx, 'PrecoHoraData'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                        save_db(users, "usuarios.csv")
+                        
+                        log_audit(usuario=user_nome, acao="ACEITAR_PRECO_HORA", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Aceitou €{user_data.get('PrecoHora')}/hora", ip="")
+                        
+                        criar_notificacao(
+                            destinatario="admin",
+                            titulo="💰 Preço Hora Aceite",
+                            mensagem=f"{user_nome} aceitou o preço hora de €{user_data.get('PrecoHora')}",
+                            tipo="success",
+                            acao_url="/admin?tab=rh"
+                        )
+                        
+                        inv()
+                        st.success("✅ Preço hora aceite! Podes continuar.")
+                        st.rerun()
+                
+                with col_acc2:
+                    if st.button("❌ Recusar Preço Hora", key="recusar_preco", use_container_width=True):
+                        users.loc[user_idx, 'PrecoHoraStatus'] = 'Recusado'
+                        users.loc[user_idx, 'PrecoHoraData'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                        save_db(users, "usuarios.csv")
+                        
+                        log_audit(usuario=user_nome, acao="RECUSAR_PRECO_HORA", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Recusou €{user_data.get('PrecoHora')}/hora", ip="")
+                        
+                        criar_notificacao(
+                            destinatario="admin",
+                            titulo="💰 Preço Hora Recusado",
+                            mensagem=f"{user_nome} RECUSOU o preço hora de €{user_data.get('PrecoHora')}",
+                            tipo="warning",
+                            acao_url="/admin?tab=rh"
+                        )
+                        
+                        inv()
+                        st.warning("❌ Preço hora recusado. Contacta o admin para negociação.")
+                        st.rerun()
+                
+                st.stop()  # Bloqueia até validar preço hora
+            
+            elif preco_status == 'Recusado':
+                st.warning("⚠️ O teu preço hora foi recusado. Contacta o admin para renegociação.")
+                st.stop()
+            
+            # ========== FORMULÁRIO DE EDIÇÃO DE PERFIL ==========
+            st.markdown("### ✏️ Editar Perfil", unsafe_allow_html=True)
+            
+            # Carregar campos bloqueados
+            try:
+                campos_bloqueados = json.loads(user_data.get('Campos_Bloqueados', '[]'))
+            except:
+                campos_bloqueados = []
+            
+            with st.form("form_editar_perfil"):
+                col1, col2 = st.columns(2)
+                
+                # Campos editáveis (exceto Preço Hora e bloqueados)
+                campos_editaveis = {
+                    'Email': user_data.get('Email', ''),
+                    'Telefone': user_data.get('Telefone', ''),
+                    'Morada': user_data.get('Morada', ''),
+                    'NIF': user_data.get('NIF', ''),
+                    'NISS': user_data.get('NISS', ''),
+                    'CC': user_data.get('CC', ''),
+                    'DataNasc': user_data.get('DataNasc', ''),
+                    'Nacionalidade': user_data.get('Nacionalidade', 'Portugal'),
+                }
+                
+                # Tamanhos EPI (sempre editáveis)
+                tamanhos_epis = {
+                    'Tamanho_Capacete': user_data.get('Tamanho_Capacete', ''),
+                    'Tamanho_Camisola': user_data.get('Tamanho_Camisola', ''),
+                    'Tamanho_Casaco': user_data.get('Tamanho_Casaco', ''),
+                    'Tamanho_Calças': user_data.get('Tamanho_Calças', ''),
+                    'Tamanho_Botas': user_data.get('Tamanho_Botas', ''),
+                    'Tamanho_Luvas': user_data.get('Tamanho_Luvas', ''),
+                }
+                
+                with col1:
+                    for campo, valor in campos_editaveis.items():
+                        bloqueado = campo in campos_bloqueados
+                        if bloqueado:
+                            st.text_input(f"🔒 {campo}", value=valor, disabled=True, key=f"edit_{campo}")
+                        else:
+                            st.text_input(campo, value=valor, key=f"edit_{campo}")
+                    
+                    st.markdown("#### 👕 Tamanhos EPI")
+                    for campo, valor in tamanhos_epis.items():
+                        label = campo.replace('Tamanho_', '').replace('_', ' ')
+                        st.selectbox(label, ["P", "M", "G", "XG", "Único"], index=["P", "M", "G", "XG", "Único"].index(valor) if valor in ["P", "M", "G", "XG", "Único"] else 1, key=f"edit_{campo}")
+                
+                with col2:
+                    st.info("""
+                    **Campos não editáveis:**
+                    - 🔒 Preço Hora (definido pelo admin)
+                    - 🔒 Nome, Tipo, Cargo (contacta admin para alterar)
+                    
+                    **Campos bloqueados pelo admin:**
+                    """)
+                    if campos_bloqueados:
+                        for cb in campos_bloqueados:
+                            st.write(f"🔒 {cb}")
+                    else:
+                        st.write("✅ Nenhum campo bloqueado")
+                
+                if st.form_submit_button("💾 Guardar Alterações", use_container_width=True, type="primary"):
+                    # Atualizar campos editáveis
+                    for campo in campos_editaveis:
+                        if campo not in campos_bloqueados:
+                            users.loc[user_idx, campo] = st.session_state[f"edit_{campo}"]
+                    
+                    # Atualizar tamanhos EPI
+                    for campo in tamanhos_epis:
+                        users.loc[user_idx, campo] = st.session_state[f"edit_{campo}"]
+                    
+                    save_db(users, "usuarios.csv")
+                    
+                    log_audit(usuario=user_nome, acao="EDITAR_PERFIL", tabela="usuarios.csv", registro_id=user_nome, detalhes="Perfil atualizado", ip="")
+                    
+                    inv()
+                    st.success("✅ Perfil atualizado com sucesso!")
+                    st.rerun()
+            
+            # Informações de leitura apenas
+            st.divider()
+            st.markdown("### 📋 Informações do Perfil", unsafe_allow_html=True)
+            c1, c2 = st.columns(2)
+            with c1:
+                st.metric(f"{ICONS['profile']} Cargo", user_data.get('Cargo', 'N/A'))
+                st.metric(f"{ICONS['admin']} Tipo de Acesso", user_tipo)
+                st.metric("💰 Preço Hora", f"€ {user_data.get('PrecoHora', '15.0')}")
+            with c2:
+                st.metric("📧 Email", user_data.get('Email', 'N/A'))
+                st.metric("📞 Telefone", user_data.get('Telefone', 'N/A'))
+                st.metric("📍 Local", user_data.get('Local', 'Não'))
+            
+            st.divider()
+            if st.button(f"{ICONS['logout']} Sair do Sistema", use_container_width=True, type="secondary"):
+                st.session_state.clear()
+                st.rerun()
+        else:
+            st.warning("⚠️ Não foi possível carregar os dados do utilizador.")
+    
+    # =============================================================================
+    # TAB PEDIDOS & DOCUMENTOS
     # =============================================================================
     with tabs[-1]:
         st.markdown(f"### {ICONS['material']} Pedidos & Documentos", unsafe_allow_html=True)
@@ -464,7 +739,7 @@ def render_tecnico(*args):
                     else:
                         st.warning("⚠️ Por favor, descreve o material necessário.")
         
-        # --- SUB-TAB: GASÓLEO (COM UPLOAD DE RECIBO) ---
+        # --- SUB-TAB: GASÓLEO ---
         with sub_gas:
             st.markdown("#### ⛽ Registar Abastecimento de Gasóleo")
             with st.form("form_pedir_gas"):
@@ -479,7 +754,6 @@ def render_tecnico(*args):
                     if recibo_gas and litros_gas > 0:
                         recibo_b64 = None
                         if recibo_gas.type == "application/pdf":
-                            # Para PDF, guardar como base64 simples
                             recibo_b64 = base64.b64encode(recibo_gas.read()).decode()
                         else:
                             recibo_b64 = process_and_compress_image(recibo_gas)
@@ -497,8 +771,6 @@ def render_tecnico(*args):
                             "Status": "Pendente"
                         }])
                         
-                        # Guardar em req_mat_db ou criar tabela separada
-                        # Para simplificar, vamos usar req_mat_db com tipo "Gasóleo"
                         novo_gas['Tipo'] = "Gasóleo"
                         
                         if not req_mat_db.empty:
@@ -518,7 +790,7 @@ def render_tecnico(*args):
                     else:
                         st.warning("⚠️ Por favor, faz upload do recibo e indica os litros.")
         
-        # --- SUB-TAB: AVARIAS (COM UPLOAD DE FATURA) ---
+        # --- SUB-TAB: AVARIAS ---
         with sub_avar:
             st.markdown("#### 🔧 Reportar Avaria / Reparação")
             with st.form("form_pedir_avar"):
@@ -550,8 +822,6 @@ def render_tecnico(*args):
                             "Status": "Pendente"
                         }])
                         
-                        # Guardar em incs_db ou tabela separada de avarias
-                        # Para simplificar, vamos usar incs_db com tipo "Avaria"
                         nova_avar['Tipo'] = "Avaria"
                         
                         if not incs_db.empty:
@@ -571,11 +841,10 @@ def render_tecnico(*args):
                     else:
                         st.warning("⚠️ Por favor, descreve a avaria e faz upload da fatura/orçamento.")
         
-        # --- SUB-TAB: MEUS PEDIDOS (HISTÓRICO) ---
+        # --- SUB-TAB: MEUS PEDIDOS ---
         with sub_meus:
             st.markdown("#### 📋 Histórico dos Meus Pedidos")
             
-            # Ferramentas
             if not req_fer_db.empty:
                 meus_fer = req_fer_db[req_fer_db['Solicitante'] == user_nome]
                 if not meus_fer.empty:
@@ -590,7 +859,6 @@ def render_tecnico(*args):
                         </div>
                         """, unsafe_allow_html=True)
             
-            # EPIs
             if not req_epi_db.empty:
                 meus_epi = req_epi_db[req_epi_db['Solicitante'] == user_nome]
                 if not meus_epi.empty:
@@ -605,7 +873,6 @@ def render_tecnico(*args):
                         </div>
                         """, unsafe_allow_html=True)
             
-            # Materiais
             if not req_mat_db.empty:
                 meus_mat = req_mat_db[req_mat_db['Solicitante'] == user_nome]
                 if not meus_mat.empty:
@@ -620,38 +887,7 @@ def render_tecnico(*args):
                         </div>
                         """, unsafe_allow_html=True)
             
-            # Se não houver pedidos
             if (req_fer_db.empty or req_fer_db[req_fer_db['Solicitante'] == user_nome].empty) and \
                (req_epi_db.empty or req_epi_db[req_epi_db['Solicitante'] == user_nome].empty) and \
                (req_mat_db.empty or req_mat_db[req_mat_db['Solicitante'] == user_nome].empty):
                 st.info("📋 Ainda não fizeste nenhum pedido.")
-    
-    # =============================================================================
-    # TAB PERFIL: INFORMAÇÕES E LOGOUT
-    # =============================================================================
-    with tabs[-1 if not is_chefe else -2]:
-        st.markdown(f"### {ICONS['profile']} Perfil do Colaborador")
-        
-        if not users.empty:
-            u_data = users[users['Nome'] == user_nome]
-            if not u_data.empty:
-                u = u_data.iloc[0]
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.metric(f"{ICONS['profile']} Cargo", u.get('Cargo', 'N/A'))
-                with c2:
-                    st.metric(f"{ICONS['admin']} Tipo de Acesso", st.session_state.get('tipo', 'Técnico'))
-                
-                st.markdown(f"""
-                <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:10px; margin-top:15px;">
-                    <p><strong>Email:</strong> {u.get('Email', 'N/A')}</p>
-                    <p><strong>Telefone:</strong> {u.get('Telefone', 'N/A')}</p>
-                    <p><strong>Preço Hora:</strong> € {u.get('PrecoHora', '15.0')}</p>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        st.divider()
-        
-        if st.button(f"{ICONS['logout']} Sair do Sistema", use_container_width=True, type="secondary"):
-            st.session_state.clear()
-            st.rerun()
