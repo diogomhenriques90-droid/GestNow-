@@ -477,6 +477,7 @@ def render_tecnico(*args):
         if user_data is not None:
             # ========== VALIDAÇÃO DE PREÇO HORA (PRIMEIRO ACESSO) ==========
             preco_status = user_data.get('PrecoHoraStatus', '')
+            preco_hora_valor = user_data.get('PrecoHora', '15.0')
             
             if preco_status == '':
                 st.markdown("""
@@ -487,34 +488,25 @@ def render_tecnico(*args):
                 """, unsafe_allow_html=True)
                 
                 st.markdown(f"""
-                <div style="background:rgba(255,255,255,0.1); padding:20px; border-radius:15px; text-align:center;">
+                <div style="background:rgba(255,255,255,0.1); padding:30px; border-radius:15px; text-align:center;">
                     <p style="font-size:1.2rem; margin:0 0 20px 0;"><strong>Preço Hora Proposto:</strong></p>
-                    <p style="font-size:2.5rem; font-weight:bold; color:#10B981; margin:0 0 30px 0;">€ {user_data.get('PrecoHora', '15.0')}</p>
-                    
-                    <div style="display:flex; gap:20px; justify-content:center;">
-                        <button onclick="document.getElementById('aceitar_preco').click()" style="background:#10B981; color:white; border:none; padding:15px 40px; border-radius:10px; font-size:1.1rem; cursor:pointer;">
-                            ✅ Aceitar
-                        </button>
-                        <button onclick="document.getElementById('recusar_preco').click()" style="background:#EF4444; color:white; border:none; padding:15px 40px; border-radius:10px; font-size:1.1rem; cursor:pointer;">
-                            ❌ Recusar
-                        </button>
-                    </div>
+                    <p style="font-size:3rem; font-weight:bold; color:#10B981; margin:0 0 30px 0;">€ {preco_hora_valor}/hora</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
                 col_acc1, col_acc2 = st.columns(2)
                 with col_acc1:
-                    if st.button("✅ Aceitar Preço Hora", key="aceitar_preco", use_container_width=True):
+                    if st.button("✅ Aceitar Preço Hora", key="aceitar_preco", use_container_width=True, type="success"):
                         users.loc[user_idx, 'PrecoHoraStatus'] = 'Aceite'
                         users.loc[user_idx, 'PrecoHoraData'] = datetime.now().strftime("%d/%m/%Y %H:%M")
                         save_db(users, "usuarios.csv")
                         
-                        log_audit(usuario=user_nome, acao="ACEITAR_PRECO_HORA", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Aceitou €{user_data.get('PrecoHora')}/hora", ip="")
+                        log_audit(usuario=user_nome, acao="ACEITAR_PRECO_HORA", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Aceitou €{preco_hora_valor}/hora", ip="")
                         
                         criar_notificacao(
                             destinatario="admin",
                             titulo="💰 Preço Hora Aceite",
-                            mensagem=f"{user_nome} aceitou o preço hora de €{user_data.get('PrecoHora')}",
+                            mensagem=f"{user_nome} aceitou o preço hora de €{preco_hora_valor}",
                             tipo="success",
                             acao_url="/admin?tab=rh"
                         )
@@ -524,17 +516,17 @@ def render_tecnico(*args):
                         st.rerun()
                 
                 with col_acc2:
-                    if st.button("❌ Recusar Preço Hora", key="recusar_preco", use_container_width=True):
+                    if st.button("❌ Recusar Preço Hora", key="recusar_preco", use_container_width=True, type="secondary"):
                         users.loc[user_idx, 'PrecoHoraStatus'] = 'Recusado'
                         users.loc[user_idx, 'PrecoHoraData'] = datetime.now().strftime("%d/%m/%Y %H:%M")
                         save_db(users, "usuarios.csv")
                         
-                        log_audit(usuario=user_nome, acao="RECUSAR_PRECO_HORA", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Recusou €{user_data.get('PrecoHora')}/hora", ip="")
+                        log_audit(usuario=user_nome, acao="RECUSAR_PRECO_HORA", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Recusou €{preco_hora_valor}/hora", ip="")
                         
                         criar_notificacao(
                             destinatario="admin",
                             titulo="💰 Preço Hora Recusado",
-                            mensagem=f"{user_nome} RECUSOU o preço hora de €{user_data.get('PrecoHora')}",
+                            mensagem=f"{user_nome} RECUSOU o preço hora de €{preco_hora_valor}",
                             tipo="warning",
                             acao_url="/admin?tab=rh"
                         )
