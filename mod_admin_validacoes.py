@@ -76,10 +76,10 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
             if not registos_db.empty:
                 historico = registos_db[registos_db['Status'].isin(["1", "2", "-1"])]
                 if not historico.empty:
-                    # Mapear status
                     status_map = {"1": "✅ Aprovado", "2": "🔵 Faturação", "-1": "❌ Rejeitado"}
                     historico['Status_Texto'] = historico['Status'].map(status_map)
-                    st.dataframe(historico[['Data', 'Técnico', 'Obra', 'Horas_Total', 'Status_Texto']], use_container_width=True)
+                    cols_mostrar = ['Data', 'Técnico', 'Obra', 'Horas_Total', 'Status_Texto']
+                    st.dataframe(historico[cols_mostrar], use_container_width=True)
                 else:
                     st.info("📋 Sem histórico de horas.")
             else:
@@ -93,6 +93,12 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         
         with sub_epi_pend:
             if not req_epi_db.empty:
+                # Garantir colunas existem
+                if 'Data_Validacao' not in req_epi_db.columns:
+                    req_epi_db['Data_Validacao'] = ""
+                if 'Validado_Por' not in req_epi_db.columns:
+                    req_epi_db['Validado_Por'] = ""
+                
                 pendentes_epi = req_epi_db[req_epi_db['Status'] == 'Pendente']
                 
                 if 'ID' not in pendentes_epi.columns:
@@ -147,9 +153,19 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         with sub_epi_hist:
             st.markdown("#### 📋 Histórico de Pedidos de EPI")
             if not req_epi_db.empty:
+                # Garantir colunas
+                if 'Data_Validacao' not in req_epi_db.columns:
+                    req_epi_db['Data_Validacao'] = ""
+                if 'Validado_Por' not in req_epi_db.columns:
+                    req_epi_db['Validado_Por'] = ""
+                
                 historico = req_epi_db[req_epi_db['Status'].isin(['Aprovado', 'Rejeitado'])]
                 if not historico.empty:
-                    st.dataframe(historico[['Data', 'Solicitante', 'Obra', 'Item', 'Quantidade', 'Status', 'Data_Validacao', 'Validado_Por']], use_container_width=True)
+                    cols = ['Data', 'Solicitante', 'Obra', 'Item']
+                    if 'Quantidade' in historico.columns:
+                        cols.append('Quantidade')
+                    cols.extend(['Status', 'Data_Validacao', 'Validado_Por'])
+                    st.dataframe(historico[cols], use_container_width=True)
                 else:
                     st.info("📋 Sem histórico de EPIs.")
             else:
@@ -163,6 +179,12 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         
         with sub_fer_pend:
             if not req_fer_db.empty:
+                # Garantir colunas existem
+                if 'Data_Validacao' not in req_fer_db.columns:
+                    req_fer_db['Data_Validacao'] = ""
+                if 'Validado_Por' not in req_fer_db.columns:
+                    req_fer_db['Validado_Por'] = ""
+                
                 pendentes_fer = req_fer_db[req_fer_db['Status'] == 'Pendente']
                 
                 if 'ID' not in pendentes_fer.columns:
@@ -220,9 +242,19 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         with sub_fer_hist:
             st.markdown("#### 📋 Histórico de Pedidos de Ferramentas")
             if not req_fer_db.empty:
+                # Garantir colunas
+                if 'Data_Validacao' not in req_fer_db.columns:
+                    req_fer_db['Data_Validacao'] = ""
+                if 'Validado_Por' not in req_fer_db.columns:
+                    req_fer_db['Validado_Por'] = ""
+                
                 historico = req_fer_db[req_fer_db['Status'].isin(['Aprovado', 'Rejeitado'])]
                 if not historico.empty:
-                    st.dataframe(historico[['Data', 'Solicitante', 'Obra', 'Descricao', 'Urgencia', 'Status', 'Data_Validacao', 'Validado_Por']], use_container_width=True)
+                    cols = ['Data', 'Solicitante', 'Obra', 'Descricao']
+                    if 'Urgencia' in historico.columns:
+                        cols.append('Urgencia')
+                    cols.extend(['Status', 'Data_Validacao', 'Validado_Por'])
+                    st.dataframe(historico[cols], use_container_width=True)
                 else:
                     st.info("📋 Sem histórico de ferramentas.")
             else:
@@ -236,6 +268,12 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         
         with sub_mat_pend:
             if not req_mat_db.empty:
+                # Garantir colunas existem
+                if 'Data_Validacao' not in req_mat_db.columns:
+                    req_mat_db['Data_Validacao'] = ""
+                if 'Validado_Por' not in req_mat_db.columns:
+                    req_mat_db['Validado_Por'] = ""
+                
                 pendentes_mat = req_mat_db[(req_mat_db['Status'] == 'Pendente') & (req_mat_db.get('Tipo', '') != 'Gasóleo')]
                 
                 if 'ID' not in pendentes_mat.columns:
@@ -291,9 +329,21 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         with sub_mat_hist:
             st.markdown("#### 📋 Histórico de Pedidos de Materiais")
             if not req_mat_db.empty:
+                # Garantir colunas
+                if 'Data_Validacao' not in req_mat_db.columns:
+                    req_mat_db['Data_Validacao'] = ""
+                if 'Validado_Por' not in req_mat_db.columns:
+                    req_mat_db['Validado_Por'] = ""
+                
                 historico = req_mat_db[(req_mat_db['Status'].isin(['Aprovado', 'Rejeitado'])) & (req_mat_db.get('Tipo', '') != 'Gasóleo')]
                 if not historico.empty:
-                    st.dataframe(historico[['Data', 'Solicitante', 'Obra', 'Descricao', 'Quantidade', 'Unidade', 'Status', 'Data_Validacao', 'Validado_Por']], use_container_width=True)
+                    cols = ['Data', 'Solicitante', 'Obra', 'Descricao']
+                    if 'Quantidade' in historico.columns:
+                        cols.append('Quantidade')
+                    if 'Unidade' in historico.columns:
+                        cols.append('Unidade')
+                    cols.extend(['Status', 'Data_Validacao', 'Validado_Por'])
+                    st.dataframe(historico[cols], use_container_width=True)
                 else:
                     st.info("📋 Sem histórico de materiais.")
             else:
@@ -307,6 +357,12 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         
         with sub_gas_pend:
             if not req_mat_db.empty:
+                # Garantir colunas existem
+                if 'Data_Validacao' not in req_mat_db.columns:
+                    req_mat_db['Data_Validacao'] = ""
+                if 'Validado_Por' not in req_mat_db.columns:
+                    req_mat_db['Validado_Por'] = ""
+                
                 pendentes_gas = req_mat_db[(req_mat_db['Status'] == 'Pendente') & (req_mat_db.get('Tipo', '') == 'Gasóleo')]
                 
                 if 'ID' not in pendentes_gas.columns:
@@ -368,9 +424,16 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         with sub_gas_hist:
             st.markdown("#### 📋 Histórico de Registos de Gasóleo")
             if not req_mat_db.empty:
+                # Garantir colunas
+                if 'Data_Validacao' not in req_mat_db.columns:
+                    req_mat_db['Data_Validacao'] = ""
+                if 'Validado_Por' not in req_mat_db.columns:
+                    req_mat_db['Validado_Por'] = ""
+                
                 historico = req_mat_db[(req_mat_db['Status'].isin(['Aprovado', 'Rejeitado'])) & (req_mat_db.get('Tipo', '') == 'Gasóleo')]
                 if not historico.empty:
-                    st.dataframe(historico[['Data', 'Solicitante', 'Obra', 'Litros', 'Valor', 'Status', 'Data_Validacao', 'Validado_Por']], use_container_width=True)
+                    cols = ['Data', 'Solicitante', 'Obra', 'Litros', 'Valor', 'Status', 'Data_Validacao', 'Validado_Por']
+                    st.dataframe(historico[cols], use_container_width=True)
                 else:
                     st.info("📋 Sem histórico de gasóleos.")
             else:
@@ -384,6 +447,12 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         
         with sub_avar_pend:
             if not incs_db.empty:
+                # Garantir colunas existem
+                if 'Data_Validacao' not in incs_db.columns:
+                    incs_db['Data_Validacao'] = ""
+                if 'Validado_Por' not in incs_db.columns:
+                    incs_db['Validado_Por'] = ""
+                
                 pendentes_avar = incs_db[(incs_db['Status'] == 'Pendente') & (incs_db.get('Tipo', '') == 'Avaria')]
                 
                 if 'ID' not in pendentes_avar.columns:
@@ -447,9 +516,16 @@ def render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, ob
         with sub_avar_hist:
             st.markdown("#### 📋 Histórico de Avarias / Reparações")
             if not incs_db.empty:
+                # Garantir colunas
+                if 'Data_Validacao' not in incs_db.columns:
+                    incs_db['Data_Validacao'] = ""
+                if 'Validado_Por' not in incs_db.columns:
+                    incs_db['Validado_Por'] = ""
+                
                 historico = incs_db[(incs_db['Status'].isin(['Aprovado', 'Rejeitado'])) & (incs_db.get('Tipo', '') == 'Avaria')]
                 if not historico.empty:
-                    st.dataframe(historico[['Data', 'Solicitante', 'Obra', 'Equipamento', 'Urgencia', 'Valor_Estimado', 'Status', 'Data_Validacao', 'Validado_Por']], use_container_width=True)
+                    cols = ['Data', 'Solicitante', 'Obra', 'Equipamento', 'Status', 'Data_Validacao', 'Validado_Por']
+                    st.dataframe(historico[cols], use_container_width=True)
                 else:
                     st.info("📋 Sem histórico de avarias.")
             else:
