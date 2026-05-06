@@ -133,6 +133,18 @@ def render_tecnico(*args):
         font-size: 1.1rem;
         font-weight: 600;
     }
+    .blur-price {
+        filter: blur(5px);
+        user-select: none;
+        cursor: pointer;
+        transition: filter 0.3s ease;
+    }
+    .blur-price:hover {
+        filter: blur(3px);
+    }
+    .blur-price.revealed {
+        filter: blur(0);
+    }
     </style>
     """, unsafe_allow_html=True)
     
@@ -141,14 +153,40 @@ def render_tecnico(*args):
     # =============================================================================
     if user_data is not None:
         pdfs_validados = user_data.get('PDFs_Validados', 'Não')
+        pdfs_validacao_data = user_data.get('PDFs_Validacao_Data', '')
+        
+        # Verificar se precisa validar (primeira vez OU dia 1 do mês)
+        hoje = datetime.now()
+        precisa_validar = False
         
         if pdfs_validados != 'Sim':
-            st.markdown("""
-            <div style="background:#EF4444; color:white; padding:20px; border-radius:15px; text-align:center; margin-bottom:30px;">
-                <h2 style="margin:0 0 10px 0;">⚠️ AÇÃO OBRIGATÓRIA</h2>
-                <p style="margin:0; font-size:1.1rem;">Deves visualizar e validar os documentos obrigatórios antes de continuar.</p>
-            </div>
-            """, unsafe_allow_html=True)
+            # Primeira vez - nunca validou
+            precisa_validar = True
+        elif pdfs_validacao_data:
+            # Já validou antes - verificar se é dia 1 do mês e mês diferente
+            try:
+                data_validacao = datetime.strptime(pdfs_validacao_data, "%d/%m/%Y %H:%M")
+                # Se for dia 1 do mês atual e mês diferente da última validação
+                if hoje.day == 1 and (hoje.month != data_validacao.month or hoje.year != data_validacao.year):
+                    precisa_validar = True
+            except:
+                precisa_validar = True
+        
+        if precisa_validar:
+            if hoje.day == 1:
+                st.markdown("""
+                <div style="background:#EF4444; color:white; padding:20px; border-radius:15px; text-align:center; margin-bottom:30px;">
+                    <h2 style="margin:0 0 10px 0;">⚠️ VALIDAÇÃO MENSAL OBRIGATÓRIA</h2>
+                    <p style="margin:0; font-size:1.1rem;">É dia 1! Deves visualizar e validar os documentos obrigatórios.</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style="background:#EF4444; color:white; padding:20px; border-radius:15px; text-align:center; margin-bottom:30px;">
+                    <h2 style="margin:0 0 10px 0;">⚠️ AÇÃO OBRIGATÓRIA</h2>
+                    <p style="margin:0; font-size:1.1rem;">Deves visualizar e validar os documentos obrigatórios antes de continuar.</p>
+                </div>
+                """, unsafe_allow_html=True)
             
             st.markdown("### 📋 Documentos Obrigatórios", unsafe_allow_html=True)
             
@@ -206,7 +244,7 @@ def render_tecnico(*args):
                                     criar_notificacao(
                                         destinatario="admin",
                                         titulo="✅ Colaborador Validou PDFs",
-                                        mensagem=f"{user_nome} validou a visualização de {len(pdfs_vistos)} PDF(s) obrigatório(s)",
+                                        mensagem=f"{user_nome} validou {len(pdfs_vistos)} PDF(s) obrigatório(s)",
                                         tipo="success",
                                         acao_url="/admin?tab=rh"
                                     )
@@ -475,9 +513,7 @@ def render_tecnico(*args):
         st.markdown(f"### {ICONS['profile']} Perfil do Colaborador", unsafe_allow_html=True)
         
         if user_data is not None:
-            
             # ========== VALIDAÇÃO DE PREÇO HORA (PRIMEIRO ACESSO) ==========
-                       
             preco_status = user_data.get('PrecoHoraStatus', '')
             preco_hora_valor = user_data.get('PrecoHora', '15.0')
             
@@ -694,14 +730,42 @@ def render_tecnico(*args):
                     st.success("✅ Perfil atualizado com sucesso!")
                     st.rerun()
             
-            # Informações de leitura apenas
+            # Informações de leitura apenas COM PREÇO HORA BLUR + OLHO
             st.divider()
             st.markdown("### 📋 Informações do Perfil", unsafe_allow_html=True)
             c1, c2 = st.columns(2)
             with c1:
                 st.metric(f"{ICONS['profile']} Cargo", user_data.get('Cargo', 'N/A'))
                 st.metric(f"{ICONS['admin']} Tipo de Acesso", user_tipo)
-                st.metric("💰 Preço Hora", f"€ {user_data.get('PrecoHora', '15.0')}")
+                
+                # Preço Hora com blur e ícone de olho
+                st.markdown(f"""
+                <div style="margin-top:10px;">
+                    <div style="color:#94A3B8; font-size:0.9rem; margin-bottom:5px;">💰 Preço Hora</div>
+                    <div id="preco_hora_container" style="display:flex; align-items:center; gap:10px;">
+                        <span id="preco_hora_valor" class="blur-price" style="font-size:1.5rem; font-weight:bold; color:#10B981;" onclick="togglePrecoHora()">
+                            € {user_data.get('PrecoHora', '15.0')}/hora
+                        </span>
+                        <span id="preco_hora_olho" style="cursor:pointer; font-size:1.2rem;" onclick="togglePrecoHora()">👁️</span>
+                    </div>
+                </div>
+                <script>
+                function togglePrecoHora() {{
+                    const valor = document.getElementById('preco_hora_valor');
+                    const olho = document.getElementById('preco_hora_olho');
+                    if (valor.classList.contains('blur-price')) {{
+                        valor.classList.remove('blur-price');
+                        valor.classList.add('revealed');
+                        olho.textContent = '👁️🗨️';
+                    }} else {{
+                        valor.classList.remove('revealed');
+                        valor.classList.add('blur-price');
+                        olho.textContent = '👁️';
+                    }}
+                }}
+                </script>
+                """, unsafe_allow_html=True)
+                
             with c2:
                 st.metric("📧 Email", user_data.get('Email', 'N/A'))
                 st.metric("📞 Telefone", user_data.get('Telefone', 'N/A'))
