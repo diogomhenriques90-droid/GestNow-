@@ -284,9 +284,11 @@ def render_tecnico(*args):
                                 # ✅ GUARDAR IMEDIATAMENTE NO GCS
                                 save_db(users, "usuarios.csv")
                                 
-                                # ✅ LIMPAR CACHE DO STREAMLIT - FORÇAR RELOAD
+                                # ✅ LIMPAR CACHE DO STREAMLIT
                                 st.cache_data.clear()
-                                inv()  # ✅ TAMBÉM LIMPAR CACHE DA APP
+                                
+                                # ✅ LIMPAR CACHE DA APP
+                                inv()
                                 
                                 # Verificar se TODOS foram validados
                                 if novos_validados >= total_pdfs:
@@ -317,6 +319,9 @@ def render_tecnico(*args):
                                     """, unsafe_allow_html=True)
                                     
                                     st.balloons()
+                                    # ✅ FORÇAR RELOAD COM DADOS FRESCOS
+                                    import time
+                                    time.sleep(1)  # Aguarda 1 segundo para garantir que guardou
                                     st.rerun()
                                 else:
                                     # Ainda faltam PDFs - mostrar progresso atualizado
@@ -330,7 +335,9 @@ def render_tecnico(*args):
                                     </div>
                                     """, unsafe_allow_html=True)
                                     
-                                    # ✅ FORÇAR RELOAD PARA MOSTRAR NOVO PROGRESSO
+                                    # ✅ AGUARDAR E FORÇAR RELOAD
+                                    import time
+                                    time.sleep(1)  # Aguarda 1 segundo para garantir que guardou
                                     st.rerun()
             
             # Se chegou aqui, é porque ainda não validou todos
