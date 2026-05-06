@@ -158,10 +158,12 @@ def render_tecnico(*args):
         # Verificar se precisa validar (primeira vez OU dia 1 do mês)
         hoje = datetime.now()
         precisa_validar = False
+        motivo_validacao = ""
         
         if pdfs_validados != 'Sim':
             # Primeira vez - nunca validou
             precisa_validar = True
+            motivo_validacao = "primeira vez"
         elif pdfs_validacao_data:
             # Já validou antes - verificar se é dia 1 do mês e mês diferente
             try:
@@ -169,11 +171,13 @@ def render_tecnico(*args):
                 # Se for dia 1 do mês atual e mês diferente da última validação
                 if hoje.day == 1 and (hoje.month != data_validacao.month or hoje.year != data_validacao.year):
                     precisa_validar = True
+                    motivo_validacao = "validação mensal"
             except:
                 precisa_validar = True
+                motivo_validacao = "erro na data"
         
         if precisa_validar:
-            if hoje.day == 1:
+            if hoje.day == 1 or motivo_validacao == "validação mensal":
                 st.markdown("""
                 <div style="background:#EF4444; color:white; padding:20px; border-radius:15px; text-align:center; margin-bottom:30px;">
                     <h2 style="margin:0 0 10px 0;">⚠️ VALIDAÇÃO MENSAL OBRIGATÓRIA</h2>
@@ -197,8 +201,12 @@ def render_tecnico(*args):
                 pdfs_vistos = []
             
             todos_vistos = True
+            total_pdfs = len(pdfs_db) if not pdfs_db.empty else 0
+            pdfs_validados_count = len(pdfs_vistos)
             
             if not pdfs_db.empty:
+                st.info(f"📊 Progresso: {pdfs_validados_count}/{total_pdfs} PDFs validados")
+                
                 for _, pdf in pdfs_db.iterrows():
                     pdf_id = pdf.get('ID', '')
                     pdf_nome = pdf.get('Nome', 'Documento')
@@ -206,12 +214,24 @@ def render_tecnico(*args):
                     visto = pdf_id in pdfs_vistos
                     
                     with st.container():
-                        st.markdown(f"""
-                        <div class="pdf-card {'validado' if visto else ''}">
-                            <h4 style="margin:0 0 10px 0;">📄 {pdf_nome}</h4>
-                            <p style="margin:0 0 15px 0; color:#94A3B8;">{pdf_desc}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        if visto:
+                            st.markdown(f"""
+                            <div class="pdf-card validado" style="border-color:#10B981; background:rgba(16,185,129,0.1);">
+                                <h4 style="margin:0 0 10px 0; color:#10B981;">✅ {pdf_nome}</h4>
+                                <p style="margin:0 0 15px 0; color:#94A3B8;">{pdf_desc}</p>
+                                <div style="background:#10B981; color:white; padding:10px; border-radius:8px; font-weight:bold;">
+                                    ✅ Documento validado
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        else:
+                            todos_vistos = False
+                            st.markdown(f"""
+                            <div class="pdf-card" style="border-color:#EF4444; background:rgba(239,68,68,0.1);">
+                                <h4 style="margin:0 0 10px 0; color:#EF4444;">📄 {pdf_nome}</h4>
+                                <p style="margin:0 0 15px 0; color:#94A3B8;">{pdf_desc}</p>
+                            </div>
+                            """, unsafe_allow_html=True)
                         
                         # Botão para visualizar PDF
                         if pdf.get('Ficheiro_b64'):
@@ -225,20 +245,30 @@ def render_tecnico(*args):
                                     key=f"view_pdf_{pdf_id}",
                                     use_container_width=True
                                 )
-                            except:
-                                st.error("❌ Erro ao carregar PDF")
+                            except Exception as e:
+                                st.error(f"❌ Erro ao carregar PDF: {str(e)}")
                         
-                        # Botão de validação
+                        # Botão de validação (apenas se não foi visto)
                         if not visto:
-                            todos_vistos = False
                             if st.button(f"✅ Confirmar Visualização: {pdf_nome}", key=f"validar_{pdf_id}", use_container_width=True):
-                                pdfs_vistos.append(pdf_id)
+                                # Adicionar PDF à lista de vistos
+                                if pdf_id not in pdfs_vistos:
+                                    pdfs_vistos.append(pdf_id)
+                                
+                                # Guardar no dataframe
                                 users.loc[user_idx, 'PDFs_Vistos'] = json.dumps(pdfs_vistos)
                                 
-                                # Se todos foram vistos, marcar como validado
-                                if len(pdfs_vistos) >= len(pdfs_db):
+                                # Verificar se todos foram validados
+                                if len(pdfs_vistos) >= total_pdfs:
+                                    # TODOS OS PDFs VALIDADOS!
                                     users.loc[user_idx, 'PDFs_Validados'] = 'Sim'
                                     users.loc[user_idx, 'PDFs_Validacao_Data'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                                    
+                                    # Guardar alterações
+                                    save_db(users, "usuarios.csv")
+                                    
+                                    # Log de auditoria
+                                    log_audit(usuario=user_nome, acao="VALIDAR_PDFS_OBRIGATORIOS", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Validou {len(pdfs_vistos)} PDFs obrigatórios", ip="")
                                     
                                     # Notificar admin RH
                                     criar_notificacao(
@@ -249,22 +279,48 @@ def render_tecnico(*args):
                                         acao_url="/admin?tab=rh"
                                     )
                                     
-                                    log_audit(usuario=user_nome, acao="VALIDAR_PDFS_OBRIGATORIOS", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"PDFs validados: {pdfs_vistos}", ip="")
-                                
-                                save_db(users, "usuarios.csv")
-                                inv()
-                                st.success("✅ Validação registada!")
-                                st.rerun()
+                                    # Mostrar mensagem de sucesso PERMANENTE
+                                    st.markdown("""
+                                    <div style="background:#10B981; color:white; padding:30px; border-radius:15px; text-align:center; margin:30px 0;">
+                                        <h2 style="margin:0 0 15px 0;">✅ VALIDAÇÃO CONCLUÍDA!</h2>
+                                        <p style="margin:0; font-size:1.2rem;">Todos os documentos foram validados com sucesso.</p>
+                                        <p style="margin:15px 0 0 0; font-size:0.9rem;">A aplicação será desbloqueada automaticamente...</p>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                    
+                                    # Forçar reload após 2 segundos
+                                    st.balloons()
+                                    inv()
+                                    st.rerun()
+                                else:
+                                    # Ainda faltam PDFs
+                                    save_db(users, "usuarios.csv")
+                                    inv()
+                                    st.success(f"✅ PDF '{pdf_nome}' validado! Faltam {total_pdfs - len(pdfs_vistos)} PDF(s).")
+                                    st.rerun()
                         else:
-                            st.success("✅ Documento validado")
-                        
-                        st.divider()
+                            st.divider()
             else:
                 st.info("📋 Nenhum PDF obrigatório configurado pelo momento.")
                 todos_vistos = True
             
-            if not todos_vistos:
-                st.warning("⚠️ Deves validar TODOS os PDFs antes de continuar.")
+            if todos_vistos and total_pdfs == 0:
+                # Sem PDFs para validar
+                st.success("✅ Não há documentos obrigatórios. Podes continuar.")
+                st.divider()
+            elif todos_vistos and total_pdfs > 0:
+                # Todos validados mas ainda está aqui (não deveria acontecer)
+                st.markdown("""
+                <div style="background:#10B981; color:white; padding:30px; border-radius:15px; text-align:center; margin:30px 0;">
+                    <h2 style="margin:0 0 15px 0;">✅ TODOS OS PDFs VALIDADOS!</h2>
+                    <p style="margin:0; font-size:1.2rem;">A aplicação está a ser desbloqueada...</p>
+                </div>
+                """, unsafe_allow_html=True)
+                st.balloons()
+                inv()
+                st.rerun()
+            else:
+                st.warning(f"⚠️ Deves validar TODOS os {total_pdfs} PDFs antes de continuar.")
                 st.stop()  # Bloqueia o resto da página
             else:
                 st.success("✅ Todos os PDFs validados! Podes continuar.")
