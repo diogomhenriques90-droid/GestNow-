@@ -28,7 +28,6 @@ def render_tecnico(*args):
     is_chefe = user_tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or cargo_user in ['Chefe de Equipa', 'Encarregado']
     
     # ✅ CARREGAR DADOS DO UTILIZADOR COM RELOAD FORÇADO
-    # Recarregar users do CSV para garantir dados frescos
     try:
         users_fresh = load_db("usuarios.csv", [
             "Nome", "Password", "Tipo", "Cargo", "Email", "Telefone", "Morada", "Localidade",
@@ -39,7 +38,7 @@ def render_tecnico(*args):
             "Tamanho_Calca", "Tamanho_Botas", "Local", "PrecoHora", "PrecoHoraStatus",
             "PrecoHoraData", "PIN", "Foto", "Campos_Bloqueados", "PDFs_Vistos",
             "PDFs_Validados", "PDFs_Validacao_Data"
-        ])  # ✅ SEM ttl!
+        ])
         
         user_match = users_fresh[users_fresh['Nome'] == user_nome]
         if not user_match.empty:
@@ -57,7 +56,7 @@ def render_tecnico(*args):
     try:
         pdfs_db = load_db("pdfs_obrigatorios.csv", [
             "ID", "Nome", "Descricao", "Data_Upload", "Upload_Por", "Ficheiro_b64"
-        ])  # ✅ SEM ttl!
+        ])
     except:
         pdfs_db = pd.DataFrame(columns=[
             "ID", "Nome", "Descricao", "Data_Upload", "Upload_Por", "Ficheiro_b64"
@@ -388,9 +387,9 @@ def render_tecnico(*args):
                                     # Mostrar mensagem PERMANENTE
                                     st.markdown("""
                                     <div style="background:#10B981; color:white; padding:30px; border-radius:15px; text-align:center; margin:30px 0;">
-                                        <h2 style="margin:0 0 15px 0;">✅ VALIDAÇÃO CONCLUÍDA!</h2>
+                                        <h2 style="margin:0 0 15px 0;">✅ VALIDAÇÃO DE PDFs CONCLUÍDA!</h2>
                                         <p style="margin:0; font-size:1.2rem;">Todos os documentos foram validados.</p>
-                                        <p style="margin:15px 0 0 0;">A desbloquear aplicação...</p>
+                                        <p style="margin:15px 0 0 0;">Agora deves validar o teu preço hora...</p>
                                     </div>
                                     """, unsafe_allow_html=True)
                                     
@@ -420,7 +419,81 @@ def render_tecnico(*args):
                 st.stop()
     
     # =============================================================================
-    # SE CHEGOU AQUI, É PORQUE OS PDFs ESTÃO VALIDADOS - CONTINUAR COM O RESTO DA APP
+    # SE CHEGOU AQUI, É PORQUE OS PDFs ESTÃO VALIDADOS - AGORA VALIDAR PREÇO HORA
+    # =============================================================================
+    
+    if user_data is not None:
+        preco_status = user_data.get('PrecoHoraStatus', '')
+        preco_hora_valor = user_data.get('PrecoHora', '15.0')
+        
+        if preco_status == '':
+            # ⚠️ PREÇO HORA NÃO VALIDADO - BLOQUEAR APP
+            st.markdown("""
+            <div style="background:#F59E0B; color:white; padding:20px; border-radius:15px; text-align:center; margin-bottom:30px;">
+                <h2 style="margin:0 0 10px 0;">⏳ VALIDAÇÃO DE PREÇO HORA</h2>
+                <p style="margin:0; font-size:1.1rem;">Deves aceitar ou recusar o teu preço hora antes de continuar.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown(f"""
+            <div style="background:rgba(255,255,255,0.1); padding:30px; border-radius:15px; text-align:center;">
+                <p style="font-size:1.2rem; margin:0 0 20px 0;"><strong>Preço Hora Proposto:</strong></p>
+                <p style="font-size:3rem; font-weight:bold; color:#10B981; margin:0 0 30px 0;">€ {preco_hora_valor}/hora</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            col_acc1, col_acc2 = st.columns(2)
+            with col_acc1:
+                if st.button("✅ Aceitar Preço Hora", key="aceitar_preco", use_container_width=True, type="primary"):
+                    users_fresh.loc[user_idx, 'PrecoHoraStatus'] = 'Aceite'
+                    users_fresh.loc[user_idx, 'PrecoHoraData'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                    save_db(users_fresh, "usuarios.csv")
+                    
+                    log_audit(usuario=user_nome, acao="ACEITAR_PRECO_HORA", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Aceitou €{preco_hora_valor}/hora", ip="")
+                    
+                    criar_notificacao(
+                        destinatario="admin",
+                        titulo="💰 Preço Hora Aceite",
+                        mensagem=f"{user_nome} aceitou o preço hora de €{preco_hora_valor}",
+                        tipo="success",
+                        acao_url="/admin?tab=rh"
+                    )
+                    
+                    inv()
+                    st.success("✅ Preço hora aceite! A app será desbloqueada...")
+                    st.balloons()
+                    time.sleep(2)
+                    st.rerun()
+            
+            with col_acc2:
+                if st.button("❌ Recusar Preço Hora", key="recusar_preco", use_container_width=True, type="secondary"):
+                    users_fresh.loc[user_idx, 'PrecoHoraStatus'] = 'Recusado'
+                    users_fresh.loc[user_idx, 'PrecoHoraData'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                    save_db(users_fresh, "usuarios.csv")
+                    
+                    log_audit(usuario=user_nome, acao="RECUSAR_PRECO_HORA", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Recusou €{preco_hora_valor}/hora", ip="")
+                    
+                    criar_notificacao(
+                        destinatario="admin",
+                        titulo="💰 Preço Hora Recusado",
+                        mensagem=f"{user_nome} RECUSOU o preço hora de €{preco_hora_valor}",
+                        tipo="warning",
+                        acao_url="/admin?tab=rh"
+                    )
+                    
+                    inv()
+                    st.warning("❌ Preço hora recusado. Contacta o admin para renegociação.")
+                    time.sleep(2)
+                    st.rerun()
+            
+            st.stop()  # ⚠️ BLOQUEAR APP ATÉ VALIDAR PREÇO HORA
+        
+        elif preco_status == 'Recusado':
+            st.warning("⚠️ O teu preço hora foi recusado. Contacta o admin para renegociação.")
+            st.stop()
+    
+    # =============================================================================
+    # SE CHEGOU AQUI, É PORQUE PDFs E PREÇO HORA ESTÃO VALIDADOS - APP DESBLOQUEADA!
     # =============================================================================
     
     # =============================================================================
@@ -666,71 +739,9 @@ def render_tecnico(*args):
         st.markdown(f"### {ICONS['profile']} Perfil do Colaborador", unsafe_allow_html=True)
         
         if user_data is not None:
-            # ========== VALIDAÇÃO DE PREÇO HORA (PRIMEIRO ACESSO) ==========
+            # ✅ PREÇO HORA JÁ VALIDADO - MOSTRAR NO PERFIL
             preco_status = user_data.get('PrecoHoraStatus', '')
             preco_hora_valor = user_data.get('PrecoHora', '15.0')
-            
-            if preco_status == '':
-                st.markdown("""
-                <div style="background:#3B82F6; color:white; padding:20px; border-radius:15px; text-align:center; margin-bottom:30px;">
-                    <h3 style="margin:0 0 10px 0;">💰 Validação de Preço Hora</h3>
-                    <p style="margin:0;">Deves aceitar ou recusar o teu preço hora antes de continuar.</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                st.markdown(f"""
-                <div style="background:rgba(255,255,255,0.1); padding:30px; border-radius:15px; text-align:center;">
-                    <p style="font-size:1.2rem; margin:0 0 20px 0;"><strong>Preço Hora Proposto:</strong></p>
-                    <p style="font-size:3rem; font-weight:bold; color:#10B981; margin:0 0 30px 0;">€ {preco_hora_valor}/hora</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                col_acc1, col_acc2 = st.columns(2)
-                with col_acc1:
-                    if st.button("✅ Aceitar Preço Hora", key="aceitar_preco", use_container_width=True, type="primary"):
-                        users_fresh.loc[user_idx, 'PrecoHoraStatus'] = 'Aceite'
-                        users_fresh.loc[user_idx, 'PrecoHoraData'] = datetime.now().strftime("%d/%m/%Y %H:%M")
-                        save_db(users_fresh, "usuarios.csv")
-                        
-                        log_audit(usuario=user_nome, acao="ACEITAR_PRECO_HORA", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Aceitou €{preco_hora_valor}/hora", ip="")
-                        
-                        criar_notificacao(
-                            destinatario="admin",
-                            titulo="💰 Preço Hora Aceite",
-                            mensagem=f"{user_nome} aceitou o preço hora de €{preco_hora_valor}",
-                            tipo="success",
-                            acao_url="/admin?tab=rh"
-                        )
-                        
-                        inv()
-                        st.success("✅ Preço hora aceite! Podes continuar.")
-                        st.rerun()
-                
-                with col_acc2:
-                    if st.button("❌ Recusar Preço Hora", key="recusar_preco", use_container_width=True, type="secondary"):
-                        users_fresh.loc[user_idx, 'PrecoHoraStatus'] = 'Recusado'
-                        users_fresh.loc[user_idx, 'PrecoHoraData'] = datetime.now().strftime("%d/%m/%Y %H:%M")
-                        save_db(users_fresh, "usuarios.csv")
-                        
-                        log_audit(usuario=user_nome, acao="RECUSAR_PRECO_HORA", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Recusou €{preco_hora_valor}/hora", ip="")
-                        
-                        criar_notificacao(
-                            destinatario="admin",
-                            titulo="💰 Preço Hora Recusado",
-                            mensagem=f"{user_nome} RECUSOU o preço hora de €{preco_hora_valor}",
-                            tipo="warning",
-                            acao_url="/admin?tab=rh"
-                        )
-                        
-                        inv()
-                        st.warning("❌ Preço hora recusado. Contacta o admin para renegociação.")
-                        st.rerun()
-                
-                st.stop()
-            
-            elif preco_status == 'Recusado':
-                st.warning("⚠️ O teu preço hora foi recusado. Contacta o admin para renegociação.")
-                st.stop()
             
             # ========== FORMULÁRIO DE EDIÇÃO DE PERFIL COMPLETO ==========
             st.markdown('<div class="section-title">✏️ Editar Perfil</div>', unsafe_allow_html=True)
@@ -782,19 +793,20 @@ def render_tecnico(*args):
                 
                 col8, col9 = st.columns(2)
                 with col8:
-                    nif = st.text_input("Nº Contribuinte (NIF)", value=user_data.get('NIF', ''), disabled=True, key="edit_nif")
+                    # ✅ NIF AGORA EDITÁVEL!
+                    nif = st.text_input("Nº Contribuinte (NIF)", value=user_data.get('NIF', ''), disabled='NIF' in campos_bloqueados, key="edit_nif")
                     cc = st.text_input("Cartão Cidadão", value=user_data.get('CC', ''), disabled='CC' in campos_bloqueados, key="edit_cc")
                     niss = st.text_input("Nº Segurança Social (NISS)", value=user_data.get('NISS', ''), disabled='NISS' in campos_bloqueados, key="edit_niss")
                 with col9:
                     cc_validade = st.text_input("Validade CC", value=user_data.get('CC_Validade', ''), disabled='CC_Validade' in campos_bloqueados, key="edit_cc_val")
-                # Corrigir valor de Dependentes (pode ser string vazia)
-                dep_value = user_data.get('Dependentes', '0')
-                try:
-                    dep_int = int(dep_value) if dep_value else 0
-                except:
-                    dep_int = 0
-
-                dependentes = st.number_input("Dependentes", min_value=0, value=dep_int, disabled='Dependentes' in campos_bloqueados, key="edit_dep")
+                    # ✅ Corrigir valor de Dependentes (pode ser string vazia)
+                    dep_value = user_data.get('Dependentes', '0')
+                    try:
+                        dep_int = int(dep_value) if dep_value else 0
+                    except:
+                        dep_int = 0
+                    dependentes = st.number_input("Dependentes", min_value=0, value=dep_int, disabled='Dependentes' in campos_bloqueados, key="edit_dep")
+                
                 # Secção 5: Dados Profissionais
                 st.markdown('<div class="subsection-title">💼 Dados Profissionais</div>', unsafe_allow_html=True)
                 
@@ -808,12 +820,9 @@ def render_tecnico(*args):
                         "Curso Técnico", "Licenciatura", "Mestrado", "Doutoramento"
                     ], index=0 if user_data.get('Habilitacoes_Literarias', '') not in ["4º Ano", "6º Ano", "9º Ano", "12º Ano", "Curso Técnico", "Licenciatura", "Mestrado", "Doutoramento"] else ["4º Ano", "6º Ano", "9º Ano", "12º Ano", "Curso Técnico", "Licenciatura", "Mestrado", "Doutoramento"].index(user_data.get('Habilitacoes_Literarias', '')), disabled='Habilitacoes_Literarias' in campos_bloqueados, key="edit_hab")
                 
-                # Secção 6: Dados Bancários
-                st.markdown('<div class="subsection-title">💰 Dados Bancários</div>', unsafe_allow_html=True)
+                # ✅ IBAN REMOVIDO - NÃO VISÍVEL PARA COLABORADOR
                 
-                iban = st.text_input("IBAN", value=user_data.get('Banco_IBAN', ''), disabled='Banco_IBAN' in campos_bloqueados, key="edit_iban", placeholder="PT50 0000 0000 0000 00000 0000")
-                
-                # Secção 7: Fardamento
+                # Secção 6: Fardamento
                 st.markdown('<div class="subsection-title">👕 Tamanhos de Fardamento</div>', unsafe_allow_html=True)
                 
                 col12, col13, col14 = st.columns(3)
@@ -833,15 +842,17 @@ def render_tecnico(*args):
                         index=0 if user_data.get('Tamanho_Botas', '') not in ["40", "41", "42", "43", "44", "45", "Outro"] else ["40", "41", "42", "43", "44", "45", "Outro"].index(user_data.get('Tamanho_Botas', '')),
                         key="edit_tam_bot")
                 
-                # Secção 8: Observações
+                # Secção 7: Observações
                 st.markdown('<div class="subsection-title">📝 Observações</div>', unsafe_allow_html=True)
                 
                 observacoes = st.text_area("Observações", value=user_data.get('Observacoes', ''), disabled='Observacoes' in campos_bloqueados, key="edit_obs")
                 
+                # Informações de campos não editáveis
                 st.info("""
                 **🔒 Campos não editáveis:**
-                - Nome, Tipo, Cargo, NIF (contacta admin para alterar)
+                - Nome, Tipo, Cargo (contacta admin para alterar)
                 - Preço Hora (definido pelo admin)
+                - IBAN (gerido apenas pelo admin RH)
                 
                 **Campos bloqueados pelo admin:** Serão mostrados como desativados acima.
                 """)
@@ -858,6 +869,7 @@ def render_tecnico(*args):
                         'Nacionalidade': nacionalidade,
                         'Estado_Civil': estado_civil,
                         'Sexo': sexo,
+                        'NIF': nif,  # ✅ NIF AGORA EDITÁVEL!
                         'CC': cc,
                         'CC_Validade': cc_validade,
                         'NISS': niss,
@@ -868,7 +880,6 @@ def render_tecnico(*args):
                         'Contacto_Emergencia': contacto_emerg,
                         'Nome_Emergencia': nome_emerg,
                         'Grau_Parentesco': grau_parentesco,
-                        'Banco_IBAN': iban,
                         'Tamanho_Camisola': tam_camisola,
                         'Tamanho_Calca': tam_calca,
                         'Tamanho_Botas': tam_botas,
@@ -887,6 +898,7 @@ def render_tecnico(*args):
                     st.success("✅ Perfil atualizado com sucesso!")
                     st.rerun()
             
+            # Informações de leitura apenas
             st.divider()
             st.markdown("### 📋 Informações do Perfil", unsafe_allow_html=True)
             c1, c2 = st.columns(2)
@@ -894,32 +906,8 @@ def render_tecnico(*args):
                 st.metric(f"{ICONS['profile']} Cargo", user_data.get('Cargo', 'N/A'))
                 st.metric(f"{ICONS['admin']} Tipo de Acesso", user_tipo)
                 
-                st.markdown(f"""
-                <div style="margin-top:10px;">
-                    <div style="color:#94A3B8; font-size:0.9rem; margin-bottom:5px;">💰 Preço Hora</div>
-                    <div id="preco_hora_container" style="display:flex; align-items:center; gap:10px;">
-                        <span id="preco_hora_valor" class="blur-price" style="font-size:1.5rem; font-weight:bold; color:#10B981;" onclick="togglePrecoHora()">
-                            € {user_data.get('PrecoHora', '15.0')}/hora
-                        </span>
-                        <span id="preco_hora_olho" style="cursor:pointer; font-size:1.2rem;" onclick="togglePrecoHora()">👁️</span>
-                    </div>
-                </div>
-                <script>
-                function togglePrecoHora() {{
-                    const valor = document.getElementById('preco_hora_valor');
-                    const olho = document.getElementById('preco_hora_olho');
-                    if (valor.classList.contains('blur-price')) {{
-                        valor.classList.remove('blur-price');
-                        valor.classList.add('revealed');
-                        olho.textContent = '👁️️';
-                    }} else {{
-                        valor.classList.remove('revealed');
-                        valor.classList.add('blur-price');
-                        olho.textContent = '👁️';
-                    }}
-                }}
-                </script>
-                """, unsafe_allow_html=True)
+                # ✅ PREÇO HORA VISÍVEL (SEM BLUR) - JÁ VALIDADO
+                st.metric("💰 Preço Hora", f"€ {preco_hora_valor}/hora")
                 
             with c2:
                 st.metric("📧 Email", user_data.get('Email', 'N/A'))
