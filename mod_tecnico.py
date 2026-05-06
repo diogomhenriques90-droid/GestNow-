@@ -145,6 +145,12 @@ def render_tecnico(*args):
     .blur-price.revealed {
         filter: blur(0);
     }
+    .progress-container {
+        background: rgba(255,255,255,0.1);
+        padding:15px;
+        border-radius:10px;
+        margin-bottom:20px;
+    }
     .progress-bar {
         background: linear-gradient(90deg, #10B981 0%, #059669 100%);
         height: 10px;
@@ -168,7 +174,7 @@ def render_tecnico(*args):
         
         if pdfs_validados != 'Sim':
             precisa_validar = True
-        elif pdfs_validacao_data:
+        elif pdfs_validacao_
             try:
                 data_validacao = datetime.strptime(pdfs_validacao_data, "%d/%m/%Y %H:%M")
                 if hoje.day == 1 and (hoje.month != data_validacao.month or hoje.year != data_validacao.year):
@@ -195,20 +201,24 @@ def render_tecnico(*args):
             
             st.markdown("### 📋 Documentos Obrigatórios", unsafe_allow_html=True)
             
-            # Carregar PDFs já vistos
+            # ✅ CARREGAR PDFs VISTOS DIRETAMENTE DO DATAFRAME (NÃO DO CACHE!)
             try:
-                pdfs_vistos = json.loads(user_data.get('PDFs_Vistos', '[]'))
+                pdfs_vistos_json = user_data.get('PDFs_Vistos', '[]')
+                pdfs_vistos = json.loads(pdfs_vistos_json)
             except:
                 pdfs_vistos = []
             
             total_pdfs = len(pdfs_db) if not pdfs_db.empty else 0
-            pdfs_validados_count = len([p for p in pdfs_vistos if p in pdfs_db['ID'].values]) if not pdfs_db.empty else 0
+            
+            # Contar quantos PDFs válidos foram vistos
+            pdf_ids_validos = pdfs_db['ID'].tolist() if not pdfs_db.empty else []
+            pdfs_validados_count = len([p for p in pdfs_vistos if p in pdf_ids_validos])
             
             # Barra de progresso
             if total_pdfs > 0:
                 progresso_pct = int((pdfs_validados_count / total_pdfs) * 100)
                 st.markdown(f"""
-                <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:10px; margin-bottom:20px;">
+                <div class="progress-container">
                     <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
                         <span style="color:#94A3B8;">📊 Progresso</span>
                         <span style="color:#10B981; font-weight:bold;">{pdfs_validados_count}/{total_pdfs} PDFs validados</span>
@@ -265,23 +275,25 @@ def render_tecnico(*args):
                                 if pdf_id not in pdfs_vistos:
                                     pdfs_vistos.append(pdf_id)
                                 
-                                # ✅ GUARDAR IMEDIATAMENTE NO DATAFRAME
+                                # ✅ ATUALIZAR O DATAFRAME users DIRETAMENTE
                                 users.loc[user_idx, 'PDFs_Vistos'] = json.dumps(pdfs_vistos)
                                 
-                                # ✅ GUARDAR NO CSV IMEDIATAMENTE
+                                # ✅ CONTAR NOVAMENTE APÓS ATUALIZAR
+                                novos_validados = len([p for p in pdfs_vistos if p in pdf_ids_validos])
+                                
+                                # ✅ GUARDAR IMEDIATAMENTE NO GCS
                                 save_db(users, "usuarios.csv")
                                 
-                                # ✅ LIMPAR CACHE
-                                inv()
+                                # ✅ LIMPAR CACHE DO STREAMLIT
+                                st.cache_data.clear()
                                 
                                 # Verificar se TODOS foram validados
-                                novos_validados = len([p for p in pdfs_vistos if p in pdfs_db['ID'].values])
-                                
                                 if novos_validados >= total_pdfs:
                                     # ✅ TODOS VALIDADOS!
                                     users.loc[user_idx, 'PDFs_Validados'] = 'Sim'
                                     users.loc[user_idx, 'PDFs_Validacao_Data'] = datetime.now().strftime("%d/%m/%Y %H:%M")
                                     save_db(users, "usuarios.csv")
+                                    st.cache_data.clear()
                                     
                                     log_audit(usuario=user_nome, acao="VALIDAR_PDFS_OBRIGATORIOS", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Validou {novos_validados} PDFs", ip="")
                                     
@@ -303,14 +315,20 @@ def render_tecnico(*args):
                                     """, unsafe_allow_html=True)
                                     
                                     st.balloons()
-                                    inv()
                                     st.rerun()
                                 else:
                                     # Ainda faltam PDFs - mostrar progresso atualizado
                                     restantes = total_pdfs - novos_validados
-                                    st.success(f"✅ '{pdf_nome}' validado! Faltam {restantes} PDF(s).")
-                                    st.info(f"📊 Progresso: {novos_validados}/{total_pdfs} PDFs")
-                                    inv()
+                                    
+                                    # ✅ MOSTRAR MENSAGEM DE PROGRESSO ATUALIZADO
+                                    st.markdown(f"""
+                                    <div style="background:#10B981; color:white; padding:20px; border-radius:10px; margin:20px 0;">
+                                        <p style="margin:0; font-size:1.1rem;">✅ '{pdf_nome}' validado!</p>
+                                        <p style="margin:10px 0 0 0; font-size:0.9rem;">📊 Progresso: {novos_validados}/{total_pdfs} PDFs | Faltam {restantes} PDF(s)</p>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                    
+                                    # ✅ FORÇAR RELOAD PARA MOSTRAR NOVO PROGRESSO
                                     st.rerun()
             
             # Se chegou aqui, é porque ainda não validou todos
