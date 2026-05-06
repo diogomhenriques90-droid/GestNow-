@@ -136,7 +136,7 @@ def render_tecnico(*args):
     }
     .section-title {
         background: linear-gradient(135deg, #3B82F6, #1E40AF);
-        color: white;
+        color: white !important;
         padding: 15px;
         border-radius: 10px;
         margin: 30px 0 20px 0;
@@ -150,6 +150,7 @@ def render_tecnico(*args):
         margin: 20px 0 15px 0;
         font-size: 1.1rem;
         font-weight: 600;
+        color: #F8FAFC !important;
     }
     .blur-price {
         filter: blur(5px);
@@ -175,6 +176,63 @@ def render_tecnico(*args):
         border-radius: 5px;
         margin-top: 10px;
         transition: width 0.3s ease;
+    }
+    
+    /* ✅ CORREÇÃO DE CONTRASTE - TABS */
+    .stTabs [data-baseweb="tab"] {
+        color: #F8FAFC !important;
+    }
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        color: white !important;
+        font-weight: bold;
+    }
+    
+    /* ✅ CORREÇÃO DE CONTRASTE - LABELS DOS CAMPOS */
+    .stTextInput label,
+    .stNumberInput label,
+    .stTextArea label,
+    .stSelectbox label,
+    .stDateInput label,
+    .stTimeInput label,
+    .stRadio label,
+    .stCheckbox label {
+        color: #F8FAFC !important;
+        font-weight: 500;
+    }
+    
+    /* ✅ CORREÇÃO DE CONTRASTE - INPUTS */
+    .stTextInput > div > div > input,
+    .stNumberInput > div > div > input,
+    .stTextArea > div > div > textarea,
+    .stSelectbox > div > div > div {
+        background: #FFFFFF !important;
+        color: #1E293B !important;
+    }
+    
+    /* ✅ CORREÇÃO DE CONTRASTE - TÍTULOS */
+    h1, h2, h3, h4, h5, h6,
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3,
+    .stMarkdown h4, .stMarkdown h5, .stMarkdown h6 {
+        color: #F8FAFC !important;
+    }
+    
+    /* ✅ CORREÇÃO DE CONTRASTE - TEXTOS GERAIS */
+    .stMarkdown p,
+    .stText,
+    div[data-testid="stMetricValue"],
+    div[data-testid="stMetricLabel"] {
+        color: #F8FAFC !important;
+    }
+    
+    /* ✅ CORREÇÃO DE CONTRASTE - EXPANDERS */
+    .streamlit-expanderHeader {
+        color: #F8FAFC !important;
+        background: rgba(255,255,255,0.05) !important;
+    }
+    
+    /* ✅ CORREÇÃO DE CONTRASTE - FORMULÁRIOS */
+    .stForm label {
+        color: #F8FAFC !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -729,8 +787,14 @@ def render_tecnico(*args):
                     niss = st.text_input("Nº Segurança Social (NISS)", value=user_data.get('NISS', ''), disabled='NISS' in campos_bloqueados, key="edit_niss")
                 with col9:
                     cc_validade = st.text_input("Validade CC", value=user_data.get('CC_Validade', ''), disabled='CC_Validade' in campos_bloqueados, key="edit_cc_val")
-                    dependentes = st.number_input("Dependentes", min_value=0, value=int(user_data.get('Dependentes', '0')), disabled='Dependentes' in campos_bloqueados, key="edit_dep")
-                
+                # Corrigir valor de Dependentes (pode ser string vazia)
+                dep_value = user_data.get('Dependentes', '0')
+                try:
+                    dep_int = int(dep_value) if dep_value else 0
+                except:
+                    dep_int = 0
+
+                dependentes = st.number_input("Dependentes", min_value=0, value=dep_int, disabled='Dependentes' in campos_bloqueados, key="edit_dep")
                 # Secção 5: Dados Profissionais
                 st.markdown('<div class="subsection-title">💼 Dados Profissionais</div>', unsafe_allow_html=True)
                 
