@@ -39,7 +39,7 @@ def render_tecnico(*args):
             "Tamanho_Calca", "Tamanho_Botas", "Local", "PrecoHora", "PrecoHoraStatus",
             "PrecoHoraData", "PIN", "Foto", "Campos_Bloqueados", "PDFs_Vistos",
             "PDFs_Validados", "PDFs_Validacao_Data"
-        ], ttl=0)  # ✅ TTL=0 PARA NÃO USAR CACHE!
+        ])  # ✅ SEM ttl!
         
         user_match = users_fresh[users_fresh['Nome'] == user_nome]
         if not user_match.empty:
@@ -57,7 +57,7 @@ def render_tecnico(*args):
     try:
         pdfs_db = load_db("pdfs_obrigatorios.csv", [
             "ID", "Nome", "Descricao", "Data_Upload", "Upload_Por", "Ficheiro_b64"
-        ], ttl=0)  # ✅ TTL=0 PARA NÃO USAR CACHE!
+        ])  # ✅ SEM ttl!
     except:
         pdfs_db = pd.DataFrame(columns=[
             "ID", "Nome", "Descricao", "Data_Upload", "Upload_Por", "Ficheiro_b64"
