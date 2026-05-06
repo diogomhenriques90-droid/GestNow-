@@ -322,10 +322,7 @@ def render_tecnico(*args):
             else:
                 st.warning(f"⚠️ Deves validar TODOS os {total_pdfs} PDFs antes de continuar.")
                 st.stop()  # Bloqueia o resto da página
-            else:
-                st.success("✅ Todos os PDFs validados! Podes continuar.")
-                st.divider()
-    
+           
     # =============================================================================
     # DEFINIÇÃO DE TABS
     # =============================================================================
