@@ -81,7 +81,7 @@ def render_tecnico(*args):
     """, unsafe_allow_html=True)
     
     # =============================================================================
-    # CSS PERSONALIZADO
+    # CSS PERSONALIZADO - MELHORADO
     # =============================================================================
     st.markdown("""
     <style>
@@ -199,6 +199,11 @@ def render_tecnico(*args):
         font-weight: 500;
     }
     
+    /* ✅ CORREÇÃO DE CONTRASTE - RADIO BUTTONS */
+    .stRadio [role="radio"] + label {
+        color: #F8FAFC !important;
+    }
+    
     /* ✅ CORREÇÃO DE CONTRASTE - INPUTS */
     .stTextInput > div > div > input,
     .stNumberInput > div > div > input,
@@ -233,6 +238,107 @@ def render_tecnico(*args):
     .stForm label {
         color: #F8FAFC !important;
     }
+    
+    /* ✅ CALENDÁRIO SCROLL HORIZONTAL */
+    .date-carousel {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 15px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 15px;
+        margin-bottom: 20px;
+        scrollbar-width: thin;
+        scrollbar-color: #3B82F6 rgba(255,255,255,0.1);
+    }
+    .date-carousel::-webkit-scrollbar {
+        height: 8px;
+    }
+    .date-carousel::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+    }
+    .date-carousel::-webkit-scrollbar-thumb {
+        background: #3B82F6;
+        border-radius: 10px;
+    }
+    .date-card {
+        flex: 0 0 auto;
+        background: rgba(255,255,255,0.1);
+        border: 2px solid rgba(255,255,255,0.2);
+        border-radius: 12px;
+        padding: 15px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 80px;
+    }
+    .date-card:hover {
+        background: rgba(255,255,255,0.2);
+        transform: translateY(-2px);
+    }
+    .date-card.selected {
+        background: #3B82F6;
+        border-color: #60A5FA;
+        box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+    }
+    .date-card .day-name {
+        font-size: 0.85rem;
+        color: #94A3B8;
+        margin-bottom: 5px;
+    }
+    .date-card .day-number {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #F8FAFC;
+    }
+    .date-card.selected .day-name,
+    .date-card.selected .day-number {
+        color: white;
+    }
+    
+    /* ✅ INPUTS MODERNOS */
+    .modern-input {
+        background: rgba(255,255,255,0.95) !important;
+        border-radius: 12px !important;
+        border: 2px solid rgba(255,255,255,0.2) !important;
+        padding: 12px !important;
+    }
+    .modern-input:focus {
+        border-color: #3B82F6 !important;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.1) !important;
+    }
+    
+    /* ✅ PERÍODOS DE TURNO */
+    .shift-period {
+        background: rgba(59,130,246,0.1);
+        border: 1px solid rgba(59,130,246,0.3);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+    .shift-period-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .shift-period-title {
+        font-weight: 600;
+        color: #F8FAFC;
+    }
+    .shift-period-remove {
+        background: #EF4444;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+    .shift-period-remove:hover {
+        background: #DC2626;
+    }
     </style>
     """, unsafe_allow_html=True)
     
@@ -249,7 +355,7 @@ def render_tecnico(*args):
         
         if pdfs_validados != 'Sim':
             precisa_validar = True
-        elif pdfs_validacao_data:
+        elif pdfs_validacao_
             try:
                 data_validacao = datetime.strptime(pdfs_validacao_data, "%d/%m/%Y %H:%M")
                 if hoje.day == 1 and (hoje.month != data_validacao.month or hoje.year != data_validacao.year):
@@ -506,76 +612,157 @@ def render_tecnico(*args):
     tabs = st.tabs(menu)
     
     # =============================================================================
-    # TAB 1: REGISTO DE PONTO
+    # TAB 1: REGISTO DE PONTO - COM CALENDÁRIO SCROLL E MÚLTIPLOS TURNOS
     # =============================================================================
     with tabs[0]:
         st.markdown(f"### {ICONS['dashboard']} Registo de Ponto")
         
+        # ✅ CALENDÁRIO SCROLL HORIZONTAL
         hoje = date.today()
         if 'data_consulta' not in st.session_state:
             st.session_state.data_consulta = hoje
         
-        d_sel = st.session_state.data_consulta
-        inicio_sem = d_sel - timedelta(days=d_sel.weekday())
-        dias_sem = [inicio_sem + timedelta(days=i) for i in range(7)]
+        # Gerar datas da semana atual
+        inicio_sem = hoje - timedelta(days=hoje.weekday())
+        dias_sem = [inicio_sem + timedelta(days=i) for i in range(14)]  # 2 semanas
         
-        st.markdown('<div class="week-bar">', unsafe_allow_html=True)
-        cols_cal = st.columns(7)
+        # Mostrar calendário scroll horizontal
+        st.markdown('<div class="date-carousel">', unsafe_allow_html=True)
+        
+        cols_cal = st.columns(len(dias_sem))
         for i, d in enumerate(dias_sem):
             with cols_cal[i]:
-                status_dia = "⚪"
-                if not registos_db.empty:
-                    dia_regs = registos_db[
-                        (registos_db['Técnico'] == user_nome) &
-                        (pd.to_datetime(registos_db['Data'], dayfirst=True, errors='coerce').dt.date == d)
-                    ]
-                    if not dia_regs.empty:
-                        status_dia = "🟢" if "1" in dia_regs['Status'].values else "🟠"
+                dia_semana = d.strftime("%a")[:3]  # Seg, Ter, Qua...
+                dia_numero = d.day
+                mes = d.strftime("%b")[:3]
                 
-                tipo_btn = "primary" if d == d_sel else "secondary"
-                if st.button(f"{status_dia}\n{d.day}", key=f"cal_{d}", use_container_width=True, type=tipo_btn):
+                selecionado = d == st.session_state.data_consulta
+                selected_class = "selected" if selecionado else ""
+                
+                st.markdown(f"""
+                <div class="date-card {selected_class}" onclick="document.getElementById('date_{d}').click()">
+                    <div class="day-name">{dia_semana}</div>
+                    <div class="day-number">{dia_numero}<span style="font-size:0.9rem"> {mes}</span></div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Botão invisível para capturar clique
+                if st.button("", key=f"date_{d}", style={"display": "none"}):
                     st.session_state.data_consulta = d
                     st.rerun()
+        
         st.markdown('</div>', unsafe_allow_html=True)
         
-        with st.expander(f"➕ Registar Trabalho em {st.session_state.data_consulta.strftime('%d/%m/%Y')}", expanded=(d_sel == hoje)):
+        # ✅ FORMULÁRIO COM MÚLTIPLOS TURNOS
+        with st.expander(f"➕ Registar Trabalho em {st.session_state.data_consulta.strftime('%d/%m/%Y')}", expanded=True):
             with st.form("ponto_form_elite"):
+                # Seleção de Obra e Frente com UI moderna
                 obras_list = obras_db['Obra'].unique() if not obras_db.empty else ["Geral"]
-                obra = st.selectbox(f"{ICONS['app']} Selecionar Obra", obras_list)
-                frente = st.selectbox(f"{ICONS['reports']} Frente de Trabalho", TIPOS_FRENTE)
                 
-                c1, c2 = st.columns(2)
-                h_ini = c1.time_input("Entrada", value=datetime.strptime("08:00", "%H:%M").time())
-                h_fim = c2.time_input("Saída", value=datetime.strptime("17:00", "%H:%M").time())
-                relat = st.text_area("📝 Relatório de Atividades")
+                col1, col2 = st.columns(2)
+                with col1:
+                    obra = st.selectbox(f"{ICONS['app']} Selecionar Obra", obras_list, key="reg_obra")
+                with col2:
+                    frente = st.selectbox(f"{ICONS['reports']} Frente de Trabalho", TIPOS_FRENTE, key="reg_frente")
                 
+                # ✅ GESTÃO DE MÚLTIPLOS PERÍODOS
+                st.markdown("#### ⏱️ Períodos de Trabalho")
+                st.caption("Adiciona todos os períodos trabalhados neste dia")
+                
+                # Inicializar períodos na session state
+                if 'periodos_trabalho' not in st.session_state:
+                    st.session_state.periodos_trabalho = [{"entrada": "08:00", "saida": "12:00"}]
+                
+                # Mostrar períodos existentes
+                total_horas_dia = 0
+                for idx, periodo in enumerate(st.session_state.periodos_trabalho):
+                    with st.container():
+                        st.markdown(f"""
+                        <div class="shift-period">
+                            <div class="shift-period-header">
+                                <span class="shift-period-title">Período {idx + 1}</span>
+                                {'' if idx == 0 else f'<button class="shift-period-remove" onclick="document.getElementById(\'remove_period_{idx}\').click()">🗑️ Remover</button>'}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        col_ent, col_sai = st.columns(2)
+                        with col_ent:
+                            entrada = st.time_input(f"Entrada {idx + 1}", value=datetime.strptime(periodo["entrada"], "%H:%M").time(), key=f"period_{idx}_entrada")
+                        with col_sai:
+                            saida = st.time_input(f"Saída {idx + 1}", value=datetime.strptime(periodo["saida"], "%H:%M").time(), key=f"period_{idx}_saida")
+                        
+                        # Calcular horas deste período
+                        t1 = datetime.combine(date.today(), entrada)
+                        t2 = datetime.combine(date.today(), saida)
+                        delta_h = round((t2 - t1).seconds / 3600, 2)
+                        total_horas_dia += delta_h
+                        
+                        # Botão invisível para remover
+                        if idx > 0 and st.button("", key=f"remove_period_{idx}", style={"display": "none"}):
+                            st.session_state.periodos_trabalho.pop(idx)
+                            st.rerun()
+                        
+                        st.markdown("---")
+                
+                # Botão para adicionar mais períodos
+                if st.button("➕ Adicionar Outro Período", use_container_width=True, type="secondary"):
+                    st.session_state.periodos_trabalho.append({"entrada": "13:00", "saida": "17:00"})
+                    st.rerun()
+                
+                # Resumo do total de horas
+                if total_horas_dia > 0:
+                    st.markdown(f"""
+                    <div style="background:rgba(16,185,129,0.1); border:2px solid #10B981; border-radius:10px; padding:15px; margin:20px 0;">
+                        <p style="margin:0; font-size:1.1rem; color:#10B981;">
+                            <strong>⏱️ Total de horas: {total_horas_dia}h</strong>
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Relatório de Atividades
+                relat = st.text_area("📝 Relatório de Atividades", placeholder="Descreve o trabalho realizado neste dia...", key="reg_relatorio")
+                
+                # Botão de submissão
                 if st.form_submit_button(f"{ICONS['save']} Gravar Registo", use_container_width=True, type="primary"):
-                    t1 = datetime.combine(date.today(), h_ini)
-                    t2 = datetime.combine(date.today(), h_fim)
-                    delta_h = round((t2 - t1).seconds / 3600, 2)
-                    
-                    if delta_h <= 0:
-                        st.error("⚠️ Erro: A hora de saída deve ser posterior à de entrada.")
+                    if total_horas_dia <= 0:
+                        st.error("⚠️ Erro: Deves registar pelo menos um período de trabalho válido.")
                     else:
-                        new_r = pd.DataFrame([{
-                            "ID": str(uuid.uuid4())[:8].upper(),
-                            "Data": st.session_state.data_consulta.strftime("%d/%m/%Y"),
-                            "Técnico": user_nome,
-                            "Obra": obra,
-                            "Frente": frente,
-                            "Turnos": f"{h_ini.strftime('%H:%M')}-{h_fim.strftime('%H:%M')}",
-                            "Horas_Total": delta_h,
-                            "Relatorio": relat,
-                            "Status": "0"
-                        }])
-                        save_db(pd.concat([registos_db, new_r], ignore_index=True) if not registos_db.empty else new_r, "registos.csv")
+                        # Criar registos para cada período
+                        for idx, periodo in enumerate(st.session_state.periodos_trabalho):
+                            entrada = datetime.strptime(periodo["entrada"], "%H:%M").time()
+                            saida = datetime.strptime(periodo["saida"], "%H:%M").time()
+                            
+                            t1 = datetime.combine(date.today(), entrada)
+                            t2 = datetime.combine(date.today(), saida)
+                            delta_h = round((t2 - t1).seconds / 3600, 2)
+                            
+                            if delta_h > 0:
+                                new_r = pd.DataFrame([{
+                                    "ID": str(uuid.uuid4())[:8].upper(),
+                                    "Data": st.session_state.data_consulta.strftime("%d/%m/%Y"),
+                                    "Técnico": user_nome,
+                                    "Obra": obra,
+                                    "Frente": frente,
+                                    "Turnos": f"{periodo['entrada']}-{periodo['saida']}",
+                                    "Horas_Total": delta_h,
+                                    "Relatorio": relat,
+                                    "Status": "0",
+                                    "Periodo": idx + 1
+                                }])
+                                
+                                save_db(pd.concat([registos_db, new_r], ignore_index=True) if not registos_db.empty else new_r, "registos.csv")
+                                
+                                log_audit(usuario=st.session_state.user, acao="REGISTAR_PONTO", tabela="registos.csv", registro_id=new_r['ID'].iloc[0], detalhes=f"{user_nome} registou {delta_h}h em {obra}", ip="")
                         
-                        log_audit(usuario=st.session_state.user, acao="REGISTAR_PONTO", tabela="registos.csv", registro_id=new_r['ID'].iloc[0], detalhes=f"{user_nome} registou {delta_h}h em {obra}", ip="")
+                        # Limpar períodos após gravação
+                        st.session_state.periodos_trabalho = [{"entrada": "08:00", "saida": "12:00"}]
                         
-                        st.success(f"{ICONS['approved']} Ponto registado com sucesso!")
+                        st.success(f"{ICONS['approved']} Ponto registado com sucesso! ({total_horas_dia}h totais)")
                         inv()
                         st.rerun()
         
+        # Visualização dos Cards do Dia Selecionado
         st.markdown(f"### Registos de {st.session_state.data_consulta.strftime('%d/%m/%Y')}")
         if not registos_db.empty:
             meus_regs = registos_db[registos_db['Técnico'] == user_nome]
@@ -583,19 +770,25 @@ def render_tecnico(*args):
             
             if regs_dia.empty:
                 st.caption("ℹ️ Nenhum registo encontrado para este dia.")
-            
-            for _, r in regs_dia.iterrows():
-                _, st_cls = sl(r['Status'])[:2]
-                st.markdown(f"""
-                <div class="rp-card {st_cls.split('-')[1] if st_cls else 'pendente'}">
-                    <b>{r["Obra"]}</b> | {r["Turnos"]} (<b>{fh(r["Horas_Total"])}h</b>)<br>
-                    <small>{r["Frente"]}</small><br>
-                    <small style="color:#94A3B8;">{r["Relatorio"][:100] if r["Relatorio"] else ""}</small><br>
-                    <small style="color:{'#10B981' if r['Status']=='1' else '#F59E0B' if r['Status']=='0' else '#EF4444'};">
-                        {'✅ Aprovado' if r['Status']=='1' else '⏳ Pendente' if r['Status']=='0' else '❌ Rejeitado'}
-                    </small>
-                </div>
-                """, unsafe_allow_html=True)
+            else:
+                # Agrupar por períodos
+                total_horas_dia_display = regs_dia['Horas_Total'].astype(float).sum()
+                st.markdown(f"**Total: {total_horas_dia_display}h**")
+                
+                for _, r in regs_dia.iterrows():
+                    _, st_cls = sl(r['Status'])[:2]
+                    periodo_info = f" (Período {r.get('Periodo', 1)})" if r.get('Periodo', 1) > 1 else ""
+                    
+                    st.markdown(f"""
+                    <div class="rp-card {st_cls.split('-')[1] if st_cls else 'pendente'}">
+                        <b>{r["Obra"]}{periodo_info}</b> | {r["Turnos"]} (<b>{fh(r["Horas_Total"])}h</b>)<br>
+                        <small>{r["Frente"]}</small><br>
+                        <small style="color:#94A3B8;">{r["Relatorio"][:100] if r["Relatorio"] else ""}</small><br>
+                        <small style="color:{'#10B981' if r['Status']=='1' else '#F59E0B' if r['Status']=='0' else '#EF4444'};">
+                            {'✅ Aprovado' if r['Status']=='1' else '⏳ Pendente' if r['Status']=='0' else '❌ Rejeitado'}
+                        </small>
+                    </div>
+                    """, unsafe_allow_html=True)
     
     # =============================================================================
     # TAB 2 (CHEFE): FOLHA DE PONTO
@@ -898,26 +1091,8 @@ def render_tecnico(*args):
                     st.success("✅ Perfil atualizado com sucesso!")
                     st.rerun()
             
-            # Informações de leitura apenas
-            st.divider()
-            st.markdown("### 📋 Informações do Perfil", unsafe_allow_html=True)
-            c1, c2 = st.columns(2)
-            with c1:
-                st.metric(f"{ICONS['profile']} Cargo", user_data.get('Cargo', 'N/A'))
-                st.metric(f"{ICONS['admin']} Tipo de Acesso", user_tipo)
-                
-                # ✅ PREÇO HORA VISÍVEL (SEM BLUR) - JÁ VALIDADO
-                st.metric("💰 Preço Hora", f"€ {preco_hora_valor}/hora")
-                
-            with c2:
-                st.metric("📧 Email", user_data.get('Email', 'N/A'))
-                st.metric("📞 Telefone", user_data.get('Telefone', 'N/A'))
-                st.metric("📍 Local", user_data.get('Local', 'Não'))
-            
-            st.divider()
-            if st.button(f"{ICONS['logout']} Sair do Sistema", use_container_width=True, type="secondary"):
-                st.session_state.clear()
-                st.rerun()
+            # ✅ REMOVIDA SECÇÃO "Informações do Perfil" - REDUNDANTE
+        
         else:
             st.warning("⚠️ Não foi possível carregar os dados do utilizador.")
     
