@@ -145,6 +145,13 @@ def render_tecnico(*args):
     .blur-price.revealed {
         filter: blur(0);
     }
+    .progress-bar {
+        background: linear-gradient(90deg, #10B981 0%, #059669 100%);
+        height: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+        transition: width 0.3s ease;
+    }
     </style>
     """, unsafe_allow_html=True)
     
@@ -195,10 +202,22 @@ def render_tecnico(*args):
                 pdfs_vistos = []
             
             total_pdfs = len(pdfs_db) if not pdfs_db.empty else 0
+            pdfs_validados_count = len([p for p in pdfs_vistos if p in pdfs_db['ID'].values]) if not pdfs_db.empty else 0
+            
+            # Barra de progresso
+            if total_pdfs > 0:
+                progresso_pct = int((pdfs_validados_count / total_pdfs) * 100)
+                st.markdown(f"""
+                <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:10px; margin-bottom:20px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <span style="color:#94A3B8;">📊 Progresso</span>
+                        <span style="color:#10B981; font-weight:bold;">{pdfs_validados_count}/{total_pdfs} PDFs validados</span>
+                    </div>
+                    <div class="progress-bar" style="width:{progresso_pct}%;"></div>
+                </div>
+                """, unsafe_allow_html=True)
             
             if not pdfs_db.empty:
-                st.info(f"📊 Progresso: {len(pdfs_vistos)}/{total_pdfs} PDFs validados")
-                
                 for _, pdf in pdfs_db.iterrows():
                     pdf_id = pdf.get('ID', '')
                     pdf_nome = pdf.get('Nome', 'Documento')
@@ -241,25 +260,35 @@ def render_tecnico(*args):
                         
                         # Botão de validação
                         if not visto:
-                            if st.button(f"✅ Confirmar Visualização: {pdf_nome}", key=f"validar_{pdf_id}", use_container_width=True):
+                            if st.button(f"✅ Confirmar Visualização: {pdf_nome}", key=f"validar_{pdf_id}", use_container_width=True, type="primary"):
+                                # Adicionar à lista se ainda não está
                                 if pdf_id not in pdfs_vistos:
                                     pdfs_vistos.append(pdf_id)
                                 
+                                # ✅ GUARDAR IMEDIATAMENTE NO DATAFRAME
                                 users.loc[user_idx, 'PDFs_Vistos'] = json.dumps(pdfs_vistos)
                                 
+                                # ✅ GUARDAR NO CSV IMEDIATAMENTE
+                                save_db(users, "usuarios.csv")
+                                
+                                # ✅ LIMPAR CACHE
+                                inv()
+                                
                                 # Verificar se TODOS foram validados
-                                if len(pdfs_vistos) >= total_pdfs:
+                                novos_validados = len([p for p in pdfs_vistos if p in pdfs_db['ID'].values])
+                                
+                                if novos_validados >= total_pdfs:
                                     # ✅ TODOS VALIDADOS!
                                     users.loc[user_idx, 'PDFs_Validados'] = 'Sim'
                                     users.loc[user_idx, 'PDFs_Validacao_Data'] = datetime.now().strftime("%d/%m/%Y %H:%M")
                                     save_db(users, "usuarios.csv")
                                     
-                                    log_audit(usuario=user_nome, acao="VALIDAR_PDFS_OBRIGATORIOS", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Validou {len(pdfs_vistos)} PDFs", ip="")
+                                    log_audit(usuario=user_nome, acao="VALIDAR_PDFS_OBRIGATORIOS", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Validou {novos_validados} PDFs", ip="")
                                     
                                     criar_notificacao(
                                         destinatario="admin",
                                         titulo="✅ Colaborador Validou PDFs",
-                                        mensagem=f"{user_nome} validou {len(pdfs_vistos)} PDF(s)",
+                                        mensagem=f"{user_nome} validou {novos_validados} PDF(s)",
                                         tipo="success",
                                         acao_url="/admin?tab=rh"
                                     )
@@ -275,20 +304,19 @@ def render_tecnico(*args):
                                     
                                     st.balloons()
                                     inv()
-                                    st.rerun()  # ← RELOAD IMEDIATO!
-                                    return  # ← PARAR EXECUÇÃO!
-                                else:
-                                    # Ainda faltam PDFs
-                                    save_db(users, "usuarios.csv")
-                                    inv()
-                                    restantes = total_pdfs - len(pdfs_vistos)
-                                    st.success(f"✅ '{pdf_nome}' validado! Faltam {restantes} PDF(s).")
                                     st.rerun()
-                                    return  # ← PARAR EXECUÇÃO!
+                                else:
+                                    # Ainda faltam PDFs - mostrar progresso atualizado
+                                    restantes = total_pdfs - novos_validados
+                                    st.success(f"✅ '{pdf_nome}' validado! Faltam {restantes} PDF(s).")
+                                    st.info(f"📊 Progresso: {novos_validados}/{total_pdfs} PDFs")
+                                    inv()
+                                    st.rerun()
             
             # Se chegou aqui, é porque ainda não validou todos
-            st.warning(f"⚠️ Deves validar TODOS os {total_pdfs} PDFs antes de continuar.")
-            st.stop()  # ← BLOQUEAR A APP!
+            if total_pdfs > 0:
+                st.warning(f"⚠️ Deves validar TODOS os {total_pdfs} PDFs antes de continuar.")
+                st.stop()
     
     # =============================================================================
     # SE CHEGOU AQUI, É PORQUE OS PDFs ESTÃO VALIDADOS - CONTINUAR COM O RESTO DA APP
@@ -597,7 +625,7 @@ def render_tecnico(*args):
                         st.warning("❌ Preço hora recusado. Contacta o admin para renegociação.")
                         st.rerun()
                 
-                st.stop()  # Bloqueia até validar preço hora
+                st.stop()
             
             elif preco_status == 'Recusado':
                 st.warning("⚠️ O teu preço hora foi recusado. Contacta o admin para renegociação.")
@@ -653,7 +681,7 @@ def render_tecnico(*args):
                 
                 col8, col9 = st.columns(2)
                 with col8:
-                    nif = st.text_input("Nº Contribuinte (NIF)", value=user_data.get('NIF', ''), disabled=True, key="edit_nif")  # NIF nunca editável
+                    nif = st.text_input("Nº Contribuinte (NIF)", value=user_data.get('NIF', ''), disabled=True, key="edit_nif")
                     cc = st.text_input("Cartão Cidadão", value=user_data.get('CC', ''), disabled='CC' in campos_bloqueados, key="edit_cc")
                     niss = st.text_input("Nº Segurança Social (NISS)", value=user_data.get('NISS', ''), disabled='NISS' in campos_bloqueados, key="edit_niss")
                 with col9:
@@ -703,7 +731,6 @@ def render_tecnico(*args):
                 
                 observacoes = st.text_area("Observações", value=user_data.get('Observacoes', ''), disabled='Observacoes' in campos_bloqueados, key="edit_obs")
                 
-                # Informações de campos não editáveis
                 st.info("""
                 **🔒 Campos não editáveis:**
                 - Nome, Tipo, Cargo, NIF (contacta admin para alterar)
@@ -713,7 +740,6 @@ def render_tecnico(*args):
                 """)
                 
                 if st.form_submit_button("💾 Guardar Alterações", use_container_width=True, type="primary"):
-                    # Atualizar campos editáveis
                     campos_para_atualizar = {
                         'Telefone': telefone,
                         'Email': email,
@@ -754,7 +780,6 @@ def render_tecnico(*args):
                     st.success("✅ Perfil atualizado com sucesso!")
                     st.rerun()
             
-            # Informações de leitura apenas COM PREÇO HORA BLUR + OLHO
             st.divider()
             st.markdown("### 📋 Informações do Perfil", unsafe_allow_html=True)
             c1, c2 = st.columns(2)
@@ -762,7 +787,6 @@ def render_tecnico(*args):
                 st.metric(f"{ICONS['profile']} Cargo", user_data.get('Cargo', 'N/A'))
                 st.metric(f"{ICONS['admin']} Tipo de Acesso", user_tipo)
                 
-                # Preço Hora com blur e ícone de olho
                 st.markdown(f"""
                 <div style="margin-top:10px;">
                     <div style="color:#94A3B8; font-size:0.9rem; margin-bottom:5px;">💰 Preço Hora</div>
@@ -812,7 +836,6 @@ def render_tecnico(*args):
             "🔧 Ferramentas", "🦺 EPIs", "📦 Materiais", "⛽ Gasóleo", "🔧 Avarias", "📋 Meus Pedidos"
         ])
         
-        # --- SUB-TAB: FERRAMENTAS ---
         with sub_fer:
             st.markdown("#### 🔧 Pedir Ferramentas")
             with st.form("form_pedir_fer"):
@@ -855,7 +878,6 @@ def render_tecnico(*args):
                     else:
                         st.warning("⚠️ Por favor, descreve a ferramenta necessária.")
         
-        # --- SUB-TAB: EPIs ---
         with sub_epi:
             st.markdown("#### 🦺 Pedir EPIs")
             with st.form("form_pedir_epi"):
@@ -893,7 +915,6 @@ def render_tecnico(*args):
                     inv()
                     st.rerun()
         
-        # --- SUB-TAB: MATERIAIS ---
         with sub_mat:
             st.markdown("#### 📦 Pedir Materiais")
             with st.form("form_pedir_mat"):
@@ -934,7 +955,6 @@ def render_tecnico(*args):
                     else:
                         st.warning("⚠️ Por favor, descreve o material necessário.")
         
-        # --- SUB-TAB: GASÓLEO ---
         with sub_gas:
             st.markdown("#### ⛽ Registar Abastecimento de Gasóleo")
             with st.form("form_pedir_gas"):
@@ -985,7 +1005,6 @@ def render_tecnico(*args):
                     else:
                         st.warning("⚠️ Por favor, faz upload do recibo e indica os litros.")
         
-        # --- SUB-TAB: AVARIAS ---
         with sub_avar:
             st.markdown("#### 🔧 Reportar Avaria / Reparação")
             with st.form("form_pedir_avar"):
@@ -1036,7 +1055,6 @@ def render_tecnico(*args):
                     else:
                         st.warning("⚠️ Por favor, descreve a avaria e faz upload da fatura/orçamento.")
         
-        # --- SUB-TAB: MEUS PEDIDOS ---
         with sub_meus:
             st.markdown("#### 📋 Histórico dos Meus Pedidos")
             
