@@ -32,7 +32,7 @@ def render_tecnico(*args):
     if not users.empty and 'Nome' in users.columns:
         user_match = users[users['Nome'] == user_nome]
         if not user_match.empty:
-            user_data = user_match.iloc[0]
+            user_data = user_match.iloc[0].copy()  # ✅ .copy() para evitar referências
             user_idx = user_match.index[0]
     
     # Carregar PDFs obrigatórios
@@ -284,8 +284,9 @@ def render_tecnico(*args):
                                 # ✅ GUARDAR IMEDIATAMENTE NO GCS
                                 save_db(users, "usuarios.csv")
                                 
-                                # ✅ LIMPAR CACHE DO STREAMLIT
+                                # ✅ LIMPAR CACHE DO STREAMLIT - FORÇAR RELOAD
                                 st.cache_data.clear()
+                                inv()  # ✅ TAMBÉM LIMPAR CACHE DA APP
                                 
                                 # Verificar se TODOS foram validados
                                 if novos_validados >= total_pdfs:
@@ -294,6 +295,7 @@ def render_tecnico(*args):
                                     users.loc[user_idx, 'PDFs_Validacao_Data'] = datetime.now().strftime("%d/%m/%Y %H:%M")
                                     save_db(users, "usuarios.csv")
                                     st.cache_data.clear()
+                                    inv()
                                     
                                     log_audit(usuario=user_nome, acao="VALIDAR_PDFS_OBRIGATORIOS", tabela="usuarios.csv", registro_id=user_nome, detalhes=f"Validou {novos_validados} PDFs", ip="")
                                     
