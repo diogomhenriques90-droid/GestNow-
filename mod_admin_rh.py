@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import json
 from datetime import datetime
-from core import save_db, inv, hp, cp, log_audit, criar_notificacao
+from core import save_db, inv, hp, cp, log_audit, criar_notificacao, load_db
 import base64
 import os
+import uuid
 
 def render_rh(users, avals_db, obras_db, inst_acessos_db):
     """Módulo de Recursos Humanos - Gestão Completa de Colaboradores"""
@@ -373,10 +374,12 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
         
         st.info("""
         **Instruções:**
-        1. Faz upload dos PDFs obrigatórios (máximo 3)
+        1. Faz upload dos PDFs obrigatórios (ilimitado)
         2. Os colaboradores visualizarão estes PDFs no seu perfil
         3. Devem validar a visualização de TODOS os PDFs
         4. Receberás notificação quando validarem
+        5. **No dia 1 de cada mês, todos devem validar novamente**
+        6. **Ao adicionar PDF novo, todos devem validar novamente**
         """)
         
         try:
@@ -391,6 +394,8 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
         st.markdown("#### 📋 PDFs Atuais")
         
         if not pdfs_db.empty and len(pdfs_db) > 0:
+            st.success(f"✅ {len(pdfs_db)} PDF(s) obrigatório(s) carregado(s)")
+            
             for idx, pdf in pdfs_db.iterrows():
                 with st.expander(f"📄 {pdf.get('Nome', 'PDF')} - Carregado em {pdf.get('Data_Upload', 'N/A')}", expanded=True):
                     st.write(f"**Descrição:** {pdf.get('Descricao', 'N/A')}")
@@ -422,43 +427,65 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
         
         st.markdown("#### ➕ Upload de Novo PDF Obrigatório")
         
-        if len(pdfs_db) >= 3:
-            st.warning("⚠️ Limite máximo de 3 PDFs atingido.")
-        else:
-            with st.form("form_upload_pdf"):
-                col1, col2 = st.columns(2)
-                with col1:
-                    nome_pdf = st.text_input("Nome do Documento", placeholder="Ex: Regulamento Interno")
-                    descricao_pdf = st.text_area("Descrição", placeholder="Ex: Regulamento interno da empresa")
-                with col2:
-                    ficheiro_pdf = st.file_uploader("📄 Ficheiro PDF", type=["pdf"])
-                
-                if st.form_submit_button("📤 Upload de PDF", use_container_width=True, type="primary"):
-                    if nome_pdf and ficheiro_pdf:
-                        pdf_bytes = ficheiro_pdf.read()
-                        pdf_b64 = base64.b64encode(pdf_bytes).decode()
-                        
-                        import uuid
-                        novo_pdf = pd.DataFrame([{
-                            "ID": str(uuid.uuid4())[:8].upper(),
-                            "Nome": nome_pdf,
-                            "Descricao": descricao_pdf,
-                            "Data_Upload": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                            "Upload_Por": st.session_state.user,
-                            "Ficheiro_b64": pdf_b64
-                        }])
-                        
-                        if not pdfs_db.empty:
-                            pdfs_db = pd.concat([pdfs_db, novo_pdf], ignore_index=True)
-                        else:
-                            pdfs_db = novo_pdf
-                        
-                        save_db(pdfs_db, "pdfs_obrigatorios.csv")
-                        
-                        log_audit(usuario=st.session_state.user, acao="UPLOAD_PDF_OBRIGATORIO", tabela="pdfs_obrigatorios.csv", registro_id=novo_pdf['ID'].iloc[0], detalhes=f"PDF carregado: {nome_pdf}", ip="")
-                        
-                        st.success(f"✅ PDF '{nome_pdf}' carregado com sucesso!")
-                        inv()
-                        st.rerun()
+        with st.form("form_upload_pdf"):
+            col1, col2 = st.columns(2)
+            with col1:
+                nome_pdf = st.text_input("Nome do Documento", placeholder="Ex: Regulamento Interno")
+                descricao_pdf = st.text_area("Descrição", placeholder="Ex: Regulamento interno da empresa")
+            with col2:
+                ficheiro_pdf = st.file_uploader("📄 Ficheiro PDF", type=["pdf"])
+            
+            if st.form_submit_button("📤 Upload de PDF", use_container_width=True, type="primary"):
+                if nome_pdf and ficheiro_pdf:
+                    # Ler ficheiro PDF
+                    pdf_bytes = ficheiro_pdf.read()
+                    pdf_b64 = base64.b64encode(pdf_bytes).decode()
+                    
+                    novo_pdf = pd.DataFrame([{
+                        "ID": str(uuid.uuid4())[:8].upper(),
+                        "Nome": nome_pdf,
+                        "Descricao": descricao_pdf,
+                        "Data_Upload": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "Upload_Por": st.session_state.user,
+                        "Ficheiro_b64": pdf_b64
+                    }])
+                    
+                    if not pdfs_db.empty:
+                        pdfs_db = pd.concat([pdfs_db, novo_pdf], ignore_index=True)
                     else:
-                        st.warning("⚠️ Por favor, preenche o nome e faz upload do PDF.")
+                        pdfs_db = novo_pdf
+                    
+                    save_db(pdfs_db, "pdfs_obrigatorios.csv")
+                    
+                    # 🔥 RESETAR VALIDAÇÃO DE TODOS OS COLABORADORES
+                    st.info("🔄 A atualizar validações de todos os colaboradores...")
+                    
+                    for idx, user in users.iterrows():
+                        users.loc[idx, 'PDFs_Validados'] = 'Não'
+                        users.loc[idx, 'PDFs_Vistos'] = json.dumps([])
+                        users.loc[idx, 'PDFs_Validacao_Data'] = ''
+                    
+                    save_db(users, "usuarios.csv")
+                    
+                    log_audit(usuario=st.session_state.user, acao="UPLOAD_PDF_OBRIGATORIO", tabela="pdfs_obrigatorios.csv", registro_id=novo_pdf['ID'].iloc[0], detalhes=f"PDF carregado: {nome_pdf}. Validação resetada para {len(users)} colaboradores", ip="")
+                    
+                    # Notificar todos os colaboradores (exceto admins)
+                    notificados = 0
+                    for idx, user in users.iterrows():
+                        if user.get('Tipo', '') != 'Admin':
+                            criar_notificacao(
+                                destinatario=user.get('Nome', ''),
+                                titulo="📄 Novo Documento Obrigatório",
+                                mensagem=f"Foi adicionado um novo documento obrigatório: {nome_pdf}. Deves validar todos os documentos no teu perfil.",
+                                tipo="warning",
+                                acao_url="/tecnico"
+                            )
+                            notificados += 1
+                    
+                    st.success(f"✅ PDF '{nome_pdf}' carregado com sucesso!")
+                    st.info(f"🔄 Todos os {len(users)} colaboradores deverão validar os PDFs novamente no próximo acesso.")
+                    st.info(f"📧 {notificados} colaboradores notificados.")
+                    inv()
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Por favor, preenche o nome e faz upload do PDF.")
