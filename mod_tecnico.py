@@ -355,7 +355,7 @@ def render_tecnico(*args):
         
         if pdfs_validados != 'Sim':
             precisa_validar = True
-        elif pdfs_validacao_
+        elif pdfs_validacao_data:
             try:
                 data_validacao = datetime.strptime(pdfs_validacao_data, "%d/%m/%Y %H:%M")
                 if hoje.day == 1 and (hoje.month != data_validacao.month or hoje.year != data_validacao.year):
