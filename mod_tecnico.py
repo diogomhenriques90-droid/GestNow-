@@ -626,32 +626,40 @@ def render_tecnico(*args):
         inicio_sem = hoje - timedelta(days=hoje.weekday())
         dias_sem = [inicio_sem + timedelta(days=i) for i in range(14)]  # 2 semanas
         
-        # Mostrar calendário scroll horizontal
-        st.markdown('<div class="date-carousel">', unsafe_allow_html=True)
+      # Mostrar calendário scroll horizontal
+st.markdown('<div class="date-carousel">', unsafe_allow_html=True)
+
+cols_cal = st.columns(len(dias_sem))
+for i, d in enumerate(dias_sem):
+    with cols_cal[i]:
+        dia_semana = d.strftime("%a")[:3]  # Seg, Ter, Qua...
+        dia_numero = d.day
+        mes = d.strftime("%b")[:3]
         
-        cols_cal = st.columns(len(dias_sem))
-        for i, d in enumerate(dias_sem):
-            with cols_cal[i]:
-                dia_semana = d.strftime("%a")[:3]  # Seg, Ter, Qua...
-                dia_numero = d.day
-                mes = d.strftime("%b")[:3]
-                
-                selecionado = d == st.session_state.data_consulta
-                selected_class = "selected" if selecionado else ""
-                
-                st.markdown(f"""
-                <div class="date-card {selected_class}" onclick="document.getElementById('date_{d}').click()">
-                    <div class="day-name">{dia_semana}</div>
-                    <div class="day-number">{dia_numero}<span style="font-size:0.9rem"> {mes}</span></div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Botão invisível para capturar clique
-                if st.button("", key=f"date_{d}", style={"display": "none"}):
-                    st.session_state.data_consulta = d
-                    st.rerun()
+        selecionado = d == st.session_state.data_consulta
+        selected_class = "selected" if selecionado else ""
         
-        st.markdown('</div>', unsafe_allow_html=True)
+        # ✅ USAR JAVASCRIPT PARA MUDAR A DATA
+        st.markdown(f"""
+        <div class="date-card {selected_class}" 
+             onclick="document.getElementById('date_input_{i}').value='{d.strftime('%Y-%m-%d')}'; 
+                      document.getElementById('date_submit_{i}').click();">
+            <div class="day-name">{dia_semana}</div>
+            <div class="day-number">{dia_numero}<span style="font-size:0.9rem"> {mes}</span></div>
+        </div>
+        
+        <!-- Input e botão escondidos para mudar a data -->
+        <input type="hidden" id="date_input_{i}" value="">
+        <button id="date_submit_{i}" style="display:none;" onclick="window.parent.postMessage({{type: 'set_date', date: '{d.strftime('%Y-%m-%d}')}}, '*');"></button>
+        """, unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ✅ VERIFICAR SE HOUVE MUDANÇA DE DATA VIA SESSION STATE
+if 'data_consulta_temp' in st.session_state:
+    st.session_state.data_consulta = st.session_state.data_consulta_temp
+    del st.session_state.data_consulta_temp
+    st.rerun()
         
         # ✅ FORMULÁRIO COM MÚLTIPLOS TURNOS
         with st.expander(f"➕ Registar Trabalho em {st.session_state.data_consulta.strftime('%d/%m/%Y')}", expanded=True):
