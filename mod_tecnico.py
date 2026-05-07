@@ -775,31 +775,26 @@ def render_tecnico(*args):
                 total_horas_dia_display = regs_dia['Horas_Total'].astype(float).sum()
                 st.markdown(f"**Total: {total_horas_dia_display}h**")
                 
-        for _, r in regs_dia.iterrows():
+     for _, r in regs_dia.iterrows():
     _, st_cls = sl(r['Status'])[:2]
     periodo_info = " (Período {})".format(r.get('Periodo', 1)) if r.get('Periodo', 1) > 1 else ""
     
     # Extrair valores para variáveis
     cor_status = '#10B981' if r['Status']=='1' else '#F59E0B' if r['Status']=='0' else '#EF4444'
-    texto_status = '✅ Aprovado' if r['Status']=='1' else '⏳ Pendente' if r['Status']=='0' else '❌ Rejeitado'
+    texto_status = 'Aprovado' if r['Status']=='1' else 'Pendente' if r['Status']=='0' else 'Rejeitado'
+    icone_status = '✅' if r['Status']=='1' else '⏳' if r['Status']=='0' else '❌'
     relatorio_text = r["Relatorio"][:100] if r["Relatorio"] else ""
     classe_card = st_cls.split('-')[1] if st_cls else 'pendente'
-    obra_text = r["Obra"]
-    turnos_text = r["Turnos"]
-    horas_text = fh(r["Horas_Total"])
-    frente_text = r["Frente"]
     
-    # Usar .format() em vez de f-string
-    html_card = """
-    <div class="rp-card {}">
-        <b>{}{}</b> | {} (<b>{}h</b>)<br>
-        <small>{}</small><br>
-        <small style="color:#94A3B8;">{}</small><br>
-        <small style="color:{};">
-            {}
-        </small>
-    </div>
-    """.format(classe_card, obra_text, periodo_info, turnos_text, horas_text, frente_text, relatorio_text, cor_status, texto_status)
+    # Construir HTML sem f-strings
+    html_card = '<div class="rp-card ' + classe_card + '">'
+    html_card += '<b>' + r["Obra"] + periodo_info + '</b> | ' + r["Turnos"] + ' (<b>' + fh(r["Horas_Total"]) + 'h</b>)<br>'
+    html_card += '<small>' + r["Frente"] + '</small><br>'
+    html_card += '<small style="color:#94A3B8;">' + relatorio_text + '</small><br>'
+    html_card += '<small style="color:' + cor_status + ';">'
+    html_card += icone_status + ' ' + texto_status
+    html_card += '</small>'
+    html_card += '</div>'
     
     st.markdown(html_card, unsafe_allow_html=True)
     
