@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_option_menu import option_menu
 from core import init_session, check_timeout, load_all, inject_pwa_meta, inject_global_css, datetime, ICONS
 from translations import init_language, t, get_language_options, set_language
 
@@ -9,7 +10,7 @@ st.set_page_config(
     page_title="GESTNOW v3 - Instrumentação Industrial",
     page_icon=ICONS["app"],
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",  # ✅ Sidebar colapsado para mobile-first
     menu_items={
         'Get Help': 'https://github.com/diogomhenriques90-droid/GestNow',
         'Report a bug': "https://github.com/diogomhenriques90-droid/GestNow/issues",
@@ -34,7 +35,7 @@ if page == "criar_admin":
     st.stop()
 
 # =============================================================================
-# 3. SIDEBAR (APENAS SE LOGADO)
+# 3. SIDEBAR (APENAS SE LOGADO - PARA DESKTOP)
 # =============================================================================
 if st.session_state.get('user'):
     with st.sidebar:
@@ -72,80 +73,96 @@ if st.session_state.get('user'):
         
         st.divider()
         
-        # Menu de Navegação
+        # Menu de Navegação (Sidebar - Desktop)
         st.markdown(f"**📋 Navegação**")
         
         tipo = st.session_state.get('tipo', '')
         cargo = st.session_state.get('cargo', '')
         
-        # Verificar acesso a instrumentação
         tem_acesso_inst = (tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or 
                           cargo in ['Chefe de Equipa', 'Encarregado', 'Instrumentista'])
-        
-        # Verificar se é cliente
         eh_cliente = (tipo == 'Cliente')
         
         if eh_cliente:
-            # MENU CLIENTE
-            menu_item = st.radio(
-                "Navegação",
-                [f"{ICONS['dashboard']} Portal", 
-                 f"{ICONS['logout']} Logout"],
-                label_visibility="collapsed"
-            )
-            st.session_state.menu_selected = menu_item
-            
+            menu_item = st.radio("Navegação", [f"{ICONS['dashboard']} Portal", f"{ICONS['logout']} Logout"], label_visibility="collapsed")
         elif tipo == 'Admin':
-            # MENU ADMIN
-            menu_item = st.radio(
-                "Navegação",
-                [f"{ICONS['dashboard']} Dashboard", 
-                 f"{ICONS['admin']} Admin", 
-                 f"{ICONS['instrumentation']} Instrumentação",
-                 f"{ICONS['logout']} Logout"],
-                label_visibility="collapsed"
-            )
-            st.session_state.menu_selected = menu_item
-            
+            menu_item = st.radio("Navegação", [f"{ICONS['dashboard']} Dashboard", f"{ICONS['admin']} Admin", f"{ICONS['instrumentation']} Instrumentação", f"{ICONS['logout']} Logout"], label_visibility="collapsed")
         elif tem_acesso_inst:
-            # MENU TÉCNICO/CHEFE
-            menu_item = st.radio(
-                "Navegação",
-                [f"{ICONS['technician']} Obra", 
-                 f"{ICONS['instrumentation']} Instrumentação",
-                 f"{ICONS['dashboard']} Dashboard", 
-                 f"{ICONS['logout']} Logout"],
-                label_visibility="collapsed"
-            )
-            st.session_state.menu_selected = menu_item
-            
+            menu_item = st.radio("Navegação", [f"{ICONS['technician']} Obra", f"{ICONS['instrumentation']} Instrumentação", f"{ICONS['dashboard']} Dashboard", f"{ICONS['logout']} Logout"], label_visibility="collapsed")
         else:
-            # MENU BÁSICO
-            menu_item = st.radio(
-                "Navegação",
-                [f"{ICONS['technician']} Obra", 
-                 f"{ICONS['dashboard']} Dashboard", 
-                 f"{ICONS['logout']} Logout"],
-                label_visibility="collapsed"
-            )
-            st.session_state.menu_selected = menu_item
+            menu_item = st.radio("Navegação", [f"{ICONS['technician']} Obra", f"{ICONS['dashboard']} Dashboard", f"{ICONS['logout']} Logout"], label_visibility="collapsed")
         
+        st.session_state.menu_selected = menu_item
         st.divider()
         
-        # Botão de Logout
         if st.button(f"{ICONS['logout']} {t('logout')}", use_container_width=True, type="secondary"):
             st.session_state.clear()
             st.rerun()
-        
-        # Footer
-        st.markdown("""
-        <div style="position:fixed; bottom:20px; left:20px; right:20px; text-align:center; font-size:0.75rem; color:#64748B;">
-            GESTNOW v3.0<br>Instrumentação Industrial
-        </div>
-        """, unsafe_allow_html=True)
 
 # =============================================================================
-# 4. ROUTING PRINCIPAL
+# 4. BOTTOM NAVIGATION BAR (MOBILE-FIRST - IGUAL AOS VÍDEOS!)
+# =============================================================================
+if st.session_state.get('user'):
+    tipo = st.session_state.get('tipo', '')
+    cargo = st.session_state.get('cargo', '')
+    eh_cliente = (tipo == 'Cliente')
+    
+    # Definir opções baseadas no perfil
+    if eh_cliente:
+        nav_options = ["Portal", "Logout"]
+        nav_icons = ["house", "box-arrow-right"]
+    elif tipo == 'Admin':
+        nav_options = ["Início", "Dashboard", "Admin", "Perfil", "Logout"]
+        nav_icons = ["house", "graph-up", "gear", "person", "box-arrow-right"]
+    elif tipo in ['Chefe de Equipa', 'Gestor'] or cargo in ['Chefe de Equipa', 'Encarregado']:
+        nav_options = ["Início", "Pontos", "Obras", "Gerir", "Perfil", "Logout"]
+        nav_icons = ["house", "calendar", "tools", "people", "person", "box-arrow-right"]
+    else:
+        nav_options = ["Início", "Pontos", "Obras", "Perfil", "Logout"]
+        nav_icons = ["house", "calendar", "tools", "person", "box-arrow-right"]
+    
+    # Bottom Navigation Bar
+    selected = option_menu(
+        menu_title=None,
+        options=nav_options,
+        icons=nav_icons,
+        menu_icon="cast",
+        default_index=0,
+        orientation="horizontal",
+        styles={
+            "container": {"padding": "0!important", "background-color": "#1E293B", "position": "fixed", "bottom": "0", "width": "100%", "z-index": "999", "border-top": "1px solid rgba(255,255,255,0.1)"},
+            "icon": {"color": "#F8FAFC", "font-size": "20px"},
+            "nav-link": {"color": "#F8FAFC", "font-size": "11px", "margin": "0px", "text-align": "center", "padding": "8px 4px"},
+            "nav-link-selected": {"background-color": "#DC2626", "color": "#FFFFFF"},
+        }
+    )
+    
+    # Guardar seleção
+    if selected == "Início":
+        st.session_state.menu_selected = f"{ICONS['dashboard']} Dashboard"
+    elif selected == "Portal":
+        st.session_state.menu_selected = f"{ICONS['dashboard']} Portal"
+    elif selected == "Pontos":
+        st.session_state.menu_selected = f"{ICONS['technician']} Obra"
+    elif selected == "Obras":
+        st.session_state.menu_selected = f"{ICONS['instrumentation']} Instrumentação"
+    elif selected == "Dashboard":
+        st.session_state.menu_selected = f"{ICONS['dashboard']} Dashboard"
+    elif selected == "Admin":
+        st.session_state.menu_selected = f"{ICONS['admin']} Admin"
+    elif selected == "Gerir":
+        st.session_state.menu_selected = f"{ICONS['technician']} Obra"  # Usa render_chefe
+    elif selected == "Perfil":
+        st.session_state.menu_selected = "Perfil"
+    elif selected == "Logout":
+        st.session_state.clear()
+        st.rerun()
+    
+    # Espaço para não ficar por baixo da bottom bar
+    st.markdown("<div style='height: 70px;'></div>", unsafe_allow_html=True)
+
+# =============================================================================
+# 5. ROUTING PRINCIPAL
 # =============================================================================
 if not st.session_state.get('user'):
     # =============================================================================
@@ -159,10 +176,8 @@ else:
     # APLICAÇÃO PRINCIPAL (LOGADO)
     # =============================================================================
     
-    # Carregar Dados Globais (20 DataFrames)
+    # Carregar Dados Globais
     DATA = load_all()
-    
-    # Desempacotar dados
     (users, obras_db, frentes_db, registos_db, fats, docs, incs, sw, obs, equip,
      diags, diags_u, folhas, comuns, comuns_u, req_fer, req_mat, req_epi, avals, inst_acessos_db) = DATA
     
@@ -170,24 +185,18 @@ else:
     user_nome = st.session_state.get('user', '')
     cargo = st.session_state.get('cargo', '')
     
-    # Verificar acesso a instrumentação
     tem_acesso_inst = (tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or 
                       cargo in ['Chefe de Equipa', 'Encarregado', 'Instrumentista'])
-    
-    # Verificar se é cliente
     eh_cliente = (tipo == 'Cliente')
+    
+    menu = st.session_state.get('menu_selected', '')
     
     # =============================================================================
     # ROUTING POR PERFIL
     # =============================================================================
     
     if eh_cliente:
-        # =============================================================================
-        # MODO CLIENTE - PORTAL
-        # =============================================================================
-        menu = st.session_state.get('menu_selected', f"{ICONS['dashboard']} Portal")
-        
-        if f"{ICONS['dashboard']} Portal" in menu:
+        if f"{ICONS['dashboard']} Portal" in menu or "Portal" in menu:
             st.markdown(f"# {ICONS['dashboard']} Portal do Cliente")
             from mod_cliente import render_cliente_portal
             render_cliente_portal()
@@ -196,35 +205,22 @@ else:
             st.rerun()
     
     elif tipo == 'Admin':
-        # =============================================================================
-        # MODO ADMIN
-        # =============================================================================
-        menu = st.session_state.get('menu_selected', f"{ICONS['dashboard']} Dashboard")
-        
-        if f"{ICONS['admin']} Admin" in menu:
+        if f"{ICONS['admin']} Admin" in menu or "Admin" in menu:
             st.markdown(f"# {ICONS['admin']} Painel Administrativo")
             from mod_admin import render_admin
             render_admin(*DATA)
-            
-        elif f"{ICONS['instrumentation']} Instrumentação" in menu:
+        elif f"{ICONS['instrumentation']} Instrumentação" in menu or "Instrumentação" in menu:
             st.markdown(f"# {ICONS['instrumentation']} Instrumentação Industrial")
             from mod_instrumentacao import render_instrumentacao
             render_instrumentacao(*DATA)
-            
-        elif f"{ICONS['dashboard']} Dashboard" in menu:
-            st.markdown(f"# {ICONS['dashboard']} Dashboard Geral")
-            
-            # Métricas gerais
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("👥 Utilizadores", len(users))
-            with col2:
-                st.metric("🏭 Obras Ativas", len(obras_db[obras_db['Ativa'] == 'Ativa']) if not obras_db.empty else 0)
-            with col3:
-                st.metric("📋 Registos", len(registos_db) if not registos_db.empty else 0)
-            with col4:
-                st.metric("⚠️ Incidentes", len(incs) if not incs.empty else 0)
-        
+        elif f"{ICONS['dashboard']} Dashboard" in menu or "Início" in menu or "Dashboard" in menu:
+            # ✅ DASHBOARD INICIAL (NOVO!)
+            from mod_inicio import render_inicio
+            render_inicio(*DATA)
+        elif "Perfil" in menu:
+            st.markdown(f"# {ICONS['profile']} Perfil do Utilizador")
+            from mod_perfil import render_perfil
+            render_perfil(*DATA)
         else:
             st.session_state.clear()
             st.rerun()
@@ -233,66 +229,56 @@ else:
         # =============================================================================
         # MODO TÉCNICO / CHEFE DE EQUIPA
         # =============================================================================
-        menu = st.session_state.get('menu_selected', f"{ICONS['technician']} Obra")
-        
-        if f"{ICONS['technician']} Obra" in menu:
+        if f"{ICONS['technician']} Obra" in menu or "Pontos" in menu or "Gerir" in menu:
             st.markdown(f"# {ICONS['technician']} Área Técnica")
-            from mod_tecnico import render_tecnico
-            render_tecnico(*DATA)
-            
-        elif f"{ICONS['instrumentation']} Instrumentação" in menu:
+            # Se for chefe, usa render_chefe, senão render_tecnico
+            if tipo in ['Chefe de Equipa', 'Gestor'] or cargo in ['Chefe de Equipa', 'Encarregado']:
+                from mod_chefe import render_chefe
+                render_chefe(*DATA)
+            else:
+                from mod_tecnico import render_tecnico
+                render_tecnico(*DATA)
+        elif f"{ICONS['instrumentation']} Instrumentação" in menu or "Obras" in menu:
             if tem_acesso_inst:
                 st.markdown(f"# {ICONS['instrumentation']} Instrumentação Industrial")
                 from mod_instrumentacao import render_instrumentacao
                 render_instrumentacao(*DATA)
             else:
                 st.warning("⚠️ Não tem acesso a este módulo.")
-        
-        elif f"{ICONS['dashboard']} Dashboard" in menu:
-            st.markdown(f"# {ICONS['dashboard']} Dashboard de Produção")
-            
-            # Selecionar obra
-            if not obras_db.empty:
-                obras_list = obras_db[obras_db['Ativa'] == 'Ativa']['Obra'].tolist()
-                if obras_list:
-                    obra_sel = st.selectbox("🏗️ Selecionar Obra", obras_list)
-                    st.session_state.obra_ativa = obra_sel
-                    
-                    # Métricas da obra
-                    st.markdown("### 📊 Métricas da Obra")
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric("⏱️ Horas Totais", "0h")
-                    with col2:
-                        st.metric("👷 Técnicos", users['Nome'].nunique())
-                    with col3:
-                        st.metric("🏭 Obras Ativas", len(obras_list))
-                else:
-                    st.warning("⚠️ Nenhuma obra ativa encontrada.")
-            else:
-                st.info("📋 Sem obras registadas.")
-        
+        elif f"{ICONS['dashboard']} Dashboard" in menu or "Início" in menu:
+            # ✅ DASHBOARD INICIAL (NOVO!)
+            from mod_inicio import render_inicio
+            render_inicio(*DATA)
+        elif "Perfil" in menu:
+            st.markdown(f"# {ICONS['profile']} Perfil do Utilizador")
+            from mod_perfil import render_perfil
+            render_perfil(*DATA)
         else:
-            st.session_state.clear()
-            st.rerun()
+            # Default para técnico
+            st.markdown(f"# {ICONS['technician']} Área Técnica")
+            from mod_tecnico import render_tecnico
+            render_tecnico(*DATA)
 
 # =============================================================================
-# 5. FOOTER GLOBAL
+# 6. FOOTER GLOBAL
 # =============================================================================
 st.markdown("""
 <style>
 .footer {
     position:fixed;
-    bottom:0;
+    bottom:60px;
     left:0;
     right:0;
     background:linear-gradient(135deg, #1E293B, #0F172A);
     padding:12px 20px;
     text-align:center;
-    font-size:0.8rem;
+    font-size:0.75rem;
     color:#64748B;
     border-top:1px solid rgba(255,255,255,0.1);
-    z-index: 9999;
+    z-index: 9998;
+}
+@media (max-width: 768px) {
+    .footer { display: none; }
 }
 </style>
 <div class="footer">
