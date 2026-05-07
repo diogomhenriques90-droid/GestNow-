@@ -775,20 +775,26 @@ def render_tecnico(*args):
                 total_horas_dia_display = regs_dia['Horas_Total'].astype(float).sum()
                 st.markdown(f"**Total: {total_horas_dia_display}h**")
                 
-                for _, r in regs_dia.iterrows():
-                    _, st_cls = sl(r['Status'])[:2]
-                    periodo_info = f" (Período {r.get('Periodo', 1)})" if r.get('Periodo', 1) > 1 else ""
-                    
-                    st.markdown(f"""
-                    <div class="rp-card {st_cls.split('-')[1] if st_cls else 'pendente'}">
-                        <b>{r["Obra"]}{periodo_info}</b> | {r["Turnos"]} (<b>{fh(r["Horas_Total"])}h</b>)<br>
-                        <small>{r["Frente"]}</small><br>
-                        <small style="color:#94A3B8;">{r["Relatorio"][:100] if r["Relatorio"] else ""}</small><br>
-                        <small style="color:{'#10B981' if r['Status']=='1' else '#F59E0B' if r['Status']=='0' else '#EF4444'};">
-                            {'✅ Aprovado' if r['Status']=='1' else '⏳ Pendente' if r['Status']=='0' else '❌ Rejeitado'}
-                        </small>
-                    </div>
-                    """, unsafe_allow_html=True)
+         for _, r in regs_dia.iterrows():
+    _, st_cls = sl(r['Status'])[:2]
+    periodo_info = f" (Período {r.get('Periodo', 1)})" if r.get('Periodo', 1) > 1 else ""
+    
+    # ✅ Extrair cores e textos para variáveis (FORA da f-string)
+    cor_status = '#10B981' if r['Status']=='1' else '#F59E0B' if r['Status']=='0' else '#EF4444'
+    texto_status = '✅ Aprovado' if r['Status']=='1' else '⏳ Pendente' if r['Status']=='0' else '❌ Rejeitado'
+    relatorio_text = r["Relatorio"][:100] if r["Relatorio"] else ""
+    classe_card = st_cls.split('-')[1] if st_cls else 'pendente'
+    
+    st.markdown(f"""
+    <div class="rp-card {classe_card}">
+        <b>{r["Obra"]}{periodo_info}</b> | {r["Turnos"]} (<b>{fh(r["Horas_Total"])}h</b>)<br>
+        <small>{r["Frente"]}</small><br>
+        <small style="color:#94A3B8;">{relatorio_text}</small><br>
+        <small style="color:{cor_status};">
+            {texto_status}
+        </small>
+    </div>
+    """, unsafe_allow_html=True)
     
     # =============================================================================
     # TAB 2 (CHEFE): FOLHA DE PONTO
