@@ -648,8 +648,23 @@ def render_tecnico(*args):
 
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # ✅ FORMULÁRIO COM MÚLTIPLOS TURNOS
+        # ✅ FORMULÁRIO COM MÚLTIPLOS TURNOS - BOTÕES FORA DO FORM!
         with st.expander(f"➕ Registar Trabalho em {st.session_state.data_consulta.strftime('%d/%m/%Y')}", expanded=True):
+            # Mostrar períodos existentes ANTES do form
+            st.markdown("#### ⏱️ Períodos de Trabalho")
+            st.caption("Adiciona todos os períodos trabalhados neste dia")
+            
+            # Inicializar períodos na session state
+            if 'periodos_trabalho' not in st.session_state:
+                st.session_state.periodos_trabalho = [{"entrada": "08:00", "saida": "12:00"}]
+            
+            # Botão para adicionar períodos (FORA do form!)
+            if st.button("➕ Adicionar Outro Período", use_container_width=True, type="secondary"):
+                st.session_state.periodos_trabalho.append({"entrada": "13:00", "saida": "17:00"})
+                st.rerun()
+            
+            st.divider()
+            
             with st.form("ponto_form_elite"):
                 # Seleção de Obra e Frente com UI moderna
                 obras_list = obras_db['Obra'].unique() if not obras_db.empty else ["Geral"]
@@ -660,33 +675,11 @@ def render_tecnico(*args):
                 with col2:
                     frente = st.selectbox(f"{ICONS['reports']} Frente de Trabalho", TIPOS_FRENTE, key="reg_frente")
                 
-                # ✅ GESTÃO DE MÚLTIPLOS PERÍODOS
-                st.markdown("#### ⏱️ Períodos de Trabalho")
-                st.caption("Adiciona todos os períodos trabalhados neste dia")
-                
-                # Inicializar períodos na session state
-                if 'periodos_trabalho' not in st.session_state:
-                    st.session_state.periodos_trabalho = [{"entrada": "08:00", "saida": "12:00"}]
-                
                 # Mostrar períodos existentes
                 total_horas_dia = 0
                 for idx, periodo in enumerate(st.session_state.periodos_trabalho):
                     with st.container():
-                        # Construir botão de remover separadamente
-                        if idx == 0:
-                            btn_html = ''
-                        else:
-                            btn_id = 'remove_period_' + str(idx)
-                            btn_html = '<button class="shift-period-remove" onclick="document.getElementById(\'' + btn_id + '\').click()">🗑️ Remover</button>'
-                        
-                        st.markdown("""
-                        <div class="shift-period">
-                            <div class="shift-period-header">
-                                <span class="shift-period-title">Período {}</span>
-                                {}
-                            </div>
-                        </div>
-                        """.format(idx + 1, btn_html), unsafe_allow_html=True)
+                        st.markdown(f"**Período {idx + 1}**")
                         
                         col_ent, col_sai = st.columns(2)
                         with col_ent:
@@ -699,18 +692,7 @@ def render_tecnico(*args):
                         delta_h = round((t2 - t1).seconds / 3600, 2)
                         total_horas_dia += delta_h
                         
-                        # ✅ BOTÃO DE REMOVER VISÍVEL (sem style={"display": "none"})
-                        if idx > 0:
-                            if st.button("🗑️", key=f"remove_btn_{idx}", help="Remover período"):
-                                st.session_state.periodos_trabalho.pop(idx)
-                                st.rerun()
-                        
                         st.markdown("---")
-                
-                # Botão para adicionar mais períodos (FORA do for!)
-                if st.button("➕ Adicionar Outro Período", use_container_width=True, type="secondary"):
-                    st.session_state.periodos_trabalho.append({"entrada": "13:00", "saida": "17:00"})
-                    st.rerun()
                 
                 # Resumo do total de horas
                 if total_horas_dia > 0:
@@ -725,7 +707,7 @@ def render_tecnico(*args):
                 # Relatório de Atividades
                 relat = st.text_area("📝 Relatório de Atividades", placeholder="Descreve o trabalho realizado neste dia...", key="reg_relatorio")
                 
-                # Botão de submissão
+                # Botão de submissão (ÚNICO botão permitido no form!)
                 if st.form_submit_button(f"{ICONS['save']} Gravar Registo", use_container_width=True, type="primary"):
                     if total_horas_dia <= 0:
                         st.error("⚠️ Erro: Deves registar pelo menos um período de trabalho válido.")
