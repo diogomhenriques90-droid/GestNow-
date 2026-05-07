@@ -673,48 +673,45 @@ def render_tecnico(*args):
                 if 'periodos_trabalho' not in st.session_state:
                     st.session_state.periodos_trabalho = [{"entrada": "08:00", "saida": "12:00"}]
                 
-# Mostrar períodos existentes
-total_horas_dia = 0
-for idx, periodo in enumerate(st.session_state.periodos_trabalho):
-     with st.container():  # ✅ 4 ESPAÇOS!
-        # Construir botão de remover separadamente (FORA da f-string)
-        if idx == 0:
-            btn_html = ''
-        else:
-            btn_id = 'remove_period_' + str(idx)
-            btn_html = '<button class="shift-period-remove" onclick="document.getElementById(\'' + btn_id + '\').click()">🗑️ Remover</button>'
-        
-        # Usar .format() em vez de f-string
-        st.markdown("""
-        <div class="shift-period">
-            <div class="shift-period-header">
-                <span class="shift-period-title">Período {}</span>
-                {}
-            </div>
-        </div>
-        """.format(idx + 1, btn_html), unsafe_allow_html=True)
-        
-        col_ent, col_sai = st.columns(2)
-        with col_ent:
-            entrada = st.time_input(f"Entrada {idx + 1}", value=datetime.strptime(periodo["entrada"], "%H:%M").time(), key=f"period_{idx}_entrada")
-        with col_sai:
-            saida = st.time_input(f"Saída {idx + 1}", value=datetime.strptime(periodo["saida"], "%H:%M").time(), key=f"period_{idx}_saida")
-        
-        # Calcular horas deste período
-        t1 = datetime.combine(date.today(), entrada)
-        t2 = datetime.combine(date.today(), saida)
-        delta_h = round((t2 - t1).seconds / 3600, 2)
-        total_horas_dia += delta_h
-        
-        # Botão invisível para remover
-        if idx > 0:
-            if st.button("", key="remove_period_" + str(idx), style={"display": "none"}):
-                st.session_state.periodos_trabalho.pop(idx)
-                st.rerun()
-        
-        st.markdown("---")
+                # Mostrar períodos existentes
+                total_horas_dia = 0
+                for idx, periodo in enumerate(st.session_state.periodos_trabalho):
+                    with st.container():
+                        # Construir botão de remover separadamente
+                        if idx == 0:
+                            btn_html = ''
+                        else:
+                            btn_id = 'remove_period_' + str(idx)
+                            btn_html = '<button class="shift-period-remove" onclick="document.getElementById(\'' + btn_id + '\').click()">🗑️ Remover</button>'
+                        
+                        st.markdown("""
+                        <div class="shift-period">
+                            <div class="shift-period-header">
+                                <span class="shift-period-title">Período {}</span>
+                                {}
+                            </div>
+                        </div>
+                        """.format(idx + 1, btn_html), unsafe_allow_html=True)
+                        
+                        col_ent, col_sai = st.columns(2)
+                        with col_ent:
+                            entrada = st.time_input(f"Entrada {idx + 1}", value=datetime.strptime(periodo["entrada"], "%H:%M").time(), key=f"period_{idx}_entrada")
+                        with col_sai:
+                            saida = st.time_input(f"Saída {idx + 1}", value=datetime.strptime(periodo["saida"], "%H:%M").time(), key=f"period_{idx}_saida")
+                        
+                        t1 = datetime.combine(date.today(), entrada)
+                        t2 = datetime.combine(date.today(), saida)
+                        delta_h = round((t2 - t1).seconds / 3600, 2)
+                        total_horas_dia += delta_h
+                        
+                        if idx > 0:
+                            if st.button("", key="remove_period_" + str(idx), style={"display": "none"}):
+                                st.session_state.periodos_trabalho.pop(idx)
+                                st.rerun()
+                        
+                        st.markdown("---")
                 
-                # Botão para adicionar mais períodos
+                # Botão para adicionar mais períodos (FORA do for!)
                 if st.button("➕ Adicionar Outro Período", use_container_width=True, type="secondary"):
                     st.session_state.periodos_trabalho.append({"entrada": "13:00", "saida": "17:00"})
                     st.rerun()
@@ -780,32 +777,30 @@ for idx, periodo in enumerate(st.session_state.periodos_trabalho):
             if regs_dia.empty:
                 st.caption("ℹ️ Nenhum registo encontrado para este dia.")
             else:
-            # Agrupar por períodos
-total_horas_dia_display = regs_dia['Horas_Total'].astype(float).sum()
-st.markdown(f"**Total: {total_horas_dia_display}h**")
-
-for _, r in regs_dia.iterrows():  # ✅ FOR loop
-    _, st_cls = sl(r['Status'])[:2]  # ✅ 4 ESPAÇOS!
-    periodo_info = " (Período {})".format(r.get('Periodo', 1)) if r.get('Periodo', 1) > 1 else ""
-    
-    # Extrair valores para variáveis
-    cor_status = '#10B981' if r['Status']=='1' else '#F59E0B' if r['Status']=='0' else '#EF4444'
-    texto_status = 'Aprovado' if r['Status']=='1' else 'Pendente' if r['Status']=='0' else 'Rejeitado'
-    icone_status = '✅' if r['Status']=='1' else '⏳' if r['Status']=='0' else '❌'
-    relatorio_text = r["Relatorio"][:100] if r["Relatorio"] else ""
-    classe_card = st_cls.split('-')[1] if st_cls else 'pendente'
-    
-    # Construir HTML sem f-strings
-    html_card = '<div class="rp-card ' + classe_card + '">'
-    html_card += '<b>' + r["Obra"] + periodo_info + '</b> | ' + r["Turnos"] + ' (<b>' + fh(r["Horas_Total"]) + 'h</b>)<br>'
-    html_card += '<small>' + r["Frente"] + '</small><br>'
-    html_card += '<small style="color:#94A3B8;">' + relatorio_text + '</small><br>'
-    html_card += '<small style="color:' + cor_status + ';">'
-    html_card += icone_status + ' ' + texto_status
-    html_card += '</small>'
-    html_card += '</div>'
-    
-    st.markdown(html_card, unsafe_allow_html=True)
+                # Agrupar por períodos
+                total_horas_dia_display = regs_dia['Horas_Total'].astype(float).sum()
+                st.markdown(f"**Total: {total_horas_dia_display}h**")
+                
+                for _, r in regs_dia.iterrows():
+                    _, st_cls = sl(r['Status'])[:2]
+                    periodo_info = " (Período {})".format(r.get('Periodo', 1)) if r.get('Periodo', 1) > 1 else ""
+                    
+                    cor_status = '#10B981' if r['Status']=='1' else '#F59E0B' if r['Status']=='0' else '#EF4444'
+                    texto_status = 'Aprovado' if r['Status']=='1' else 'Pendente' if r['Status']=='0' else 'Rejeitado'
+                    icone_status = '✅' if r['Status']=='1' else '⏳' if r['Status']=='0' else '❌'
+                    relatorio_text = r["Relatorio"][:100] if r["Relatorio"] else ""
+                    classe_card = st_cls.split('-')[1] if st_cls else 'pendente'
+                    
+                    html_card = '<div class="rp-card ' + classe_card + '">'
+                    html_card += '<b>' + r["Obra"] + periodo_info + '</b> | ' + r["Turnos"] + ' (<b>' + fh(r["Horas_Total"]) + 'h</b>)<br>'
+                    html_card += '<small>' + r["Frente"] + '</small><br>'
+                    html_card += '<small style="color:#94A3B8;">' + relatorio_text + '</small><br>'
+                    html_card += '<small style="color:' + cor_status + ';">'
+                    html_card += icone_status + ' ' + texto_status
+                    html_card += '</small>'
+                    html_card += '</div>'
+                    
+                    st.markdown(html_card, unsafe_allow_html=True)
     
     # =============================================================================
     # TAB 2 (CHEFE): FOLHA DE PONTO
