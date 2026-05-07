@@ -676,15 +676,29 @@ def render_tecnico(*args):
                 # Mostrar períodos existentes
                 total_horas_dia = 0
                 for idx, periodo in enumerate(st.session_state.periodos_trabalho):
-                    with st.container():
-                        st.markdown(f"""
-                        <div class="shift-period">
-                            <div class="shift-period-header">
-                                <span class="shift-period-title">Período {idx + 1}</span>
-                                {'' if idx == 0 else f'<button class="shift-period-remove" onclick="document.getElementById(\'remove_period_{idx}\').click()">🗑️ Remover</button>'}
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+    with st.container():
+        # Construir botão de remover separadamente (FORA da f-string)
+        if idx == 0:
+            btn_html = ''
+        else:
+            btn_id = 'remove_period_' + str(idx)
+            btn_html = '<button class="shift-period-remove" onclick="document.getElementById(\'' + btn_id + '\').click()">🗑️ Remover</button>'
+        
+        # Usar .format() em vez de f-string
+        st.markdown("""
+        <div class="shift-period">
+            <div class="shift-period-header">
+                <span class="shift-period-title">Período {}</span>
+                {}
+            </div>
+        </div>
+        """.format(idx + 1, btn_html), unsafe_allow_html=True)
+        
+        # Botão invisível para remover
+        if idx > 0:
+            if st.button("", key="remove_period_" + str(idx), style={"display": "none"}):
+                st.session_state.periodos_trabalho.pop(idx)
+                st.rerun()
                         
                         col_ent, col_sai = st.columns(2)
                         with col_ent:
