@@ -632,16 +632,13 @@ def render_tecnico(*args):
         cols_cal = st.columns(len(dias_sem))
         for i, d in enumerate(dias_sem):
             with cols_cal[i]:
-                dia_semana = d.strftime("%a")[:3]  # Seg, Ter, Qua...
+                dia_semana = d.strftime("%a")[:3]
                 dia_numero = d.day
                 mes = d.strftime("%b")[:3]
-        
+                
                 selecionado = d == st.session_state.data_consulta
-        
-                # ✅ CONVERTER d PARA STRING SEGURA
                 date_str = d.strftime("%Y-%m-%d")
-        
-                # Botão normal do Streamlit
+                
                 if st.button(f"{dia_semana}\n{dia_numero} {mes}", 
                              key=f"date_{date_str}", 
                              use_container_width=True,
@@ -649,13 +646,7 @@ def render_tecnico(*args):
                     st.session_state.data_consulta = d
                     st.rerun()
 
-        st.markdown('</div>', unsafe_allow_html=True) 
-
-        # ✅ VERIFICAR SE HOUVE MUDANÇA DE DATA VIA SESSION STATE
-        if 'data_consulta_temp' in st.session_state:
-            st.session_state.data_consulta = st.session_state.data_consulta_temp
-            del st.session_state.data_consulta_temp
-        st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
         
         # ✅ FORMULÁRIO COM MÚLTIPLOS TURNOS
         with st.expander(f"➕ Registar Trabalho em {st.session_state.data_consulta.strftime('%d/%m/%Y')}", expanded=True):
@@ -708,8 +699,9 @@ def render_tecnico(*args):
                         delta_h = round((t2 - t1).seconds / 3600, 2)
                         total_horas_dia += delta_h
                         
+                        # ✅ BOTÃO DE REMOVER VISÍVEL (sem style={"display": "none"})
                         if idx > 0:
-                            if st.button("", key="remove_period_" + str(idx), style={"display": "none"}):
+                            if st.button("🗑️", key=f"remove_btn_{idx}", help="Remover período"):
                                 st.session_state.periodos_trabalho.pop(idx)
                                 st.rerun()
                         
@@ -1078,7 +1070,7 @@ def render_tecnico(*args):
                         'Nacionalidade': nacionalidade,
                         'Estado_Civil': estado_civil,
                         'Sexo': sexo,
-                        'NIF': nif,  # ✅ NIF AGORA EDITÁVEL!
+                        'NIF': nif,
                         'CC': cc,
                         'CC_Validade': cc_validade,
                         'NISS': niss,
