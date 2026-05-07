@@ -674,9 +674,9 @@ def render_tecnico(*args):
                     st.session_state.periodos_trabalho = [{"entrada": "08:00", "saida": "12:00"}]
                 
                 # Mostrar períodos existentes
-                total_horas_dia = 0
-                for idx, periodo in enumerate(st.session_state.periodos_trabalho):
-    with st.container():
+total_horas_dia = 0
+for idx, periodo in enumerate(st.session_state.periodos_trabalho):
+    with st.container():  # ✅ 4 ESPAÇOS!
         # Construir botão de remover separadamente (FORA da f-string)
         if idx == 0:
             btn_html = ''
@@ -694,30 +694,25 @@ def render_tecnico(*args):
         </div>
         """.format(idx + 1, btn_html), unsafe_allow_html=True)
         
+        col_ent, col_sai = st.columns(2)
+        with col_ent:
+            entrada = st.time_input(f"Entrada {idx + 1}", value=datetime.strptime(periodo["entrada"], "%H:%M").time(), key=f"period_{idx}_entrada")
+        with col_sai:
+            saida = st.time_input(f"Saída {idx + 1}", value=datetime.strptime(periodo["saida"], "%H:%M").time(), key=f"period_{idx}_saida")
+        
+        # Calcular horas deste período
+        t1 = datetime.combine(date.today(), entrada)
+        t2 = datetime.combine(date.today(), saida)
+        delta_h = round((t2 - t1).seconds / 3600, 2)
+        total_horas_dia += delta_h
+        
         # Botão invisível para remover
         if idx > 0:
             if st.button("", key="remove_period_" + str(idx), style={"display": "none"}):
                 st.session_state.periodos_trabalho.pop(idx)
                 st.rerun()
-                        
-                        col_ent, col_sai = st.columns(2)
-                        with col_ent:
-                            entrada = st.time_input(f"Entrada {idx + 1}", value=datetime.strptime(periodo["entrada"], "%H:%M").time(), key=f"period_{idx}_entrada")
-                        with col_sai:
-                            saida = st.time_input(f"Saída {idx + 1}", value=datetime.strptime(periodo["saida"], "%H:%M").time(), key=f"period_{idx}_saida")
-                        
-                        # Calcular horas deste período
-                        t1 = datetime.combine(date.today(), entrada)
-                        t2 = datetime.combine(date.today(), saida)
-                        delta_h = round((t2 - t1).seconds / 3600, 2)
-                        total_horas_dia += delta_h
-                        
-                        # Botão invisível para remover
-                        if idx > 0 and st.button("", key=f"remove_period_{idx}", style={"display": "none"}):
-                            st.session_state.periodos_trabalho.pop(idx)
-                            st.rerun()
-                        
-                        st.markdown("---")
+        
+        st.markdown("---")
                 
                 # Botão para adicionar mais períodos
                 if st.button("➕ Adicionar Outro Período", use_container_width=True, type="secondary"):
@@ -785,12 +780,12 @@ def render_tecnico(*args):
             if regs_dia.empty:
                 st.caption("ℹ️ Nenhum registo encontrado para este dia.")
             else:
-                # Agrupar por períodos
-                total_horas_dia_display = regs_dia['Horas_Total'].astype(float).sum()
-                st.markdown(f"**Total: {total_horas_dia_display}h**")
-                
-     for _, r in regs_dia.iterrows():
-    _, st_cls = sl(r['Status'])[:2]
+            # Agrupar por períodos
+total_horas_dia_display = regs_dia['Horas_Total'].astype(float).sum()
+st.markdown(f"**Total: {total_horas_dia_display}h**")
+
+for _, r in regs_dia.iterrows():  # ✅ FOR loop
+    _, st_cls = sl(r['Status'])[:2]  # ✅ 4 ESPAÇOS!
     periodo_info = " (Período {})".format(r.get('Periodo', 1)) if r.get('Periodo', 1) > 1 else ""
     
     # Extrair valores para variáveis
