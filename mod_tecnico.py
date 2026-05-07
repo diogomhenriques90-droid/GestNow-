@@ -673,10 +673,10 @@ def render_tecnico(*args):
                 if 'periodos_trabalho' not in st.session_state:
                     st.session_state.periodos_trabalho = [{"entrada": "08:00", "saida": "12:00"}]
                 
-                # Mostrar períodos existentes
+# Mostrar períodos existentes
 total_horas_dia = 0
 for idx, periodo in enumerate(st.session_state.periodos_trabalho):
-    with st.container():  # ✅ 4 ESPAÇOS!
+     with st.container():  # ✅ 4 ESPAÇOS!
         # Construir botão de remover separadamente (FORA da f-string)
         if idx == 0:
             btn_html = ''
