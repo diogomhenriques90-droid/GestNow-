@@ -1364,3 +1364,4 @@ def render_tecnico(*args):
                (req_epi_db.empty or req_epi_db[req_epi_db['Solicitante'] == user_nome].empty) and \
                (req_mat_db.empty or req_mat_db[req_mat_db['Solicitante'] == user_nome].empty):
                 st.info("📋 Ainda não fizeste nenhum pedido.")
+
