@@ -10,6 +10,8 @@ def render_inicio(*args):
      diags_db, diags_u_db, folhas_db, comuns_db, comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = args
     
     user_nome = st.session_state.get('user', 'Usuário')
+    user_tipo = st.session_state.get('tipo', 'Técnico')
+    is_chefe = user_tipo in ['Chefe de Equipa', 'Admin', 'Gestor']
     
     # Header
     st.markdown(f"""
@@ -74,7 +76,9 @@ def render_inicio(*args):
             border-radius: 15px;
             text-align: center;
             box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-        ">
+            cursor: pointer;
+            transition: transform 0.2s;
+        " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
             <div style="font-size: 2.5rem; margin-bottom: 10px;">⏱️</div>
             <div style="color: #F8FAFC; font-size: 0.9rem; margin-bottom: 5px;">Horas deste mês</div>
             <div style="color: #FFFFFF; font-size: 2rem; font-weight: bold;">{fh(horas_mes)}</div>
@@ -89,7 +93,9 @@ def render_inicio(*args):
             border-radius: 15px;
             text-align: center;
             box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-        ">
+            cursor: pointer;
+            transition: transform 0.2s;
+        " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
             <div style="font-size: 2.5rem; margin-bottom: 10px;">📋</div>
             <div style="color: #F8FAFC; font-size: 0.9rem; margin-bottom: 5px;">Por validar</div>
             <div style="color: #FFFFFF; font-size: 2rem; font-weight: bold;">{fh(horas_pendentes)}</div>
@@ -97,6 +103,29 @@ def render_inicio(*args):
         """, unsafe_allow_html=True)
     
     st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+    
+    # ✅ BOTÕES DE NAVEGAÇÃO RÁPIDA
+    st.markdown("### 📍 Navegação Rápida")
+    
+    col_nav1, col_nav2 = st.columns(2)
+    
+    with col_nav1:
+        if st.button(f"{ICONS['technician']} Registar Ponto", use_container_width=True, type="primary", key="nav_registar_ponto"):
+            st.session_state.menu_selected = f"{ICONS['technician']} Obra"
+            st.rerun()
+    
+    with col_nav2:
+        if st.button(f"{ICONS['profile']} O Meu Perfil", use_container_width=True, type="secondary", key="nav_perfil"):
+            st.session_state.menu_selected = "Perfil"
+            st.rerun()
+    
+    # Botão para ver histórico (apenas se houver registos)
+    if not registos_7dias.empty:
+        if st.button(f"{ICONS['dashboard']} Ver Histórico Completo", use_container_width=True, type="secondary", key="nav_historico"):
+            st.session_state.menu_selected = f"{ICONS['technician']} Obra"
+            st.rerun()
+    
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
     
     # Últimos 7 dias
     st.markdown("### 📅 Últimos 7 dias")
@@ -130,5 +159,6 @@ def render_inicio(*args):
         ">
             <div style="font-size: 3rem; margin-bottom: 15px;">📋</div>
             <p style="color: #94A3B8; margin: 0;">Sem registos nos últimos 7 dias</p>
+            <p style="color: #64748B; font-size: 0.85rem; margin: 10px 0 0 0;">Clica em "Registar Ponto" para começar</p>
         </div>
         """, unsafe_allow_html=True)
