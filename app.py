@@ -345,3 +345,4 @@ st.markdown("""
     Última atualização: """ + datetime.now().strftime('%d/%m/%Y %H:%M') + """
 </div>
 """, unsafe_allow_html=True)
+
