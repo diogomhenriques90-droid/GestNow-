@@ -55,22 +55,28 @@ if st.session_state.get('user'):
         """, unsafe_allow_html=True)
 
         st.markdown(f"""
-        <div style="padding:12px;background:rgba(255,255,255,0.05);border-radius:12px;margin-bottom:16px;">
-            <div style="font-size:1rem;font-weight:600;color:#F8FAFC;">👤 {st.session_state.user}</div>
-            <div style="font-size:0.85rem;color:#94A3B8;">{st.session_state.tipo} | {st.session_state.cargo}</div>
+        <div style="padding:12px;background:rgba(255,255,255,0.05);
+            border-radius:12px;margin-bottom:16px;">
+            <div style="font-size:1rem;font-weight:600;color:#F8FAFC;">
+                👤 {st.session_state.user}
+            </div>
+            <div style="font-size:0.85rem;color:#94A3B8;">
+                {st.session_state.tipo} | {st.session_state.cargo}
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Seletor de Idioma
+        # ✅ CORRIGIDO: key única para evitar DuplicateElementId
         st.markdown(f"**{ICONS['app']} {t('language')}**")
-        lang_opts  = get_language_options()
-        curr_lang  = st.session_state.language
-        sel_lang   = st.selectbox(
+        lang_opts = get_language_options()
+        curr_lang = st.session_state.language
+        sel_lang  = st.selectbox(
             "🌐",
             options=list(lang_opts.keys()),
             format_func=lambda x: lang_opts[x],
             index=list(lang_opts.keys()).index(curr_lang),
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="sidebar_language_sel"
         )
         if sel_lang != curr_lang:
             set_language(sel_lang)
@@ -82,14 +88,17 @@ if st.session_state.get('user'):
         tipo  = st.session_state.get('tipo', '')
         cargo = st.session_state.get('cargo', '')
 
-        tem_acesso_inst = (tipo in ['Chefe de Equipa','Admin','Gestor'] or
-                           cargo in ['Chefe de Equipa','Encarregado','Instrumentista'])
+        tem_acesso_inst = (tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or
+                           cargo in ['Chefe de Equipa', 'Encarregado', 'Instrumentista'])
         eh_cliente = (tipo == 'Cliente')
 
         if eh_cliente:
             menu_item = st.radio("Navegação",
-                [f"{ICONS['dashboard']} Portal", f"{ICONS['logout']} Logout"],
-                label_visibility="collapsed")
+                [f"{ICONS['dashboard']} Portal",
+                 f"{ICONS['logout']} Logout"],
+                label_visibility="collapsed",
+                key="sidebar_nav_cliente")
+
         elif tipo == 'Admin':
             menu_item = st.radio("Navegação",
                 [f"{ICONS['dashboard']} Dashboard",
@@ -97,7 +106,9 @@ if st.session_state.get('user'):
                  f"{ICONS['instrumentation']} Instrumentação",
                  f"{ICONS['profile']} Perfil",
                  f"{ICONS['logout']} Logout"],
-                label_visibility="collapsed")
+                label_visibility="collapsed",
+                key="sidebar_nav_admin")
+
         elif tem_acesso_inst:
             menu_item = st.radio("Navegação",
                 [f"{ICONS['dashboard']} Início",
@@ -105,19 +116,23 @@ if st.session_state.get('user'):
                  f"{ICONS['instrumentation']} Instrumentação",
                  f"{ICONS['profile']} Perfil",
                  f"{ICONS['logout']} Logout"],
-                label_visibility="collapsed")
+                label_visibility="collapsed",
+                key="sidebar_nav_chefe")
+
         else:
             menu_item = st.radio("Navegação",
                 [f"{ICONS['dashboard']} Início",
                  f"{ICONS['technician']} Obra",
                  f"{ICONS['profile']} Perfil",
                  f"{ICONS['logout']} Logout"],
-                label_visibility="collapsed")
+                label_visibility="collapsed",
+                key="sidebar_nav_tecnico")
 
         st.session_state.menu_selected = menu_item
         st.divider()
 
-        if st.button(f"{ICONS['logout']} {t('logout')}", use_container_width=True, type="secondary"):
+        if st.button(f"{ICONS['logout']} {t('logout')}", use_container_width=True,
+                     type="secondary", key="sidebar_logout_btn"):
             st.session_state.clear()
             st.rerun()
 
@@ -132,19 +147,21 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
     if eh_cliente:
         nav_options = ["Portal", "Logout"]
         nav_icons   = ["house", "box-arrow-right"]
+
     elif tipo == 'Admin':
-        # ✅ CORRIGIDO: Admin tem Instrumentação na bottom nav
         nav_options = ["Dashboard", "Admin", "Instrumentação", "Perfil", "Logout"]
         nav_icons   = ["graph-up", "gear", "tools", "person", "box-arrow-right"]
-    elif tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
+
+    elif tipo in ['Chefe de Equipa', 'Gestor'] or cargo in ['Chefe de Equipa', 'Encarregado']:
         nav_options = ["Início", "Obra", "Instrumentação", "Perfil", "Logout"]
         nav_icons   = ["house", "tools", "wrench", "person", "box-arrow-right"]
+
     else:
         nav_options = ["Início", "Obra", "Perfil", "Logout"]
         nav_icons   = ["house", "tools", "person", "box-arrow-right"]
 
-    # Determinar índice default
-    current_menu = st.session_state.get('menu_selected', '')
+    # Determinar índice default baseado no menu atual
+    current_menu  = st.session_state.get('menu_selected', '')
     default_index = 0
 
     if tipo == 'Admin':
@@ -156,7 +173,8 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
             default_index = 3
         else:
             default_index = 0
-    elif tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
+
+    elif tipo in ['Chefe de Equipa', 'Gestor'] or cargo in ['Chefe de Equipa', 'Encarregado']:
         if "Obra" in current_menu:
             default_index = 1
         elif "Instrumentação" in current_menu:
@@ -165,6 +183,7 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
             default_index = 3
         else:
             default_index = 0
+
     else:
         if "Obra" in current_menu:
             default_index = 1
@@ -181,23 +200,26 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
         default_index=default_index,
         orientation="horizontal",
         styles={
-            "container":        {"padding":"0!important","background-color":"#1E293B","position":"fixed","bottom":"0","width":"100%","z-index":"999","border-top":"1px solid rgba(255,255,255,0.1)"},
-            "icon":             {"color":"#F8FAFC","font-size":"20px"},
-            "nav-link":         {"color":"#F8FAFC","font-size":"11px","margin":"0px","text-align":"center","padding":"8px 4px"},
-            "nav-link-selected":{"background-color":"#DC2626","color":"#FFFFFF"},
+            "container":        {"padding": "0!important", "background-color": "#1E293B",
+                                 "position": "fixed", "bottom": "0", "width": "100%",
+                                 "z-index": "999", "border-top": "1px solid rgba(255,255,255,0.1)"},
+            "icon":             {"color": "#F8FAFC", "font-size": "20px"},
+            "nav-link":         {"color": "#F8FAFC", "font-size": "11px", "margin": "0px",
+                                 "text-align": "center", "padding": "8px 4px"},
+            "nav-link-selected":{"background-color": "#DC2626", "color": "#FFFFFF"},
         }
     )
 
-    # ✅ Mapeamento robusto usando chaves fixas
+    # Mapeamento robusto bottom nav → menu_selected
     nav_map = {
-        "Início":        f"{ICONS['dashboard']} Início",
-        "Portal":        f"{ICONS['dashboard']} Portal",
-        "Obra":          f"{ICONS['technician']} Obra",
-        "Instrumentação":f"{ICONS['instrumentation']} Instrumentação",
-        "Dashboard":     f"{ICONS['dashboard']} Dashboard",
-        "Admin":         f"{ICONS['admin']} Admin",
-        "Perfil":        f"{ICONS['profile']} Perfil",
-        "Logout":        "Logout",
+        "Início":         f"{ICONS['dashboard']} Início",
+        "Portal":         f"{ICONS['dashboard']} Portal",
+        "Obra":           f"{ICONS['technician']} Obra",
+        "Instrumentação": f"{ICONS['instrumentation']} Instrumentação",
+        "Dashboard":      f"{ICONS['dashboard']} Dashboard",
+        "Admin":          f"{ICONS['admin']} Admin",
+        "Perfil":         f"{ICONS['profile']} Perfil",
+        "Logout":         "Logout",
     }
 
     new_menu = nav_map.get(selected, '')
@@ -207,6 +229,7 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
             st.session_state.clear()
         st.rerun()
 
+    # Espaço para não ficar por baixo da bottom bar
     st.markdown("<div style='height:70px;'></div>", unsafe_allow_html=True)
 
 # =============================================================================
@@ -226,8 +249,8 @@ else:
     user_nome = st.session_state.get('user', '')
     cargo     = st.session_state.get('cargo', '')
 
-    tem_acesso_inst = (tipo in ['Chefe de Equipa','Admin','Gestor'] or
-                       cargo in ['Chefe de Equipa','Encarregado','Instrumentista'])
+    tem_acesso_inst = (tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or
+                       cargo in ['Chefe de Equipa', 'Encarregado', 'Instrumentista'])
     eh_cliente = (tipo == 'Cliente')
 
     menu = st.session_state.get('menu_selected', '')
@@ -239,62 +262,62 @@ else:
 
     # ── MODO CLIENTE ─────────────────────────────────────────────────
     if eh_cliente:
-        if "Portal" in menu:
-            st.markdown(f"# {ICONS['dashboard']} Portal do Cliente")
-            from mod_cliente import render_cliente_portal
-            render_cliente_portal()
-        else:
-            # Default: portal
-            st.markdown(f"# {ICONS['dashboard']} Portal do Cliente")
-            from mod_cliente import render_cliente_portal
-            render_cliente_portal()
+        st.markdown(f"# {ICONS['dashboard']} Portal do Cliente")
+        from mod_cliente import render_cliente_portal
+        render_cliente_portal()
 
     # ── MODO ADMIN ───────────────────────────────────────────────────
     elif tipo == 'Admin':
-        if f"{ICONS['admin']} Admin" in menu or "Admin" in menu:
+
+        if f"{ICONS['admin']} Admin" in menu or menu == f"{ICONS['admin']} Admin":
             from mod_admin import render_admin
             render_admin(*DATA)
 
-        elif f"{ICONS['instrumentation']} Instrumentação" in menu or "Instrumentação" in menu:
+        elif f"{ICONS['instrumentation']} Instrumentação" in menu:
             st.markdown(f"# {ICONS['instrumentation']} Instrumentação Industrial")
             from mod_instrumentacao import render_instrumentacao
             render_instrumentacao(*DATA)
 
-        elif f"{ICONS['profile']} Perfil" in menu or ("Perfil" in menu and "Admin" not in menu):
+        elif f"{ICONS['profile']} Perfil" in menu:
             st.markdown(f"# {ICONS['profile']} Perfil do Utilizador")
             from mod_perfil import render_perfil
             render_perfil(*DATA)
 
-        else:
-            # Default Admin — Dashboard
+        elif f"{ICONS['dashboard']} Dashboard" in menu or menu == '':
+            # Dashboard geral + métricas
             st.markdown(f"# {ICONS['dashboard']} Dashboard Geral")
             c1, c2, c3, c4 = st.columns(4)
-            with c1: st.metric("👥 Utilizadores", len(users))
-            with c2: st.metric("🏭 Obras Ativas",
-                len(obras_db[obras_db['Ativa'] == 'Ativa']) if not obras_db.empty else 0)
-            with c3: st.metric("📋 Registos", len(registos_db) if not registos_db.empty else 0)
-            with c4: st.metric("⚠️ Incidentes", len(incs_db) if not incs_db.empty else 0)
-
+            with c1:
+                st.metric("👥 Utilizadores", len(users))
+            with c2:
+                st.metric("🏭 Obras Ativas",
+                    len(obras_db[obras_db['Ativa'] == 'Ativa']) if not obras_db.empty else 0)
+            with c3:
+                st.metric("📋 Registos", len(registos_db) if not registos_db.empty else 0)
+            with c4:
+                st.metric("⚠️ Incidentes", len(incs_db) if not incs_db.empty else 0)
             st.divider()
             from mod_dashboard import render_dashboard
             render_dashboard(*DATA)
 
+        else:
+            # Default Admin → painel admin
+            from mod_admin import render_admin
+            render_admin(*DATA)
+
     # ── MODO TÉCNICO / CHEFE ─────────────────────────────────────────
     else:
-        if f"{ICONS['dashboard']} Início" in menu or "Início" in menu or menu == '':
-            from mod_inicio import render_inicio
-            render_inicio(*DATA)
 
-        elif f"{ICONS['technician']} Obra" in menu or "Obra" in menu:
+        if f"{ICONS['technician']} Obra" in menu:
             st.markdown(f"# {ICONS['technician']} Área Técnica")
-            if tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
+            if tipo in ['Chefe de Equipa', 'Gestor'] or cargo in ['Chefe de Equipa', 'Encarregado']:
                 from mod_chefe import render_chefe
                 render_chefe(*DATA)
             else:
                 from mod_tecnico import render_tecnico
                 render_tecnico(*DATA)
 
-        elif f"{ICONS['instrumentation']} Instrumentação" in menu or "Instrumentação" in menu:
+        elif f"{ICONS['instrumentation']} Instrumentação" in menu:
             if tem_acesso_inst:
                 st.markdown(f"# {ICONS['instrumentation']} Instrumentação Industrial")
                 from mod_instrumentacao import render_instrumentacao
@@ -302,13 +325,13 @@ else:
             else:
                 st.warning("⚠️ Não tem acesso a este módulo.")
 
-        elif f"{ICONS['profile']} Perfil" in menu or "Perfil" in menu:
+        elif f"{ICONS['profile']} Perfil" in menu:
             st.markdown(f"# {ICONS['profile']} Perfil do Utilizador")
             from mod_perfil import render_perfil
             render_perfil(*DATA)
 
         else:
-            # Default técnico
+            # Default técnico/chefe → mod_inicio
             from mod_inicio import render_inicio
             render_inicio(*DATA)
 
@@ -322,7 +345,8 @@ st.markdown("""
     background:linear-gradient(135deg,#1E293B,#0F172A);
     padding:12px 20px; text-align:center;
     font-size:0.75rem; color:#64748B;
-    border-top:1px solid rgba(255,255,255,0.1); z-index:9998;
+    border-top:1px solid rgba(255,255,255,0.1);
+    z-index:9998;
 }
 @media (max-width:768px) { .footer { display:none; } }
 </style>
