@@ -121,13 +121,43 @@ if st.session_state.get('user'):
         nav_options = ["Início", "Pontos", "Perfil", "Logout"]
         nav_icons = ["house", "calendar", "person", "box-arrow-right"]
     
+    # ✅ DETERMINAR ÍNDICE DEFAULT BASEADO NO menu_selected ATUAL
+    current_menu = st.session_state.get('menu_selected', '')
+    default_index = 0
+    
+    if tipo == 'Admin':
+        if "Admin" in current_menu:
+            default_index = 1
+        elif "Perfil" in current_menu:
+            default_index = 2
+        else:
+            default_index = 0  # Dashboard
+    elif tipo in ['Chefe de Equipa', 'Gestor'] or cargo in ['Chefe de Equipa', 'Encarregado']:
+        if "Obra" in current_menu or "Pontos" in current_menu:
+            default_index = 1
+        elif "Instrumentação" in current_menu or "Obras" in current_menu:
+            default_index = 2
+        elif "Gerir" in current_menu:
+            default_index = 3
+        elif "Perfil" in current_menu:
+            default_index = 4
+        else:
+            default_index = 0  # Início
+    else:
+        if "Obra" in current_menu or "Pontos" in current_menu:
+            default_index = 1
+        elif "Perfil" in current_menu:
+            default_index = 2
+        else:
+            default_index = 0  # Início
+    
     # Bottom Navigation Bar
     selected = option_menu(
         menu_title=None,
         options=nav_options,
         icons=nav_icons,
         menu_icon="cast",
-        default_index=0,
+        default_index=default_index,  # ✅ USA O ÍNDICE CORRETO
         orientation="horizontal",
         styles={
             "container": {"padding": "0!important", "background-color": "#1E293B", "position": "fixed", "bottom": "0", "width": "100%", "z-index": "999", "border-top": "1px solid rgba(255,255,255,0.1)"},
@@ -137,25 +167,24 @@ if st.session_state.get('user'):
         }
     )
     
-    # Guardar seleção
-    if selected == "Início":
-        st.session_state.menu_selected = f"{ICONS['dashboard']} Início"
-    elif selected == "Portal":
-        st.session_state.menu_selected = f"{ICONS['dashboard']} Portal"
-    elif selected == "Pontos":
-        st.session_state.menu_selected = f"{ICONS['technician']} Obra"
-    elif selected == "Obras":
-        st.session_state.menu_selected = f"{ICONS['instrumentation']} Instrumentação"
-    elif selected == "Dashboard":
-        st.session_state.menu_selected = f"{ICONS['dashboard']} Dashboard"
-    elif selected == "Admin":
-        st.session_state.menu_selected = f"{ICONS['admin']} Admin"
-    elif selected == "Gerir":
-        st.session_state.menu_selected = f"{ICONS['technician']} Obra"
-    elif selected == "Perfil":
-        st.session_state.menu_selected = "Perfil"
-    elif selected == "Logout":
-        st.session_state.clear()
+    # ✅ SÓ ATUALIZAR menu_selected SE O UTILIZADOR CLICOU NA BOTTOM NAV
+    # (não se já foi definido por um botão em mod_inicio)
+    nav_mapping = {
+        "Início": f"{ICONS['dashboard']} Início",
+        "Portal": f"{ICONS['dashboard']} Portal",
+        "Pontos": f"{ICONS['technician']} Obra",
+        "Obras": f"{ICONS['instrumentation']} Instrumentação",
+        "Dashboard": f"{ICONS['dashboard']} Dashboard",
+        "Admin": f"{ICONS['admin']} Admin",
+        "Gerir": f"{ICONS['technician']} Obra",
+        "Perfil": "Perfil",
+        "Logout": "Logout"
+    }
+    
+    # ✅ SÓ ATUALIZA SE FOR DIFERENTE DO ATUAL (evita loop)
+    new_menu = nav_mapping.get(selected, '')
+    if new_menu and new_menu != st.session_state.get('menu_selected', ''):
+        st.session_state.menu_selected = new_menu
         st.rerun()
     
     # Espaço para não ficar por baixo da bottom bar
@@ -232,7 +261,7 @@ else:
             with col3:
                 st.metric("📋 Registos", len(registos_db) if not registos_db.empty else 0)
             with col4:
-                st.metric("⚠️ Incidentes", len(incs_db) if not incs_db.empty else 0)  # ✅ CORREÇÃO: incs_db
+                st.metric("⚠️ Incidentes", len(incs_db) if not incs_db.empty else 0)
         elif "Perfil" in menu:
             st.markdown(f"# {ICONS['profile']} Perfil do Utilizador")
             from mod_perfil import render_perfil
@@ -248,7 +277,7 @@ else:
             with col3:
                 st.metric("📋 Registos", len(registos_db) if not registos_db.empty else 0)
             with col4:
-                st.metric("⚠️ Incidentes", len(incs_db) if not incs_db.empty else 0)  # ✅ CORREÇÃO: incs_db
+                st.metric("⚠️ Incidentes", len(incs_db) if not incs_db.empty else 0)
     
     else:
         # =============================================================================
