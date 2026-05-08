@@ -1,7 +1,14 @@
 import streamlit as st
-from streamlit_option_menu import option_menu
 from core import init_session, check_timeout, load_all, inject_pwa_meta, inject_global_css, datetime, ICONS
 from translations import init_language, t, get_language_options, set_language
+
+# ✅ TENTAR IMPORTAR streamlit-option-menu (com fallback se não estiver instalado)
+try:
+    from streamlit_option_menu import option_menu
+    HAS_OPTION_MENU = True
+except ImportError:
+    HAS_OPTION_MENU = False
+    st.warning("⚠️ Pacote 'streamlit-option-menu' não instalado. Bottom nav desativada.")
 
 # =============================================================================
 # 1. CONFIGURAÇÃO DA PÁGINA
@@ -102,7 +109,7 @@ if st.session_state.get('user'):
 # =============================================================================
 # 4. BOTTOM NAVIGATION BAR (MOBILE-FIRST - IGUAL AOS VÍDEOS!)
 # =============================================================================
-if st.session_state.get('user'):
+if st.session_state.get('user') and HAS_OPTION_MENU:
     tipo = st.session_state.get('tipo', '')
     cargo = st.session_state.get('cargo', '')
     eh_cliente = (tipo == 'Cliente')
@@ -157,7 +164,7 @@ if st.session_state.get('user'):
         options=nav_options,
         icons=nav_icons,
         menu_icon="cast",
-        default_index=default_index,  # ✅ USA O ÍNDICE CORRETO
+        default_index=default_index,
         orientation="horizontal",
         styles={
             "container": {"padding": "0!important", "background-color": "#1E293B", "position": "fixed", "bottom": "0", "width": "100%", "z-index": "999", "border-top": "1px solid rgba(255,255,255,0.1)"},
@@ -167,8 +174,7 @@ if st.session_state.get('user'):
         }
     )
     
-    # ✅ SÓ ATUALIZAR menu_selected SE O UTILIZADOR CLICOU NA BOTTOM NAV
-    # (não se já foi definido por um botão em mod_inicio)
+    # ✅ MAPEAMENTO DE NAVEGAÇÃO
     nav_mapping = {
         "Início": f"{ICONS['dashboard']} Início",
         "Portal": f"{ICONS['dashboard']} Portal",
