@@ -1,302 +1,250 @@
 import streamlit as st
-from core import init_session, check_timeout, load_all, inject_pwa_meta, inject_global_css, datetime, ICONS
-from translations import init_language, t, get_language_options, set_language
+import pandas as pd
+from datetime import datetime, timedelta, date
+from core import fh, ICONS, load_db, inv, criar_notificacao
 
-# =============================================================================
-# 1. CONFIGURAÇÃO DA PÁGINA
-# =============================================================================
-st.set_page_config(
-    page_title="GESTNOW v3 - Instrumentação Industrial",
-    page_icon=ICONS["app"],
-    layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items={
-        'Get Help': 'https://github.com/diogomhenriques90-droid/GestNow',
-        'Report a bug': "https://github.com/diogomhenriques90-droid/GestNow/issues",
-        'About': "# GESTNOW v3\nSistema de Gestão de Instrumentação Industrial"
-    }
-)
+def render_inicio(*args):
+    """Dashboard Inicial — Tipo App Mobile"""
 
-inject_pwa_meta()
-inject_global_css()
-init_session()
-check_timeout()
-init_language()
+    (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
+     sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
+     comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = args
 
-# =============================================================================
-# 2. ROUTING - Páginas Especiais
-# =============================================================================
-page = st.query_params.get("page", "")
+    user_nome = st.session_state.get('user', 'Utilizador')
+    user_tipo = st.session_state.get('tipo', 'Técnico')
+    cargo     = st.session_state.get('cargo', 'Técnico')
 
-if page == "criar_admin":
-    from criar_admin import render_criar_admin
-    render_criar_admin()
-    st.stop()
+    # ── Header ────────────────────────────────────────────────────────
+    hora = datetime.now().hour
+    saudacao = "Bom dia" if hora < 12 else "Boa tarde" if hora < 19 else "Boa noite"
 
-# =============================================================================
-# 3. SIDEBAR (APENAS SE LOGADO)
-# =============================================================================
-if st.session_state.get('user'):
-    with st.sidebar:
-        # Header com branding
+    st.markdown(f"""
+    <div style="background:linear-gradient(135deg,#1E293B,#0F172A);
+        padding:30px 20px;border-radius:20px;margin-bottom:30px;text-align:center;">
+        <h1 style="margin:0;color:#F8FAFC;font-size:2rem;">{saudacao}, {user_nome} 👋</h1>
+        <p style="margin:10px 0 0 0;color:#94A3B8;">Bem-vindo ao GESTNOW</p>
+        <p style="margin:5px 0 0 0;color:#64748B;font-size:0.85rem;">{cargo} | {user_tipo}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Calcular estatísticas ─────────────────────────────────────────
+    hoje       = date.today()
+    inicio_mes = hoje.replace(day=1)
+    sete_dias  = hoje - timedelta(days=7)
+
+    horas_mes      = 0.0
+    horas_pendentes= 0.0
+    registos_7dias = pd.DataFrame()
+
+    if not registos_db.empty:
+        # registos_db['Data'] já é datetime após load_all()
+        regs_user = registos_db[registos_db['Técnico'] == user_nome].copy()
+
+        if not regs_user.empty:
+            # Garantir que Data é datetime
+            if not pd.api.types.is_datetime64_any_dtype(regs_user['Data']):
+                regs_user['Data'] = pd.to_datetime(regs_user['Data'], dayfirst=True, errors='coerce')
+
+            regs_user['Data_d'] = regs_user['Data'].dt.date
+
+            # Horas aprovadas este mês
+            regs_mes = regs_user[
+                (regs_user['Data_d'] >= inicio_mes) &
+                (regs_user['Status'] == '1')
+            ]
+            horas_mes = regs_mes['Horas_Total'].astype(float).sum()
+
+            # Horas pendentes
+            regs_pend = regs_user[regs_user['Status'] == '0']
+            horas_pendentes = regs_pend['Horas_Total'].astype(float).sum()
+
+            # Últimos 7 dias (aprovadas)
+            registos_7dias = regs_user[
+                (regs_user['Data_d'] >= sete_dias) &
+                (regs_user['Status'] == '1')
+            ].copy()
+
+    # ── Cards de Resumo ───────────────────────────────────────────────
+    col1, col2 = st.columns(2)
+    with col1:
         st.markdown(f"""
-        <div style="text-align:center; padding:20px; background:linear-gradient(135deg, #1E293B, #0F172A); border-radius:16px; margin-bottom:20px;">
-            <div style="font-size:3rem; margin-bottom:10px;">{ICONS["app"]}</div>
-            <div style="font-size:1.2rem; font-weight:700; color:#F8FAFC;">GESTNOW v3</div>
-            <div style="font-size:0.8rem; color:#94A3B8;">Instrumentação Industrial</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Perfil do utilizador
-        st.markdown(f"""
-        <div style="padding:12px; background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:16px;">
-            <div style="font-size:1rem; font-weight:600; color:#F8FAFC;">👤 {st.session_state.user}</div>
-            <div style="font-size:0.85rem; color:#94A3B8;">{st.session_state.tipo} | {st.session_state.cargo}</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Seletor de Idioma
-        st.markdown(f"**{ICONS['app']} {t('language')}**")
-        lang_opts = get_language_options()
-        curr_lang = st.session_state.language
-        sel_lang = st.selectbox(
-            "🌐", 
-            options=list(lang_opts.keys()), 
-            format_func=lambda x: lang_opts[x],
-            index=list(lang_opts.keys()).index(curr_lang),
-            label_visibility="collapsed"
-        )
-        if sel_lang != curr_lang:
-            set_language(sel_lang)
-            st.rerun()
-        
-        st.divider()
-        
-        # Menu de Navegação
-        st.markdown(f"**📋 Navegação**")
-        
-        tipo = st.session_state.get('tipo', '')
-        cargo = st.session_state.get('cargo', '')
-        
-        # Verificar acesso a instrumentação
-        tem_acesso_inst = (tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or 
-                          cargo in ['Chefe de Equipa', 'Encarregado', 'Instrumentista'])
-        
-        # Verificar se é cliente
-        eh_cliente = (tipo == 'Cliente')
-        
-        if eh_cliente:
-            # MENU CLIENTE
-            menu_item = st.radio(
-                "Navegação",
-                [f"{ICONS['dashboard']} Portal", 
-                 f"{ICONS['logout']} Logout"],
-                label_visibility="collapsed"
-            )
-            st.session_state.menu_selected = menu_item
-            
-        elif tipo == 'Admin':
-            # MENU ADMIN
-            menu_item = st.radio(
-                "Navegação",
-                [f"{ICONS['dashboard']} Dashboard", 
-                 f"{ICONS['admin']} Admin", 
-                 f"{ICONS['instrumentation']} Instrumentação",
-                 f"{ICONS['logout']} Logout"],
-                label_visibility="collapsed"
-            )
-            st.session_state.menu_selected = menu_item
-            
-        elif tem_acesso_inst:
-            # MENU TÉCNICO/CHEFE
-            menu_item = st.radio(
-                "Navegação",
-                [f"{ICONS['technician']} Obra", 
-                 f"{ICONS['instrumentation']} Instrumentação",
-                 f"{ICONS['dashboard']} Dashboard", 
-                 f"{ICONS['logout']} Logout"],
-                label_visibility="collapsed"
-            )
-            st.session_state.menu_selected = menu_item
-            
-        else:
-            # MENU BÁSICO
-            menu_item = st.radio(
-                "Navegação",
-                [f"{ICONS['technician']} Obra", 
-                 f"{ICONS['dashboard']} Dashboard", 
-                 f"{ICONS['logout']} Logout"],
-                label_visibility="collapsed"
-            )
-            st.session_state.menu_selected = menu_item
-        
-        st.divider()
-        
-        # Botão de Logout
-        if st.button(f"{ICONS['logout']} {t('logout')}", use_container_width=True, type="secondary"):
-            st.session_state.clear()
-            st.rerun()
-        
-        # Footer
-        st.markdown("""
-        <div style="position:fixed; bottom:20px; left:20px; right:20px; text-align:center; font-size:0.75rem; color:#64748B;">
-            GESTNOW v3.0<br>Instrumentação Industrial
-        </div>
-        """, unsafe_allow_html=True)
+        <div style="background:linear-gradient(135deg,#DC2626,#B91C1C);
+            padding:25px;border-radius:15px;text-align:center;
+            box-shadow:0 4px 12px rgba(220,38,38,0.3);">
+            <div style="font-size:2.5rem;margin-bottom:10px;">⏱️</div>
+            <div style="color:#F8FAFC;font-size:0.9rem;margin-bottom:5px;">Horas deste mês</div>
+            <div style="color:#FFFFFF;font-size:2rem;font-weight:bold;">{fh(horas_mes)}</div>
+        </div>""", unsafe_allow_html=True)
 
-# =============================================================================
-# 4. ROUTING PRINCIPAL
-# =============================================================================
-if not st.session_state.get('user'):
-    # =============================================================================
-    # PÁGINA DE LOGIN
-    # =============================================================================
-    from mod_login import render_login
-    render_login()
-    
-else:
-    # =============================================================================
-    # APLICAÇÃO PRINCIPAL (LOGADO)
-    # =============================================================================
-    
-    # Carregar Dados Globais (20 DataFrames)
-    DATA = load_all()
-    
-    # Desempacotar dados
-    (users, obras_db, frentes_db, registos_db, fats, docs, incs, sw, obs, equip,
-     diags, diags_u, folhas, comuns, comuns_u, req_fer, req_mat, req_epi, avals, inst_acessos_db) = DATA
-    
-    tipo = st.session_state.get('tipo', '')
-    user_nome = st.session_state.get('user', '')
-    cargo = st.session_state.get('cargo', '')
-    
-    # Verificar acesso a instrumentação
-    tem_acesso_inst = (tipo in ['Chefe de Equipa', 'Admin', 'Gestor'] or 
-                      cargo in ['Chefe de Equipa', 'Encarregado', 'Instrumentista'])
-    
-    # Verificar se é cliente
-    eh_cliente = (tipo == 'Cliente')
-    
-    # =============================================================================
-    # ROUTING POR PERFIL
-    # =============================================================================
-    
-    if eh_cliente:
-        # =============================================================================
-        # MODO CLIENTE - PORTAL
-        # =============================================================================
-        menu = st.session_state.get('menu_selected', f"{ICONS['dashboard']} Portal")
-        
-        if f"{ICONS['dashboard']} Portal" in menu:
-            st.markdown(f"# {ICONS['dashboard']} Portal do Cliente")
-            from mod_cliente import render_cliente_portal
-            render_cliente_portal()
-        else:
-            st.session_state.clear()
+    with col2:
+        cor_pend = "#F59E0B" if horas_pendentes > 0 else "#10B981"
+        st.markdown(f"""
+        <div style="background:linear-gradient(135deg,{cor_pend},{cor_pend}CC);
+            padding:25px;border-radius:15px;text-align:center;
+            box-shadow:0 4px 12px {cor_pend}4D;">
+            <div style="font-size:2.5rem;margin-bottom:10px;">📋</div>
+            <div style="color:#F8FAFC;font-size:0.9rem;margin-bottom:5px;">Por validar</div>
+            <div style="color:#FFFFFF;font-size:2rem;font-weight:bold;">{fh(horas_pendentes)}</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+
+    # ── KPIs adicionais ───────────────────────────────────────────────
+    n_obras_ativas = len(obras_db[obras_db['Ativa'] == 'Ativa']) if not obras_db.empty else 0
+    n_pedidos_pend = 0
+    if not req_fer_db.empty and 'Solicitante' in req_fer_db.columns:
+        n_pedidos_pend += len(req_fer_db[(req_fer_db['Solicitante'] == user_nome) & (req_fer_db['Status'] == 'Pendente')])
+    if not req_epi_db.empty and 'Solicitante' in req_epi_db.columns:
+        n_pedidos_pend += len(req_epi_db[(req_epi_db['Solicitante'] == user_nome) & (req_epi_db['Status'] == 'Pendente')])
+    if not req_mat_db.empty and 'Solicitante' in req_mat_db.columns:
+        n_pedidos_pend += len(req_mat_db[(req_mat_db['Solicitante'] == user_nome) & (req_mat_db['Status'] == 'Pendente')])
+
+    c1, c2, c3 = st.columns(3)
+    with c1: st.metric("🏭 Obras Ativas",   n_obras_ativas)
+    with c2: st.metric("📦 Pedidos Pend.",  n_pedidos_pend)
+    with c3:
+        n_regs_mes = 0
+        if not registos_db.empty:
+            regs_u = registos_db[registos_db['Técnico'] == user_nome]
+            if not regs_u.empty:
+                data_col = regs_u['Data']
+                if not pd.api.types.is_datetime64_any_dtype(data_col):
+                    data_col = pd.to_datetime(data_col, dayfirst=True, errors='coerce')
+                n_regs_mes = len(regs_u[data_col.dt.date >= inicio_mes])
+        st.metric("📋 Registos Mês", n_regs_mes)
+
+    st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+
+    # ── Navegação Rápida ──────────────────────────────────────────────
+    st.markdown("### 📍 Navegação Rápida")
+
+    col_nav1, col_nav2 = st.columns(2)
+    with col_nav1:
+        if st.button(f"{ICONS['technician']} Registar Ponto",
+                     use_container_width=True, type="primary", key="btn_nav_registar"):
+            st.session_state.menu_selected = f"{ICONS['technician']} Obra"
             st.rerun()
-    
-    elif tipo == 'Admin':
-        # =============================================================================
-        # MODO ADMIN
-        # =============================================================================
-        menu = st.session_state.get('menu_selected', f"{ICONS['dashboard']} Dashboard")
-        
-        if f"{ICONS['admin']} Admin" in menu:
-            st.markdown(f"# {ICONS['admin']} Painel Administrativo")
-            from mod_admin import render_admin
-            render_admin(*DATA)
-            
-        elif f"{ICONS['instrumentation']} Instrumentação" in menu:
-            st.markdown(f"# {ICONS['instrumentation']} Instrumentação Industrial")
-            from mod_instrumentacao import render_instrumentacao
-            render_instrumentacao(*DATA)
-            
-        elif f"{ICONS['dashboard']} Dashboard" in menu:
-            st.markdown(f"# {ICONS['dashboard']} Dashboard Geral")
-            
-            # Métricas gerais
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("👥 Utilizadores", len(users))
-            with col2:
-                st.metric("🏭 Obras Ativas", len(obras_db[obras_db['Ativa'] == 'Ativa']) if not obras_db.empty else 0)
-            with col3:
-                st.metric("📋 Registos", len(registos_db) if not registos_db.empty else 0)
-            with col4:
-                st.metric("⚠️ Incidentes", len(incs) if not incs.empty else 0)
-        
-        else:
-            st.session_state.clear()
+
+    with col_nav2:
+        if st.button(f"{ICONS['profile']} O Meu Perfil",
+                     use_container_width=True, type="secondary", key="btn_nav_perfil"):
+            st.session_state.menu_selected = f"{ICONS['profile']} Perfil"
             st.rerun()
-    
+
+    # Botão instrumentação (apenas se tiver acesso)
+    tem_inst = (user_tipo in ['Chefe de Equipa','Admin','Gestor'] or
+                cargo in ['Chefe de Equipa','Encarregado','Instrumentista'])
+    if tem_inst:
+        if st.button(f"{ICONS['instrumentation']} Instrumentação",
+                     use_container_width=True, type="secondary", key="btn_nav_inst"):
+            st.session_state.menu_selected = f"{ICONS['instrumentation']} Instrumentação"
+            st.rerun()
+
+    st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+
+    # ── Comunicados não lidos ─────────────────────────────────────────
+    if not comuns_db.empty and not comuns_u_db.empty:
+        # Comunicados ainda não lidos por este utilizador
+        lidos_ids = comuns_u_db[comuns_u_db['Utilizador'] == user_nome]['ComunicadoID'].tolist() if 'Utilizador' in comuns_u_db.columns else []
+        nao_lidos = comuns_db[~comuns_db['ID'].isin(lidos_ids)] if 'ID' in comuns_db.columns else pd.DataFrame()
+
+        if not nao_lidos.empty:
+            urgentes = nao_lidos[nao_lidos.get('Urgente','') == 'Sim'] if 'Urgente' in nao_lidos.columns else pd.DataFrame()
+            n_urgentes = len(urgentes)
+
+            if n_urgentes > 0:
+                st.markdown(f"""
+                <div style="background:rgba(239,68,68,0.15);border:2px solid #EF4444;
+                    border-radius:12px;padding:15px;margin-bottom:15px;">
+                    <strong style="color:#EF4444;">🔴 {n_urgentes} comunicado(s) urgente(s) não lido(s)!</strong>
+                </div>""", unsafe_allow_html=True)
+            elif len(nao_lidos) > 0:
+                st.info(f"📣 Tens {len(nao_lidos)} comunicado(s) por ler.")
+    elif not comuns_db.empty:
+        # Sem tabela de lidos — mostrar os mais recentes
+        pass
+
+    # ── Últimos 7 dias ────────────────────────────────────────────────
+    st.markdown("### 📅 Últimos 7 dias")
+
+    if not registos_7dias.empty:
+        total_7 = registos_7dias['Horas_Total'].astype(float).sum()
+        st.markdown(f"**Total aprovado: {fh(total_7)}**")
+
+        for _, reg in registos_7dias.sort_values('Data', ascending=False).iterrows():
+            data_str = reg['Data'].strftime('%d/%m/%Y') if hasattr(reg['Data'], 'strftime') else str(reg.get('Data',''))
+            st.markdown(f"""
+            <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:12px;
+                margin-bottom:10px;border-left:4px solid #10B981;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="color:#F8FAFC;font-weight:600;font-size:1.05rem;">{reg.get('Obra','')}</div>
+                        <div style="color:#94A3B8;font-size:0.85rem;margin-top:4px;">
+                            {data_str} • {reg.get('Turnos','') if reg.get('Turnos') else ''}
+                        </div>
+                        <div style="color:#64748B;font-size:0.8rem;">{reg.get('Frente','')}</div>
+                    </div>
+                    <div style="color:#10B981;font-weight:bold;font-size:1.2rem;">
+                        {fh(reg.get('Horas_Total',0))}
+                    </div>
+                </div>
+            </div>""", unsafe_allow_html=True)
     else:
-        # =============================================================================
-        # MODO TÉCNICO / CHEFE DE EQUIPA
-        # =============================================================================
-        menu = st.session_state.get('menu_selected', f"{ICONS['technician']} Obra")
-        
-        if f"{ICONS['technician']} Obra" in menu:
-            st.markdown(f"# {ICONS['technician']} Área Técnica")
-            from mod_tecnico import render_tecnico
-            render_tecnico(*DATA)
-            
-        elif f"{ICONS['instrumentation']} Instrumentação" in menu:
-            if tem_acesso_inst:
-                st.markdown(f"# {ICONS['instrumentation']} Instrumentação Industrial")
-                from mod_instrumentacao import render_instrumentacao
-                render_instrumentacao(*DATA)
-            else:
-                st.warning("⚠️ Não tem acesso a este módulo.")
-        
-        elif f"{ICONS['dashboard']} Dashboard" in menu:
-            st.markdown(f"# {ICONS['dashboard']} Dashboard de Produção")
-            
-            # Selecionar obra
-            if not obras_db.empty:
-                obras_list = obras_db[obras_db['Ativa'] == 'Ativa']['Obra'].tolist()
-                if obras_list:
-                    obra_sel = st.selectbox("🏗️ Selecionar Obra", obras_list)
-                    st.session_state.obra_ativa = obra_sel
-                    
-                    # Métricas da obra
-                    st.markdown("### 📊 Métricas da Obra")
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric("⏱️ Horas Totais", "0h")
-                    with col2:
-                        st.metric("👷 Técnicos", users['Nome'].nunique())
-                    with col3:
-                        st.metric("🏭 Obras Ativas", len(obras_list))
-                else:
-                    st.warning("⚠️ Nenhuma obra ativa encontrada.")
-            else:
-                st.info("📋 Sem obras registadas.")
-        
-        else:
-            st.session_state.clear()
-            st.rerun()
+        st.markdown(f"""
+        <div style="background:rgba(255,255,255,0.05);padding:40px;border-radius:15px;text-align:center;">
+            <div style="font-size:3rem;margin-bottom:15px;">📋</div>
+            <p style="color:#94A3B8;margin:0;">Sem registos aprovados nos últimos 7 dias</p>
+            <p style="color:#64748B;font-size:0.85rem;margin:10px 0 0 0;">
+                Clica em "Registar Ponto" para começar
+            </p>
+        </div>""", unsafe_allow_html=True)
 
-# =============================================================================
-# 5. FOOTER GLOBAL
-# =============================================================================
-st.markdown("""
-<style>
-.footer {
-    position:fixed;
-    bottom:0;
-    left:0;
-    right:0;
-    background:linear-gradient(135deg, #1E293B, #0F172A);
-    padding:12px 20px;
-    text-align:center;
-    font-size:0.8rem;
-    color:#64748B;
-    border-top:1px solid rgba(255,255,255,0.1);
-    z-index: 9999;
-}
-</style>
-<div class="footer">
-    🎛️ GESTNOW v3.0 - Sistema de Gestão de Instrumentação Industrial | 
-    Última atualização: """ + datetime.now().strftime('%d/%m/%Y %H:%M') + """
-</div>
-""", unsafe_allow_html=True)
+    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+
+    # ── Pedidos recentes ──────────────────────────────────────────────
+    pedidos_recentes = []
+    for db, tipo_ped, campo_desc in [
+        (req_fer_db, "🔧 Ferramenta",  "Descricao"),
+        (req_epi_db, "🦺 EPI",         "Item"),
+        (req_mat_db, "📦 Material",     "Descricao"),
+    ]:
+        if not db.empty and 'Solicitante' in db.columns:
+            meus = db[db['Solicitante'] == user_nome]
+            if not meus.empty:
+                for _, p in meus.tail(2).iterrows():
+                    pedidos_recentes.append({
+                        "tipo":    tipo_ped,
+                        "desc":    p.get(campo_desc, 'N/A'),
+                        "status":  p.get('Status', 'Pendente'),
+                        "data":    p.get('Data', 'N/A')
+                    })
+
+    if pedidos_recentes:
+        st.markdown("### 📦 Pedidos Recentes")
+        for ped in pedidos_recentes[-4:]:
+            cor = {"Pendente":"#F59E0B","Aprovado":"#10B981","Rejeitado":"#EF4444"}.get(ped['status'],"#6B7280")
+            st.markdown(f"""
+            <div style="background:rgba(255,255,255,0.05);padding:12px;border-radius:10px;
+                margin-bottom:8px;border-left:3px solid {cor};">
+                <span style="color:#F8FAFC;">{ped['tipo']}: {str(ped['desc'])[:40]}</span>
+                <span style="color:{cor};font-size:0.85rem;float:right;font-weight:bold;">
+                    {ped['status']}
+                </span>
+            </div>""", unsafe_allow_html=True)
+
+    # ── Aviso de PDFs / Preço Hora pendentes ─────────────────────────
+    try:
+        users_check = load_db("usuarios.csv", [
+            "Nome", "PDFs_Validados", "PrecoHoraStatus"
+        ], silent=True)
+        match = users_check[users_check['Nome'] == user_nome]
+        if not match.empty:
+            row = match.iloc[0]
+            if row.get('PDFs_Validados','Não') != 'Sim':
+                st.warning("⚠️ Tens documentos obrigatórios por validar. Vai à Área Técnica para completar.")
+            if row.get('PrecoHoraStatus','') == '':
+                st.warning("⚠️ Tens o preço hora por validar. Vai à Área Técnica para aceitar ou recusar.")
+            elif row.get('PrecoHoraStatus','') == 'Recusado':
+                st.error("❌ O teu preço hora foi recusado. Contacta o admin.")
+    except:
+        pass
