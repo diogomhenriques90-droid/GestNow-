@@ -232,7 +232,7 @@ else:
             with col3:
                 st.metric("📋 Registos", len(registos_db) if not registos_db.empty else 0)
             with col4:
-                st.metric("⚠️ Incidentes", len(incs) if not incs.empty else 0)
+                st.metric("⚠️ Incidentes", len(incs_db) if not incs_db.empty else 0)  # ✅ CORREÇÃO: incs_db
         elif "Perfil" in menu:
             st.markdown(f"# {ICONS['profile']} Perfil do Utilizador")
             from mod_perfil import render_perfil
@@ -248,7 +248,7 @@ else:
             with col3:
                 st.metric("📋 Registos", len(registos_db) if not registos_db.empty else 0)
             with col4:
-                st.metric("⚠️ Incidentes", len(incs) if not incs.empty else 0)
+                st.metric("⚠️ Incidentes", len(incs_db) if not incs_db.empty else 0)  # ✅ CORREÇÃO: incs_db
     
     else:
         # =============================================================================
