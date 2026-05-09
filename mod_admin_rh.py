@@ -6,8 +6,9 @@ from core import save_db, inv, hp, cp, log_audit, criar_notificacao, load_db, _g
 import base64
 import uuid
 
+
 def _load_users_fresh():
-    """Lê usuarios.csv SEMPRE do GCS sem cache — crítico para reset de password."""
+    """Lê usuarios.csv SEMPRE do GCS sem cache."""
     try:
         buf = _gcs_read("usuarios.csv")
         if buf:
@@ -15,8 +16,9 @@ def _load_users_fresh():
             df.columns = df.columns.str.strip()
             return df.fillna("")
         return pd.DataFrame()
-    except:
+    except Exception as e:
         return pd.DataFrame()
+
 
 def render_rh(users, avals_db, obras_db, inst_acessos_db):
     """Módulo de Recursos Humanos — Gestão Completa de Colaboradores"""
@@ -36,7 +38,6 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
         'Foto': '', 'Campos_Bloqueados': '[]', 'PDFs_Vistos': '[]',
         'PDFs_Validados': 'Não', 'PDFs_Validacao_Data': ''
     }
-
     for col, val in cols_obrigatorias.items():
         if col not in users.columns:
             users[col] = val
@@ -76,36 +77,38 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
         col1, col2 = st.columns([1, 2])
 
         with col1:
-            st.markdown('<div class="section-title">➕ Novo Colaborador</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">➕ Novo Colaborador</div>',
+                        unsafe_allow_html=True)
             with st.form("form_novo_colab"):
                 st.markdown("#### 📋 Identificação")
                 nome = st.text_input("Nome Completo *", key="rh_nome")
 
                 col_a, col_b = st.columns(2)
                 with col_a:
-                    telefone       = st.text_input("Contacto *",       key="rh_tel")
-                    email          = st.text_input("Email",             key="rh_email")
+                    telefone       = st.text_input("Contacto *",         key="rh_tel")
+                    email          = st.text_input("Email",               key="rh_email")
                 with col_b:
-                    contacto_emerg = st.text_input("Emergência Tel.",   key="rh_emerg_tel")
-                    nome_emerg     = st.text_input("Nome Emergência",   key="rh_emerg_nome")
-                    grau_parent    = st.text_input("Grau Parentesco",   key="rh_emerg_grau")
+                    contacto_emerg = st.text_input("Emergência Tel.",     key="rh_emerg_tel")
+                    nome_emerg     = st.text_input("Nome Emergência",     key="rh_emerg_nome")
+                    grau_parent    = st.text_input("Grau Parentesco",     key="rh_emerg_grau")
 
                 st.markdown("#### 📍 Morada")
                 morada = st.text_input("Morada", key="rh_morada")
                 col_c, col_d, col_e = st.columns(3)
-                with col_c: localidade = st.text_input("Localidade",    key="rh_localidade")
-                with col_d: concelho   = st.text_input("Concelho",      key="rh_concelho")
-                with col_e: cod_postal = st.text_input("Cód. Postal",   key="rh_cp")
+                with col_c: localidade = st.text_input("Localidade",   key="rh_localidade")
+                with col_d: concelho   = st.text_input("Concelho",     key="rh_concelho")
+                with col_e: cod_postal = st.text_input("Cód. Postal",  key="rh_cp")
 
                 st.markdown("#### 🌍 Dados Pessoais")
                 col_f, col_g = st.columns(2)
                 with col_f:
-                    naturalidade = st.text_input("Naturalidade", key="rh_naturalidade")
-                    data_nasc    = st.date_input("Data Nascimento", key="rh_datanasc",
-                                                  min_value=datetime(1950, 1, 1),
-                                                  max_value=datetime.now())
+                    naturalidade  = st.text_input("Naturalidade", key="rh_naturalidade")
+                    data_nasc     = st.date_input("Data Nascimento", key="rh_datanasc",
+                                                   min_value=datetime(1950, 1, 1),
+                                                   max_value=datetime.now())
                 with col_g:
-                    nacionalidade = st.text_input("Nacionalidade", value="Portugal", key="rh_nacionalidade")
+                    nacionalidade = st.text_input("Nacionalidade", value="Portugal",
+                                                   key="rh_nacionalidade")
                     estado_civil  = st.selectbox("Estado Civil",
                         ["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União de Facto"],
                         key="rh_ec")
@@ -118,15 +121,17 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                     cc   = st.text_input("CC",     key="rh_cc")
                     niss = st.text_input("NISS",   key="rh_niss")
                 with col_i:
-                    cc_val      = st.date_input("Validade CC", key="rh_cc_val", min_value=datetime.now())
-                    dependentes = st.number_input("Dependentes", min_value=0, value=0, key="rh_dep")
+                    cc_val      = st.date_input("Validade CC", key="rh_cc_val",
+                                                 min_value=datetime.now())
+                    dependentes = st.number_input("Dependentes", min_value=0,
+                                                   value=0, key="rh_dep")
 
                 st.markdown("#### 💼 Profissional")
-                profissao = st.text_input("Profissão", key="rh_prof")
-                categoria = st.text_input("Categoria Profissional", key="rh_cat")
+                profissao    = st.text_input("Profissão",              key="rh_prof")
+                categoria    = st.text_input("Categoria Profissional", key="rh_cat")
                 habilitacoes = st.selectbox("Habilitações",
-                    ["4º Ano", "6º Ano", "9º Ano", "12º Ano",
-                     "Curso Técnico", "Licenciatura", "Mestrado", "Doutoramento"],
+                    ["4º Ano","6º Ano","9º Ano","12º Ano",
+                     "Curso Técnico","Licenciatura","Mestrado","Doutoramento"],
                     key="rh_hab")
 
                 st.markdown("#### 💰 Bancário")
@@ -148,59 +153,95 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
 
                 st.markdown("#### 👤 Conta")
                 tipo_u     = st.selectbox("Tipo",
-                    ["Técnico","Chefe de Equipa","Admin","Comercial","Cliente"], key="rh_tipo")
+                    ["Técnico","Chefe de Equipa","Admin","Comercial","Cliente"],
+                    key="rh_tipo")
                 cargo_u    = st.selectbox("Cargo",
-                    ["Instrumentista","Técnico de Campo","Chefe de Equipa","Engenheiro","Gestor de Projeto"],
+                    ["Instrumentista","Técnico de Campo","Chefe de Equipa",
+                     "Engenheiro","Gestor de Projeto"],
                     key="rh_cargo")
                 local_u    = st.checkbox("É Local? (não precisa dormida)", key="rh_local")
-                preco_hora = st.number_input("Preço Hora (€)", min_value=0.0, value=15.0, key="rh_preco")
+                preco_hora = st.number_input("Preço Hora (€)", min_value=0.0,
+                                              value=15.0, key="rh_preco")
                 password   = st.text_input("Password Inicial *", type="password",
                                            value="gestnow123", key="rh_pass")
                 observacoes= st.text_area("Observações", key="rh_obs")
 
                 if st.form_submit_button("💾 Criar Colaborador", use_container_width=True):
                     if nome and telefone and nif and password:
-                        if nome in users['Nome'].values:
-                            st.error(f"❌ Já existe '{nome}'!")
+                        # ✅ CRÍTICO: ler estado ACTUAL do GCS antes de guardar
+                        # Evita sobrescrever utilizadores que existem no GCS
+                        # mas que não estão no cache em memória
+                        users_live = _load_users_fresh()
+                        if users_live.empty:
+                            # Fallback para o users em memória se GCS falhar
+                            users_live = users.copy()
+
+                        if nome in users_live.get('Nome', pd.Series([])).values:
+                            st.error(f"❌ Já existe um colaborador com o nome '{nome}'!")
                         else:
                             new_user = pd.DataFrame([{
-                                "Nome": nome, "Password": hp(password),
-                                "Tipo": tipo_u, "Cargo": cargo_u,
-                                "Email": email, "Telefone": telefone,
-                                "Morada": morada, "Localidade": localidade,
-                                "Concelho": concelho, "Codigo_Postal": cod_postal,
-                                "Naturalidade": naturalidade, "Nacionalidade": nacionalidade,
-                                "NIF": nif, "NISS": niss, "CC": cc,
+                                "Nome": nome,
+                                "Password": hp(password),
+                                "Tipo": tipo_u,
+                                "Cargo": cargo_u,
+                                "Email": email,
+                                "Telefone": telefone,
+                                "Morada": morada,
+                                "Localidade": localidade,
+                                "Concelho": concelho,
+                                "Codigo_Postal": cod_postal,
+                                "Naturalidade": naturalidade,
+                                "Nacionalidade": nacionalidade,
+                                "NIF": nif,
+                                "NISS": niss,
+                                "CC": cc,
                                 "CC_Validade": cc_val.strftime("%d/%m/%Y") if cc_val else "",
                                 "DataNasc": data_nasc.strftime("%d/%m/%Y"),
-                                "Estado_Civil": estado_civil, "Sexo": sexo,
-                                "Dependentes": str(dependentes), "Profissao": profissao,
+                                "Estado_Civil": estado_civil,
+                                "Sexo": sexo,
+                                "Dependentes": str(dependentes),
+                                "Profissao": profissao,
                                 "Categoria_Profissional": categoria,
                                 "Habilitacoes_Literarias": habilitacoes,
                                 "Contacto_Emergencia": contacto_emerg,
                                 "Nome_Emergencia": nome_emerg,
                                 "Grau_Parentesco": grau_parent,
-                                "Banco_IBAN": iban, "Observacoes": observacoes,
+                                "Banco_IBAN": iban,
+                                "Observacoes": observacoes,
                                 "Tamanho_Camisola": tam_cam,
-                                "Tamanho_Calca": tam_calc, "Tamanho_Botas": tam_bot,
+                                "Tamanho_Calca": tam_calc,
+                                "Tamanho_Botas": tam_bot,
                                 "Local": "Sim" if local_u else "Não",
                                 "PrecoHora": str(preco_hora),
-                                "PrecoHoraStatus": "", "PrecoHoraData": "",
-                                "PIN": "0000", "Foto": "",
+                                "PrecoHoraStatus": "",
+                                "PrecoHoraData": "",
+                                "PIN": "0000",
+                                "Foto": "",
                                 "Campos_Bloqueados": json.dumps([]),
                                 "PDFs_Vistos": json.dumps([]),
-                                "PDFs_Validados": "Não", "PDFs_Validacao_Data": ""
+                                "PDFs_Validados": "Não",
+                                "PDFs_Validacao_Data": ""
                             }])
-                            updated = pd.concat([users, new_user], ignore_index=True)
-                            save_db(updated, "usuarios.csv")
-                            log_audit(usuario=st.session_state.user,
-                                      acao="CRIAR_COLABORADOR", tabela="usuarios.csv",
-                                      registro_id=nome,
-                                      detalhes=f"Novo colaborador: {nome}", ip="")
-                            inv()
-                            st.success(f"✅ {nome} criado!")
-                            st.info(f"🔑 Password inicial: `{password}`")
-                            st.rerun()
+
+                            # ✅ Concatenar com estado fresco do GCS
+                            updated = pd.concat([users_live, new_user], ignore_index=True)
+                            resultado = save_db(updated, "usuarios.csv")
+
+                            if resultado:
+                                log_audit(
+                                    usuario=st.session_state.user,
+                                    acao="CRIAR_COLABORADOR",
+                                    tabela="usuarios.csv",
+                                    registro_id=nome,
+                                    detalhes=f"Novo colaborador criado: {nome}",
+                                    ip=""
+                                )
+                                inv()
+                                st.success(f"✅ {nome} criado com sucesso!")
+                                st.info(f"🔑 Password inicial: `{password}`")
+                                st.rerun()
+                            else:
+                                st.error("❌ Erro ao guardar no GCS. Verifica as credenciais.")
                     else:
                         st.error("❌ Nome, Telefone, NIF e password são obrigatórios!")
 
@@ -208,16 +249,21 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
             st.markdown('<div class="section-title">👥 Lista de Colaboradores</div>',
                         unsafe_allow_html=True)
 
-            if not users.empty:
+            # ✅ Mostrar sempre a lista mais fresca do GCS
+            users_display = _load_users_fresh()
+            if users_display.empty:
+                users_display = users.copy()
+
+            if not users_display.empty:
                 cols_vis = [c for c in
-                    ['Nome','Tipo','Cargo','Telefone','Email','NIF','Local','PrecoHora']
-                    if c in users.columns]
-                st.dataframe(users[cols_vis], use_container_width=True)
+                    ['Nome', 'Tipo', 'Cargo', 'Telefone', 'Email', 'NIF', 'Local', 'PrecoHora']
+                    if c in users_display.columns]
+                st.dataframe(users_display[cols_vis], use_container_width=True)
 
                 st.divider()
                 st.markdown("### Gestão Individual")
 
-                for idx, user in users.iterrows():
+                for idx, user in users_display.iterrows():
                     nome_user = user.get('Nome', f'Utilizador_{idx}')
 
                     # ✅ CORRIGIDO: sem key no expander
@@ -247,7 +293,7 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                         else:
                             st.warning("⏳ PDFs AGUARDANDO visualização")
 
-                        # ── Gestão de Password ────────────────────────
+                        # ── Reset de Password ─────────────────────────
                         if st.session_state.get('tipo') == 'Admin':
                             st.divider()
                             st.markdown("**🔐 Resetar Password**")
@@ -260,28 +306,31 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                                 if st.button("🔄 Resetar Password", key=f"btn_reset_{idx}"):
                                     if nova_pwd:
                                         if len(nova_pwd) < 4:
-                                            st.error("❌ A password deve ter pelo menos 4 caracteres.")
+                                            st.error("❌ Mínimo 4 caracteres.")
                                         else:
-                                            # ✅ CORRIGIDO: leitura fresca do GCS antes de guardar
+                                            # ✅ Ler fresco do GCS antes de guardar
                                             users_live = _load_users_fresh()
                                             if not users_live.empty:
                                                 mask = users_live['Nome'] == nome_user
                                                 if mask.any():
                                                     users_live.loc[mask, 'Password'] = hp(nova_pwd)
-                                                    save_db(users_live, "usuarios.csv")
-                                                    inv()
-                                                    log_audit(
-                                                        usuario=st.session_state.user,
-                                                        acao="RESETAR_PASSWORD_ADMIN",
-                                                        tabela="usuarios.csv",
-                                                        registro_id=nome_user,
-                                                        detalhes=f"Admin resetou password de {nome_user}",
-                                                        ip=""
-                                                    )
-                                                    st.success(f"✅ Password de {nome_user} atualizada!")
-                                                    st.rerun()
+                                                    resultado = save_db(users_live, "usuarios.csv")
+                                                    if resultado:
+                                                        inv()
+                                                        log_audit(
+                                                            usuario=st.session_state.user,
+                                                            acao="RESETAR_PASSWORD_ADMIN",
+                                                            tabela="usuarios.csv",
+                                                            registro_id=nome_user,
+                                                            detalhes=f"Password de {nome_user} resetada pelo admin",
+                                                            ip=""
+                                                        )
+                                                        st.success(f"✅ Password de {nome_user} atualizada!")
+                                                        st.rerun()
+                                                    else:
+                                                        st.error("❌ Erro ao guardar no GCS.")
                                                 else:
-                                                    st.error("❌ Utilizador não encontrado.")
+                                                    st.error(f"❌ {nome_user} não encontrado no GCS.")
                                             else:
                                                 st.error("❌ Erro ao aceder à base de dados.")
                                     else:
@@ -299,23 +348,29 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                         with col_c:
                             if st.button("🗑️ Dispensar", key=f"del_{idx}", type="secondary"):
                                 if st.session_state.get('user') != nome_user:
+                                    # ✅ Ler fresco do GCS antes de guardar
                                     users_live = _load_users_fresh()
                                     if not users_live.empty:
                                         users_live = users_live[users_live['Nome'] != nome_user]
-                                        save_db(users_live, "usuarios.csv")
-                                        inv()
-                                        log_audit(
-                                            usuario=st.session_state.user,
-                                            acao="DISPENSAR_COLABORADOR",
-                                            tabela="usuarios.csv",
-                                            registro_id=nome_user,
-                                            detalhes=f"Colaborador dispensado: {nome_user}",
-                                            ip=""
-                                        )
-                                        st.success("✅ Colaborador dispensado!")
-                                        st.rerun()
+                                        resultado = save_db(users_live, "usuarios.csv")
+                                        if resultado:
+                                            inv()
+                                            log_audit(
+                                                usuario=st.session_state.user,
+                                                acao="DISPENSAR_COLABORADOR",
+                                                tabela="usuarios.csv",
+                                                registro_id=nome_user,
+                                                detalhes=f"Dispensado: {nome_user}",
+                                                ip=""
+                                            )
+                                            st.success("✅ Colaborador dispensado!")
+                                            st.rerun()
+                                        else:
+                                            st.error("❌ Erro ao guardar no GCS.")
                                 else:
                                     st.error("❌ Não pode eliminar o seu próprio utilizador!")
+            else:
+                st.info("📋 Sem colaboradores registados.")
 
     # ══════════════════════════════════════════════════════════════════
     # TAB AVALIAÇÕES
@@ -323,9 +378,14 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
     with tab_avaliacoes:
         st.markdown("### 📊 Avaliações de Desempenho")
 
-        if not users.empty:
+        # Usar lista fresca de utilizadores
+        users_aval = _load_users_fresh()
+        if users_aval.empty:
+            users_aval = users.copy()
+
+        if not users_aval.empty and 'Nome' in users_aval.columns:
             trabalhador_sel = st.selectbox("Selecionar Trabalhador",
-                users['Nome'].tolist(), key="avalia_trab")
+                users_aval['Nome'].tolist(), key="avalia_trab")
 
             aval_trab = (avals_db[avals_db['Trabalhador'] == trabalhador_sel]
                          if 'Trabalhador' in avals_db.columns else pd.DataFrame())
@@ -341,23 +401,28 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                 comentarios= st.text_area("Comentários",        key="avalia_coment")
 
             if st.button("💾 Guardar Avaliação", key="btn_avalia"):
-                media = (nota_tec + nota_pont + nota_eq + nota_proat + nota_com) / 5
+                media   = (nota_tec + nota_pont + nota_eq + nota_proat + nota_com) / 5
                 nova_av = pd.DataFrame([{
-                    "Data":            datetime.now().strftime("%d/%m/%Y"),
-                    "Trabalhador":     trabalhador_sel,
-                    "Nota_Tecnica":    nota_tec,
+                    "Data":             datetime.now().strftime("%d/%m/%Y"),
+                    "Trabalhador":      trabalhador_sel,
+                    "Nota_Tecnica":     nota_tec,
                     "Nota_Pontualidade":nota_pont,
-                    "Nota_Trabalho_Eq":nota_eq,
+                    "Nota_Trabalho_Eq": nota_eq,
                     "Nota_Proatividade":nota_proat,
-                    "Nota_Comunicacao":nota_com,
-                    "Media":           round(media, 2),
-                    "Comentarios":     comentarios
+                    "Nota_Comunicacao": nota_com,
+                    "Media":            round(media, 2),
+                    "Comentarios":      comentarios
                 }])
                 avals_db = pd.concat([avals_db, nova_av], ignore_index=True)
                 save_db(avals_db, "avaliacoes.csv")
-                log_audit(usuario=st.session_state.user, acao="AVALIAR_COLABORADOR",
-                          tabela="avaliacoes.csv", registro_id=trabalhador_sel,
-                          detalhes=f"Avaliação: média {round(media,2)}", ip="")
+                log_audit(
+                    usuario=st.session_state.user,
+                    acao="AVALIAR_COLABORADOR",
+                    tabela="avaliacoes.csv",
+                    registro_id=trabalhador_sel,
+                    detalhes=f"Avaliação de {trabalhador_sel}: média {round(media,2)}",
+                    ip=""
+                )
                 inv()
                 st.success("✅ Avaliação guardada!")
                 st.rerun()
@@ -411,7 +476,6 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                 ):
                     st.write(f"**Descrição:** {pdf.get('Descricao','N/A')}")
                     st.write(f"**Upload por:** {pdf.get('Upload_Por','N/A')}")
-
                     if pdf.get('Ficheiro_b64'):
                         try:
                             pdf_data = base64.b64decode(pdf['Ficheiro_b64'])
@@ -439,9 +503,9 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
         with st.form("form_upload_pdf"):
             col1, col2 = st.columns(2)
             with col1:
-                nome_pdf  = st.text_input("Nome do Documento",
+                nome_pdf = st.text_input("Nome do Documento",
                     placeholder="Ex: Regulamento Interno")
-                desc_pdf  = st.text_area("Descrição",
+                desc_pdf = st.text_area("Descrição",
                     placeholder="Ex: Regulamento interno da empresa")
             with col2:
                 fich_pdf = st.file_uploader("📄 Ficheiro PDF", type=["pdf"])
@@ -460,7 +524,7 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                     pdfs_db = pd.concat([pdfs_db, novo_pdf], ignore_index=True) if not pdfs_db.empty else novo_pdf
                     save_db(pdfs_db, "pdfs_obrigatorios.csv")
 
-                    # Resetar validação de todos os colaboradores
+                    # ✅ Resetar validação usando dados frescos do GCS
                     users_live = _load_users_fresh()
                     if not users_live.empty:
                         for idx_u in users_live.index:
@@ -469,25 +533,29 @@ def render_rh(users, avals_db, obras_db, inst_acessos_db):
                             users_live.loc[idx_u, 'PDFs_Validacao_Data'] = ''
                         save_db(users_live, "usuarios.csv")
 
-                    log_audit(usuario=st.session_state.user,
-                              acao="UPLOAD_PDF_OBRIGATORIO",
-                              tabela="pdfs_obrigatorios.csv",
-                              registro_id=novo_pdf['ID'].iloc[0],
-                              detalhes=f"PDF: {nome_pdf}. Reset para todos os colaboradores",
-                              ip="")
+                    log_audit(
+                        usuario=st.session_state.user,
+                        acao="UPLOAD_PDF_OBRIGATORIO",
+                        tabela="pdfs_obrigatorios.csv",
+                        registro_id=novo_pdf['ID'].iloc[0],
+                        detalhes=f"PDF: {nome_pdf}. Reset para todos os colaboradores",
+                        ip=""
+                    )
 
-                    # Notificar colaboradores
+                    # Notificar todos os colaboradores
                     notificados = 0
-                    for _, u in users.iterrows():
-                        if u.get('Tipo', '') != 'Admin':
-                            criar_notificacao(
-                                destinatario=u.get('Nome', ''),
-                                titulo="📄 Novo Documento Obrigatório",
-                                mensagem=f"Novo documento: {nome_pdf}. Valida no teu perfil.",
-                                tipo="warning",
-                                acao_url="/tecnico"
-                            )
-                            notificados += 1
+                    users_notif = _load_users_fresh()
+                    if not users_notif.empty:
+                        for _, u in users_notif.iterrows():
+                            if u.get('Tipo', '') != 'Admin':
+                                criar_notificacao(
+                                    destinatario=u.get('Nome', ''),
+                                    titulo="📄 Novo Documento Obrigatório",
+                                    mensagem=f"Novo documento: {nome_pdf}. Valida no teu perfil.",
+                                    tipo="warning",
+                                    acao_url="/tecnico"
+                                )
+                                notificados += 1
 
                     inv()
                     st.success(f"✅ PDF '{nome_pdf}' carregado!")
