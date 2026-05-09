@@ -18,7 +18,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 
 # =============================================================================
-# 🎨 DESIGN SYSTEM
+# DESIGN SYSTEM
 # =============================================================================
 COLORS = {
     "primary":       "#0F172A",
@@ -59,7 +59,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# ⚙️ CONFIGURAÇÕES DE STORAGE
+# CONFIGURAÇÕES DE STORAGE
 # =============================================================================
 GCS_BUCKET = os.environ.get("GCS_BUCKET", "gestnow-dados")
 
@@ -75,7 +75,7 @@ def _gcs_read(fn):
         client = _gcs_client()
         if client:
             bucket = client.bucket(GCS_BUCKET)
-            blob = bucket.blob(f"data/{fn}")
+            blob   = bucket.blob(f"data/{fn}")
             if blob.exists():
                 return io.BytesIO(blob.download_as_bytes())
     except Exception as e:
@@ -87,25 +87,25 @@ def _gcs_write(fn, content_bytes):
         client = _gcs_client()
         if client:
             bucket = client.bucket(GCS_BUCKET)
-            blob = bucket.blob(f"data/{fn}")
+            blob   = bucket.blob(f"data/{fn}")
             blob.metadata = {
                 "last_updated": datetime.now().isoformat(),
-                "app_version": "GESTNOW-v3.0"
+                "app_version":  "GESTNOW-v3.0"
             }
             blob.upload_from_string(content_bytes, content_type="text/csv")
             st.cache_data.clear()
             return True
     except Exception as e:
         logger.error(f"❌ Erro crítico GCS write {fn}: {e}")
-        st.toast(f"⚠️ Erro ao guardar dados", icon="⚙️")
+        st.toast("⚠️ Erro ao guardar dados", icon="⚙️")
     return False
 
 # =============================================================================
-# 🗄️ GESTÃO DE DADOS
+# GESTÃO DE DADOS
 # =============================================================================
 @st.cache_data(ttl=300, show_spinner="🔄 A sincronizar dados...")
 def load_db(fn, cols, silent=False):
-    """Carrega CSV do GCS. silent=True suprime warnings de UI."""
+    """Carrega CSV do GCS. silent=True suprime warnings."""
     buf = _gcs_read(fn)
     if buf:
         try:
@@ -127,7 +127,7 @@ def save_db(df, fn):
     return _gcs_write(fn, buf.getvalue().encode('utf-8-sig'))
 
 def load_all():
-    # ── USERS — schema completo para todos os módulos ──────────────────
+    # ── USERS — schema completo ────────────────────────────────────────
     users = load_db("usuarios.csv", [
         "Nome", "Password", "Tipo", "Email", "Telefone", "Cargo",
         "NIF", "NISS", "CC", "CC_Validade", "DataNasc", "Nacionalidade",
@@ -138,7 +138,10 @@ def load_all():
         "Banco_IBAN", "Observacoes", "Tamanho_Camisola", "Tamanho_Calca",
         "Tamanho_Botas", "Local", "Foto",
         "PrecoHora", "PrecoHoraStatus", "PrecoHoraData", "PIN",
-        "Campos_Bloqueados", "PDFs_Vistos", "PDFs_Validados", "PDFs_Validacao_Data"
+        "Campos_Bloqueados", "PDFs_Vistos", "PDFs_Validados",
+        "PDFs_Validacao_Data",
+        # ✅ ADICIONADO — onboarding passo 3
+        "Perfil_Completo", "Perfil_Data"
     ])
 
     obras = load_db("obras_lista.csv", [
@@ -147,22 +150,24 @@ def load_all():
         "DataInicio", "DataFim", "TipoObra", "AssinaturaObrigatoria", "Logo_b64"
     ])
 
-    frentes = load_db("frentes_lista.csv", ["Obra", "Frente", "Tipo", "Responsavel"])
+    frentes = load_db("frentes_lista.csv", [
+        "Obra", "Frente", "Tipo", "Responsavel"
+    ])
 
-    # ── REGISTOS — inclui ID e Periodo (usados em mod_tecnico/mod_chefe) ──
+    # ── REGISTOS ──────────────────────────────────────────────────────
     regs = load_db("registos.csv", [
         "ID", "Data", "Técnico", "Obra", "Frente", "TipoFrente",
         "Turnos", "Relatorio", "Status", "Horas_Total",
         "Localizacao_Checkin", "Localizacao_Checkout", "Periodo"
     ])
     if not regs.empty:
-        regs['Data'] = pd.to_datetime(regs['Data'], dayfirst=True, errors='coerce')
+        regs['Data']        = pd.to_datetime(regs['Data'], dayfirst=True, errors='coerce')
         regs['Horas_Total'] = pd.to_numeric(regs['Horas_Total'], errors='coerce').fillna(0)
 
-    fats = load_db("faturas.csv", ["Numero", "Cliente", "Valor", "Status", "Data_Emissao", "Obra"])
-    docs = load_db("documentos.csv", ["Utilizador", "Tipo", "Nome", "Validade"])
+    fats = load_db("faturas.csv",   ["Numero","Cliente","Valor","Status","Data_Emissao","Obra"])
+    docs = load_db("documentos.csv",["Utilizador","Tipo","Nome","Validade"])
 
-    # ── INCIDENTES — inclui campos de avaria ──────────────────────────
+    # ── INCIDENTES ────────────────────────────────────────────────────
     incs = load_db("incidentes.csv", [
         "ID", "Data", "Utilizador", "Solicitante", "Obra", "Tipo",
         "Descricao", "Gravidade", "Status", "Equipamento",
@@ -170,24 +175,30 @@ def load_all():
         "Data_Validacao", "Validado_Por"
     ])
 
-    sw  = load_db("safety_walks.csv",  ["Data","Utilizador","Obra","Categoria","Descricao","AcaoCorretiva","Status","Urgencia"])
-    obs = load_db("obs_seguranca.csv", ["Data","Utilizador","Obra","Tipo","Descricao","Status"])
-    equip = load_db("equipamentos.csv",["Obra","Tipo","Descricao","NumSerie","Utilizador","Validade","Estado"])
+    sw  = load_db("safety_walks.csv",  [
+        "Data","Utilizador","Obra","Categoria","Descricao","AcaoCorretiva","Status","Urgencia"
+    ])
+    obs = load_db("obs_seguranca.csv", [
+        "Data","Utilizador","Obra","Tipo","Descricao","Status"
+    ])
+    equip = load_db("equipamentos.csv",[
+        "Obra","Tipo","Descricao","NumSerie","Utilizador","Validade","Estado"
+    ])
 
-    diags   = load_db("dialogos.csv",       ["Titulo","Descricao","Tipo","DataCriacao","Atribuidos","Estado"])
-    diags_u = load_db("dialogos_users.csv", ["Dialogo","Utilizador","DataLeitura","Confirmado"])
+    diags   = load_db("dialogos.csv",      ["Titulo","Descricao","Tipo","DataCriacao","Atribuidos","Estado"])
+    diags_u = load_db("dialogos_users.csv",["Dialogo","Utilizador","DataLeitura","Confirmado"])
 
-    # ── FOLHAS PONTO — schema alinhado com mod_tecnico e mod_chefe ────
+    # ── FOLHAS PONTO ──────────────────────────────────────────────────
     folhas = load_db("folhas_ponto.csv", [
         "ID", "Obra", "Periodo", "Responsavel", "Data_Assinatura",
         "Assinatura_b64", "Selo", "Status",
         "Data", "ChefEquipa", "TotalHoras", "AssinadoCliente", "PDF_b64"
     ])
 
-    comuns   = load_db("comunicados.csv",       ["ID","Titulo","Conteudo","Tipo","Destino","Urgente","Validade"])
-    comuns_u = load_db("comunicados_lidos.csv", ["ComunicadoID","Utilizador","DataLeitura"])
+    comuns   = load_db("comunicados.csv",      ["ID","Titulo","Conteudo","Tipo","Destino","Urgente","Validade"])
+    comuns_u = load_db("comunicados_lidos.csv",["ComunicadoID","Utilizador","DataLeitura"])
 
-    # ── PEDIDOS — colunas completas ───────────────────────────────────
+    # ── PEDIDOS ───────────────────────────────────────────────────────
     req_fer = load_db("req_ferramentas.csv", [
         "ID", "Data", "Solicitante", "Obra", "Descricao",
         "Urgencia", "Foto_b64", "Status", "Data_Validacao", "Validado_Por"
@@ -203,14 +214,16 @@ def load_all():
         "Quantidade", "Descricao", "Status", "Data_Validacao", "Validado_Por"
     ])
 
-    # ── AVALIAÇÕES — schema alinhado com mod_admin_rh ─────────────────
+    # ── AVALIAÇÕES ────────────────────────────────────────────────────
     avals = load_db("avaliacoes.csv", [
         "Data", "Trabalhador", "Nota_Tecnica", "Nota_Pontualidade",
         "Nota_Trabalho_Eq", "Nota_Proatividade", "Nota_Comunicacao",
         "Media", "Comentarios"
     ])
 
-    inst_acessos = load_db("inst_acessos.csv", ["Obra", "Utilizador", "Cargo", "Ativo"])
+    inst_acessos = load_db("inst_acessos.csv", [
+        "Obra", "Utilizador", "Cargo", "Ativo"
+    ])
 
     return (users, obras, frentes, regs, fats, docs, incs, sw, obs, equip,
             diags, diags_u, folhas, comuns, comuns_u, req_fer, req_mat, req_epi,
@@ -220,7 +233,7 @@ def inv():
     st.cache_data.clear()
 
 # =============================================================================
-# ⚡ UTILITÁRIOS
+# UTILITÁRIOS
 # =============================================================================
 def fh(h):
     if h is None or (isinstance(h, float) and pd.isna(h)):
@@ -257,9 +270,8 @@ def process_and_compress_image(image_file, max_size=(1280, 1280), quality=85):
         return None
 
 def canvas_to_b64(image_data):
-    """Converte numpy array do st_canvas para base64 PNG (corrige bug de guardar array em CSV)."""
+    """Converte numpy array do st_canvas para base64 PNG."""
     try:
-        import numpy as np
         img = Image.fromarray(image_data.astype("uint8"), "RGBA")
         buf = io.BytesIO()
         img.save(buf, format="PNG")
@@ -269,7 +281,7 @@ def canvas_to_b64(image_data):
         return None
 
 # =============================================================================
-# 🌐 PWA & METADATA
+# PWA & METADATA
 # =============================================================================
 def inject_pwa_meta():
     st.markdown("""
@@ -282,14 +294,15 @@ def inject_pwa_meta():
     """, unsafe_allow_html=True)
 
 # =============================================================================
-# 🔐 SEGURANÇA
+# SEGURANÇA
 # =============================================================================
 def init_session():
     defaults = {
         'user': None, 'tipo': None, 'cargo': None,
         'data_consulta': date.today(), 'login_attempts': 0,
         'last_activity': datetime.now(), 'session_token': None,
-        'language': 'pt', 'obra_ativa': None, 'menu_selected': ''
+        'language': 'pt', 'obra_ativa': None, 'menu_selected': '',
+        '_menu_locked': False
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -298,8 +311,8 @@ def init_session():
 def check_timeout():
     if st.session_state.get('user') and st.session_state.get('last_activity'):
         if isinstance(st.session_state['last_activity'], datetime):
-            inactive_minutes = (datetime.now() - st.session_state['last_activity']).seconds / 60
-            if inactive_minutes > 120:
+            inactive = (datetime.now() - st.session_state['last_activity']).seconds / 60
+            if inactive > 120:
                 logger.info(f"🔒 Timeout: {st.session_state.get('user')}")
                 st.session_state.clear()
                 st.toast("🔒 Sessão expirada", icon="🔐")
@@ -317,18 +330,16 @@ def cp(p, h):
         return False
 
 # =============================================================================
-# 🎨 COMPONENTES UI
+# COMPONENTES UI
 # =============================================================================
 def render_metric(icon, val, lbl, color=None):
     if color is None:
         color = COLORS["accent"]
     st.markdown(f"""
-    <div style="
-        text-align:center; padding:16px 20px;
+    <div style="text-align:center;padding:16px 20px;
         background:linear-gradient(135deg,{COLORS['primary_light']},{COLORS['primary']});
-        border-radius:16px; border:1px solid {COLORS['border_glass']};
-        box-shadow:0 4px 20px rgba(0,0,0,0.2);
-    ">
+        border-radius:16px;border:1px solid {COLORS['border_glass']};
+        box-shadow:0 4px 20px rgba(0,0,0,0.2);">
         <div style="font-size:2rem;font-weight:800;color:{color};margin-bottom:4px;">{icon}</div>
         <div style="font-size:1.5rem;font-weight:700;color:{COLORS['text_primary']};">{val}</div>
         <div style="font-size:0.85rem;color:{COLORS['text_secondary']};margin-top:4px;">{lbl}</div>
@@ -336,7 +347,7 @@ def render_metric(icon, val, lbl, color=None):
     """, unsafe_allow_html=True)
 
 # =============================================================================
-# ⚙️ CONSTANTES
+# CONSTANTES
 # =============================================================================
 TIPOS_FRENTE = [
     "Montagem", "Calibração", "Comissionamento", "Testes FAT/SAT",
@@ -350,7 +361,6 @@ CATEGORIAS_SAFETY_WALK = [
     "EPI Industrial", "Lockout/Tagout", "Espaços Confinados",
     "Trabalho em Altura", "Elétrica", "Pressão", "Outro"
 ]
-
 REGRAS_OURO = [
     ("🛡️", "EPI Industrial Obrigatório",  "Capacete, óculos, luvas e calçado de segurança."),
     ("⚡", "LOTO - Lockout/Tagout",        "Bloqueio e etiquetagem de energias."),
@@ -358,14 +368,14 @@ REGRAS_OURO = [
     ("⚡", "Energias Perigosas",           "Verificar ausência de tensão."),
     ("🧪", "Calibração Certificada",       "Usar equipamentos com certificado válido."),
     ("📍", "Procedimentos de Campo",       "Seguir ITRs e checklists."),
-    ("🔒", "Acesso Restrito",             "Áreas de instrumentação controladas."),
+    ("🔒", "Acesso Restrito",              "Áreas de instrumentação controladas."),
     ("📋", "Análise de Risco",             "JSA/JHA obrigatório."),
-    ("🧤", "Mãos Limpas",                 "Luvas adequadas para instrumentos."),
-    ("📱", "Zona Livre de Telemóvel",      "Dispositivos proibidos em áreas classificadas."),
+    ("🧤", "Mãos Limpas",                  "Luvas adequadas para instrumentos."),
+    ("📱", "Zona Livre de Telemóvel",       "Dispositivos proibidos em áreas classificadas."),
 ]
 
 # =============================================================================
-# 🎨 CSS GLOBAL
+# CSS GLOBAL
 # =============================================================================
 GLOBAL_CSS = """
 :root {
@@ -391,8 +401,10 @@ GLOBAL_CSS = """
     font-weight: 500;
 }
 .stTextInput label, .stNumberInput label, .stTextArea label,
-.stDateInput label, .stTimeInput label, .stSelectbox label, .stMultiSelect label {
-    color: var(--text-dark) !important; font-weight: 600;
+.stDateInput label, .stTimeInput label, .stSelectbox label,
+.stMultiSelect label, .stRadio label, .stCheckbox label {
+    color: var(--text-light) !important;
+    font-weight: 600;
 }
 .stSelectbox > div > div > div, .stMultiSelect > div > div > div {
     background: var(--bg-white) !important;
@@ -436,7 +448,7 @@ def inject_global_css():
     st.markdown(f"<style>{GLOBAL_CSS}</style>", unsafe_allow_html=True)
 
 # =============================================================================
-# 📋 AUDIT TRAIL
+# AUDIT TRAIL
 # =============================================================================
 def log_audit(usuario, acao, tabela, registro_id, detalhes="", ip=""):
     try:
@@ -445,15 +457,17 @@ def log_audit(usuario, acao, tabela, registro_id, detalhes="", ip=""):
                 "ID","Data","Hora","Usuario","Acao","Tabela","Registro_ID","Detalhes","IP"
             ])
         except:
-            logs = pd.DataFrame(columns=["ID","Data","Hora","Usuario","Acao","Tabela","Registro_ID","Detalhes","IP"])
-        novo_log = pd.DataFrame([{
-            "ID": str(uuid.uuid4())[:8].upper(),
-            "Data": datetime.now().strftime("%d/%m/%Y"),
-            "Hora": datetime.now().strftime("%H:%M:%S"),
-            "Usuario": usuario, "Acao": acao, "Tabela": tabela,
+            logs = pd.DataFrame(columns=[
+                "ID","Data","Hora","Usuario","Acao","Tabela","Registro_ID","Detalhes","IP"
+            ])
+        novo = pd.DataFrame([{
+            "ID":          str(uuid.uuid4())[:8].upper(),
+            "Data":        datetime.now().strftime("%d/%m/%Y"),
+            "Hora":        datetime.now().strftime("%H:%M:%S"),
+            "Usuario":     usuario, "Acao": acao, "Tabela": tabela,
             "Registro_ID": str(registro_id), "Detalhes": detalhes, "IP": ip
         }])
-        logs = pd.concat([logs, novo_log], ignore_index=True)
+        logs = pd.concat([logs, novo], ignore_index=True)
         save_db(logs, "logs_audit.csv")
         return True
     except Exception as e:
@@ -466,10 +480,8 @@ def get_audit_logs(filtro_usuario=None, filtro_data=None, limite=100):
             "ID","Data","Hora","Usuario","Acao","Tabela","Registro_ID","Detalhes","IP"
         ])
         if not logs.empty:
-            if filtro_usuario:
-                logs = logs[logs['Usuario'] == filtro_usuario]
-            if filtro_data:
-                logs = logs[logs['Data'] == filtro_data]
+            if filtro_usuario: logs = logs[logs['Usuario'] == filtro_usuario]
+            if filtro_data:    logs = logs[logs['Data']    == filtro_data]
             logs = logs.sort_values(['Data','Hora'], ascending=False)
             return logs.head(limite)
         return pd.DataFrame()
@@ -478,7 +490,7 @@ def get_audit_logs(filtro_usuario=None, filtro_data=None, limite=100):
         return pd.DataFrame()
 
 # =============================================================================
-# ✍️ ASSINATURA DIGITAL
+# ASSINATURA DIGITAL
 # =============================================================================
 def gerar_hash_assinatura(usuario, tag, data, valor):
     texto = f"{usuario}|{tag}|{data}|{valor}"
@@ -486,16 +498,11 @@ def gerar_hash_assinatura(usuario, tag, data, valor):
 
 def render_signature_pad(label, key_prefix):
     st.markdown(f"### {label}", unsafe_allow_html=True)
-    st.markdown("""
-    <div style="background:rgba(255,255,255,0.05);padding:10px;border-radius:10px;margin-bottom:10px;">
-        <p style="margin:0;color:#94A3B8;font-size:0.9rem;">✍️ Escreva o seu nome completo para assinar digitalmente</p>
-    </div>
-    """, unsafe_allow_html=True)
     signature = st.text_area(
         f"{label} — escreva o nome completo",
         key=f"{key_prefix}_nome",
         placeholder="Ex: João Silva",
-        help="Assinatura digital com valor legal"
+        help="Assinatura digital"
     )
     if signature and len(signature.strip()) >= 3:
         fake_sig = base64.b64encode(
@@ -504,18 +511,8 @@ def render_signature_pad(label, key_prefix):
         return fake_sig
     return None
 
-def validar_assinatura(assinatura_b64, usuario_esperado, tag_esperada):
-    try:
-        decoded = base64.b64decode(assinatura_b64).decode()
-        parts = decoded.split(":")
-        if len(parts) >= 3 and parts[0] == "SIGN":
-            return parts[1] == usuario_esperado
-        return False
-    except:
-        return False
-
 # =============================================================================
-# 🔔 NOTIFICAÇÕES
+# NOTIFICAÇÕES
 # =============================================================================
 def criar_notificacao(destinatario, titulo, mensagem, tipo="info", acao_url=""):
     try:
@@ -528,11 +525,12 @@ def criar_notificacao(destinatario, titulo, mensagem, tipo="info", acao_url=""):
                 "ID","Data","Hora","Destinatario","Titulo","Mensagem","Tipo","Lida","Acao_URL"
             ])
         nova = pd.DataFrame([{
-            "ID": str(uuid.uuid4())[:8].upper(),
-            "Data": datetime.now().strftime("%d/%m/%Y"),
-            "Hora": datetime.now().strftime("%H:%M:%S"),
-            "Destinatario": destinatario, "Titulo": titulo, "Mensagem": mensagem,
-            "Tipo": tipo, "Lida": "Não", "Acao_URL": acao_url
+            "ID":           str(uuid.uuid4())[:8].upper(),
+            "Data":         datetime.now().strftime("%d/%m/%Y"),
+            "Hora":         datetime.now().strftime("%H:%M:%S"),
+            "Destinatario": destinatario, "Titulo": titulo,
+            "Mensagem":     mensagem, "Tipo": tipo,
+            "Lida":         "Não", "Acao_URL": acao_url
         }])
         notifs = pd.concat([notifs, nova], ignore_index=True)
         save_db(notifs, "notificacoes.csv")
@@ -553,8 +551,7 @@ def get_notificacoes(destinatario, apenas_nao_lidas=True, limite=50):
             notifs = notifs.sort_values(['Data','Hora'], ascending=False)
             return notifs.head(limite)
         return pd.DataFrame()
-    except Exception as e:
-        print(f"Erro ao obter notificações: {e}")
+    except:
         return pd.DataFrame()
 
 def marcar_notificacao_lida(notif_id):
@@ -567,8 +564,7 @@ def marcar_notificacao_lida(notif_id):
             save_db(notifs, "notificacoes.csv")
             return True
         return False
-    except Exception as e:
-        print(f"Erro ao marcar notificação: {e}")
+    except:
         return False
 
 def contar_notificacoes_nao_lidas(destinatario):
@@ -579,10 +575,9 @@ def contar_notificacoes_nao_lidas(destinatario):
         return 0
 
 # =============================================================================
-# 📴 MODO OFFLINE
+# MODO OFFLINE
 # =============================================================================
 def check_connection_status():
-    """Verifica conectividade com o GCS."""
     try:
         client = _gcs_client()
         if client:
@@ -605,8 +600,7 @@ def save_to_local_cache(key, data):
         if len(st.session_state[cache_key]) > 100:
             st.session_state[cache_key] = st.session_state[cache_key][-100:]
         return True
-    except Exception as e:
-        print(f"Erro cache local: {e}")
+    except:
         return False
 
 def get_from_local_cache(key, limite=50):
@@ -623,13 +617,13 @@ def add_action_to_queue(acao, dados, usuario):
         if "offline_action_queue" not in st.session_state:
             st.session_state["offline_action_queue"] = []
         st.session_state["offline_action_queue"].append({
-            "id": str(uuid.uuid4())[:8].upper(),
+            "id":        str(uuid.uuid4())[:8].upper(),
             "timestamp": datetime.now().isoformat(),
-            "acao": acao, "dados": dados, "usuario": usuario, "estado": "pendente"
+            "acao":      acao, "dados": dados,
+            "usuario":   usuario, "estado": "pendente"
         })
         return True
-    except Exception as e:
-        print(f"Erro fila offline: {e}")
+    except:
         return False
 
 def execute_offline_queue():
@@ -655,8 +649,7 @@ def execute_offline_queue():
             i for i in queue if i["estado"] == "pendente"
         ]
         return resultados
-    except Exception as e:
-        print(f"Erro ao executar fila: {e}")
+    except:
         return resultados
 
 def render_connection_indicator():
@@ -670,7 +663,7 @@ def render_connection_indicator():
             indicator.textContent = status === 'online' ? '🟢 Online' : '🔴 Offline';
         }
     }
-    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('online',  updateConnectionStatus);
     window.addEventListener('offline', updateConnectionStatus);
     updateConnectionStatus();
     </script>
@@ -697,7 +690,7 @@ def render_offline_banner():
         }
     }
     window.addEventListener('offline', checkOffline);
-    window.addEventListener('online', () => {
+    window.addEventListener('online',  () => {
         const b = document.getElementById('offline-banner');
         if (b) b.style.display = 'none';
     });
@@ -705,13 +698,12 @@ def render_offline_banner():
     <div id="offline-banner" style="display:none;background:#EF4444;color:white;
         padding:15px;border-radius:10px;margin-bottom:20px;text-align:center;">
         <strong>🔴 ESTÁ OFFLINE</strong> — Alterações guardadas localmente.
-        Sincronizará quando a conexão voltar.
     </div>
     """, unsafe_allow_html=True)
 
 def sync_data_when_online():
     if "offline_action_queue" in st.session_state:
-        pendentes = [i for i in st.session_state["offline_action_queue"] if i["estado"] == "pendente"]
+        pendentes = [i for i in st.session_state["offline_action_queue"] if i["estado"]=="pendente"]
         if pendentes and check_connection_status():
             resultados = execute_offline_queue()
             if resultados["sucessos"] > 0:
@@ -721,7 +713,7 @@ def sync_data_when_online():
             inv()
 
 # =============================================================================
-# 📱 QR CODE
+# QR CODE
 # =============================================================================
 def gerar_qr_code_data(tag, obra, tipo_inst, url_base=""):
     qr_data = {
@@ -745,7 +737,7 @@ def parse_qr_code_data(qr_string):
         if qr_string.startswith("GN|"):
             parts = qr_string.split("|")
             if len(parts) >= 3:
-                return {"tag": parts[1], "obra": parts[2].replace("_"," "), "app": "GESTNOW"}
+                return {"tag": parts[1], "obra": parts[2].replace("_"," "), "app":"GESTNOW"}
         return None
     except:
         return None
@@ -757,31 +749,25 @@ def render_qr_code_image(qr_data, size=200):
 
 def render_camera_scanner(label="Scan QR Code", key_prefix="qr_scan"):
     st.markdown(f"### 📱 {label}", unsafe_allow_html=True)
-    st.markdown("""
-    <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-bottom:15px;">
-        <p style="margin:0;color:#94A3B8;font-size:0.9rem;">📷 Aponte a câmara ou cole os dados do QR Code</p>
-    </div>
-    """, unsafe_allow_html=True)
-    uploaded = st.file_uploader("Upload de foto do QR Code", type=["png","jpg","jpeg"], key=f"{key_prefix}_upload")
+    uploaded = st.file_uploader("Upload de foto do QR Code",
+        type=["png","jpg","jpeg"], key=f"{key_prefix}_upload")
     if uploaded:
         st.info("🔧 Leitura automática em desenvolvimento. Use o campo abaixo:")
-        qr_manual = st.text_input("Cole os dados do QR Code (para teste)", key=f"{key_prefix}_manual")
-        if qr_manual:
-            return qr_manual
-    qr_manual = st.text_input("Dados do QR Code (formato: GN|TAG|OBRA ou JSON)", key=f"{key_prefix}_input")
+    qr_manual = st.text_input("Dados do QR Code (formato: GN|TAG|OBRA ou JSON)",
+        key=f"{key_prefix}_input")
     if qr_manual and len(qr_manual.strip()) > 5:
         return qr_manual.strip()
     return None
 
 # =============================================================================
-# 📧 SMTP
+# SMTP
 # =============================================================================
 def get_smtp_config():
-    smtp_server    = os.environ.get("SMTP_SERVER", "")
-    smtp_port      = os.environ.get("SMTP_PORT", "587")
-    smtp_user      = os.environ.get("SMTP_USER", "")
-    smtp_password  = os.environ.get("SMTP_PASSWORD", "")
-    smtp_from_name = os.environ.get("SMTP_FROM_NAME", "GestNow")
+    smtp_server   = os.environ.get("SMTP_SERVER",    "")
+    smtp_port     = os.environ.get("SMTP_PORT",      "587")
+    smtp_user     = os.environ.get("SMTP_USER",      "")
+    smtp_password = os.environ.get("SMTP_PASSWORD",  "")
+    smtp_from_name= os.environ.get("SMTP_FROM_NAME", "GestNow")
     if smtp_server and smtp_user and smtp_password:
         return {
             "server": smtp_server, "port": int(smtp_port),
@@ -792,11 +778,11 @@ def get_smtp_config():
 
 def enviar_email(destinatario, assunto, conteudo_html, conteudo_texto=""):
     import smtplib
-    from email.mime.text import MIMEText
+    from email.mime.text      import MIMEText
     from email.mime.multipart import MIMEMultipart
     config = get_smtp_config()
     if not config:
-        logging.warning("SMTP não configurado. Email não enviado.")
+        logging.warning("SMTP não configurado.")
         return False
     try:
         msg = MIMEMultipart("alternative")
@@ -811,8 +797,6 @@ def enviar_email(destinatario, assunto, conteudo_html, conteudo_texto=""):
         server.login(config["user"], config["password"])
         server.send_message(msg)
         server.quit()
-        log_audit(usuario="SYSTEM", acao="ENVIAR_EMAIL", tabela="emails_enviados",
-                  registro_id=destinatario, detalhes=f"Email: {assunto}", ip="")
         return True
     except Exception as e:
         logging.error(f"Erro ao enviar email: {e}")
@@ -822,7 +806,7 @@ def get_email_template(tipo, dados=None):
     templates = {
         "validacao_horas": {
             "assunto": "Horas Validadas - {obra}",
-            "html": """<html><body style="font-family:Arial,sans-serif;padding:20px;">
+            "html":    """<html><body style="font-family:Arial,sans-serif;padding:20px;">
                 <h2>✅ Horas Validadas</h2>
                 <p>Olá <strong>{tecnico}</strong>,</p>
                 <p>As suas horas foram validadas com sucesso!</p>
@@ -832,44 +816,11 @@ def get_email_template(tipo, dados=None):
                 <strong>Validado por:</strong> {validador}</p>
                 <p style="color:#94A3B8;font-size:0.85rem;">© GESTNOW v3.0</p>
             </body></html>""",
-            "texto": "Horas validadas. Obra: {obra}, Horas: {horas}h, Validado por: {validador}"
+            "texto": "Horas validadas. Obra: {obra}, Horas: {horas}h"
         },
-        "aprovacao_cliente": {
-            "assunto": "Cliente Aprovou Instrumento - {tag}",
-            "html": """<html><body style="font-family:Arial,sans-serif;padding:20px;">
-                <h2>✅ Aprovação do Cliente</h2>
-                <p><strong>Cliente:</strong> {cliente}<br>
-                <strong>Tag:</strong> {tag}<br>
-                <strong>Obra:</strong> {obra}<br>
-                <strong>Comentário:</strong> {comentario}</p>
-            </body></html>""",
-            "texto": "Cliente aprovou instrumento. Tag: {tag}, Obra: {obra}"
-        },
-        "punch_list": {
-            "assunto": "Novo Item na Punch List - {obra}",
-            "html": """<html><body style="font-family:Arial,sans-serif;padding:20px;">
-                <h2>💬 Novo Item na Punch List</h2>
-                <p><strong>Obra:</strong> {obra}<br>
-                <strong>Prioridade:</strong> {prioridade}<br>
-                <strong>Autor:</strong> {autor}<br>
-                <strong>Descrição:</strong> {descricao}</p>
-            </body></html>""",
-            "texto": "Novo punch item. Obra: {obra}, Prioridade: {prioridade}"
-        },
-        "calibracao_concluida": {
-            "assunto": "Calibração Concluída - {tag}",
-            "html": """<html><body style="font-family:Arial,sans-serif;padding:20px;">
-                <h2>🔬 Calibração Concluída</h2>
-                <p><strong>Tag:</strong> {tag}<br>
-                <strong>Obra:</strong> {obra}<br>
-                <strong>Erro Máx:</strong> {erro}<br>
-                <strong>Certificado:</strong> {certificado}</p>
-            </body></html>""",
-            "texto": "Calibração concluída. Tag: {tag}, Erro: {erro}"
-        }
     }
     if tipo not in templates:
-        return ("Notificação GestNow", "<p>Notificação do sistema GestNow</p>", "Notificação do sistema")
+        return ("Notificação GestNow", "<p>Notificação do sistema GestNow</p>", "Notificação")
     template = templates[tipo]
     dados    = dados or {}
     assunto  = template["assunto"]
@@ -891,7 +842,3 @@ def testar_smtp(email_teste):
         "data": datetime.now().strftime("%d/%m/%Y"), "validador": "SYSTEM"
     })
     return enviar_email(email_teste, f"TESTE SMTP - {assunto}", html, texto)
-
-# =============================================================================
-# FIM DO CORE.PY
-# =============================================================================
