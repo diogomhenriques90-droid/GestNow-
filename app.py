@@ -13,9 +13,6 @@ try:
 except ImportError:
     HAS_OPTION_MENU = False
 
-# =============================================================================
-# 1. CONFIGURAÇÃO DA PÁGINA
-# =============================================================================
 st.set_page_config(
     page_title="GESTNOW v3 - Instrumentação Industrial",
     page_icon=ICONS["app"],
@@ -34,9 +31,6 @@ init_session()
 check_timeout()
 init_language()
 
-# =============================================================================
-# 2. ROUTING — Páginas Especiais
-# =============================================================================
 page = st.query_params.get("page", "")
 if page == "criar_admin":
     from criar_admin import render_criar_admin
@@ -44,7 +38,7 @@ if page == "criar_admin":
     st.stop()
 
 # =============================================================================
-# 3. FUNÇÕES DE VALIDAÇÃO OBRIGATÓRIA
+# FUNÇÕES DE VALIDAÇÃO OBRIGATÓRIA
 # =============================================================================
 def _load_users_fresh():
     for tentativa in range(3):
@@ -63,16 +57,14 @@ def _load_users_fresh():
     return pd.DataFrame()
 
 def _verificar_validacoes_pendentes(user_nome):
-    """Devolve (pdfs_pendentes, preco_pendente, perfil_pendente)."""
     try:
         users = _load_users_fresh()
         if users.empty: return False, False, False
         match = users[users['Nome'] == user_nome]
         if match.empty: return False, False, False
         row = match.iloc[0]
-        pdfs_pend  = row.get('PDFs_Validados',  'Não') != 'Sim'
-        preco_pend = row.get('PrecoHoraStatus', '')    == ''
-        # ✅ CORRIGIDO: só 'Sim' liberta — '' e 'Não' são pendentes
+        pdfs_pend   = row.get('PDFs_Validados',  'Não') != 'Sim'
+        preco_pend  = row.get('PrecoHoraStatus', '')    == ''
         perfil_val  = str(row.get('Perfil_Completo', '')).strip()
         perfil_pend = perfil_val != 'Sim'
         return pdfs_pend, preco_pend, perfil_pend
@@ -80,13 +72,8 @@ def _verificar_validacoes_pendentes(user_nome):
         return False, False, False
 
 def _render_validacao_obrigatoria(user_nome):
-    """
-    Ecrã de 3 passos obrigatórios.
-    Bloqueia toda a navegação até tudo estar completo.
-    """
     users_live = _load_users_fresh()
     if users_live.empty: return False
-
     match = users_live[users_live['Nome'] == user_nome]
     if match.empty: return False
 
@@ -123,7 +110,6 @@ def _render_validacao_obrigatoria(user_nome):
     if not tem_pdfs_pend and not tem_preco_pend and not tem_perfil_pend:
         return False
 
-    # ── CSS ───────────────────────────────────────────────────────────
     st.markdown("""
     <style>
     .onboard-header {
@@ -135,40 +121,27 @@ def _render_validacao_obrigatoria(user_nome):
         border-radius: 15px; padding: 20px; margin-bottom: 15px;
         border: 2px solid rgba(255,255,255,0.1);
     }
-    .step-done    { background:rgba(16,185,129,0.1);  border-color:#10B981; }
     .step-active  { background:rgba(59,130,246,0.15); border-color:#3B82F6; }
-    .step-pending { background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.1); }
     .pdf-row {
         background:rgba(255,255,255,0.04); border-radius:10px;
         padding:12px 15px; margin-bottom:10px;
     }
-
-    /* ✅ CORRIGIDO — labels sempre brancas no ecrã de onboarding */
-    .stTextInput   label,
-    .stSelectbox   label,
-    .stNumberInput label,
-    .stTextArea    label,
-    .stDateInput   label,
-    .stRadio       label,
-    .stCheckbox    label {
-        color: #F8FAFC !important;
-        font-weight: 500 !important;
+    .stTextInput label, .stSelectbox label, .stNumberInput label,
+    .stTextArea label, .stDateInput label, .stRadio label, .stCheckbox label {
+        color: #F8FAFC !important; font-weight: 500 !important;
     }
-    .stTextInput   > div > div > input,
+    .stTextInput > div > div > input,
     .stNumberInput > div > div > input,
-    .stTextArea    > div > div > textarea {
-        background: #FFFFFF !important;
-        color: #1E293B !important;
+    .stTextArea > div > div > textarea {
+        background: #FFFFFF !important; color: #1E293B !important;
         border: 1px solid rgba(0,0,0,0.2) !important;
     }
     .stSelectbox > div > div > div {
-        background: #FFFFFF !important;
-        color: #1E293B !important;
+        background: #FFFFFF !important; color: #1E293B !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    # ── Header ────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="onboard-header">
         <div style="font-size:2.5rem;margin-bottom:12px;">👋</div>
@@ -179,12 +152,11 @@ def _render_validacao_obrigatoria(user_nome):
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Indicador de Passos ───────────────────────────────────────────
     col_s1, col_s2, col_s3 = st.columns(3)
     passos = [
-        (pdfs_validados   == 'Sim',                    tem_pdfs_pend,  "📄", "Passo 1\nDocumentos"),
-        (preco_status in ['Aceite','Recusado'],         tem_preco_pend, "💰", "Passo 2\nPreço Hora"),
-        (perfil_completo  == 'Sim',                    tem_perfil_pend,"👤", "Passo 3\nMeu Perfil"),
+        (pdfs_validados   == 'Sim',                 tem_pdfs_pend,  "📄", "Passo 1\nDocumentos"),
+        (preco_status in ['Aceite','Recusado'],      tem_preco_pend, "💰", "Passo 2\nPreço Hora"),
+        (perfil_completo  == 'Sim',                 tem_perfil_pend,"👤", "Passo 3\nMeu Perfil"),
     ]
     for col, (done, active, ic, label) in zip([col_s1,col_s2,col_s3], passos):
         cor = "#10B981" if done else "#3B82F6" if active else "#64748B"
@@ -200,26 +172,19 @@ def _render_validacao_obrigatoria(user_nome):
 
     st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
 
-    # ════════════════════════════════════════════════════════════════
-    # PASSO 1 — DOCUMENTOS
-    # ════════════════════════════════════════════════════════════════
+    # ── PASSO 1: DOCUMENTOS ───────────────────────────────────────────
     if tem_pdfs_pend:
         pct = int(pdfs_val_count / total_pdfs * 100) if total_pdfs > 0 else 0
         st.markdown(f"""
         <div class="step-card step-active">
-            <h3 style="color:#60A5FA;margin:0 0 8px 0;">
-                📄 Passo 1 — Documentos Obrigatórios
-            </h3>
+            <h3 style="color:#60A5FA;margin:0 0 8px 0;">📄 Passo 1 — Documentos Obrigatórios</h3>
             <p style="color:#94A3B8;margin:0 0 12px 0;font-size:0.9rem;">
-                Lê e confirma cada documento.
-                <b>{pdfs_val_count}/{total_pdfs}</b> validados.
+                Lê e confirma cada documento. <b>{pdfs_val_count}/{total_pdfs}</b> validados.
             </p>
             <div style="background:rgba(0,0,0,0.3);border-radius:6px;height:8px;">
-                <div style="background:#10B981;width:{pct}%;height:8px;
-                    border-radius:6px;"></div>
+                <div style="background:#10B981;width:{pct}%;height:8px;border-radius:6px;"></div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+        </div>""", unsafe_allow_html=True)
 
         if not pdfs_db.empty:
             for _, pdf in pdfs_db.iterrows():
@@ -229,25 +194,20 @@ def _render_validacao_obrigatoria(user_nome):
                 visto    = pdf_id in pdfs_vistos
 
                 st.markdown(f"""
-                <div class="pdf-row"
-                    style="border-left:4px solid {'#10B981' if visto else '#EF4444'};">
+                <div class="pdf-row" style="border-left:4px solid {'#10B981' if visto else '#EF4444'};">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <div>
                             <b style="color:{'#10B981' if visto else '#F8FAFC'};">
                                 {'✅' if visto else '📄'} {pdf_nome}
                             </b>
-                            <p style="color:#64748B;font-size:0.82rem;margin:3px 0 0 0;">
-                                {pdf_desc}
-                            </p>
+                            <p style="color:#64748B;font-size:0.82rem;margin:3px 0 0 0;">{pdf_desc}</p>
                         </div>
                         <span style="color:{'#10B981' if visto else '#F59E0B'};
-                            font-size:0.8rem;font-weight:bold;
-                            white-space:nowrap;margin-left:10px;">
+                            font-size:0.8rem;font-weight:bold;white-space:nowrap;margin-left:10px;">
                             {'Validado' if visto else '⚠️ Por ler'}
                         </span>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
+                </div>""", unsafe_allow_html=True)
 
                 col_dl, col_ok = st.columns([2, 1])
                 with col_dl:
@@ -263,8 +223,7 @@ def _render_validacao_obrigatoria(user_nome):
                             st.error("❌ Erro ao carregar PDF")
                 with col_ok:
                     if not visto:
-                        if st.button("✅ Confirmar leitura",
-                                     key=f"app_val_pdf_{pdf_id}",
+                        if st.button("✅ Confirmar", key=f"app_val_pdf_{pdf_id}",
                                      use_container_width=True, type="primary"):
                             pdfs_vistos.append(pdf_id)
                             novos_val = len([p for p in pdfs_vistos if p in pdf_ids_validos])
@@ -273,8 +232,9 @@ def _render_validacao_obrigatoria(user_nome):
                                 users_live.loc[user_idx, 'PDFs_Validados']      = 'Sim'
                                 users_live.loc[user_idx, 'PDFs_Validacao_Data'] = \
                                     datetime.now().strftime("%d/%m/%Y %H:%M")
-                                save_db(users_live, "usuarios.csv")
-                                inv()
+                            save_db(users_live, "usuarios.csv")
+                            inv()
+                            if novos_val >= total_pdfs:
                                 log_audit(usuario=user_nome, acao="VALIDAR_PDFS",
                                           tabela="usuarios.csv", registro_id=user_nome,
                                           detalhes=f"Validou {novos_val} PDFs", ip="")
@@ -285,52 +245,35 @@ def _render_validacao_obrigatoria(user_nome):
                                 st.success("✅ Todos os documentos confirmados!")
                                 time.sleep(1)
                             else:
-                                users_live.loc[user_idx, 'PDFs_Vistos'] = json.dumps(pdfs_vistos)
-                                save_db(users_live, "usuarios.csv")
-                                inv()
                                 st.success(f"✅ '{pdf_nome}' confirmado! ({novos_val}/{total_pdfs})")
                                 time.sleep(0.5)
                             st.rerun()
                     else:
-                        st.success("✅ Lido")
+                        st.success("✅")
 
         if pdfs_val_count < total_pdfs:
-            st.warning(f"⚠️ Faltam {total_pdfs - pdfs_val_count} documento(s) por confirmar.")
-        else:
-            st.success("✅ Todos confirmados! Continua para o próximo passo.")
+            st.warning(f"⚠️ Faltam {total_pdfs - pdfs_val_count} documento(s).")
         st.stop()
 
-    # ════════════════════════════════════════════════════════════════
-    # PASSO 2 — PREÇO HORA
-    # ════════════════════════════════════════════════════════════════
+    # ── PASSO 2: PREÇO HORA ───────────────────────────────────────────
     if tem_preco_pend:
         st.markdown(f"""
         <div class="step-card step-active">
-            <h3 style="color:#60A5FA;margin:0 0 8px 0;">
-                💰 Passo 2 — Validação do Preço Hora
-            </h3>
+            <h3 style="color:#60A5FA;margin:0 0 8px 0;">💰 Passo 2 — Validação do Preço Hora</h3>
             <p style="color:#94A3B8;margin:0;font-size:0.9rem;">
                 Aceita ou recusa o preço hora proposto pela empresa.
             </p>
-        </div>
-        """, unsafe_allow_html=True)
+        </div>""", unsafe_allow_html=True)
 
         st.markdown(f"""
-        <div style="background:rgba(255,255,255,0.07);
-            border:2px solid rgba(255,255,255,0.15);
+        <div style="background:rgba(255,255,255,0.07);border:2px solid rgba(255,255,255,0.15);
             border-radius:15px;padding:30px;text-align:center;margin-bottom:25px;">
-            <p style="color:#94A3B8;margin:0 0 10px 0;font-size:1rem;">
-                Preço Hora Proposto:
-            </p>
+            <p style="color:#94A3B8;margin:0 0 10px 0;">Preço Hora Proposto:</p>
             <p style="color:#10B981;font-size:3.5rem;font-weight:900;margin:0 0 15px 0;">
                 € {preco_hora_valor}
                 <span style="font-size:1.4rem;color:#64748B;">/hora</span>
             </p>
-            <p style="color:#64748B;font-size:0.85rem;margin:0;">
-                A tua resposta é registada e notificada ao administrador.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        </div>""", unsafe_allow_html=True)
 
         col_ac, col_rec = st.columns(2)
         with col_ac:
@@ -373,54 +316,44 @@ def _render_validacao_obrigatoria(user_nome):
                             titulo="💰 Preço Hora RECUSADO",
                             mensagem=f"{user_nome} RECUSOU €{preco_hora_valor}/hora.",
                             tipo="error", acao_url="/admin?tab=rh")
-                        st.warning("❌ Preço hora recusado. O admin será notificado.")
+                        st.warning("❌ Preço recusado. Admin notificado.")
                         time.sleep(1.5)
                         st.rerun()
         st.stop()
 
-    # ════════════════════════════════════════════════════════════════
-    # PASSO 3 — PERFIL
-    # ════════════════════════════════════════════════════════════════
+    # ── PASSO 3: PERFIL ───────────────────────────────────────────────
     if tem_perfil_pend:
         st.markdown("""
         <div class="step-card step-active">
-            <h3 style="color:#60A5FA;margin:0 0 8px 0;">
-                👤 Passo 3 — Preencher o Meu Perfil
-            </h3>
+            <h3 style="color:#60A5FA;margin:0 0 8px 0;">👤 Passo 3 — Preencher o Meu Perfil</h3>
             <p style="color:#94A3B8;margin:0;font-size:0.9rem;">
-                Preenche os teus dados para que os Recursos Humanos fiquem completos.
-                Os campos marcados com <b>*</b> são obrigatórios.
+                Preenche os teus dados para os Recursos Humanos.
+                Campos com <b>*</b> são obrigatórios.
             </p>
-        </div>
-        """, unsafe_allow_html=True)
+        </div>""", unsafe_allow_html=True)
 
         with st.form("form_onboard_perfil"):
             st.markdown("#### 📋 Dados Pessoais")
             col1, col2 = st.columns(2)
             with col1:
-                telefone  = st.text_input("Telefone *",
-                    value=user_data.get('Telefone',''), key="onb_tel",
-                    placeholder="9XXXXXXXX")
-                data_nasc = st.text_input("Data de Nascimento * (dd/mm/aaaa)",
-                    value=user_data.get('DataNasc',''), key="onb_nasc",
-                    placeholder="01/01/1990")
+                telefone     = st.text_input("Telefone *",
+                    value=user_data.get('Telefone',''), key="onb_tel", placeholder="9XXXXXXXX")
+                data_nasc    = st.text_input("Data Nascimento * (dd/mm/aaaa)",
+                    value=user_data.get('DataNasc',''), key="onb_nasc", placeholder="01/01/1990")
                 naturalidade = st.text_input("Naturalidade",
                     value=user_data.get('Naturalidade',''), key="onb_nat")
             with col2:
-                nif  = st.text_input("NIF *",
-                    value=user_data.get('NIF',''), key="onb_nif",
-                    placeholder="XXXXXXXXX")
-                niss = st.text_input("NISS",
-                    value=user_data.get('NISS',''), key="onb_niss",
-                    placeholder="XXXXXXXXXXX")
+                nif          = st.text_input("NIF *",
+                    value=user_data.get('NIF',''), key="onb_nif", placeholder="XXXXXXXXX")
+                niss         = st.text_input("NISS",
+                    value=user_data.get('NISS',''), key="onb_niss", placeholder="XXXXXXXXXXX")
                 estado_civil = st.selectbox("Estado Civil *",
                     ["Solteiro(a)","Casado(a)","Divorciado(a)","Viúvo(a)","União de Facto"],
                     key="onb_ec")
 
             st.markdown("#### 📍 Morada")
             morada = st.text_input("Morada *",
-                value=user_data.get('Morada',''), key="onb_morada",
-                placeholder="Rua, nº, andar")
+                value=user_data.get('Morada',''), key="onb_morada", placeholder="Rua, nº, andar")
             col3, col4, col5 = st.columns(3)
             with col3:
                 localidade = st.text_input("Localidade *",
@@ -430,34 +363,29 @@ def _render_validacao_obrigatoria(user_nome):
                     value=user_data.get('Concelho',''), key="onb_conc")
             with col5:
                 cod_postal = st.text_input("Código Postal",
-                    value=user_data.get('Codigo_Postal',''), key="onb_cp",
-                    placeholder="XXXX-XXX")
+                    value=user_data.get('Codigo_Postal',''), key="onb_cp", placeholder="XXXX-XXX")
 
-            st.markdown("#### 🆔 Documentos")
+            st.markdown("#### 🆔 Documentos & Contacto")
             col6, col7 = st.columns(2)
             with col6:
-                cc     = st.text_input("Nº Cartão Cidadão",
-                    value=user_data.get('CC',''), key="onb_cc")
-                cc_val = st.text_input("Validade CC (dd/mm/aaaa)",
+                cc    = st.text_input("Nº Cartão Cidadão", value=user_data.get('CC',''), key="onb_cc")
+                cc_v  = st.text_input("Validade CC (dd/mm/aaaa)",
                     value=user_data.get('CC_Validade',''), key="onb_cc_val")
             with col7:
-                email = st.text_input("Email",
-                    value=user_data.get('Email',''), key="onb_email",
-                    placeholder="exemplo@email.com")
-                iban  = st.text_input("IBAN Bancário",
-                    value=user_data.get('Banco_IBAN',''), key="onb_iban",
-                    placeholder="PT50 XXXX XXXX XXXX XXXX XXXX X")
+                email = st.text_input("Email", value=user_data.get('Email',''),
+                    key="onb_email", placeholder="exemplo@email.com")
+                iban  = st.text_input("IBAN", value=user_data.get('Banco_IBAN',''),
+                    key="onb_iban", placeholder="PT50 XXXX...")
 
-            st.markdown("#### 🚨 Contacto de Emergência")
+            st.markdown("#### 🚨 Emergência")
             col8, col9 = st.columns(2)
             with col8:
                 nome_emerg = st.text_input("Nome *",
                     value=user_data.get('Nome_Emergencia',''), key="onb_emerg_nome")
                 tel_emerg  = st.text_input("Telefone *",
-                    value=user_data.get('Contacto_Emergencia',''), key="onb_emerg_tel",
-                    placeholder="9XXXXXXXX")
+                    value=user_data.get('Contacto_Emergencia',''), key="onb_emerg_tel")
             with col9:
-                grau_parent = st.text_input("Grau de Parentesco",
+                grau = st.text_input("Grau Parentesco",
                     value=user_data.get('Grau_Parentesco',''), key="onb_grau")
 
             st.markdown("#### 👕 Fardamento")
@@ -466,82 +394,61 @@ def _render_validacao_obrigatoria(user_nome):
             cal_opts = ["XS (34/36)","S (38)","M (40/42)","L (42/44)","XL (46/48)","XXL (50/52)"]
             bot_opts = ["40","41","42","43","44","45","Outro"]
             with col10:
-                cam_v  = user_data.get('Tamanho_Camisola','M')
+                cam_v   = user_data.get('Tamanho_Camisola','M')
                 tam_cam = st.selectbox("Camisola", cam_opts,
                     index=cam_opts.index(cam_v) if cam_v in cam_opts else 3, key="onb_cam")
             with col11:
-                cal_v  = user_data.get('Tamanho_Calca','')
+                cal_v   = user_data.get('Tamanho_Calca','')
                 tam_cal = st.selectbox("Calça", cal_opts,
                     index=cal_opts.index(cal_v) if cal_v in cal_opts else 0, key="onb_cal")
             with col12:
-                bot_v  = user_data.get('Tamanho_Botas','')
+                bot_v   = user_data.get('Tamanho_Botas','')
                 tam_bot = st.selectbox("Botas", bot_opts,
                     index=bot_opts.index(bot_v) if bot_v in bot_opts else 2, key="onb_bot")
 
-            st.info("ℹ️ Campos obrigatórios: Telefone, NIF, Data de Nascimento, "
-                    "Morada, Localidade, Nome e Telefone de Emergência.")
-
-            submitted = st.form_submit_button(
-                "💾 Guardar Perfil e Continuar →",
-                use_container_width=True, type="primary"
-            )
+            submitted = st.form_submit_button("💾 Guardar e Continuar →",
+                use_container_width=True, type="primary")
 
         if submitted:
             erros = []
             if not telefone.strip():   erros.append("Telefone")
             if not nif.strip():        erros.append("NIF")
-            if not data_nasc.strip():  erros.append("Data de Nascimento")
+            if not data_nasc.strip():  erros.append("Data Nascimento")
             if not morada.strip():     erros.append("Morada")
             if not localidade.strip(): erros.append("Localidade")
-            if not nome_emerg.strip(): erros.append("Nome de Emergência")
-            if not tel_emerg.strip():  erros.append("Telefone de Emergência")
-
+            if not nome_emerg.strip(): erros.append("Nome Emergência")
+            if not tel_emerg.strip():  erros.append("Telefone Emergência")
             if erros:
-                st.error(f"❌ Campos obrigatórios em falta: {', '.join(erros)}")
+                st.error(f"❌ Campos em falta: {', '.join(erros)}")
             else:
                 u3 = _load_users_fresh()
                 if not u3.empty:
                     mask = u3['Nome'] == user_nome
                     if mask.any():
-                        campos = {
-                            'Telefone':            telefone.strip(),
-                            'NIF':                 nif.strip(),
-                            'DataNasc':            data_nasc.strip(),
-                            'Morada':              morada.strip(),
-                            'Localidade':          localidade.strip(),
-                            'Concelho':            concelho.strip(),
-                            'Codigo_Postal':       cod_postal.strip(),
-                            'Naturalidade':        naturalidade.strip(),
-                            'Estado_Civil':        estado_civil,
-                            'CC':                  cc.strip(),
-                            'CC_Validade':         cc_val.strip(),
-                            'NISS':                niss.strip(),
-                            'Email':               email.strip(),
-                            'Banco_IBAN':          iban.strip(),
-                            'Nome_Emergencia':     nome_emerg.strip(),
-                            'Contacto_Emergencia': tel_emerg.strip(),
-                            'Grau_Parentesco':     grau_parent.strip(),
-                            'Tamanho_Camisola':    tam_cam,
-                            'Tamanho_Calca':       tam_cal,
-                            'Tamanho_Botas':       tam_bot,
-                            'Perfil_Completo':     'Sim',
-                            'Perfil_Data':         datetime.now().strftime("%d/%m/%Y %H:%M"),
-                        }
-                        for campo, valor in campos.items():
+                        for campo, valor in {
+                            'Telefone': telefone.strip(), 'NIF': nif.strip(),
+                            'DataNasc': data_nasc.strip(), 'Morada': morada.strip(),
+                            'Localidade': localidade.strip(), 'Concelho': concelho.strip(),
+                            'Codigo_Postal': cod_postal.strip(), 'Naturalidade': naturalidade.strip(),
+                            'Estado_Civil': estado_civil, 'CC': cc.strip(), 'CC_Validade': cc_v.strip(),
+                            'NISS': niss.strip(), 'Email': email.strip(), 'Banco_IBAN': iban.strip(),
+                            'Nome_Emergencia': nome_emerg.strip(), 'Contacto_Emergencia': tel_emerg.strip(),
+                            'Grau_Parentesco': grau.strip(), 'Tamanho_Camisola': tam_cam,
+                            'Tamanho_Calca': tam_cal, 'Tamanho_Botas': tam_bot,
+                            'Perfil_Completo': 'Sim',
+                            'Perfil_Data': datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        }.items():
                             u3.loc[mask, campo] = valor
-
                         save_db(u3, "usuarios.csv")
                         inv()
-                        log_audit(usuario=user_nome,
-                                  acao="COMPLETAR_PERFIL_ONBOARDING",
+                        log_audit(usuario=user_nome, acao="COMPLETAR_PERFIL_ONBOARDING",
                                   tabela="usuarios.csv", registro_id=user_nome,
                                   detalhes="Perfil preenchido no onboarding", ip="")
                         criar_notificacao(destinatario="admin",
                             titulo="👤 Perfil Preenchido",
-                            mensagem=f"{user_nome} completou o perfil. "
-                                     "Todos os passos de integração concluídos.",
+                            mensagem=f"{user_nome} completou todos os passos de integração.",
                             tipo="success", acao_url="/admin?tab=rh")
-                        st.success("✅ Perfil guardado! Integração completa. Bem-vindo(a)!")
+                        st.success("✅ Perfil guardado! Bem-vindo(a) ao GESTNOW!")
                         st.balloons()
                         time.sleep(2)
                         st.rerun()
@@ -550,7 +457,7 @@ def _render_validacao_obrigatoria(user_nome):
     return False
 
 # =============================================================================
-# 4. SIDEBAR
+# SIDEBAR
 # =============================================================================
 if st.session_state.get('user'):
     with st.sidebar:
@@ -561,8 +468,7 @@ if st.session_state.get('user'):
             <div style="font-size:3rem;margin-bottom:10px;">{ICONS["app"]}</div>
             <div style="font-size:1.2rem;font-weight:700;color:#F8FAFC;">GESTNOW v3</div>
             <div style="font-size:0.8rem;color:#94A3B8;">Instrumentação Industrial</div>
-        </div>
-        """, unsafe_allow_html=True)
+        </div>""", unsafe_allow_html=True)
 
         st.markdown(f"""
         <div style="padding:12px;background:rgba(255,255,255,0.05);
@@ -573,8 +479,7 @@ if st.session_state.get('user'):
             <div style="font-size:0.85rem;color:#94A3B8;">
                 {st.session_state.tipo} | {st.session_state.cargo}
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+        </div>""", unsafe_allow_html=True)
 
         st.markdown(f"**{ICONS['app']} {t('language')}**")
         lang_opts = get_language_options()
@@ -583,16 +488,13 @@ if st.session_state.get('user'):
             "🌐", options=list(lang_opts.keys()),
             format_func=lambda x: lang_opts[x],
             index=list(lang_opts.keys()).index(curr_lang),
-            label_visibility="collapsed",
-            key="sidebar_language_sel"
+            label_visibility="collapsed", key="sidebar_language_sel"
         )
         if sel_lang != curr_lang:
             set_language(sel_lang)
             st.rerun()
 
         st.divider()
-        st.markdown("**📋 Navegação**")
-
         tipo  = st.session_state.get('tipo', '')
         cargo = st.session_state.get('cargo', '')
         tem_acesso_inst = (tipo in ['Chefe de Equipa','Admin','Gestor'] or
@@ -600,37 +502,39 @@ if st.session_state.get('user'):
         eh_cliente = (tipo == 'Cliente')
 
         if eh_cliente:
-            menu_item = st.radio("Navegação",
-                [f"{ICONS['dashboard']} Portal", f"{ICONS['logout']} Logout"],
+            menu_item = st.radio("Nav",
+                [f"{ICONS['dashboard']} Portal", "Logout"],
                 label_visibility="collapsed", key="sidebar_nav_cliente")
         elif tipo == 'Admin':
-            menu_item = st.radio("Navegação",
+            menu_item = st.radio("Nav",
                 [f"{ICONS['dashboard']} Dashboard", f"{ICONS['admin']} Admin",
                  f"{ICONS['instrumentation']} Instrumentação",
-                 f"{ICONS['profile']} Perfil", f"{ICONS['logout']} Logout"],
+                 f"{ICONS['profile']} Perfil", "Logout"],
                 label_visibility="collapsed", key="sidebar_nav_admin")
         elif tem_acesso_inst:
-            menu_item = st.radio("Navegação",
+            menu_item = st.radio("Nav",
                 [f"{ICONS['dashboard']} Início", f"{ICONS['technician']} Obra",
                  f"{ICONS['instrumentation']} Instrumentação",
-                 f"{ICONS['profile']} Perfil", f"{ICONS['logout']} Logout"],
+                 f"{ICONS['profile']} Perfil", "Logout"],
                 label_visibility="collapsed", key="sidebar_nav_chefe")
         else:
-            menu_item = st.radio("Navegação",
+            menu_item = st.radio("Nav",
                 [f"{ICONS['dashboard']} Início", f"{ICONS['technician']} Obra",
-                 f"{ICONS['profile']} Perfil", f"{ICONS['logout']} Logout"],
+                 f"{ICONS['profile']} Perfil", "Logout"],
                 label_visibility="collapsed", key="sidebar_nav_tecnico")
 
-        st.session_state.menu_selected = menu_item
-        st.divider()
+        # ✅ CORRIGIDO: sidebar NÃO sobrescreve quando _menu_locked=True
+        if not st.session_state.get('_menu_locked', False):
+            st.session_state.menu_selected = menu_item
 
+        st.divider()
         if st.button(f"{ICONS['logout']} {t('logout')}", use_container_width=True,
                      type="secondary", key="sidebar_logout_btn"):
             st.session_state.clear()
             st.rerun()
 
 # =============================================================================
-# 5. BOTTOM NAVIGATION BAR (MOBILE)
+# BOTTOM NAVIGATION BAR (MOBILE)
 # =============================================================================
 if st.session_state.get('user') and HAS_OPTION_MENU:
     tipo  = st.session_state.get('tipo', '')
@@ -692,9 +596,9 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
         "Logout":         "Logout",
     }
 
-    # ✅ CORRIGIDO: _menu_locked impede que option_menu sobrescreva
-    # a navegação programática dos botões em mod_inicio
+    # ✅ CORRIGIDO: _menu_locked impede que option_menu sobrescreva navegação programática
     if st.session_state.get('_menu_locked', False):
+        # Lock processado — limpar para o próximo render
         st.session_state['_menu_locked'] = False
     else:
         new_menu = nav_map.get(selected, '')
@@ -707,12 +611,11 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
     st.markdown("<div style='height:70px;'></div>", unsafe_allow_html=True)
 
 # =============================================================================
-# 6. ROUTING PRINCIPAL
+# ROUTING PRINCIPAL
 # =============================================================================
 if not st.session_state.get('user'):
     from mod_login import render_login
     render_login()
-
 else:
     DATA = load_all()
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
@@ -722,7 +625,6 @@ else:
     tipo      = st.session_state.get('tipo', '')
     user_nome = st.session_state.get('user', '')
     cargo     = st.session_state.get('cargo', '')
-
     tem_acesso_inst = (tipo in ['Chefe de Equipa','Admin','Gestor'] or
                        cargo in ['Chefe de Equipa','Encarregado','Instrumentista'])
     eh_cliente = (tipo == 'Cliente')
@@ -732,20 +634,18 @@ else:
         st.session_state.clear()
         st.rerun()
 
-    # ✅ BLOQUEIO CENTRALIZADO — só Técnicos e Chefes (não Admin nem Cliente)
+    # ✅ BLOQUEIO CENTRALIZADO — só Técnicos e Chefes
     if tipo not in ['Admin', 'Cliente']:
         pdfs_pend, preco_pend, perfil_pend = _verificar_validacoes_pendentes(user_nome)
         if pdfs_pend or preco_pend or perfil_pend:
             _render_validacao_obrigatoria(user_nome)
             st.stop()
 
-    # ── CLIENTE ───────────────────────────────────────────────────────
     if eh_cliente:
         st.markdown(f"# {ICONS['dashboard']} Portal do Cliente")
         from mod_cliente import render_cliente_portal
         render_cliente_portal()
 
-    # ── ADMIN ─────────────────────────────────────────────────────────
     elif tipo == 'Admin':
         if f"{ICONS['admin']} Admin" in menu:
             from mod_admin import render_admin
@@ -764,29 +664,23 @@ else:
             with c1: st.metric("👥 Utilizadores", len(users))
             with c2: st.metric("🏭 Obras Ativas",
                 len(obras_db[obras_db['Ativa']=='Ativa']) if not obras_db.empty else 0)
-            with c3: st.metric("📋 Registos",
-                len(registos_db) if not registos_db.empty else 0)
-            with c4: st.metric("⚠️ Incidentes",
-                len(incs_db) if not incs_db.empty else 0)
+            with c3: st.metric("📋 Registos", len(registos_db) if not registos_db.empty else 0)
+            with c4: st.metric("⚠️ Incidentes", len(incs_db) if not incs_db.empty else 0)
             st.divider()
             from mod_dashboard import render_dashboard
             render_dashboard(*DATA)
         else:
             from mod_admin import render_admin
             render_admin(*DATA)
-
-    # ── TÉCNICO / CHEFE ───────────────────────────────────────────────
     else:
         if f"{ICONS['technician']} Obra" in menu:
             st.markdown(f"# {ICONS['technician']} Área Técnica")
-            if tipo in ['Chefe de Equipa','Gestor'] or \
-               cargo in ['Chefe de Equipa','Encarregado']:
+            if tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
                 from mod_chefe import render_chefe
                 render_chefe(*DATA)
             else:
                 from mod_tecnico import render_tecnico
                 render_tecnico(*DATA)
-
         elif f"{ICONS['instrumentation']} Instrumentação" in menu:
             if tem_acesso_inst:
                 st.markdown(f"# {ICONS['instrumentation']} Instrumentação Industrial")
@@ -794,19 +688,14 @@ else:
                 render_instrumentacao(*DATA)
             else:
                 st.warning("⚠️ Não tem acesso a este módulo.")
-
         elif f"{ICONS['profile']} Perfil" in menu:
             st.markdown(f"# {ICONS['profile']} Perfil do Utilizador")
             from mod_perfil import render_perfil
             render_perfil(*DATA)
-
         else:
             from mod_inicio import render_inicio
             render_inicio(*DATA)
 
-# =============================================================================
-# 7. FOOTER
-# =============================================================================
 st.markdown("""
 <style>
 .footer {
@@ -818,7 +707,5 @@ st.markdown("""
 }
 @media (max-width:768px) { .footer { display:none; } }
 </style>
-<div class="footer">
-    🎛️ GESTNOW v3.0 — Sistema de Gestão de Instrumentação Industrial
-</div>
+<div class="footer">🎛️ GESTNOW v3.0 — Sistema de Gestão de Instrumentação Industrial</div>
 """, unsafe_allow_html=True)
