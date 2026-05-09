@@ -7,6 +7,17 @@ import pandas as pd
 from datetime import datetime, timedelta
 from core import load_db, inv
 
+def _safe_date_str(val):
+    """Converte data para string sem crashar com NaT."""
+    try:
+        if pd.isna(val):
+            return 'N/A'
+        if hasattr(val, 'strftime'):
+            return val.strftime('%d/%m/%Y')
+        return str(val)
+    except:
+        return 'N/A'
+
 def render_dashboard(*args):
     """Dashboard Avançado com KPIs e Analytics"""
 
@@ -26,7 +37,6 @@ def render_dashboard(*args):
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
      comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = args
 
-    # Header
     st.markdown(f"""
     <div style="background:linear-gradient(135deg,#1E293B,#0F172A);padding:30px;
         border-radius:20px;margin-bottom:30px;border:1px solid rgba(255,255,255,0.2);">
@@ -38,7 +48,6 @@ def render_dashboard(*args):
     </div>
     """, unsafe_allow_html=True)
 
-    # Filtros
     st.markdown("### 🔍 Filtros")
     col_f1, col_f2, col_f3 = st.columns(3)
     with col_f1:
@@ -47,87 +56,81 @@ def render_dashboard(*args):
             default=[], key="dash_obra")
     with col_f2:
         tipo_filtro = st.selectbox("Tipo de Vista",
-            ["Todos","Admin","Técnico","Cliente"], key="dash_tipo")
+            ["Todos", "Admin", "Técnico", "Cliente"], key="dash_tipo")
     with col_f3:
         periodo = st.selectbox("Período",
-            ["Hoje","Esta Semana","Este Mês","Todos"], key="dash_periodo")
+            ["Hoje", "Esta Semana", "Este Mês", "Todos"], key="dash_periodo")
 
     st.divider()
 
-    # ── KPIs ─────────────────────────────────────────────────────────
+    # ── KPIs ──────────────────────────────────────────────────────────
     st.markdown("### 🎯 KPIs Principais")
 
     total_obras    = len(obras_db[obras_db['Ativa'] == 'Ativa']) if not obras_db.empty else 0
     total_tecnicos = len(users) if not users.empty else 0
 
-    # ✅ CORRIGIDO: pd.to_numeric ANTES de qualquer agrupamento
-    total_horas    = 0.0
-    horas_validadas= 0.0
+    # ✅ pd.to_numeric ANTES de qualquer operação
+    total_horas     = 0.0
+    horas_validadas = 0.0
     if not registos_db.empty and 'Horas_Total' in registos_db.columns:
         registos_db = registos_db.copy()
         registos_db['Horas_Total'] = pd.to_numeric(
             registos_db['Horas_Total'], errors='coerce'
         ).fillna(0)
         total_horas     = registos_db['Horas_Total'].sum()
-        horas_validadas = registos_db[
-            registos_db['Status'] == '1'
-        ]['Horas_Total'].sum()
+        horas_validadas = registos_db[registos_db['Status'] == '1']['Horas_Total'].sum()
 
-    # Carregar instrumentos de todas as obras
-    total_instrumentos     = 0
-    instrumentos_instalados= 0
-    calibrados_count       = 0
+    # Instrumentos
+    total_instrumentos      = 0
+    instrumentos_instalados = 0
+    calibrados_count        = 0
+    dados_progresso         = []
 
     if not obras_db.empty:
         for _, obra in obras_db.iterrows():
-            o_key = obra['Obra'].replace(' ', '_').replace('/', '_')
-            try:
-                inst = load_db(f"inst_{o_key}_index.csv", ["Status"], silent=True)
-                if not inst.empty:
-                    total_instrumentos      += len(inst)
-                    instrumentos_instalados += len(inst[inst['Status'].isin(['3','4'])])
-                    calibrados_count        += len(inst[inst['Status'] == '2'])
-            except:
-                pass
+            if obra.get('Ativa', '') == 'Ativa':
+                o_key = obra['Obra'].replace(' ', '_').replace('/', '_')
+                try:
+                    inst = load_db(f"inst_{o_key}_index.csv", ["Status"], silent=True)
+                    if not inst.empty:
+                        total   = len(inst)
+                        inst_ok = len(inst[inst['Status'].isin(['3', '4'])])
+                        calib   = len(inst[inst['Status'] == '2'])
+                        prog    = (inst_ok / total * 100) if total > 0 else 0
+                        total_instrumentos      += total
+                        instrumentos_instalados += inst_ok
+                        calibrados_count        += calib
+                        dados_progresso.append({
+                            "Obra":          obra['Obra'],
+                            "Total":         total,
+                            "Instalados":    inst_ok,
+                            "Progresso (%)": round(prog, 1)
+                        })
+                except:
+                    pass
 
     progresso_geral = (instrumentos_instalados / total_instrumentos * 100) if total_instrumentos > 0 else 0
     produtividade   = (horas_validadas / total_horas * 100) if total_horas > 0 else 0
 
     col1, col2, col3, col4, col5, col6 = st.columns(6)
-    with col1:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{total_obras}</div>
-            <div class="kpi-label">🏭 Obras Ativas</div></div>""",
-            unsafe_allow_html=True)
-    with col2:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{total_tecnicos}</div>
-            <div class="kpi-label">👷 Técnicos</div></div>""",
-            unsafe_allow_html=True)
-    with col3:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{total_horas:.0f}h</div>
-            <div class="kpi-label">⏱️ Horas Totais</div></div>""",
-            unsafe_allow_html=True)
-    with col4:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{produtividade:.1f}%</div>
-            <div class="kpi-label">✅ Horas Válidas</div></div>""",
-            unsafe_allow_html=True)
-    with col5:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{total_instrumentos}</div>
-            <div class="kpi-label">🔧 Instrumentos</div></div>""",
-            unsafe_allow_html=True)
-    with col6:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{progresso_geral:.1f}%</div>
-            <div class="kpi-label">📈 Progresso</div></div>""",
-            unsafe_allow_html=True)
+    kpis = [
+        (total_obras,    "🏭 Obras Ativas"),
+        (total_tecnicos, "👷 Técnicos"),
+        (f"{total_horas:.0f}h", "⏱️ Horas Totais"),
+        (f"{produtividade:.1f}%", "✅ Horas Válidas"),
+        (total_instrumentos, "🔧 Instrumentos"),
+        (f"{progresso_geral:.1f}%", "📈 Progresso"),
+    ]
+    for col, (val, lbl) in zip([col1, col2, col3, col4, col5, col6], kpis):
+        with col:
+            st.markdown(f"""<div class="kpi-card">
+                <div class="kpi-value">{val}</div>
+                <div class="kpi-label">{lbl}</div></div>""",
+                unsafe_allow_html=True)
 
     st.divider()
 
-    # ── Gráficos ──────────────────────────────────────────────────────
+    # ── Gráficos ───────────────────────────────────────────────────────
     st.markdown("### 📈 Analytics")
 
     tab_g1, tab_g2, tab_g3, tab_g4 = st.tabs([
@@ -137,29 +140,9 @@ def render_dashboard(*args):
         "🏆 Ranking Técnicos"
     ])
 
-    # TAB 1: PROGRESSO POR OBRA
+    # TAB 1
     with tab_g1:
         st.markdown("### Progresso de Instrumentação por Obra")
-        dados_progresso = []
-        if not obras_db.empty:
-            for _, obra in obras_db.iterrows():
-                if obra['Ativa'] == 'Ativa':
-                    o_key = obra['Obra'].replace(' ','_').replace('/','_')
-                    try:
-                        inst = load_db(f"inst_{o_key}_index.csv", ["Status"], silent=True)
-                        if not inst.empty:
-                            total    = len(inst)
-                            inst_ok  = len(inst[inst['Status'].isin(['3','4'])])
-                            prog     = (inst_ok / total * 100) if total > 0 else 0
-                            dados_progresso.append({
-                                "Obra": obra['Obra'],
-                                "Total": total,
-                                "Instalados": inst_ok,
-                                "Progresso (%)": round(prog, 1)
-                            })
-                    except:
-                        pass
-
         if dados_progresso:
             df_prog = pd.DataFrame(dados_progresso)
             st.bar_chart(df_prog.set_index("Obra")["Progresso (%)"], color="#3B82F6")
@@ -167,80 +150,65 @@ def render_dashboard(*args):
         else:
             st.info("📋 Sem dados de instrumentação disponíveis.")
 
-    # TAB 2: HORAS POR SEMANA ✅ CORRIGIDO
+    # TAB 2 ✅ CORRIGIDO — NaTType
     with tab_g2:
         st.markdown("### Horas Trabalhadas por Semana")
-
         if not registos_db.empty and 'Data' in registos_db.columns:
             df_sem = registos_db.copy()
-
             # ✅ converter ANTES do groupby
             df_sem['Horas_Total'] = pd.to_numeric(
                 df_sem['Horas_Total'], errors='coerce'
             ).fillna(0)
-
             df_sem['Data_Parse'] = pd.to_datetime(
                 df_sem['Data'], dayfirst=True, errors='coerce'
             )
+            # ✅ Remover NaT antes de extrair semana
             df_sem = df_sem.dropna(subset=['Data_Parse'])
-            df_sem['Semana'] = df_sem['Data_Parse'].dt.isocalendar().week.astype(int)
 
-            horas_semana = (
-                df_sem.groupby('Semana')['Horas_Total']
-                .sum()
-                .reset_index()
-                .rename(columns={'Horas_Total': 'Horas'})
-            )
-
-            if not horas_semana.empty:
+            if not df_sem.empty:
+                df_sem['Semana'] = df_sem['Data_Parse'].dt.isocalendar().week.astype(int)
+                horas_semana = (
+                    df_sem.groupby('Semana')['Horas_Total']
+                    .sum()
+                    .reset_index()
+                    .rename(columns={'Horas_Total': 'Horas'})
+                )
                 st.bar_chart(horas_semana.set_index("Semana"), color="#10B981")
                 st.dataframe(horas_semana, use_container_width=True, hide_index=True)
             else:
-                st.info("📋 Sem dados de horas para o período.")
+                st.info("📋 Sem datas válidas nos registos.")
         else:
             st.info("📋 Sem registos de horas disponíveis.")
 
-    # TAB 3: INCIDENTES
+    # TAB 3
     with tab_g3:
         st.markdown("### 🔥 Mapa de Incidentes HSE")
-
         if not incs_db.empty:
-            # Filtrar apenas HSE (excluir avarias)
-            hse_db = incs_db[incs_db.get('Tipo','') != 'Avaria'] if 'Tipo' in incs_db.columns else incs_db
-
+            hse_db = incs_db[incs_db.get('Tipo', '') != 'Avaria'] if 'Tipo' in incs_db.columns else incs_db
             if not hse_db.empty:
                 if 'Gravidade' in hse_db.columns:
                     inc_grav = hse_db['Gravidade'].value_counts().reset_index()
                     inc_grav.columns = ['Gravidade', 'Count']
                     st.bar_chart(inc_grav.set_index("Gravidade"), color="#EF4444")
-
                 st.divider()
-
                 if 'Obra' in hse_db.columns:
                     inc_obra = hse_db['Obra'].value_counts().reset_index()
                     inc_obra.columns = ['Obra', 'Incidentes']
-                    st.markdown("#### Por Obra")
                     st.dataframe(inc_obra, use_container_width=True, hide_index=True)
-
                 st.divider()
-                st.markdown("#### Últimos Incidentes")
                 cols_show = [c for c in ['Data','Utilizador','Obra','Descricao','Gravidade','Status'] if c in hse_db.columns]
                 st.dataframe(hse_db[cols_show].head(10), use_container_width=True, hide_index=True)
             else:
-                st.success("✅ Sem incidentes HSE registados!")
+                st.success("✅ Sem incidentes HSE!")
         else:
             st.success("✅ Sem incidentes registados!")
 
-    # TAB 4: RANKING TÉCNICOS
+    # TAB 4
     with tab_g4:
         st.markdown("### 🏆 Ranking de Produtividade")
-
         if not registos_db.empty and 'Técnico' in registos_db.columns:
             df_rank = registos_db.copy()
-            df_rank['Horas_Total'] = pd.to_numeric(
-                df_rank['Horas_Total'], errors='coerce'
-            ).fillna(0)
-
+            df_rank['Horas_Total'] = pd.to_numeric(df_rank['Horas_Total'], errors='coerce').fillna(0)
             horas_tec = (
                 df_rank.groupby('Técnico')['Horas_Total']
                 .sum()
@@ -248,12 +216,9 @@ def render_dashboard(*args):
                 .rename(columns={'Horas_Total': 'Horas Totais'})
                 .sort_values('Horas Totais', ascending=False)
             )
-
             st.bar_chart(horas_tec.set_index("Técnico").head(10), color="#F59E0B")
             st.dataframe(horas_tec.head(10), use_container_width=True, hide_index=True)
-
             st.divider()
-
             pendentes = (
                 df_rank[df_rank['Status'] == '0']
                 .groupby('Técnico')
@@ -262,37 +227,28 @@ def render_dashboard(*args):
                 .rename(columns={0: 'Pendentes'})
             )
             if not pendentes.empty:
-                st.markdown("### ⏳ Validações Pendentes por Técnico")
+                st.markdown("### ⏳ Validações Pendentes")
                 st.dataframe(pendentes, use_container_width=True, hide_index=True)
         else:
-            st.info("📋 Sem dados de produtividade disponíveis.")
+            st.info("📋 Sem dados disponíveis.")
 
     st.divider()
 
     # ── Previsões ──────────────────────────────────────────────────────
     st.markdown("### 🔮 Previsões")
+    data_prev       = (datetime.now() + timedelta(days=max(1, int((100 - progresso_geral) * 3)))).strftime("%d/%m/%Y")
+    obras_atrasadas = len([d for d in dados_progresso if d.get('Progresso (%)', 0) < 50])
+    pend_horas      = int(registos_db[registos_db['Status'] == '0']['Horas_Total'].sum()) if not registos_db.empty else 0
+
     col_p1, col_p2 = st.columns(2)
-
-    data_prev = (datetime.now() + timedelta(
-        days=max(1, int((100 - progresso_geral) * 3))
-    )).strftime("%d/%m/%Y")
-
-    obras_atrasadas = len([d for d in dados_progresso if d.get('Progresso (%)', 0) < 50]) if dados_progresso else 0
-    pend_horas = len(registos_db[registos_db['Status'] == '0']) if not registos_db.empty else 0
-
     with col_p1:
         st.markdown(f"""
         <div class="kpi-card">
             <h4 style="color:#60A5FA;margin:0 0 15px 0;">📅 Conclusão Prevista</h4>
             <p style="color:#94A3B8;">Progresso atual: {progresso_geral:.1f}%</p>
-            <p style="color:#F8FAFC;font-size:1.5rem;font-weight:bold;margin:15px 0;">
-                {data_prev}
-            </p>
-            <p style="color:#64748B;font-size:0.85rem;">
-                *Baseado na média dos últimos 30 dias
-            </p>
+            <p style="color:#F8FAFC;font-size:1.5rem;font-weight:bold;margin:15px 0;">{data_prev}</p>
+            <p style="color:#64748B;font-size:0.85rem;">*Baseado na média dos últimos 30 dias</p>
         </div>""", unsafe_allow_html=True)
-
     with col_p2:
         st.markdown(f"""
         <div class="kpi-card">
@@ -300,7 +256,7 @@ def render_dashboard(*args):
             <ul style="color:#94A3B8;margin:0;padding-left:20px;">
                 <li>{obras_atrasadas} obra(s) com progresso abaixo de 50%</li>
                 <li>{total_instrumentos - instrumentos_instalados - calibrados_count} instrumento(s) por calibrar</li>
-                <li>{pend_horas} validação(ões) de horas pendente(s)</li>
+                <li>{pend_horas}h de validações pendentes</li>
             </ul>
         </div>""", unsafe_allow_html=True)
 
@@ -316,13 +272,19 @@ def render_dashboard(*args):
             ult_val = registos_db[registos_db['Status'] == '1'].tail(5)
             if not ult_val.empty:
                 for _, val in ult_val.iterrows():
-                    data_str = val['Data'].strftime('%d/%m/%Y') if hasattr(val['Data'], 'strftime') else str(val.get('Data',''))
+                    # ✅ CORRIGIDO: usa _safe_date_str para evitar NaTType
+                    data_str = _safe_date_str(val.get('Data'))
+                    horas_v  = val.get('Horas_Total', 0)
+                    try:
+                        horas_v = float(horas_v)
+                    except:
+                        horas_v = 0
                     st.markdown(f"""
                     <div style="background:rgba(16,185,129,0.1);border-left:3px solid #10B981;
                         padding:10px;border-radius:5px;margin-bottom:10px;">
                         <strong style="color:#10B981;">✅ {val.get('Técnico','N/A')}</strong>
                         <p style="margin:5px 0 0 0;color:#94A3B8;font-size:0.85rem;">
-                            {val.get('Horas_Total',0):.1f}h em {val.get('Obra','N/A')} | {data_str}
+                            {horas_v:.1f}h em {val.get('Obra','N/A')} | {data_str}
                         </p>
                     </div>""", unsafe_allow_html=True)
             else:
@@ -335,17 +297,17 @@ def render_dashboard(*args):
         instalacoes = []
         if not obras_db.empty:
             for _, obra in obras_db.iterrows():
-                o_key = obra['Obra'].replace(' ','_').replace('/','_')
+                o_key = obra['Obra'].replace(' ', '_').replace('/', '_')
                 try:
                     inst = load_db(f"inst_{o_key}_index.csv",
-                                   ["Tag","Status","Descricao"], silent=True)
+                                   ["Tag", "Status", "Descricao"], silent=True)
                     if not inst.empty:
-                        inst_ok = inst[inst['Status'].isin(['3','4'])].tail(2)
+                        inst_ok = inst[inst['Status'].isin(['3', '4'])].tail(2)
                         for _, ir in inst_ok.iterrows():
                             instalacoes.append({
-                                "Tag": ir.get('Tag','N/A'),
+                                "Tag":  ir.get('Tag', 'N/A'),
                                 "Obra": obra['Obra'],
-                                "Desc": ir.get('Descricao','N/A')
+                                "Desc": ir.get('Descricao', 'N/A')
                             })
                 except:
                     pass
