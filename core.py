@@ -101,6 +101,129 @@ def _gcs_write(fn, content_bytes):
     return False
 
 # =============================================================================
+# GCS BINÁRIO, BACKUP E CONTRATO
+# =============================================================================
+
+def _gcs_write_binary(data: bytes, filename: str) -> bool:
+    """Escreve dados binários diretamente no GCS."""
+    try:
+        client = _gcs_client()
+        if client:
+            bucket = client.bucket(GCS_BUCKET)
+            blob   = bucket.blob(f"data/{filename}")
+            blob.upload_from_string(data)
+            return True
+    except Exception as e:
+        logger.error(f"❌ Erro GCS write binary {filename}: {e}")
+    return False
+
+
+def _gcs_read_binary(filename: str):
+    """Lê dados binários do GCS. Devolve bytes ou None."""
+    try:
+        client = _gcs_client()
+        if client:
+            bucket = client.bucket(GCS_BUCKET)
+            blob   = bucket.blob(f"data/{filename}")
+            if blob.exists():
+                return blob.download_as_bytes()
+    except Exception as e:
+        logger.error(f"❌ Erro GCS read binary {filename}: {e}")
+    return None
+
+
+def _verificar_alerta_backup() -> tuple:
+    """
+    Verifica estado do backup.
+    Devolve: ('ok'|'aviso'|'critico'|'nunca', datetime|None)
+    """
+    try:
+        buf = _gcs_read("backup_status.json")
+        if not buf:
+            return 'nunca', None
+        data       = json.loads(buf.read().decode('utf-8'))
+        ultima_str = data.get('Data_Backup', '')
+        if not ultima_str:
+            return 'nunca', None
+        ultima  = datetime.strptime(ultima_str, "%d/%m/%Y %H:%M")
+        diff_h  = (datetime.now() - ultima).total_seconds() / 3600
+        if diff_h < 24:
+            return 'ok', ultima
+        elif diff_h < 48:
+            return 'aviso', ultima
+        else:
+            return 'critico', ultima
+    except:
+        return 'nunca', None
+
+
+def _registar_backup(admin_nome: str):
+    """Regista timestamp do último backup no GCS."""
+    payload = {
+        "Data_Backup": datetime.now().strftime("%d/%m/%Y %H:%M"),
+        "Admin": admin_nome
+    }
+    _gcs_write_binary(json.dumps(payload).encode('utf-8'), "backup_status.json")
+
+
+def _fill_contrato_template(substituicoes: dict):
+    """
+    Lê o template DOCX do GCS e substitui os placeholders.
+    Devolve bytes do DOCX preenchido, ou None se falhar.
+    """
+    template_bytes = _gcs_read_binary("contrato_template.docx")
+    if not template_bytes:
+        return None
+    try:
+        from docx import Document
+        from io import BytesIO as _BIO
+
+        doc = Document(_BIO(template_bytes))
+
+        def _sub(para):
+            if not any(k in para.text for k in substituicoes):
+                return
+            # Tentativa 1: substituição direta nos runs
+            for run in para.runs:
+                for k, v in substituicoes.items():
+                    if k in run.text:
+                        run.text = run.text.replace(k, str(v))
+            # Tentativa 2: placeholder dividido entre runs
+            if any(k in para.text for k in substituicoes):
+                if para.runs:
+                    r0    = para.runs[0]
+                    bold  = r0.bold
+                    italic= r0.italic
+                    fname = r0.font.name
+                    fsize = r0.font.size
+                    texto = para.text
+                    for k, v in substituicoes.items():
+                        texto = texto.replace(k, str(v))
+                    for run in para.runs:
+                        run.text = ""
+                    para.runs[0].text   = texto
+                    para.runs[0].bold   = bold
+                    para.runs[0].italic = italic
+                    if fname: para.runs[0].font.name = fname
+                    if fsize: para.runs[0].font.size = fsize
+
+        for para in doc.paragraphs:
+            _sub(para)
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        _sub(para)
+
+        out = io.BytesIO()
+        doc.save(out)
+        out.seek(0)
+        return out.getvalue()
+    except Exception as e:
+        logger.error(f"Erro ao preencher contrato: {e}")
+        return None
+
+# =============================================================================
 # GESTÃO DE DADOS
 # =============================================================================
 @st.cache_data(ttl=300, show_spinner="🔄 A sincronizar dados...")
