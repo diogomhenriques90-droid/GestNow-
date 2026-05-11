@@ -66,19 +66,28 @@ def render_inicio(*args):
     regs_7     = pd.DataFrame()
     dias_regs  = {}
 
+    # Timestamps para comparação com datetime64
+    ts_inicio_mes = pd.Timestamp(inicio_mes)
+    ts_sete_dias  = pd.Timestamp(sete_dias)
+
     if not registos_db.empty and 'Técnico' in registos_db.columns:
         ru = registos_db[registos_db['Técnico'] == user_nome].copy()
         if not ru.empty:
-            ru['Data_d']      = pd.to_datetime(ru['Data'], dayfirst=True, errors='coerce').dt.date
+            ru['Data_d']      = pd.to_datetime(ru['Data'], dayfirst=True, errors='coerce').dt.normalize()
             ru['Horas_Total'] = pd.to_numeric(ru['Horas_Total'], errors='coerce').fillna(0)
-            horas_mes         = ru[(ru['Data_d'] >= inicio_mes) & (ru['Status'] == '1')]['Horas_Total'].sum()
+            horas_mes         = ru[
+                (ru['Data_d'] >= ts_inicio_mes) & (ru['Status'] == '1')
+            ]['Horas_Total'].sum()
             horas_pend        = ru[ru['Status'] == '0']['Horas_Total'].sum()
-            regs_7            = ru[(ru['Data_d'] >= sete_dias) & (ru['Status'] == '1')].copy()
+            regs_7            = ru[
+                (ru['Data_d'] >= ts_sete_dias) & (ru['Status'] == '1')
+            ].copy()
             sp = {"4":6,"3":5,"2":4,"1":3,"0":2,"-1":1}
             for d_u in ru['Data_d'].dropna().unique():
-                rd = ru[ru['Data_d'] == d_u]
+                rd     = ru[ru['Data_d'] == pd.Timestamp(d_u)]
                 melhor = max(rd['Status'].tolist(), key=lambda s: sp.get(str(s), 0))
-                dias_regs[d_u] = str(melhor)
+                # Guardar como date para o mini-calendário
+                dias_regs[pd.Timestamp(d_u).date()] = str(melhor)
 
     # ── Header ────────────────────────────────────────────────────────
     st.markdown(
@@ -96,7 +105,7 @@ def render_inicio(*args):
         unsafe_allow_html=True
     )
 
-    # ── KPI Cards — usando markdown simples (sem grid/flex) ───────────
+    # ── KPI Cards ─────────────────────────────────────────────────────
     col_h, col_p = st.columns(2)
 
     with col_h:
@@ -111,8 +120,8 @@ def render_inicio(*args):
         )
 
     with col_p:
-        cor  = "rgba(249,115,22,0.15)" if horas_pend > 0 else "rgba(16,185,129,0.1)"
-        brd  = "rgba(249,115,22,0.4)"  if horas_pend > 0 else "rgba(16,185,129,0.3)"
+        cor = "rgba(249,115,22,0.15)" if horas_pend > 0 else "rgba(16,185,129,0.1)"
+        brd = "rgba(249,115,22,0.4)"  if horas_pend > 0 else "rgba(16,185,129,0.3)"
         st.markdown(
             f"<div style='background:{cor};border:1px solid {brd};"
             f"border-radius:14px;padding:14px 12px;text-align:left;'>"
@@ -135,8 +144,8 @@ def render_inicio(*args):
     if not registos_db.empty and 'Técnico' in registos_db.columns:
         ru2 = registos_db[registos_db['Técnico'] == user_nome]
         if not ru2.empty:
-            dc2    = pd.to_datetime(ru2['Data'], dayfirst=True, errors='coerce').dt.date
-            n_regs = int((dc2 >= inicio_mes).sum())
+            dc2    = pd.to_datetime(ru2['Data'], dayfirst=True, errors='coerce').dt.normalize()
+            n_regs = int((dc2 >= ts_inicio_mes).sum())
 
     c1, c2, c3 = st.columns(3)
     with c1: st.metric("🏭 Obras",    n_obras)
@@ -186,16 +195,17 @@ def render_inicio(*args):
         unsafe_allow_html=True
     )
 
-    dias_7    = [sete_dias + timedelta(days=i) for i in range(7)]
-    cols_cal  = st.columns(7)
+    dias_7   = [sete_dias + timedelta(days=i) for i in range(7)]
+    cols_cal = st.columns(7)
 
     for col, d in zip(cols_cal, dias_7):
         with col:
-            dot_cor  = _DOT_COLOR.get(dias_regs.get(d, ''), '')
-            eh_hoje  = d == hoje
-            num_col  = "#DC2626" if eh_hoje else "#94A3B8"
-            num_wt   = "900"     if eh_hoje else "400"
-            dl       = _DIAS_PT[(d.weekday() + 1) % 7]
+            # dias_regs tem keys como date objects
+            dot_cor = _DOT_COLOR.get(dias_regs.get(d, ''), '')
+            eh_hoje = d == hoje
+            num_col = "#DC2626" if eh_hoje else "#94A3B8"
+            num_wt  = "900"     if eh_hoje else "400"
+            dl      = _DIAS_PT[(d.weekday() + 1) % 7]
             dot_html = (
                 f"<div style='width:7px;height:7px;border-radius:50%;"
                 f"background:{dot_cor};margin:3px auto 0;'></div>"
@@ -235,7 +245,7 @@ def render_inicio(*args):
 
         for _, r in regs_7.sort_values('Data_d', ascending=False).head(5).iterrows():
             try:
-                ds = r['Data_d'].strftime('%d/%m') if hasattr(r.get('Data_d'), 'strftime') else ''
+                ds = pd.Timestamp(r['Data_d']).strftime('%d/%m')
             except:
                 ds = str(r.get('Data', ''))[:5]
 
