@@ -1,582 +1,791 @@
 import streamlit as st
 import pandas as pd
-import json
-from datetime import datetime
-from core import save_db, inv, hp, cp, log_audit, criar_notificacao, load_db, _gcs_read
-import base64
-import uuid
+import uuid, base64, json
+from datetime import datetime, date
+from io import BytesIO
 
+from core import (
+    save_db, inv, load_db, log_audit, criar_notificacao,
+    hp, _gcs_read, _gcs_write_binary, _gcs_read_binary,
+    _fill_contrato_template, ICONS
+)
+
+# ── Tipos e cargos disponíveis ────────────────────────────────────────
+TIPOS_USUARIO = ["Técnico","Instrumentista","Engenheiro","Chefe de Equipa","Admin","Cliente"]
+
+CARGOS_POR_TIPO = {
+    "Técnico":        ["Técnico Eletricista","Técnico Mecânico","Técnico Automação",
+                       "Técnico Instrumentação","Operador Especializado","Serralheiro","Outro"],
+    "Instrumentista": ["Instrumentista","Técnico Instrumentista","Instrumentista Sénior"],
+    "Engenheiro":     ["Engenheiro Eletrotécnico","Engenheiro Mecânico",
+                       "Engenheiro Automação","Engenheiro Instrumentação",
+                       "Engenheiro de Projeto"],
+    "Chefe de Equipa":["Chefe de Equipa","Encarregado","Supervisor de Obra"],
+    "Admin":          ["Administrador","Gestor RH","Gestor IT"],
+    "Cliente":        ["Gestor de Projeto","Fiscal de Obra","Responsável Técnico"],
+}
+
+# Campos do colaborador para exportação / visualização completa
+CAMPOS_PERFIL = [
+    ("Identificação",   ["Nome","NIF","NISS","CC","CC_Validade","DataNasc",
+                         "Naturalidade","Estado_Civil","Nacionalidade"]),
+    ("Contactos",       ["Telefone","Email"]),
+    ("Morada",          ["Morada","Localidade","Concelho","Codigo_Postal"]),
+    ("Emergência",      ["Nome_Emergencia","Contacto_Emergencia","Grau_Parentesco"]),
+    ("Profissional",    ["Tipo","Cargo","PrecoHora","PrecoHoraStatus",
+                         "Local_Obra","Cliente_Obra"]),
+    ("Fardamento",      ["Tamanho_Camisola","Tamanho_Calca","Tamanho_Botas"]),
+    ("Onboarding",      ["PDFs_Validados","PDFs_Validacao_Data",
+                         "PrecoHoraData","Perfil_Completo","Perfil_Data",
+                         "IBAN_Data_Upload"]),
+    ("Contrato",        ["Contrato_Gerado","Contrato_Data","Contrato_Enviado",
+                         "Contrato_Enviado_Data","Contrato_Assinado",
+                         "Contrato_Assinatura_Data","Contrato_Validado_Admin",
+                         "Contrato_Validado_Data"]),
+]
 
 def _load_users_fresh():
-    """Lê usuarios.csv SEMPRE do GCS sem cache, com strip de todos os valores."""
-    for tentativa in range(3):
+    import time
+    for t in range(3):
         try:
             buf = _gcs_read("usuarios.csv")
             if buf:
-                df = pd.read_csv(
-                    buf, dtype=str, on_bad_lines='skip', encoding='utf-8-sig'
-                )
+                df = pd.read_csv(buf, dtype=str, on_bad_lines='skip',
+                                 encoding='utf-8-sig')
                 df.columns = df.columns.str.strip()
-                # ✅ CRÍTICO: strip de todos os valores string
                 for col in df.select_dtypes(include='object').columns:
                     df[col] = df[col].str.strip()
                 return df.fillna("")
-            import time; time.sleep(0.3)
-        except Exception:
-            if tentativa == 2:
-                return pd.DataFrame()
-            import time; time.sleep(0.3)
+            time.sleep(0.3)
+        except:
+            if t == 2: return pd.DataFrame()
+            time.sleep(0.3)
     return pd.DataFrame()
 
 
-def render_rh(users, avals_db, obras_db, inst_acessos_db):
-    """Módulo de Recursos Humanos — Gestão Completa de Colaboradores"""
+def _exportar_excel_colaborador(user_row: pd.Series) -> bytes:
+    """Gera um Excel com todos os dados do colaborador."""
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        linhas = []
+        for secao, campos in CAMPOS_PERFIL:
+            linhas.append({"Secção": f"── {secao} ──", "Campo": "", "Valor": ""})
+            for campo in campos:
+                valor = user_row.get(campo, '')
+                # Não exportar dados binários
+                if campo.endswith('_b64') or campo.endswith('_b64'):
+                    valor = "(ficheiro binário)" if valor else ""
+                linhas.append({"Secção": secao, "Campo": campo, "Valor": valor})
+        df_export = pd.DataFrame(linhas)
+        df_export.to_excel(writer, index=False, sheet_name="Dados Colaborador")
 
-    cols_obrigatorias = {
-        'Nome': '', 'Password': '', 'Tipo': 'Técnico', 'Cargo': 'Técnico',
-        'Email': '', 'Telefone': '', 'Morada': '', 'Localidade': '',
-        'Concelho': '', 'Codigo_Postal': '', 'Naturalidade': '',
-        'Nacionalidade': 'Portugal', 'NIF': '', 'NISS': '', 'CC': '',
-        'CC_Validade': '', 'DataNasc': '', 'Estado_Civil': '', 'Sexo': '',
-        'Dependentes': '0', 'Profissao': '', 'Categoria_Profissional': '',
-        'Habilitacoes_Literarias': '', 'Contacto_Emergencia': '',
-        'Nome_Emergencia': '', 'Grau_Parentesco': '', 'Banco_IBAN': '',
-        'Observacoes': '', 'Tamanho_Camisola': '', 'Tamanho_Calca': '',
-        'Tamanho_Botas': '', 'Local': 'Não', 'PrecoHora': '15.0',
-        'PrecoHoraStatus': '', 'PrecoHoraData': '', 'PIN': '0000',
-        'Foto': '', 'Campos_Bloqueados': '[]', 'PDFs_Vistos': '[]',
-        'PDFs_Validados': 'Não', 'PDFs_Validacao_Data': ''
-    }
-    for col, val in cols_obrigatorias.items():
-        if col not in users.columns:
-            users[col] = val
+        # Formatar
+        ws = writer.sheets["Dados Colaborador"]
+        ws.column_dimensions['A'].width = 22
+        ws.column_dimensions['B'].width = 28
+        ws.column_dimensions['C'].width = 45
 
-    if avals_db.empty:
-        avals_db = pd.DataFrame(columns=[
-            'Data', 'Trabalhador', 'Nota_Tecnica', 'Nota_Pontualidade',
-            'Nota_Trabalho_Eq', 'Nota_Proatividade', 'Nota_Comunicacao',
-            'Media', 'Comentarios'
-        ])
+    output.seek(0)
+    return output.getvalue()
 
-    st.markdown("""
-    <style>
-    .section-title {
-        background: linear-gradient(135deg, #3B82F6, #1E40AF);
-        color: white; padding: 15px; border-radius: 10px;
-        margin: 30px 0 20px 0; font-size: 1.3rem; font-weight: bold;
-    }
-    .subsection-title {
-        background: rgba(59,130,246,0.1); border-left: 4px solid #3B82F6;
-        padding: 10px 15px; margin: 20px 0 15px 0;
-        font-size: 1.1rem; font-weight: 600;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
-    st.markdown("### 👥 Gestão de Recursos Humanos")
+def render_admin_rh(*args):
+    (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
+     sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
+     comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db,
+     inst_acessos_db) = args
 
-    tab_pessoal, tab_avaliacoes, tab_historico, tab_pdfs = st.tabs([
-        "Gestão de Pessoal", "Avaliações", "Histórico", "📄 PDFs Obrigatórios"
+    admin_nome = st.session_state.get('user', 'Admin')
+
+    st.markdown("# 👥 Recursos Humanos")
+
+    tab_lista, tab_gestao, tab_contrato, tab_template = st.tabs([
+        "👥 Colaboradores",
+        "📋 Gestão Individual",
+        "📄 Contratos",
+        "⚙️ Templates & Config",
     ])
 
-    # ══════════════════════════════════════════════════════════════════
-    # TAB PESSOAL
-    # ══════════════════════════════════════════════════════════════════
-    with tab_pessoal:
-        col1, col2 = st.columns([1, 2])
+    # ════════════════════════════════════════════════════════════════
+    # TAB 1 — LISTA DE COLABORADORES + CRIAR
+    # ════════════════════════════════════════════════════════════════
+    with tab_lista:
 
-        with col1:
-            st.markdown('<div class="section-title">➕ Novo Colaborador</div>',
-                        unsafe_allow_html=True)
-            with st.form("form_novo_colab"):
-                st.markdown("#### 📋 Identificação")
-                nome = st.text_input("Nome Completo *", key="rh_nome")
-
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    telefone       = st.text_input("Contacto *",       key="rh_tel")
-                    email          = st.text_input("Email",             key="rh_email")
-                with col_b:
-                    contacto_emerg = st.text_input("Emergência Tel.",   key="rh_emerg_tel")
-                    nome_emerg     = st.text_input("Nome Emergência",   key="rh_emerg_nome")
-                    grau_parent    = st.text_input("Grau Parentesco",   key="rh_emerg_grau")
-
-                st.markdown("#### 📍 Morada")
-                morada = st.text_input("Morada", key="rh_morada")
-                col_c, col_d, col_e = st.columns(3)
-                with col_c: localidade = st.text_input("Localidade",   key="rh_localidade")
-                with col_d: concelho   = st.text_input("Concelho",     key="rh_concelho")
-                with col_e: cod_postal = st.text_input("Cód. Postal",  key="rh_cp")
-
-                st.markdown("#### 🌍 Dados Pessoais")
-                col_f, col_g = st.columns(2)
-                with col_f:
-                    naturalidade  = st.text_input("Naturalidade",  key="rh_naturalidade")
-                    data_nasc     = st.date_input("Data Nascimento", key="rh_datanasc",
-                                                   min_value=datetime(1950, 1, 1),
-                                                   max_value=datetime.now())
-                with col_g:
-                    nacionalidade = st.text_input("Nacionalidade", value="Portugal",
-                                                   key="rh_nacionalidade")
-                    estado_civil  = st.selectbox("Estado Civil",
-                        ["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União de Facto"],
-                        key="rh_ec")
-                sexo = st.radio("Sexo", ["Masculino", "Feminino"],
-                                horizontal=True, key="rh_sexo")
-
-                st.markdown("#### 🆔 Documentos")
-                col_h, col_i = st.columns(2)
-                with col_h:
-                    nif  = st.text_input("NIF *", key="rh_nif")
-                    cc   = st.text_input("CC",    key="rh_cc")
-                    niss = st.text_input("NISS",  key="rh_niss")
-                with col_i:
-                    cc_val      = st.date_input("Validade CC", key="rh_cc_val",
-                                                 min_value=datetime.now())
-                    dependentes = st.number_input("Dependentes", min_value=0,
-                                                   value=0, key="rh_dep")
-
-                st.markdown("#### 💼 Profissional")
-                profissao    = st.text_input("Profissão",              key="rh_prof")
-                categoria    = st.text_input("Categoria Profissional", key="rh_cat")
-                habilitacoes = st.selectbox("Habilitações",
-                    ["4º Ano", "6º Ano", "9º Ano", "12º Ano",
-                     "Curso Técnico", "Licenciatura", "Mestrado", "Doutoramento"],
-                    key="rh_hab")
-
-                st.markdown("#### 💰 Bancário")
-                iban = st.text_input("IBAN", key="rh_iban",
-                                     placeholder="PT50 0000 0000 0000 00000 0000")
-
-                st.markdown("#### 👕 Fardamento")
-                col_j, col_k, col_l = st.columns(3)
-                with col_j:
-                    tam_cam  = st.selectbox("Camisola",
-                        ["XS","S","M","L","XL","XXL","XXXL"], key="rh_tam_cam")
-                with col_k:
-                    tam_calc = st.selectbox("Calça",
-                        ["XS (34/36)","S (38)","M (40/42)","L (42/44)","XL (46/48)","XXL (50/52)"],
-                        key="rh_tam_calc")
-                with col_l:
-                    tam_bot  = st.selectbox("Botas",
-                        ["40","41","42","43","44","45","Outro"], key="rh_tam_bot")
-
-                st.markdown("#### 👤 Conta")
-                tipo_u     = st.selectbox("Tipo",
-                    ["Técnico", "Chefe de Equipa", "Admin", "Comercial", "Cliente"],
-                    key="rh_tipo")
-                cargo_u    = st.selectbox("Cargo",
-                    ["Instrumentista", "Técnico de Campo", "Chefe de Equipa",
-                     "Engenheiro", "Gestor de Projeto"],
-                    key="rh_cargo")
-                local_u    = st.checkbox("É Local? (não precisa dormida)", key="rh_local")
-                preco_hora = st.number_input("Preço Hora (€)", min_value=0.0,
-                                              value=15.0, key="rh_preco")
-                password   = st.text_input("Password Inicial *", type="password",
-                                           value="gestnow123", key="rh_pass")
-                observacoes = st.text_area("Observações", key="rh_obs")
-
-                if st.form_submit_button("💾 Criar Colaborador", use_container_width=True):
-                    # ✅ Strip do nome antes de qualquer verificação
-                    nome_clean = nome.strip() if nome else ""
-
-                    if nome_clean and telefone and nif and password:
-                        # ✅ CRÍTICO: ler estado fresco do GCS antes de guardar
-                        with st.spinner("A verificar base de dados..."):
-                            users_live = _load_users_fresh()
-
-                        if users_live.empty:
-                            st.error("❌ Não foi possível aceder à base de dados. Tenta novamente.")
-                        else:
-                            # Verificar se já existe (com strip em ambos os lados)
-                            nomes_existentes = users_live['Nome'].str.strip().str.lower().tolist() if 'Nome' in users_live.columns else []
-
-                            if nome_clean.lower() in nomes_existentes:
-                                st.error(f"❌ Já existe um colaborador com o nome '{nome_clean}'!")
-                            else:
-                                # ✅ Guardar nome com strip para evitar espaços invisíveis
-                                new_user = pd.DataFrame([{
-                                    "Nome":                 nome_clean,
-                                    "Password":             hp(password.strip()),
-                                    "Tipo":                 tipo_u,
-                                    "Cargo":                cargo_u,
-                                    "Email":                email.strip(),
-                                    "Telefone":             telefone.strip(),
-                                    "Morada":               morada.strip(),
-                                    "Localidade":           localidade.strip(),
-                                    "Concelho":             concelho.strip(),
-                                    "Codigo_Postal":        cod_postal.strip(),
-                                    "Naturalidade":         naturalidade.strip(),
-                                    "Nacionalidade":        nacionalidade.strip(),
-                                    "NIF":                  nif.strip(),
-                                    "NISS":                 niss.strip(),
-                                    "CC":                   cc.strip(),
-                                    "CC_Validade":          cc_val.strftime("%d/%m/%Y") if cc_val else "",
-                                    "DataNasc":             data_nasc.strftime("%d/%m/%Y"),
-                                    "Estado_Civil":         estado_civil,
-                                    "Sexo":                 sexo,
-                                    "Dependentes":          str(dependentes),
-                                    "Profissao":            profissao.strip(),
-                                    "Categoria_Profissional": categoria.strip(),
-                                    "Habilitacoes_Literarias": habilitacoes,
-                                    "Contacto_Emergencia":  contacto_emerg.strip(),
-                                    "Nome_Emergencia":      nome_emerg.strip(),
-                                    "Grau_Parentesco":      grau_parent.strip(),
-                                    "Banco_IBAN":           iban.strip(),
-                                    "Observacoes":          observacoes.strip(),
-                                    "Tamanho_Camisola":     tam_cam,
-                                    "Tamanho_Calca":        tam_calc,
-                                    "Tamanho_Botas":        tam_bot,
-                                    "Local":                "Sim" if local_u else "Não",
-                                    "PrecoHora":            str(preco_hora),
-                                    "PrecoHoraStatus":      "",
-                                    "PrecoHoraData":        "",
-                                    "PIN":                  "0000",
-                                    "Foto":                 "",
-                                    "Campos_Bloqueados":    json.dumps([]),
-                                    "PDFs_Vistos":          json.dumps([]),
-                                    "PDFs_Validados":       "Não",
-                                    "PDFs_Validacao_Data":  ""
-                                }])
-
-                                # ✅ Concatenar com dados frescos do GCS
-                                updated   = pd.concat([users_live, new_user], ignore_index=True)
-                                resultado = save_db(updated, "usuarios.csv")
-
-                                if resultado:
-                                    log_audit(
-                                        usuario=st.session_state.user,
-                                        acao="CRIAR_COLABORADOR",
-                                        tabela="usuarios.csv",
-                                        registro_id=nome_clean,
-                                        detalhes=f"Novo colaborador criado: {nome_clean}",
-                                        ip=""
-                                    )
-                                    inv()
-                                    st.success(f"✅ {nome_clean} criado com sucesso!")
-                                    st.info(f"🔑 Password inicial: `{password.strip()}`")
-                                    st.rerun()
-                                else:
-                                    st.error("❌ Erro ao guardar no GCS. Verifica as permissões.")
-                    else:
-                        st.error("❌ Nome, Telefone, NIF e password são obrigatórios!")
-
-        with col2:
-            st.markdown('<div class="section-title">👥 Lista de Colaboradores</div>',
-                        unsafe_allow_html=True)
-
-            # ✅ Mostrar SEMPRE dados frescos do GCS
-            users_display = _load_users_fresh()
-            if users_display.empty:
-                users_display = users.copy()
-                st.warning("⚠️ A mostrar dados em cache. Pode não refletir alterações recentes.")
-
-            if not users_display.empty:
-                cols_vis = [c for c in
-                    ['Nome', 'Tipo', 'Cargo', 'Telefone', 'Email', 'NIF', 'Local', 'PrecoHora']
-                    if c in users_display.columns]
-                st.dataframe(users_display[cols_vis], use_container_width=True)
-
-                st.divider()
-                st.markdown("### Gestão Individual")
-
-                for idx, user in users_display.iterrows():
-                    nome_user = str(user.get('Nome', f'Utilizador_{idx}')).strip()
-
-                    # ✅ CORRIGIDO: sem key= no expander
-                    with st.expander(f"👤 {nome_user} — {user.get('Cargo', 'N/A')}"):
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            st.write(f"**Email:** {user.get('Email', 'N/A')}")
-                            st.write(f"**Telefone:** {user.get('Telefone', 'N/A')}")
-                            st.write(f"**NIF:** {user.get('NIF', 'N/A')}")
-                            st.write(f"**Morada:** {user.get('Morada', 'N/A')}")
-                        with c2:
-                            st.write(f"**Tipo:** {user.get('Tipo', 'N/A')}")
-                            st.write(f"**Cargo:** {user.get('Cargo', 'N/A')}")
-                            st.write(f"**Preço Hora:** € {user.get('PrecoHora', '15.0')}")
-
-                        preco_status = user.get('PrecoHoraStatus', '')
-                        if preco_status == 'Aceite':
-                            st.success(f"✅ Preço Hora ACEITE em {user.get('PrecoHoraData', 'N/A')}")
-                        elif preco_status == 'Recusado':
-                            st.error(f"❌ Preço Hora RECUSADO em {user.get('PrecoHoraData', 'N/A')}")
-                        else:
-                            st.warning("⏳ Preço Hora AGUARDANDO validação")
-
-                        pdfs_val = user.get('PDFs_Validados', 'Não')
-                        if pdfs_val == 'Sim':
-                            st.success(f"✅ PDFs validados em {user.get('PDFs_Validacao_Data', 'N/A')}")
-                        else:
-                            st.warning("⏳ PDFs AGUARDANDO visualização")
-
-                        # ── Gestão de Password ─────────────────────────
-                        if st.session_state.get('tipo') == 'Admin':
-                            st.divider()
-                            st.markdown("**🔐 Resetar Password**")
-                            col_p1, col_p2 = st.columns(2)
-                            with col_p1:
-                                st.info("⚠️ Por segurança a password não é visível")
-                            with col_p2:
-                                nova_pwd = st.text_input(
-                                    "Nova password", type="password",
-                                    key=f"new_pwd_{idx}"
-                                )
-                                if st.button("🔄 Resetar", key=f"btn_reset_{idx}"):
-                                    if not nova_pwd:
-                                        st.warning("⚠️ Escreve a nova password.")
-                                    elif len(nova_pwd.strip()) < 4:
-                                        st.error("❌ Mínimo 4 caracteres.")
-                                    else:
-                                        # ✅ Ler fresco do GCS antes de guardar
-                                        users_live = _load_users_fresh()
-                                        if not users_live.empty:
-                                            mask = users_live['Nome'].str.strip() == nome_user
-                                            if mask.any():
-                                                users_live.loc[mask, 'Password'] = hp(nova_pwd.strip())
-                                                resultado = save_db(users_live, "usuarios.csv")
-                                                if resultado:
-                                                    inv()
-                                                    log_audit(
-                                                        usuario=st.session_state.user,
-                                                        acao="RESETAR_PASSWORD_ADMIN",
-                                                        tabela="usuarios.csv",
-                                                        registro_id=nome_user,
-                                                        detalhes=f"Password de {nome_user} resetada",
-                                                        ip=""
-                                                    )
-                                                    st.success(f"✅ Password de {nome_user} atualizada!")
-                                                    st.rerun()
-                                                else:
-                                                    st.error("❌ Erro ao guardar no GCS.")
-                                            else:
-                                                st.error(f"❌ {nome_user} não encontrado no GCS.")
-                                        else:
-                                            st.error("❌ Erro ao aceder à base de dados.")
-
-                        # ── Ações ──────────────────────────────────────
-                        col_a, col_b, col_c = st.columns(3)
-                        with col_a:
-                            if st.button("✏️ Editar", key=f"edit_{idx}"):
-                                st.info("Vai ao Perfil do colaborador para edição.")
-                        with col_b:
-                            if st.button("📊 Avaliar", key=f"eval_{idx}"):
-                                st.session_state['avaliar_user'] = nome_user
-                                st.rerun()
-                        with col_c:
-                            if st.button("🗑️ Dispensar", key=f"del_{idx}", type="secondary"):
-                                if st.session_state.get('user') != nome_user:
-                                    users_live = _load_users_fresh()
-                                    if not users_live.empty:
-                                        users_live = users_live[
-                                            users_live['Nome'].str.strip() != nome_user
-                                        ]
-                                        resultado = save_db(users_live, "usuarios.csv")
-                                        if resultado:
-                                            inv()
-                                            log_audit(
-                                                usuario=st.session_state.user,
-                                                acao="DISPENSAR_COLABORADOR",
-                                                tabela="usuarios.csv",
-                                                registro_id=nome_user,
-                                                detalhes=f"Dispensado: {nome_user}",
-                                                ip=""
-                                            )
-                                            st.success("✅ Colaborador dispensado!")
-                                            st.rerun()
-                                        else:
-                                            st.error("❌ Erro ao guardar no GCS.")
-                                else:
-                                    st.error("❌ Não pode eliminar o seu próprio utilizador!")
-            else:
-                st.info("📋 Sem colaboradores registados.")
-
-    # ══════════════════════════════════════════════════════════════════
-    # TAB AVALIAÇÕES
-    # ══════════════════════════════════════════════════════════════════
-    with tab_avaliacoes:
-        st.markdown("### 📊 Avaliações de Desempenho")
-
-        users_aval = _load_users_fresh()
-        if users_aval.empty:
-            users_aval = users.copy()
-
-        if not users_aval.empty and 'Nome' in users_aval.columns:
-            trabalhador_sel = st.selectbox(
-                "Selecionar Trabalhador",
-                users_aval['Nome'].str.strip().tolist(),
-                key="avalia_trab"
-            )
-            aval_trab = (
-                avals_db[avals_db['Trabalhador'] == trabalhador_sel]
-                if 'Trabalhador' in avals_db.columns else pd.DataFrame()
-            )
-
-            col1, col2 = st.columns(2)
-            with col1:
-                nota_tec   = st.slider("Competência Técnica",  1, 10, 5, key="nota_tec")
-                nota_pont  = st.slider("Pontualidade",          1, 10, 5, key="nota_pont")
-                nota_eq    = st.slider("Trabalho em Equipa",    1, 10, 5, key="nota_eq")
-            with col2:
-                nota_proat = st.slider("Proatividade",          1, 10, 5, key="nota_proat")
-                nota_com   = st.slider("Comunicação",           1, 10, 5, key="nota_com")
-                comentarios = st.text_area("Comentários",       key="avalia_coment")
-
-            if st.button("💾 Guardar Avaliação", key="btn_avalia"):
-                media = (nota_tec + nota_pont + nota_eq + nota_proat + nota_com) / 5
-                nova_av = pd.DataFrame([{
-                    "Data":             datetime.now().strftime("%d/%m/%Y"),
-                    "Trabalhador":      trabalhador_sel,
-                    "Nota_Tecnica":     nota_tec,
-                    "Nota_Pontualidade":nota_pont,
-                    "Nota_Trabalho_Eq": nota_eq,
-                    "Nota_Proatividade":nota_proat,
-                    "Nota_Comunicacao": nota_com,
-                    "Media":            round(media, 2),
-                    "Comentarios":      comentarios
-                }])
-                avals_db = pd.concat([avals_db, nova_av], ignore_index=True)
-                save_db(avals_db, "avaliacoes.csv")
-                log_audit(
-                    usuario=st.session_state.user,
-                    acao="AVALIAR_COLABORADOR",
-                    tabela="avaliacoes.csv",
-                    registro_id=trabalhador_sel,
-                    detalhes=f"Média: {round(media, 2)}",
-                    ip=""
-                )
-                inv()
-                st.success("✅ Avaliação guardada!")
+        col_titulo, col_btn = st.columns([4, 1])
+        with col_titulo:
+            st.markdown("### 👥 Todos os Colaboradores")
+        with col_btn:
+            if st.button("➕ Novo", key="btn_novo_colab",
+                          type="primary", use_container_width=True):
+                st.session_state['show_criar_colab'] = True
                 st.rerun()
 
-            if not aval_trab.empty:
-                st.divider()
-                st.markdown("### Histórico de Avaliações")
-                st.dataframe(aval_trab, use_container_width=True)
-        else:
-            st.warning("⚠️ Não existem utilizadores para avaliar.")
+        users_live = _load_users_fresh()
 
-    # ══════════════════════════════════════════════════════════════════
-    # TAB HISTÓRICO
-    # ══════════════════════════════════════════════════════════════════
-    with tab_historico:
-        st.markdown("### 📜 Histórico de Trabalhadores")
-        st.info("Funcionalidade em desenvolvimento...")
+        # ── Formulário de criação ─────────────────────────────────
+        if st.session_state.get('show_criar_colab', False):
+            st.markdown("---")
+            st.markdown("#### ➕ Criar Novo Colaborador")
 
-    # ══════════════════════════════════════════════════════════════════
-    # TAB PDFs OBRIGATÓRIOS
-    # ══════════════════════════════════════════════════════════════════
-    with tab_pdfs:
-        st.markdown("### 📄 Gestão de PDFs Obrigatórios")
-        st.info("""
-        **Instruções:**
-        1. Faz upload dos PDFs obrigatórios
-        2. Os colaboradores visualizam no perfil e devem validar TODOS
-        3. Recebes notificação quando validarem
-        4. **Dia 1 de cada mês → todos validam novamente**
-        5. **PDF novo adicionado → todos validam novamente**
-        """)
+            with st.form("form_criar_colab"):
+                st.markdown("**Dados obrigatórios**")
+                c1, c2 = st.columns(2)
+                with c1:
+                    novo_nome = st.text_input("Nome Completo *",
+                        key="nc_nome", placeholder="Nome completo")
+                    novo_tipo = st.selectbox("Tipo de Acesso *",
+                        TIPOS_USUARIO, key="nc_tipo")
+                with c2:
+                    novo_tel  = st.text_input("Contacto *",
+                        key="nc_tel", placeholder="9XXXXXXXX")
+                    novo_pwd  = st.text_input("Password *",
+                        key="nc_pwd", type="password",
+                        placeholder="Mínimo 4 caracteres")
 
-        try:
-            pdfs_db = load_db("pdfs_obrigatorios.csv", [
-                "ID", "Nome", "Descricao", "Data_Upload", "Upload_Por", "Ficheiro_b64"
-            ])
-        except:
-            pdfs_db = pd.DataFrame(columns=[
-                "ID", "Nome", "Descricao", "Data_Upload", "Upload_Por", "Ficheiro_b64"
-            ])
+                # Cargo dinâmico baseado no tipo
+                cargos_disp = CARGOS_POR_TIPO.get(novo_tipo, ["Outro"])
+                novo_cargo  = st.selectbox("Cargo / Função *",
+                    cargos_disp, key="nc_cargo")
 
-        st.markdown("#### 📋 PDFs Atuais")
-        if not pdfs_db.empty:
-            st.success(f"✅ {len(pdfs_db)} PDF(s) obrigatório(s) carregado(s)")
-            for idx, pdf in pdfs_db.iterrows():
-                with st.expander(
-                    f"📄 {pdf.get('Nome', 'PDF')} — {pdf.get('Data_Upload', 'N/A')}",
-                    expanded=True
-                ):
-                    st.write(f"**Descrição:** {pdf.get('Descricao', 'N/A')}")
-                    st.write(f"**Upload por:** {pdf.get('Upload_Por', 'N/A')}")
-                    if pdf.get('Ficheiro_b64'):
-                        try:
-                            pdf_data = base64.b64decode(pdf['Ficheiro_b64'])
-                            st.download_button(
-                                "📥 Descarregar PDF", pdf_data,
-                                f"{pdf.get('Nome', 'documento')}.pdf",
-                                "application/pdf",
-                                key=f"dl_pdf_{idx}"
-                            )
-                        except:
-                            st.error("❌ Erro ao descarregar PDF")
-                    if st.button("🗑️ Eliminar PDF", key=f"del_pdf_{idx}", type="secondary"):
-                        pdfs_db = pdfs_db.drop(idx)
-                        save_db(pdfs_db, "pdfs_obrigatorios.csv")
-                        inv()
-                        st.success("✅ PDF eliminado!")
-                        st.rerun()
-        else:
-            st.warning("📋 Nenhum PDF obrigatório carregado ainda.")
+                st.markdown("**Dados da Obra** *(obrigatório para contrato)*")
+                c3, c4 = st.columns(2)
+                with c3:
+                    novo_local  = st.text_input("Local da Obra *",
+                        key="nc_local",
+                        placeholder="Ex: Refinaria de Sines")
+                with c4:
+                    novo_cliente = st.text_input("Cliente *",
+                        key="nc_cliente",
+                        placeholder="Ex: GALP Energia")
 
-        st.divider()
-        st.markdown("#### ➕ Upload de Novo PDF")
-        with st.form("form_upload_pdf"):
-            col1, col2 = st.columns(2)
-            with col1:
-                nome_pdf = st.text_input("Nome do Documento",
-                    placeholder="Ex: Regulamento Interno")
-                desc_pdf = st.text_area("Descrição",
-                    placeholder="Ex: Regulamento interno da empresa")
-            with col2:
-                fich_pdf = st.file_uploader("📄 Ficheiro PDF", type=["pdf"])
+                st.markdown("**Dados opcionais**")
+                c5, c6 = st.columns(2)
+                with c5:
+                    novo_nif    = st.text_input("NIF (opcional na criação)",
+                        key="nc_nif")
+                    novo_preco  = st.number_input("Preço Hora (€)",
+                        min_value=0.0, value=15.0, step=0.5,
+                        key="nc_preco")
+                with c6:
+                    novo_email  = st.text_input("Email",
+                        key="nc_email",
+                        placeholder="colaborador@email.com")
 
-            if st.form_submit_button("📤 Upload de PDF", use_container_width=True, type="primary"):
-                if nome_pdf and fich_pdf:
-                    pdf_b64  = base64.b64encode(fich_pdf.read()).decode()
-                    novo_pdf = pd.DataFrame([{
-                        "ID":          str(uuid.uuid4())[:8].upper(),
-                        "Nome":        nome_pdf.strip(),
-                        "Descricao":   desc_pdf.strip() if desc_pdf else "",
-                        "Data_Upload": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                        "Upload_Por":  st.session_state.user,
-                        "Ficheiro_b64":pdf_b64
-                    }])
-                    pdfs_db = pd.concat([pdfs_db, novo_pdf], ignore_index=True) if not pdfs_db.empty else novo_pdf
-                    save_db(pdfs_db, "pdfs_obrigatorios.csv")
-
-                    # ✅ Resetar validações usando dados frescos
-                    users_live = _load_users_fresh()
-                    if not users_live.empty:
-                        for idx_u in users_live.index:
-                            users_live.loc[idx_u, 'PDFs_Validados']      = 'Não'
-                            users_live.loc[idx_u, 'PDFs_Vistos']         = json.dumps([])
-                            users_live.loc[idx_u, 'PDFs_Validacao_Data'] = ''
-                        save_db(users_live, "usuarios.csv")
-
-                    log_audit(
-                        usuario=st.session_state.user,
-                        acao="UPLOAD_PDF_OBRIGATORIO",
-                        tabela="pdfs_obrigatorios.csv",
-                        registro_id=novo_pdf['ID'].iloc[0],
-                        detalhes=f"PDF: {nome_pdf}. Reset validações de todos os colaboradores",
-                        ip=""
+                c_sub, c_can = st.columns(2)
+                with c_sub:
+                    submitted = st.form_submit_button(
+                        "💾 Criar Colaborador",
+                        use_container_width=True, type="primary"
+                    )
+                with c_can:
+                    cancelar = st.form_submit_button(
+                        "✕ Cancelar", use_container_width=True
                     )
 
-                    notificados = 0
-                    users_notif = _load_users_fresh()
-                    if not users_notif.empty:
-                        for _, u in users_notif.iterrows():
-                            if u.get('Tipo', '') != 'Admin':
-                                criar_notificacao(
-                                    destinatario=u.get('Nome', ''),
-                                    titulo="📄 Novo Documento Obrigatório",
-                                    mensagem=f"Novo documento: {nome_pdf}. Valida no teu perfil.",
-                                    tipo="warning",
-                                    acao_url="/tecnico"
-                                )
-                                notificados += 1
+            if cancelar:
+                st.session_state['show_criar_colab'] = False
+                st.rerun()
 
-                    inv()
-                    st.success(f"✅ PDF '{nome_pdf}' carregado!")
-                    st.info(f"🔄 {notificados} colaboradores notificados.")
+            if submitted:
+                erros = []
+                if not novo_nome.strip():   erros.append("Nome Completo")
+                if not novo_tel.strip():    erros.append("Contacto")
+                if not novo_pwd.strip() or len(novo_pwd.strip()) < 4:
+                    erros.append("Password (mínimo 4 caracteres)")
+                if not novo_local.strip():  erros.append("Local da Obra")
+                if not novo_cliente.strip():erros.append("Cliente")
+
+                if erros:
+                    st.error(f"❌ Campos obrigatórios em falta: {', '.join(erros)}")
+                else:
+                    # Verificar nome duplicado
+                    if not users_live.empty and \
+                       novo_nome.strip() in users_live['Nome'].values:
+                        st.error(f"❌ Já existe um colaborador com o nome '{novo_nome.strip()}'")
+                    else:
+                        novo_id  = str(uuid.uuid4())[:8].upper()
+                        pwd_hash = hp(novo_pwd.strip())
+
+                        novo_row = {
+                            "ID": novo_id,
+                            "Nome": novo_nome.strip(),
+                            "Tipo": novo_tipo,
+                            "Cargo": novo_cargo,
+                            "Contacto": novo_tel.strip(),
+                            "Telefone": novo_tel.strip(),
+                            "Password": pwd_hash,
+                            "NIF": novo_nif.strip(),
+                            "Email": novo_email.strip(),
+                            "PrecoHora": str(novo_preco),
+                            "PrecoHoraStatus": "",
+                            "Local_Obra": novo_local.strip(),
+                            "Cliente_Obra": novo_cliente.strip(),
+                            "PDFs_Validados": "Não",
+                            "Perfil_Completo": "",
+                            "Contrato_Gerado": "",
+                            "Data_Criacao": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        }
+
+                        nova_df = pd.DataFrame([novo_row])
+                        updated = pd.concat(
+                            [users_live, nova_df], ignore_index=True
+                        ) if not users_live.empty else nova_df
+
+                        save_db(updated, "usuarios.csv")
+                        inv()
+                        log_audit(usuario=admin_nome,
+                                  acao="CRIAR_COLABORADOR",
+                                  tabela="usuarios.csv",
+                                  registro_id=novo_id,
+                                  detalhes=f"Criado: {novo_nome.strip()} "
+                                           f"({novo_tipo} / {novo_cargo})",
+                                  ip="")
+
+                        st.success(f"✅ Colaborador **{novo_nome.strip()}** criado com sucesso!")
+                        st.session_state['show_criar_colab'] = False
+                        inv()
+                        st.rerun()
+
+        # ── Tabela de colaboradores ───────────────────────────────
+        if not users_live.empty:
+            st.markdown(f"**{len(users_live)} colaborador(es)**")
+
+            # Filtros
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                filtro_tipo = st.selectbox("Filtrar por tipo",
+                    ["Todos"] + TIPOS_USUARIO, key="rh_filtro_tipo")
+            with col_f2:
+                filtro_nome = st.text_input("Pesquisar nome",
+                    key="rh_filtro_nome", placeholder="Nome...")
+
+            df_show = users_live.copy()
+            if filtro_tipo != "Todos":
+                df_show = df_show[df_show['Tipo'] == filtro_tipo]
+            if filtro_nome:
+                df_show = df_show[
+                    df_show['Nome'].str.contains(filtro_nome, case=False, na=False)
+                ]
+
+            for _, row in df_show.iterrows():
+                nome_c    = row.get('Nome','')
+                tipo_c    = row.get('Tipo','')
+                cargo_c   = row.get('Cargo','')
+                estado_pdf = "✅" if row.get('PDFs_Validados','') == 'Sim' else "⏳"
+                estado_pfx = "✅" if row.get('Perfil_Completo','') == 'Sim' else "⏳"
+                estado_iban= "✅" if row.get('IBAN_Comprovativo_b64','') else "⏳"
+                estado_ct  = "✅" if row.get('Contrato_Validado_Admin','') == 'Sim' \
+                             else "🔵" if row.get('Contrato_Assinado','') == 'Sim' \
+                             else "📄" if row.get('Contrato_Gerado','') == 'Sim' \
+                             else "⬜"
+
+                col_info, col_sel = st.columns([5, 1])
+                with col_info:
+                    st.markdown(
+                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"padding:12px 16px;margin-bottom:6px;'>"
+                        f"<b style='color:#F1F5F9;'>{nome_c}</b> "
+                        f"<span style='color:#64748B;font-size:0.8rem;'>"
+                        f"· {tipo_c} · {cargo_c}</span><br>"
+                        f"<span style='font-size:0.75rem;color:#94A3B8;'>"
+                        f"PDFs {estado_pdf} &nbsp; Perfil {estado_pfx} &nbsp; "
+                        f"IBAN {estado_iban} &nbsp; Contrato {estado_ct}</span>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+                with col_sel:
+                    if st.button("📋", key=f"sel_{nome_c}",
+                                  use_container_width=True,
+                                  help="Gerir colaborador"):
+                        st.session_state['rh_colaborador_sel'] = nome_c
+                        st.rerun()
+        else:
+            st.info("Sem colaboradores registados.")
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 2 — GESTÃO INDIVIDUAL
+    # ════════════════════════════════════════════════════════════════
+    with tab_gestao:
+        users_live2 = _load_users_fresh()
+
+        if users_live2.empty:
+            st.info("Sem colaboradores.")
+            return
+
+        # Seletor
+        nomes = users_live2['Nome'].tolist()
+        sel_default = 0
+        colab_sel   = st.session_state.get('rh_colaborador_sel', '')
+        if colab_sel in nomes:
+            sel_default = nomes.index(colab_sel)
+
+        nome_sel = st.selectbox("Selecionar Colaborador",
+            nomes, index=sel_default, key="rh_gestao_sel")
+        st.session_state['rh_colaborador_sel'] = nome_sel
+
+        match = users_live2[users_live2['Nome'] == nome_sel]
+        if match.empty:
+            st.warning("Colaborador não encontrado.")
+            return
+        row = match.iloc[0]
+
+        # ── Cabeçalho do colaborador ──────────────────────────────
+        st.markdown(
+            f"<div style='background:#1E293B;border-radius:14px;"
+            f"padding:16px;margin-bottom:16px;border:1px solid #334155;'>"
+            f"<p style='color:#F1F5F9;font-size:1.2rem;font-weight:900;margin:0;'>"
+            f"{nome_sel}</p>"
+            f"<p style='color:#64748B;font-size:0.85rem;margin:3px 0 0;'>"
+            f"{row.get('Tipo','')} · {row.get('Cargo','')} · "
+            f"{row.get('Local_Obra','')} → {row.get('Cliente_Obra','')}</p>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+
+        # ── Exportar Excel ────────────────────────────────────────
+        excel_bytes = _exportar_excel_colaborador(row)
+        st.download_button(
+            "📥 Exportar dados em Excel",
+            data=excel_bytes,
+            file_name=f"colaborador_{nome_sel.replace(' ','_')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="btn_export_excel"
+        )
+
+        st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+
+        # ── Todos os dados por secções ────────────────────────────
+        for secao, campos in CAMPOS_PERFIL:
+            tem_dados = any(
+                row.get(c,'') and not c.endswith('_b64')
+                for c in campos
+            )
+            with st.expander(f"📂 {secao}", expanded=(secao == "Identificação")):
+                c_left, c_right = st.columns(2)
+                for i, campo in enumerate(campos):
+                    valor = row.get(campo, '')
+                    if campo.endswith('_b64'):
+                        valor = "✅ Ficheiro presente" if valor else "❌ Não submetido"
+                    elif not valor:
+                        valor = "—"
+                    col_use = c_left if i % 2 == 0 else c_right
+                    with col_use:
+                        st.markdown(
+                            f"<p style='color:#94A3B8;font-size:0.72rem;"
+                            f"margin:0;text-transform:uppercase;'>{campo}</p>"
+                            f"<p style='color:#F1F5F9;font-size:0.9rem;"
+                            f"font-weight:600;margin:0 0 10px;'>{valor}</p>",
+                            unsafe_allow_html=True
+                        )
+
+        # ── Download Comprovativo IBAN ────────────────────────────
+        st.markdown("---")
+        st.markdown("#### 🏦 Comprovativo IBAN")
+        iban_b64 = row.get('IBAN_Comprovativo_b64', '')
+        iban_data = row.get('IBAN_Data_Upload', '')
+        if iban_b64:
+            st.success(f"✅ Comprovativo submetido em {iban_data}")
+            try:
+                iban_bytes = base64.b64decode(iban_b64)
+                st.download_button(
+                    "📥 Descarregar Comprovativo IBAN",
+                    data=iban_bytes,
+                    file_name=f"iban_{nome_sel.replace(' ','_')}.pdf",
+                    mime="application/octet-stream",
+                    key="btn_dl_iban"
+                )
+            except:
+                st.error("Erro ao processar o ficheiro IBAN.")
+        else:
+            st.warning("⏳ Colaborador ainda não submeteu o comprovativo bancário.")
+
+        # ── Bloquear/Desbloquear campos ───────────────────────────
+        st.markdown("---")
+        st.markdown("#### 🔒 Campos Bloqueados")
+        try:
+            campos_bl = json.loads(row.get('Campos_Bloqueados', '[]'))
+        except:
+            campos_bl = []
+
+        todos_bloqueáveis = ["NIF","CC","NISS","Morada","Localidade",
+                             "Banco_IBAN","Email","Telefone"]
+        novos_bl = st.multiselect(
+            "Selecionar campos que o colaborador NÃO pode editar:",
+            todos_bloqueáveis, default=campos_bl,
+            key="rh_campos_bl"
+        )
+        if st.button("💾 Guardar Bloqueios",
+                      key="btn_guardar_bloqueios"):
+            u_fresh = _load_users_fresh()
+            mask    = u_fresh['Nome'] == nome_sel
+            if mask.any():
+                u_fresh.loc[mask, 'Campos_Bloqueados'] = json.dumps(novos_bl)
+                save_db(u_fresh, "usuarios.csv")
+                inv()
+                st.success("✅ Campos bloqueados atualizados.")
+                st.rerun()
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 3 — CONTRATOS
+    # ════════════════════════════════════════════════════════════════
+    with tab_contrato:
+        users_ct = _load_users_fresh()
+        if users_ct.empty:
+            st.info("Sem colaboradores.")
+            return
+
+        nomes_ct    = users_ct['Nome'].tolist()
+        colab_ct    = st.session_state.get('rh_colaborador_sel', nomes_ct[0])
+        idx_ct      = nomes_ct.index(colab_ct) if colab_ct in nomes_ct else 0
+        nome_ct_sel = st.selectbox("Colaborador",
+            nomes_ct, index=idx_ct, key="ct_colab_sel")
+
+        match_ct = users_ct[users_ct['Nome'] == nome_ct_sel]
+        if match_ct.empty:
+            st.warning("Colaborador não encontrado.")
+            return
+        row_ct = match_ct.iloc[0]
+
+        # ── Estado do contrato ────────────────────────────────────
+        ct_gerado    = row_ct.get('Contrato_Gerado','')    == 'Sim'
+        ct_enviado   = row_ct.get('Contrato_Enviado','')   == 'Sim'
+        ct_assinado  = row_ct.get('Contrato_Assinado','')  == 'Sim'
+        ct_validado  = row_ct.get('Contrato_Validado_Admin','') == 'Sim'
+
+        passos_ct = [
+            ("📄 Gerado",    ct_gerado,   row_ct.get('Contrato_Data','')),
+            ("📤 Enviado",   ct_enviado,  row_ct.get('Contrato_Enviado_Data','')),
+            ("✍️ Assinado",  ct_assinado, row_ct.get('Contrato_Assinatura_Data','')),
+            ("✅ Validado",  ct_validado, row_ct.get('Contrato_Validado_Data','')),
+        ]
+
+        col_ps = st.columns(4)
+        for col_p, (label, feito, data_p) in zip(col_ps, passos_ct):
+            with col_p:
+                cor_p = "#10B981" if feito else "#334155"
+                st.markdown(
+                    f"<div style='background:{cor_p}22;border:2px solid {cor_p};"
+                    f"border-radius:10px;padding:10px;text-align:center;'>"
+                    f"<p style='color:{cor_p};font-weight:700;"
+                    f"font-size:0.8rem;margin:0;'>{label}</p>"
+                    f"<p style='color:#64748B;font-size:0.68rem;margin:3px 0 0;'>"
+                    f"{data_p or '—'}</p>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+
+        st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
+
+        # ── Verificar dados completos ─────────────────────────────
+        campos_necessarios = ["NIF","NISS","CC","CC_Validade","Morada"]
+        dados_em_falta = [c for c in campos_necessarios
+                          if not row_ct.get(c,'').strip()]
+
+        if dados_em_falta:
+            st.warning(
+                f"⚠️ Perfil incompleto para gerar contrato. "
+                f"Em falta: **{', '.join(dados_em_falta)}**"
+            )
+
+        # ── PASSO 1: Gerar contrato ───────────────────────────────
+        if not ct_gerado:
+            template_ok = _gcs_read_binary("contrato_template.docx") is not None
+
+            if not template_ok:
+                st.error("❌ Template do contrato não encontrado. "
+                         "Faz upload do template no separador '⚙️ Templates'.")
+            else:
+                st.markdown("#### 📄 Gerar Contrato")
+                st.info(
+                    "Os dados pessoais são preenchidos automaticamente "
+                    "a partir do perfil do colaborador."
+                )
+
+                with st.form("form_gerar_ct"):
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        ct_local = st.text_input(
+                            "Local da obra *",
+                            value=row_ct.get('Local_Obra',''),
+                            key="ct_local"
+                        )
+                        ct_data_inicio = st.date_input(
+                            "Data de início *",
+                            value=date.today(), key="ct_data_ini"
+                        )
+                    with c2:
+                        ct_cliente = st.text_input(
+                            "Cliente *",
+                            value=row_ct.get('Cliente_Obra',''),
+                            key="ct_cliente"
+                        )
+                        ct_data_doc = st.date_input(
+                            "Data do documento",
+                            value=date.today(), key="ct_data_doc"
+                        )
+
+                    if st.form_submit_button("📄 Gerar Contrato",
+                        use_container_width=True, type="primary"):
+                        if not ct_local or not ct_cliente:
+                            st.error("❌ Local e Cliente são obrigatórios.")
+                        else:
+                            morada_completa = " ".join(filter(None, [
+                                row_ct.get('Morada',''),
+                                row_ct.get('Localidade',''),
+                                row_ct.get('Codigo_Postal','')
+                            ]))
+
+                            subs = {
+                                "{{nome}}":                         row_ct.get('Nome',''),
+                                "{{morada}}":                       morada_completa,
+                                "{{NIF}}":                          row_ct.get('NIF',''),
+                                "{{NISS}}":                         row_ct.get('NISS',''),
+                                "{{número de cartão de cidadão}}":  row_ct.get('CC',''),
+                                "{{validade do cartão de cidadão}}":row_ct.get('CC_Validade',''),
+                                "{{categoria profissional}}":       row_ct.get('Cargo',''),
+                                "{{local}}":                        ct_local,
+                                "{{Cliente}}":                      ct_cliente,
+                                "{{data}}":                         ct_data_doc.strftime("%d de %B de %Y"),
+                                "4 de Março de 2026":               ct_data_inicio.strftime("%d de %B de %Y"),
+                            }
+
+                            docx_bytes = _fill_contrato_template(subs)
+                            if docx_bytes:
+                                docx_b64 = base64.b64encode(docx_bytes).decode()
+                                u_ct = _load_users_fresh()
+                                mask = u_ct['Nome'] == nome_ct_sel
+                                if mask.any():
+                                    u_ct.loc[mask, 'Contrato_Gerado']  = 'Sim'
+                                    u_ct.loc[mask, 'Contrato_Data']    = \
+                                        datetime.now().strftime("%d/%m/%Y %H:%M")
+                                    u_ct.loc[mask, 'Contrato_b64']     = docx_b64
+                                    u_ct.loc[mask, 'Contrato_Local_Obra']   = ct_local
+                                    u_ct.loc[mask, 'Contrato_Cliente_Obra'] = ct_cliente
+                                    save_db(u_ct, "usuarios.csv")
+                                    inv()
+                                    log_audit(
+                                        usuario=admin_nome,
+                                        acao="GERAR_CONTRATO",
+                                        tabela="usuarios.csv",
+                                        registro_id=row_ct.get('ID',''),
+                                        detalhes=f"Contrato gerado para {nome_ct_sel}",
+                                        ip=""
+                                    )
+                                    st.success("✅ Contrato gerado com sucesso!")
+                                    st.rerun()
+                            else:
+                                st.error("❌ Erro ao gerar contrato. "
+                                         "Verifica o template.")
+
+        # ── PASSO 2: Download + Enviar ao colaborador ─────────────
+        if ct_gerado and not ct_enviado:
+            st.markdown("#### 📤 Rever e Enviar ao Colaborador")
+            ct_b64 = row_ct.get('Contrato_b64','')
+            if ct_b64:
+                try:
+                    ct_bytes = base64.b64decode(ct_b64)
+                    st.download_button(
+                        "📥 Descarregar contrato para rever",
+                        data=ct_bytes,
+                        file_name=f"contrato_{nome_ct_sel.replace(' ','_')}.docx",
+                        mime="application/vnd.openxmlformats-officedocument"
+                             ".wordprocessingml.document",
+                        key="btn_dl_contrato_admin"
+                    )
+                except:
+                    st.error("Erro ao processar o contrato.")
+
+            col_env1, col_env2 = st.columns(2)
+            with col_env1:
+                if st.button("📤 Marcar como Enviado ao Colaborador",
+                              key="btn_enviar_ct", type="primary",
+                              use_container_width=True):
+                    u_ct2 = _load_users_fresh()
+                    mask  = u_ct2['Nome'] == nome_ct_sel
+                    if mask.any():
+                        u_ct2.loc[mask, 'Contrato_Enviado']      = 'Sim'
+                        u_ct2.loc[mask, 'Contrato_Enviado_Data'] = \
+                            datetime.now().strftime("%d/%m/%Y %H:%M")
+                        save_db(u_ct2, "usuarios.csv")
+                        criar_notificacao(
+                            destinatario=nome_ct_sel,
+                            titulo="📄 Contrato disponível",
+                            mensagem="O teu contrato de trabalho está disponível "
+                                     "para assinar. Acede ao teu Perfil para descarregar.",
+                            tipo="info",
+                            acao_url="/perfil?tab=contrato"
+                        )
+                        inv()
+                        st.success("✅ Colaborador notificado!")
+                        st.rerun()
+            with col_env2:
+                if st.button("🔄 Regenerar Contrato",
+                              key="btn_regen_ct",
+                              use_container_width=True):
+                    u_ct2 = _load_users_fresh()
+                    mask  = u_ct2['Nome'] == nome_ct_sel
+                    if mask.any():
+                        for campo in ['Contrato_Gerado','Contrato_Data',
+                                      'Contrato_b64','Contrato_Enviado',
+                                      'Contrato_Enviado_Data']:
+                            u_ct2.loc[mask, campo] = ''
+                        save_db(u_ct2, "usuarios.csv")
+                        inv()
+                        st.rerun()
+
+        # ── PASSO 3: Aguarda assinatura do colaborador ────────────
+        if ct_enviado and not ct_assinado:
+            st.info(
+                "⏳ **Aguarda assinatura** — O colaborador recebeu o contrato "
+                "e deve assinar fisicamente, fotografar e fazer upload na app."
+            )
+
+        # ── PASSO 4: Validar assinatura ───────────────────────────
+        if ct_assinado and not ct_validado:
+            st.markdown("#### ✅ Validar Assinatura do Colaborador")
+            assin_b64 = row_ct.get('Contrato_Assinatura_b64','')
+            if assin_b64:
+                try:
+                    assin_bytes = base64.b64decode(assin_b64)
+                    st.download_button(
+                        "📥 Ver contrato assinado pelo colaborador",
+                        data=assin_bytes,
+                        file_name=f"contrato_assinado_{nome_ct_sel.replace(' ','_')}.pdf",
+                        mime="application/octet-stream",
+                        key="btn_dl_assinado"
+                    )
+                except:
+                    st.error("Erro ao processar o ficheiro.")
+
+            col_val1, col_val2 = st.columns(2)
+            with col_val1:
+                if st.button("✅ Validar e Arquivar",
+                              key="btn_validar_ct", type="primary",
+                              use_container_width=True):
+                    u_ct3 = _load_users_fresh()
+                    mask  = u_ct3['Nome'] == nome_ct_sel
+                    if mask.any():
+                        u_ct3.loc[mask, 'Contrato_Validado_Admin'] = 'Sim'
+                        u_ct3.loc[mask, 'Contrato_Validado_Data']  = \
+                            datetime.now().strftime("%d/%m/%Y %H:%M")
+                        save_db(u_ct3, "usuarios.csv")
+                        inv()
+                        criar_notificacao(
+                            destinatario=nome_ct_sel,
+                            titulo="✅ Contrato Validado",
+                            mensagem="O teu contrato foi validado e está arquivado.",
+                            tipo="success",
+                            acao_url="/perfil?tab=contrato"
+                        )
+                        log_audit(
+                            usuario=admin_nome,
+                            acao="VALIDAR_CONTRATO",
+                            tabela="usuarios.csv",
+                            registro_id=row_ct.get('ID',''),
+                            detalhes=f"Contrato validado para {nome_ct_sel}",
+                            ip=""
+                        )
+                        st.success("✅ Contrato arquivado!")
+                        st.rerun()
+            with col_val2:
+                if st.button("❌ Recusar (pedir nova assinatura)",
+                              key="btn_recusar_ct",
+                              use_container_width=True):
+                    u_ct3 = _load_users_fresh()
+                    mask  = u_ct3['Nome'] == nome_ct_sel
+                    if mask.any():
+                        for campo in ['Contrato_Assinado',
+                                      'Contrato_Assinatura_b64',
+                                      'Contrato_Assinatura_Data']:
+                            u_ct3.loc[mask, campo] = ''
+                        save_db(u_ct3, "usuarios.csv")
+                        criar_notificacao(
+                            destinatario=nome_ct_sel,
+                            titulo="⚠️ Assinatura Recusada",
+                            mensagem="A assinatura do contrato foi recusada. "
+                                     "Por favor, assina novamente e faz upload.",
+                            tipo="error",
+                            acao_url="/perfil?tab=contrato"
+                        )
+                        inv()
+                        st.warning("Colaborador notificado para nova assinatura.")
+                        st.rerun()
+
+        # ── PASSO 5: Arquivo final ────────────────────────────────
+        if ct_validado:
+            st.success("✅ **Contrato arquivado e validado.**")
+            ct_b64_f = row_ct.get('Contrato_b64','')
+            if ct_b64_f:
+                try:
+                    ct_bytes_f = base64.b64decode(ct_b64_f)
+                    st.download_button(
+                        "📥 Descarregar contrato original",
+                        data=ct_bytes_f,
+                        file_name=f"contrato_final_{nome_ct_sel.replace(' ','_')}.docx",
+                        mime="application/vnd.openxmlformats-officedocument"
+                             ".wordprocessingml.document",
+                        key="btn_dl_ct_final"
+                    )
+                except:
+                    pass
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 4 — TEMPLATES & CONFIG
+    # ════════════════════════════════════════════════════════════════
+    with tab_template:
+        st.markdown("### ⚙️ Template do Contrato")
+
+        template_existe = _gcs_read_binary("contrato_template.docx") is not None
+        if template_existe:
+            st.success("✅ Template do contrato carregado no sistema.")
+        else:
+            st.warning("⚠️ Nenhum template carregado. "
+                       "Faz upload abaixo para activar a geração automática.")
+
+        st.markdown("#### 📤 Upload do Template")
+        st.info(
+            "O template deve ser um ficheiro `.docx` com os campos marcados como:\n"
+            "`{{nome}}` `{{morada}}` `{{NIF}}` `{{NISS}}` "
+            "`{{número de cartão de cidadão}}` `{{validade do cartão de cidadão}}` "
+            "`{{categoria profissional}}` `{{local}}` `{{Cliente}}` `{{data}}`"
+        )
+
+        template_file = st.file_uploader(
+            "Selecionar template .docx",
+            type=["docx"],
+            key="upload_template_ct"
+        )
+        if template_file:
+            if st.button("💾 Guardar Template",
+                          key="btn_guardar_template",
+                          type="primary", use_container_width=True):
+                ok = _gcs_write_binary(
+                    template_file.read(), "contrato_template.docx"
+                )
+                if ok:
+                    st.success("✅ Template guardado no sistema!")
+                    log_audit(
+                        usuario=admin_nome,
+                        acao="UPLOAD_TEMPLATE_CONTRATO",
+                        tabela="GCS",
+                        registro_id="contrato_template.docx",
+                        detalhes="Template do contrato atualizado",
+                        ip=""
+                    )
                     st.rerun()
                 else:
-                    st.warning("⚠️ Preenche o nome e faz upload do PDF.")
+                    st.error("❌ Erro ao guardar o template.")
+
+        if template_existe:
+            st.markdown("---")
+            st.markdown("#### 📥 Descarregar Template Atual")
+            template_bytes = _gcs_read_binary("contrato_template.docx")
+            if template_bytes:
+                st.download_button(
+                    "📥 Descarregar template atual",
+                    data=template_bytes,
+                    file_name="contrato_template.docx",
+                    mime="application/vnd.openxmlformats-officedocument"
+                         ".wordprocessingml.document",
+                    key="btn_dl_template"
+                )
