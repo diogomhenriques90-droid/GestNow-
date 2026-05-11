@@ -789,3 +789,6 @@ def render_admin_rh(*args):
                          ".wordprocessingml.document",
                     key="btn_dl_template"
                 )
+
+    # Alias para compatibilidade com mod_admin.py
+    render_rh = render_admin_rh
