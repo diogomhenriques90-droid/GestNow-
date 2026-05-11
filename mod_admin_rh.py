@@ -97,6 +97,26 @@ def render_admin_rh(*args):
 
     admin_nome = st.session_state.get('user', 'Admin')
 
+    st.markdown("""
+    <style>
+    [data-baseweb="select"] [role="option"] {
+        color: #111827 !important;
+        background: #FFFFFF !important;
+    }
+    [data-baseweb="menu"] {
+        background: #FFFFFF !important;
+    }
+    [data-baseweb="menu"] li {
+        color: #111827 !important;
+    }
+    .stDownloadButton > button {
+        color: #111827 !important;
+        background: #FFFFFF !important;
+        border: 1px solid #D1D5DB !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("# 👥 Recursos Humanos")
 
     tab_lista, tab_gestao, tab_contrato, tab_template = st.tabs([
