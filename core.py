@@ -264,7 +264,17 @@ def load_all():
         "Campos_Bloqueados", "PDFs_Vistos", "PDFs_Validados",
         "PDFs_Validacao_Data",
         # ✅ ADICIONADO — onboarding passo 3
-        "Perfil_Completo", "Perfil_Data"
+        "Perfil_Completo", "Perfil_Data",
+        # ── Passo 4 — IBAN comprovativo
+        "IBAN_Comprovativo_b64", "IBAN_Data_Upload",
+        # ── Obra e cliente
+        "Local_Obra", "Cliente_Obra",
+        # ── Contrato
+        "Contrato_Gerado", "Contrato_Data", "Contrato_b64",
+        "Contrato_Enviado", "Contrato_Enviado_Data",
+        "Contrato_Assinado", "Contrato_Assinatura_b64", "Contrato_Assinatura_Data",
+        "Contrato_Validado_Admin", "Contrato_Validado_Data",
+        "Contrato_Local_Obra", "Contrato_Cliente_Obra"
     ])
 
     obras = load_db("obras_lista.csv", [
