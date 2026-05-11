@@ -588,7 +588,6 @@ if st.session_state.get('user'):
                  f"{ICONS['profile']} Perfil", "Logout"],
                 label_visibility="collapsed", key="sidebar_nav_tecnico")
 
-        # ✅ CORRIGIDO: sidebar NÃO sobrescreve quando _menu_locked=True
         if not st.session_state.get('_menu_locked', False):
             st.session_state.menu_selected = menu_item
 
@@ -661,9 +660,7 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
         "Logout":         "Logout",
     }
 
-    # ✅ CORRIGIDO: _menu_locked impede que option_menu sobrescreva navegação programática
     if st.session_state.get('_menu_locked', False):
-        # Lock processado — limpar para o próximo render
         st.session_state['_menu_locked'] = False
     else:
         new_menu = nav_map.get(selected, '')
@@ -683,9 +680,11 @@ if not st.session_state.get('user'):
     render_login()
 else:
     DATA = load_all()
+    # ✅ ATUALIZADO — 23 valores (3 novos: diarias_config_db, diarias_faltas_db, diarias_pagamentos_db)
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
-     comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = DATA
+     comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db,
+     diarias_config_db, diarias_faltas_db, diarias_pagamentos_db) = DATA
 
     tipo      = st.session_state.get('tipo', '')
     user_nome = st.session_state.get('user', '')
@@ -699,7 +698,7 @@ else:
         st.session_state.clear()
         st.rerun()
 
-    # ✅ BLOQUEIO CENTRALIZADO — só Técnicos e Chefes
+    # ── BLOQUEIO CENTRALIZADO — só Técnicos e Chefes ──────────────────
     if tipo not in ['Admin', 'Cliente']:
         pdfs_pend, preco_pend, perfil_pend, iban_pend = _verificar_validacoes_pendentes(user_nome)
         if pdfs_pend or preco_pend or perfil_pend or iban_pend:
@@ -764,17 +763,34 @@ else:
                         </div>
                         """, unsafe_allow_html=True)
 
+                        st.markdown(
+                            "<p style='color:#93C5FD;font-size:0.82rem;margin:0 0 6px;'>"
+                            "Aceita: Word (.docx), PDF, JPG ou PNG</p>",
+                            unsafe_allow_html=True
+                        )
                         ficheiro_assin = st.file_uploader(
-                            "📤 Upload do contrato assinado (foto/PDF)",
-                            type=["jpg","jpeg","png","pdf"],
+                            "📤 Upload do contrato assinado",
+                            type=["jpg","jpeg","png","pdf","docx"],
                             key="blk_ct_upload"
                         )
                         if ficheiro_assin:
-                            if st.button("✅ Submeter assinatura",
+                            tam_kb = len(ficheiro_assin.getvalue()) / 1024
+                            st.success(
+                                f"✅ Ficheiro: **{ficheiro_assin.name}** "
+                                f"({tam_kb:.0f} KB)"
+                            )
+                            st.markdown(
+                                "<p style='color:#F59E0B;font-size:0.82rem;margin:8px 0;'>"
+                                "⚠️ Confirma que o contrato está assinado antes de submeter.</p>",
+                                unsafe_allow_html=True
+                            )
+                            if st.button("✅ Submeter contrato assinado ao RH",
                                           key="blk_btn_assin",
                                           type="primary",
                                           use_container_width=True):
-                                f_b64 = base64.b64encode(ficheiro_assin.read()).decode()
+                                f_b64 = base64.b64encode(
+                                    ficheiro_assin.getvalue()
+                                ).decode()
                                 u_up  = _load_users_fresh()
                                 mask  = u_up['Nome'] == user_nome
                                 if mask.any():
@@ -802,6 +818,7 @@ else:
                         st.stop()
         except Exception as _e_ct:
             pass
+
     if eh_cliente:
         st.markdown(f"# {ICONS['dashboard']} Portal do Cliente")
         from mod_cliente import render_cliente_portal
