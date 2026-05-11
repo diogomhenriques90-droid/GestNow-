@@ -183,12 +183,10 @@ def _fill_contrato_template(substituicoes: dict):
         def _sub(para):
             if not any(k in para.text for k in substituicoes):
                 return
-            # Tentativa 1: substituição direta nos runs
             for run in para.runs:
                 for k, v in substituicoes.items():
                     if k in run.text:
                         run.text = run.text.replace(k, str(v))
-            # Tentativa 2: placeholder dividido entre runs
             if any(k in para.text for k in substituicoes):
                 if para.runs:
                     r0    = para.runs[0]
@@ -263,13 +261,9 @@ def load_all():
         "PrecoHora", "PrecoHoraStatus", "PrecoHoraData", "PIN",
         "Campos_Bloqueados", "PDFs_Vistos", "PDFs_Validados",
         "PDFs_Validacao_Data",
-        # ✅ ADICIONADO — onboarding passo 3
         "Perfil_Completo", "Perfil_Data",
-        # ── Passo 4 — IBAN comprovativo
         "IBAN_Comprovativo_b64", "IBAN_Data_Upload",
-        # ── Obra e cliente
         "Local_Obra", "Cliente_Obra",
-        # ── Contrato
         "Contrato_Gerado", "Contrato_Data", "Contrato_b64",
         "Contrato_Enviado", "Contrato_Enviado_Data",
         "Contrato_Assinado", "Contrato_Assinatura_b64", "Contrato_Assinatura_Data",
@@ -358,9 +352,25 @@ def load_all():
         "Obra", "Utilizador", "Cargo", "Ativo"
     ])
 
+    # ── DIÁRIAS ───────────────────────────────────────────────────────
+    diarias_config = load_db("diarias_config.csv", [
+        "Obra", "Valor_Diaria", "Atualizado_Em", "Atualizado_Por"
+    ])
+
+    diarias_faltas = load_db("diarias_faltas.csv", [
+        "ID", "Data", "Técnico", "Obra", "Motivo",
+        "Registado_Por", "Registado_Em"
+    ])
+
+    diarias_pagamentos = load_db("diarias_pagamentos.csv", [
+        "ID", "Semana_Inicio", "Semana_Fim", "Técnico",
+        "Obras", "Dias_Total", "Valor_Total", "IBAN",
+        "Status", "Data_Pagamento", "Pago_Por", "Recibo_b64"
+    ])
+
     return (users, obras, frentes, regs, fats, docs, incs, sw, obs, equip,
             diags, diags_u, folhas, comuns, comuns_u, req_fer, req_mat, req_epi,
-            avals, inst_acessos)
+            avals, inst_acessos, diarias_config, diarias_faltas, diarias_pagamentos)
 
 def inv():
     st.cache_data.clear()
@@ -544,6 +554,14 @@ GLOBAL_CSS = """
     color: var(--text-dark) !important;
     border: 1px solid rgba(0,0,0,0.3) !important;
 }
+[data-baseweb="select"] * { color: #111827 !important; }
+[data-baseweb="menu"] { background: #FFFFFF !important; }
+[data-baseweb="menu"] * { color: #111827 !important; background: #FFFFFF !important; }
+[data-baseweb="popover"] { background: #FFFFFF !important; }
+[data-baseweb="popover"] * { color: #111827 !important; }
+ul[role="listbox"] { background: #FFFFFF !important; }
+ul[role="listbox"] li { color: #111827 !important; }
+ul[role="listbox"] li:hover { background: #F1F5F9 !important; }
 .stDataFrame { background: var(--bg-white) !important; color: var(--text-dark) !important; }
 .stDataFrame td, .stDataFrame th { color: var(--text-dark) !important; background: var(--bg-white) !important; }
 section[data-testid="stSidebar"] {
