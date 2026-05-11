@@ -14,3 +14,5 @@ pymupdf>=1.23.0
 streamlit-drawable-canvas>=0.9.3
 streamlit-option-menu>=0.3.6
 streamlit-extras>=0.4.0
+python-docx
+openpyxl
