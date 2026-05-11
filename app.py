@@ -706,6 +706,102 @@ else:
             _render_validacao_obrigatoria(user_nome)
             st.stop()
 
+        # ── Bloqueio contrato pendente de assinatura ───────────────
+        try:
+            u_ct_check = _load_users_fresh()
+            if not u_ct_check.empty:
+                m_ct = u_ct_check[u_ct_check['Nome'] == user_nome]
+                if not m_ct.empty:
+                    row_ct = m_ct.iloc[0]
+                    ct_enviado  = row_ct.get('Contrato_Enviado','')  == 'Sim'
+                    ct_assinado = row_ct.get('Contrato_Assinado','') == 'Sim'
+                    ct_validado = row_ct.get('Contrato_Validado_Admin','') == 'Sim'
+
+                    if ct_enviado and not ct_assinado and not ct_validado:
+                        st.markdown("""
+                        <style>.stApp{background:#0F172A!important;}</style>
+                        """, unsafe_allow_html=True)
+
+                        st.markdown("""
+                        <div style="background:linear-gradient(135deg,#1E40AF,#1E293B);
+                            padding:30px;border-radius:20px;margin-bottom:25px;
+                            text-align:center;border:2px solid rgba(59,130,246,0.4);">
+                            <div style="font-size:3rem;margin-bottom:12px;">📄</div>
+                            <h2 style="color:white;margin:0 0 10px;">Contrato pendente de assinatura</h2>
+                            <p style="color:rgba(255,255,255,0.7);margin:0;font-size:0.95rem;">
+                                O teu contrato de trabalho está disponível.<br>
+                                Assina e faz upload para continuar a usar a app.
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        ct_b64 = row_ct.get('Contrato_b64','')
+                        if ct_b64:
+                            try:
+                                ct_bytes = base64.b64decode(ct_b64)
+                                st.download_button(
+                                    "📥 Descarregar Contrato para Assinar",
+                                    data=ct_bytes,
+                                    file_name=f"contrato_{user_nome.replace(' ','_')}.docx",
+                                    mime="application/vnd.openxmlformats-officedocument"
+                                         ".wordprocessingml.document",
+                                    use_container_width=True,
+                                    key="blk_dl_ct"
+                                )
+                            except:
+                                st.error("Erro ao processar o contrato.")
+
+                        st.markdown("""
+                        <div style="background:rgba(59,130,246,0.1);border-radius:10px;
+                            padding:14px;margin:16px 0;border-left:3px solid #3B82F6;">
+                            <p style="color:#93C5FD;font-size:0.85rem;margin:0;">
+                                📋 <b>Instruções:</b><br>
+                                1. Descarrega o contrato acima<br>
+                                2. Imprime e assina à mão<br>
+                                3. Fotografa ou digitaliza<br>
+                                4. Faz upload abaixo
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        ficheiro_assin = st.file_uploader(
+                            "📤 Upload do contrato assinado (foto/PDF)",
+                            type=["jpg","jpeg","png","pdf"],
+                            key="blk_ct_upload"
+                        )
+                        if ficheiro_assin:
+                            if st.button("✅ Submeter assinatura",
+                                          key="blk_btn_assin",
+                                          type="primary",
+                                          use_container_width=True):
+                                f_b64 = base64.b64encode(ficheiro_assin.read()).decode()
+                                u_up  = _load_users_fresh()
+                                mask  = u_up['Nome'] == user_nome
+                                if mask.any():
+                                    u_up.loc[mask,'Contrato_Assinado']        = 'Sim'
+                                    u_up.loc[mask,'Contrato_Assinatura_b64']  = f_b64
+                                    u_up.loc[mask,'Contrato_Assinatura_Data'] = \
+                                        datetime.now().strftime("%d/%m/%Y %H:%M")
+                                    save_db(u_up, "usuarios.csv")
+                                    criar_notificacao(
+                                        destinatario="admin",
+                                        titulo="✍️ Contrato Assinado",
+                                        mensagem=f"{user_nome} submeteu o contrato assinado.",
+                                        tipo="success", acao_url="/admin?tab=rh"
+                                    )
+                                    log_audit(usuario=user_nome,
+                                              acao="SUBMETER_CONTRATO",
+                                              tabela="usuarios.csv",
+                                              registro_id=user_nome,
+                                              detalhes="Contrato assinado submetido",
+                                              ip="")
+                                    inv()
+                                    st.success("✅ Assinatura submetida! O RH será notificado.")
+                                    time.sleep(1.5)
+                                    st.rerun()
+                        st.stop()
+        except Exception as _e_ct:
+            pass
     if eh_cliente:
         st.markdown(f"# {ICONS['dashboard']} Portal do Cliente")
         from mod_cliente import render_cliente_portal
