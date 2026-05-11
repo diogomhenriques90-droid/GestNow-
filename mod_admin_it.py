@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
+import zipfile, json, io, base64
 from datetime import datetime, timedelta
-from core import save_db, inv
+from core import (save_db, inv, _gcs_read, _gcs_write_binary, _gcs_read_binary,
+                  _verificar_alerta_backup, _registar_backup, GCS_BUCKET)
 
 def render_it():
     """Módulo de Gestão de TI - Custos, Emails, Infraestrutura"""
@@ -411,34 +413,208 @@ def render_it():
                 """, language="log")
         
         with tab_backup:
-            st.markdown("#### 💾 Política de Backups", unsafe_allow_html=True)
-            
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                st.metric("Último Backup", "Hoje 03:00")
-            with c2:
-                st.metric("Próximo Backup", "Amanhã 03:00")
-            with c3:
-                st.metric("Retenção", "30 dias")
-            
-            st.divider()
-            
-            st.markdown("#### 📋 Histórico de Backups", unsafe_allow_html=True)
-            
-            backup_df = pd.DataFrame({
-                'Data': ['02/04', '01/04', '31/03', '30/03', '29/03'],
-                'Hora': ['03:00', '03:00', '03:00', '03:00', '03:00'],
-                'Tipo': ['Automático', 'Automático', 'Automático', 'Automático', 'Manual'],
-                'Tamanho': ['2.3 GB', '2.2 GB', '2.1 GB', '2.1 GB', '2.0 GB'],
-                'Status': ['✅ Sucesso', '✅ Sucesso', '✅ Sucesso', '✅ Sucesso', '✅ Sucesso'],
-                'Local': ['GCS Bucket', 'GCS Bucket', 'GCS Bucket', 'GCS Bucket', 'Local + GCS']
-            })
-            
-            st.dataframe(backup_df, use_container_width=True, hide_index=True)
-            
-            if st.button("💾 Criar Backup Agora", key="btn_backup_now", type="primary"):
-                st.info("🔄 A criar backup...")
-                st.success("✅ Backup criado com sucesso!")
+            admin_nome = st.session_state.get('user', 'Admin')
+
+            # Lista de todos os CSVs da app
+            _CSVS_APP = [
+                "usuarios.csv", "obras_lista.csv", "frentes_lista.csv",
+                "registos.csv", "faturas.csv", "documentos.csv",
+                "incidentes.csv", "safety_walks.csv", "obs_seguranca.csv",
+                "equipamentos.csv", "dialogos.csv", "dialogos_users.csv",
+                "folhas_ponto.csv", "comunicados.csv", "comunicados_lidos.csv",
+                "req_ferramentas.csv", "req_materiais.csv", "req_epis.csv",
+                "avaliacoes.csv", "inst_acessos.csv", "pdfs_obrigatorios.csv",
+                "notificacoes.csv", "logs_audit.csv",
+            ]
+
+            # ── Estado atual ──────────────────────────────────────
+            status_bkp, ultima_bkp = _verificar_alerta_backup()
+            ultima_str = ultima_bkp.strftime('%d/%m/%Y %H:%M') \
+                         if ultima_bkp else "Nunca realizado"
+
+            cores_status = {
+                'ok':     ("#10B981", "✅", "Backup recente"),
+                'aviso':  ("#F59E0B", "⚠️", "Backup em atraso"),
+                'critico':("#EF4444", "🚨", "CRÍTICO — sem backup recente"),
+                'nunca':  ("#EF4444", "🚨", "Nunca foi feito backup"),
+            }
+            cor, ic, txt = cores_status.get(status_bkp, ("#6B7280","❓","Desconhecido"))
+
+            st.markdown(
+                f"<div style='background:{cor}18;border:2px solid {cor};"
+                f"border-radius:12px;padding:16px;margin-bottom:16px;'>"
+                f"<p style='color:{cor};font-weight:700;font-size:1rem;margin:0;'>"
+                f"{ic} {txt}</p>"
+                f"<p style='color:#94A3B8;font-size:0.82rem;margin:5px 0 0;'>"
+                f"Último backup: <b>{ultima_str}</b></p></div>",
+                unsafe_allow_html=True
+            )
+
+            # ── Criar e descarregar backup ────────────────────────
+            st.markdown("#### ⬇️ Criar e Descarregar Backup")
+
+            if st.button("💾 Criar Backup Agora",
+                          key="btn_backup_real", type="primary",
+                          use_container_width=True):
+                with st.spinner("A criar backup..."):
+                    try:
+                        buf_zip = io.BytesIO()
+                        incluidos, erros_bkp = [], []
+
+                        with zipfile.ZipFile(buf_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+                            meta = {
+                                "versao": "GESTNOW_v3",
+                                "data_backup": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                            }
+                            zf.writestr("BACKUP_INFO.json",
+                                        json.dumps(meta, indent=2))
+
+                            for csv_name in _CSVS_APP:
+                                try:
+                                    fb = _gcs_read(csv_name)
+                                    if fb:
+                                        content = fb.read()
+                                        if isinstance(content, str):
+                                            content = content.encode('utf-8')
+                                        zf.writestr(csv_name, content)
+                                        incluidos.append(csv_name)
+                                except Exception as ex:
+                                    erros_bkp.append(f"{csv_name}: {ex}")
+
+                            tmpl = _gcs_read_binary("contrato_template.docx")
+                            if tmpl:
+                                zf.writestr("contrato_template.docx", tmpl)
+                                incluidos.append("contrato_template.docx")
+
+                            bs = _gcs_read("backup_status.json")
+                            if bs:
+                                zf.writestr("backup_status.json", bs.read())
+
+                            if erros_bkp:
+                                zf.writestr("ERROS_BACKUP.txt",
+                                            "\n".join(erros_bkp))
+
+                        buf_zip.seek(0)
+                        zip_bytes = buf_zip.getvalue()
+
+                        _registar_backup(admin_nome)
+                        inv()
+
+                        ts    = datetime.now().strftime("%Y%m%d_%H%M")
+                        fname = f"gestnow_backup_{ts}.zip"
+
+                        st.success(
+                            f"✅ Backup criado — **{len(incluidos)} ficheiros**."
+                            f"{' ⚠️ ' + str(len(erros_bkp)) + ' erros.' if erros_bkp else ''}"
+                        )
+                        st.download_button(
+                            f"📥 Descarregar {fname}",
+                            data=zip_bytes,
+                            file_name=fname,
+                            mime="application/zip",
+                            key="btn_dl_backup"
+                        )
+                        if erros_bkp:
+                            with st.expander("⚠️ Ficheiros com erro"):
+                                for e in erros_bkp:
+                                    st.text(e)
+                    except Exception as ex:
+                        st.error(f"❌ Erro ao criar backup: {ex}")
+
+            st.markdown("---")
+            if st.button("✅ Confirmar que fiz backup (externo/manual)",
+                          key="btn_confirmar_bkp_it",
+                          use_container_width=True):
+                _registar_backup(admin_nome)
+                inv()
+                st.success("✅ Backup confirmado! Alerta limpo.")
+                st.rerun()
+
+            # ── Restauro ──────────────────────────────────────────
+            st.markdown("---")
+            st.markdown("#### ⬆️ Restaurar Backup")
+            st.markdown(
+                "<div style='background:rgba(239,68,68,0.1);border:2px solid #EF4444;"
+                "border-radius:10px;padding:14px;margin-bottom:12px;'>"
+                "<p style='color:#EF4444;font-weight:700;margin:0;'>"
+                "⚠️ ATENÇÃO — Operação Irreversível</p>"
+                "<p style='color:#94A3B8;font-size:0.82rem;margin:5px 0 0;'>"
+                "O restauro substitui TODOS os dados atuais pelos do backup. "
+                "Faz um backup do estado atual ANTES de restaurar.</p></div>",
+                unsafe_allow_html=True
+            )
+
+            zip_upload = st.file_uploader(
+                "📂 Selecionar ficheiro de backup (.zip)",
+                type=["zip"], key="bkp_upload_zip"
+            )
+
+            if zip_upload:
+                st.warning(
+                    f"⚠️ Prestes a restaurar: **{zip_upload.name}** "
+                    f"({zip_upload.size/1024:.0f} KB)"
+                )
+                confirmar = st.checkbox(
+                    "✅ Confirmo que quero substituir todos os dados atuais",
+                    key="chk_confirmar_restauro"
+                )
+                if confirmar:
+                    if st.button("🔄 RESTAURAR AGORA",
+                                  key="btn_restaurar_real",
+                                  type="primary",
+                                  use_container_width=True):
+                        with st.spinner("A restaurar... não feches a página."):
+                            try:
+                                from google.cloud import storage as _gcs_mod
+                                import os
+                                client  = _gcs_mod.Client()
+                                bucket  = client.bucket(
+                                    os.environ.get('GCS_BUCKET','gestnow-dados')
+                                )
+                                restaurados, erros_r = [], []
+
+                                buf_r = io.BytesIO(zip_upload.read())
+                                with zipfile.ZipFile(buf_r, 'r') as zf:
+                                    if "BACKUP_INFO.json" not in zf.namelist():
+                                        st.error("❌ ZIP inválido: não é um backup GESTNOW.")
+                                        st.stop()
+
+                                    meta_r = json.loads(
+                                        zf.read("BACKUP_INFO.json").decode('utf-8')
+                                    )
+                                    if "GESTNOW" not in meta_r.get("versao",""):
+                                        st.error("❌ ZIP inválido: versão incompatível.")
+                                        st.stop()
+
+                                    for nome_f in zf.namelist():
+                                        if nome_f in ("BACKUP_INFO.json",
+                                                      "ERROS_BACKUP.txt"):
+                                            continue
+                                        content_r = zf.read(nome_f)
+                                        try:
+                                            blob = bucket.blob(f"data/{nome_f}")
+                                            ct   = "text/csv" \
+                                                   if nome_f.endswith(".csv") \
+                                                   else "application/octet-stream"
+                                            blob.upload_from_string(content_r,
+                                                                     content_type=ct)
+                                            restaurados.append(nome_f)
+                                        except Exception as ex:
+                                            erros_r.append(f"{nome_f}: {ex}")
+
+                                inv()
+                                st.success(
+                                    f"✅ Restauro concluído! "
+                                    f"**{len(restaurados)} ficheiros** restaurados."
+                                )
+                                if erros_r:
+                                    st.warning(f"⚠️ {len(erros_r)} erro(s).")
+                                st.info("🔄 Recarrega a página para ver os dados restaurados.")
+
+                            except zipfile.BadZipFile:
+                                st.error("❌ Ficheiro ZIP corrompido ou inválido.")
+                            except Exception as ex:
+                                st.error(f"❌ Erro inesperado: {ex}")
         
         with tab_seguranca:
             st.markdown("#### 🔒 Segurança e Compliance", unsafe_allow_html=True)
