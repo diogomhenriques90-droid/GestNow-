@@ -134,7 +134,7 @@ def render_admin_rh(*args):
                     novo_nome = st.text_input("Nome Completo *",
                         key="nc_nome", placeholder="Nome completo")
                     novo_tipo = st.selectbox("Tipo de Acesso *",
-                        TIPOS_USUARIO, key="nc_tipo")
+    TIPOS_USUARIO, key="rh_nc_tipo")
                 with c2:
                     novo_tel  = st.text_input("Contacto *",
                         key="nc_tel", placeholder="9XXXXXXXX")
@@ -143,9 +143,9 @@ def render_admin_rh(*args):
                         placeholder="Mínimo 4 caracteres")
 
                 # Cargo dinâmico baseado no tipo
-                cargos_disp = CARGOS_POR_TIPO.get(novo_tipo, ["Outro"])
-                novo_cargo  = st.selectbox("Cargo / Função *",
-                    cargos_disp, key="nc_cargo")
+               cargos_disp = CARGOS_POR_TIPO.get(novo_tipo, ["Outro"])
+novo_cargo  = st.selectbox("Cargo / Função *",
+    cargos_disp, key="rh_nc_cargo") 
 
                 st.markdown("**Dados da Obra** *(obrigatório para contrato)*")
                 c3, c4 = st.columns(2)
