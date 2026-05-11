@@ -126,7 +126,9 @@ def render_admin(*args):
     # ── TAB 1: RH ─────────────────────────────────────────────────────
     with tabs[1]:
         from mod_admin_rh import render_admin_rh as render_rh
-        render_rh(users, avals_db, obras_db, inst_acessos_db)
+        render_rh(users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
+          sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
+          comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db)
 
     # ── TAB 2: OBRAS ──────────────────────────────────────────────────
     with tabs[2]:
