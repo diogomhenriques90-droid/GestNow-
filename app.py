@@ -4,7 +4,8 @@ import json, base64, time
 from datetime import datetime
 from core import (init_session, check_timeout, load_all, inject_pwa_meta,
                   inject_global_css, ICONS, hp, save_db, log_audit,
-                  criar_notificacao, load_db, _gcs_read, inv)
+                  criar_notificacao, load_db, _gcs_read, inv,
+                  _verificar_alerta_backup, _registar_backup)
 from translations import init_language, t, get_language_options, set_language
 
 try:
@@ -59,17 +60,18 @@ def _load_users_fresh():
 def _verificar_validacoes_pendentes(user_nome):
     try:
         users = _load_users_fresh()
-        if users.empty: return False, False, False
+        if users.empty: return False, False, False, False
         match = users[users['Nome'] == user_nome]
-        if match.empty: return False, False, False
+        if match.empty: return False, False, False, False
         row = match.iloc[0]
         pdfs_pend   = row.get('PDFs_Validados',  'Não') != 'Sim'
         preco_pend  = row.get('PrecoHoraStatus', '')    == ''
         perfil_val  = str(row.get('Perfil_Completo', '')).strip()
         perfil_pend = perfil_val != 'Sim'
-        return pdfs_pend, preco_pend, perfil_pend
+        iban_pend   = str(row.get('IBAN_Comprovativo_b64', '')).strip() == ''
+        return pdfs_pend, preco_pend, perfil_pend, iban_pend
     except:
-        return False, False, False
+        return False, False, False, False
 
 def _render_validacao_obrigatoria(user_nome):
     users_live = _load_users_fresh()
@@ -106,8 +108,9 @@ def _render_validacao_obrigatoria(user_nome):
     tem_pdfs_pend   = (pdfs_validados  != 'Sim') and (total_pdfs > 0)
     tem_preco_pend  = (preco_status    == '')
     tem_perfil_pend = (perfil_completo != 'Sim')
+    tem_iban_pend   = str(user_data.get('IBAN_Comprovativo_b64', '')).strip() == ''
 
-    if not tem_pdfs_pend and not tem_preco_pend and not tem_perfil_pend:
+    if not tem_pdfs_pend and not tem_preco_pend and not tem_perfil_pend and not tem_iban_pend:
         return False
 
     st.markdown("""
@@ -152,13 +155,15 @@ def _render_validacao_obrigatoria(user_nome):
     </div>
     """, unsafe_allow_html=True)
 
-    col_s1, col_s2, col_s3 = st.columns(3)
+    col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+    iban_ok = str(user_data.get('IBAN_Comprovativo_b64', '')).strip() != ''
     passos = [
         (pdfs_validados   == 'Sim',                 tem_pdfs_pend,  "📄", "Passo 1\nDocumentos"),
         (preco_status in ['Aceite','Recusado'],      tem_preco_pend, "💰", "Passo 2\nPreço Hora"),
         (perfil_completo  == 'Sim',                 tem_perfil_pend,"👤", "Passo 3\nMeu Perfil"),
+        (iban_ok,                                   tem_iban_pend,  "🏦", "Passo 4\nIBAN"),
     ]
-    for col, (done, active, ic, label) in zip([col_s1,col_s2,col_s3], passos):
+    for col, (done, active, ic, label) in zip([col_s1,col_s2,col_s3,col_s4], passos):
         cor = "#10B981" if done else "#3B82F6" if active else "#64748B"
         with col:
             st.markdown(f"""
@@ -454,7 +459,67 @@ def _render_validacao_obrigatoria(user_nome):
                         st.rerun()
         st.stop()
 
+    # ── PASSO 4: UPLOAD COMPROVATIVO IBAN ─────────────────────────────
+    if tem_iban_pend:
+        st.markdown("""
+        <div class="step-card step-active">
+            <h3 style="color:#60A5FA;margin:0 0 8px 0;">🏦 Passo 4 — Comprovativo Bancário</h3>
+            <p style="color:#94A3B8;margin:0;font-size:0.9rem;">
+                Faz upload do comprovativo IBAN (extrato bancário, documento do banco
+                ou captura do homebanking com o IBAN visível).
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("""
+        <div style="background:rgba(59,130,246,0.08);border-radius:10px;
+            padding:14px;margin-bottom:16px;border-left:3px solid #3B82F6;">
+            <p style="color:#93C5FD;font-size:0.85rem;margin:0;">
+                ℹ️ O IBAN não é guardado como texto — apenas o comprovativo é armazenado
+                de forma segura para acesso exclusivo do RH.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        ficheiro_iban = st.file_uploader(
+            "📄 Comprovativo bancário (PDF, JPG ou PNG)",
+            type=["pdf","jpg","jpeg","png"],
+            key="onb_iban_file"
+        )
+
+        if ficheiro_iban:
+            file_b64 = base64.b64encode(ficheiro_iban.read()).decode('utf-8')
+            st.success(f"✅ Ficheiro carregado: {ficheiro_iban.name}")
+            if st.button("💾 Guardar e Concluir Integração",
+                         use_container_width=True, type="primary",
+                         key="btn_guardar_iban"):
+                u4 = _load_users_fresh()
+                if not u4.empty:
+                    mask = u4['Nome'] == user_nome
+                    if mask.any():
+                        u4.loc[mask, 'IBAN_Comprovativo_b64'] = file_b64
+                        u4.loc[mask, 'IBAN_Data_Upload']      = \
+                            datetime.now().strftime("%d/%m/%Y %H:%M")
+                        save_db(u4, "usuarios.csv")
+                        inv()
+                        log_audit(usuario=user_nome, acao="UPLOAD_IBAN",
+                                  tabela="usuarios.csv", registro_id=user_nome,
+                                  detalhes="Comprovativo IBAN uploaded", ip="")
+                        criar_notificacao(destinatario="admin",
+                            titulo="🏦 Comprovativo IBAN",
+                            mensagem=f"{user_nome} submeteu o comprovativo bancário.",
+                            tipo="info", acao_url="/admin?tab=rh")
+                        st.success("✅ Integração completa! Bem-vindo(a) ao GESTNOW!")
+                        st.balloons()
+                        time.sleep(2)
+                        st.rerun()
+        else:
+            st.info("👆 Seleciona o ficheiro para continuar.")
+
+        st.stop()
+
     return False
+
 
 # =============================================================================
 # SIDEBAR
@@ -636,8 +701,8 @@ else:
 
     # ✅ BLOQUEIO CENTRALIZADO — só Técnicos e Chefes
     if tipo not in ['Admin', 'Cliente']:
-        pdfs_pend, preco_pend, perfil_pend = _verificar_validacoes_pendentes(user_nome)
-        if pdfs_pend or preco_pend or perfil_pend:
+        pdfs_pend, preco_pend, perfil_pend, iban_pend = _verificar_validacoes_pendentes(user_nome)
+        if pdfs_pend or preco_pend or perfil_pend or iban_pend:
             _render_validacao_obrigatoria(user_nome)
             st.stop()
 
@@ -647,6 +712,35 @@ else:
         render_cliente_portal()
 
     elif tipo == 'Admin':
+        # ── ALERTA BACKUP ─────────────────────────────────────────────
+        _status_bkp, _ultima_bkp = _verificar_alerta_backup()
+        if _status_bkp != 'ok':
+            _ultima_str = _ultima_bkp.strftime('%d/%m/%Y %H:%M') \
+                          if _ultima_bkp else 'Nunca realizado'
+            if _status_bkp in ('critico', 'nunca'):
+                st.error(
+                    f"🚨 **BACKUP CRÍTICO** — Último: **{_ultima_str}** — "
+                    f"Dados não protegidos!"
+                )
+            else:
+                st.warning(f"⚠️ **Backup em atraso** — Último: **{_ultima_str}**")
+            _col_b1, _col_b2 = st.columns(2)
+            with _col_b1:
+                if st.button("💾 Fazer Backup Agora",
+                             key="alert_bkp_btn", type="primary",
+                             use_container_width=True):
+                    st.session_state['menu_selected'] = f"{ICONS['admin']} Admin"
+                    st.session_state['_menu_locked']  = True
+                    st.rerun()
+            with _col_b2:
+                if st.button("✅ Confirmar backup feito",
+                             key="alert_bkp_confirm",
+                             use_container_width=True):
+                    _registar_backup(user_nome)
+                    st.success("✅ Backup confirmado!")
+                    time.sleep(0.8)
+                    st.rerun()
+
         if f"{ICONS['admin']} Admin" in menu:
             from mod_admin import render_admin
             render_admin(*DATA)
