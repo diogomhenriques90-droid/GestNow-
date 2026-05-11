@@ -143,9 +143,9 @@ def render_admin_rh(*args):
                         placeholder="Mínimo 4 caracteres")
 
                 # Cargo dinâmico baseado no tipo
-               cargos_disp = CARGOS_POR_TIPO.get(novo_tipo, ["Outro"])
-novo_cargo  = st.selectbox("Cargo / Função *",
-    cargos_disp, key="rh_nc_cargo") 
+                cargos_disp = CARGOS_POR_TIPO.get(novo_tipo, ["Outro"])
+                novo_cargo  = st.selectbox("Cargo / Função *",
+                    cargos_disp, key="rh_nc_cargo") 
 
                 st.markdown("**Dados da Obra** *(obrigatório para contrato)*")
                 c3, c4 = st.columns(2)
