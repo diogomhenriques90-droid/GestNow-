@@ -594,6 +594,29 @@ def render_admin_rh(*args):
                     )
                 except:
                     st.error("Erro ao processar o contrato.")
+                    
+             # ── Re-upload do contrato editado ─────────────────
+                st.markdown("##### 📤 Substituir contrato (versão editada)")
+                ct_novo = st.file_uploader(
+                    "Upload do contrato editado (.docx ou .pdf)",
+                    type=["docx","pdf"],
+                    key="ct_reupload"
+                )
+                if ct_novo:
+                    if st.button("💾 Guardar versão editada",
+                                  key="btn_guardar_ct_editado",
+                                  use_container_width=True):
+                        novo_b64 = base64.b64encode(ct_novo.read()).decode()
+                        u_re = _load_users_fresh()
+                        mask = u_re['Nome'] == nome_ct_sel
+                        if mask.any():
+                            u_re.loc[mask, 'Contrato_b64'] = novo_b64
+                            save_db(u_re, "usuarios.csv")
+                            inv()
+                            st.success("✅ Contrato atualizado com a versão editada!")
+                            st.rerun()
+
+                st.markdown("---")       
 
             col_env1, col_env2 = st.columns(2)
             with col_env1:
@@ -756,7 +779,8 @@ def render_admin_rh(*args):
             key="upload_template_ct"
         )
         if template_file:
-            if st.button("💾 Guardar Template",
+            acao_label = "🔄 Substituir Template" if template_existe else "💾 Guardar Template"
+            if st.button(acao_label,
                           key="btn_guardar_template",
                           type="primary", use_container_width=True):
                 ok = _gcs_write_binary(
