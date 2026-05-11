@@ -818,6 +818,88 @@ def render_tecnico(*args):
                             inv()
                             st.success("✅ Perfil atualizado!")
                             st.rerun()
+
+            # ── Contrato de Trabalho ──────────────────────────────
+            st.markdown("---")
+            st.markdown("#### 📄 Contrato de Trabalho")
+
+            ct_enviado  = user_data.get('Contrato_Enviado','')  == 'Sim'
+            ct_assinado = user_data.get('Contrato_Assinado','') == 'Sim'
+            ct_validado = user_data.get('Contrato_Validado_Admin','') == 'Sim'
+
+            if ct_validado:
+                st.success("✅ Contrato assinado e validado pela empresa.")
+
+            elif ct_assinado:
+                st.info("⏳ Assinatura submetida — aguarda validação do RH.")
+
+            elif ct_enviado:
+                st.info("📄 O teu contrato está disponível para assinar.")
+                ct_b64 = user_data.get('Contrato_b64','')
+                if ct_b64:
+                    try:
+                        ct_bytes = base64.b64decode(ct_b64)
+                        st.download_button(
+                            "📥 Descarregar Contrato para Assinar",
+                            data=ct_bytes,
+                            file_name=f"contrato_{user_nome.replace(' ','_')}.docx",
+                            mime="application/vnd.openxmlformats-officedocument"
+                                 ".wordprocessingml.document",
+                            key="btn_dl_ct_colab"
+                        )
+                    except:
+                        st.error("Erro ao processar o contrato.")
+
+                st.markdown(
+                    "<div style='background:rgba(59,130,246,0.1);border-radius:10px;"
+                    "padding:14px;margin:12px 0;border-left:3px solid #3B82F6;'>"
+                    "<p style='color:#93C5FD;font-size:0.85rem;margin:0;'>"
+                    "📋 <b>Instruções:</b><br>"
+                    "1. Descarrega o contrato acima<br>"
+                    "2. Imprime e assina à mão<br>"
+                    "3. Fotografa ou digitaliza<br>"
+                    "4. Faz upload abaixo</p></div>",
+                    unsafe_allow_html=True
+                )
+
+                ficheiro_assin = st.file_uploader(
+                    "📤 Upload do contrato assinado (foto/PDF)",
+                    type=["jpg","jpeg","png","pdf"],
+                    key="colab_ct_upload"
+                )
+                if ficheiro_assin:
+                    if st.button("✅ Submeter assinatura",
+                                  key="btn_submeter_assin",
+                                  type="primary",
+                                  use_container_width=True):
+                        f_b64 = base64.b64encode(ficheiro_assin.read()).decode()
+                        u_ct  = _load_users_fresh()
+                        mask  = u_ct['Nome'] == user_nome
+                        if mask.any():
+                            u_ct.loc[mask, 'Contrato_Assinado']        = 'Sim'
+                            u_ct.loc[mask, 'Contrato_Assinatura_b64']  = f_b64
+                            u_ct.loc[mask, 'Contrato_Assinatura_Data'] = \
+                                datetime.now().strftime("%d/%m/%Y %H:%M")
+                            save_db(u_ct, "usuarios.csv")
+                            criar_notificacao(destinatario="admin",
+                                titulo="✍️ Contrato Assinado",
+                                mensagem=f"{user_nome} submeteu o contrato assinado.",
+                                tipo="success", acao_url="/admin?tab=rh")
+                            log_audit(usuario=user_nome, acao="SUBMETER_CONTRATO",
+                                      tabela="usuarios.csv", registro_id=user_nome,
+                                      detalhes="Contrato assinado submetido", ip="")
+                            inv()
+                            st.success("✅ Assinatura submetida! O RH será notificado.")
+                            time.sleep(1)
+                            st.rerun()
+            else:
+                st.markdown(
+                    "<p style='color:#64748B;font-size:0.85rem;'>"
+                    "⏳ Contrato ainda não disponível. "
+                    "Será notificado quando estiver pronto.</p>",
+                    unsafe_allow_html=True
+                )
+
         else:
             st.warning("⚠️ Não foi possível carregar os dados.")
 
