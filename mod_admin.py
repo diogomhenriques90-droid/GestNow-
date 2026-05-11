@@ -19,7 +19,8 @@ def render_admin(*args):
 
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
-     comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = args
+     comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db,
+     diarias_config_db, diarias_faltas_db, diarias_pagamentos_db) = args
 
     # ── Indicadores de conexão e modo offline ─────────────────────────
     from core import render_connection_indicator, render_offline_banner, sync_data_when_online
@@ -114,6 +115,7 @@ def render_admin(*args):
         "📋 Planeamento",
         "💻 IT",
         "🛡️ HSE",
+        "💶 Diárias",
         "📋 Logs Audit",
         "📧 Config Email"
     ])
@@ -186,7 +188,6 @@ def render_admin(*args):
         tab_inc, tab_sw = st.tabs(["⚠️ Incidentes", "🚶 Safety Walks"])
         with tab_inc:
             if not incs_db.empty:
-                # Filtrar apenas incidentes HSE (excluir avarias)
                 hse = incs_db[incs_db.get('Tipo', '') != 'Avaria'] if 'Tipo' in incs_db.columns else incs_db
                 cols_show = [c for c in ['ID','Data','Utilizador','Obra','Descricao','Gravidade','Status'] if c in hse.columns]
                 st.dataframe(hse[cols_show], use_container_width=True, hide_index=True)
@@ -198,8 +199,18 @@ def render_admin(*args):
             else:
                 st.info("📋 Sem safety walks registados.")
 
-    # ── TAB 13: LOGS AUDITORIA ────────────────────────────────────────
+    # ── TAB 13: DIÁRIAS ───────────────────────────────────────────────
     with tabs[13]:
+        from mod_admin_diarias import render_admin_diarias
+        render_admin_diarias(
+            users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
+            sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
+            comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db,
+            diarias_config_db, diarias_faltas_db, diarias_pagamentos_db
+        )
+
+    # ── TAB 14: LOGS AUDITORIA ────────────────────────────────────────
+    with tabs[14]:
         st.markdown("### 📋 Logs de Auditoria — Compliance SGS/ISO")
         from core import get_audit_logs
 
@@ -232,8 +243,8 @@ def render_admin(*args):
         else:
             st.info("📋 Sem registos de auditoria encontrados.")
 
-    # ── TAB 14: CONFIG EMAIL ──────────────────────────────────────────
-    with tabs[14]:
+    # ── TAB 15: CONFIG EMAIL ──────────────────────────────────────────
+    with tabs[15]:
         st.markdown("### 📧 Configuração de Email SMTP")
         st.info("""
         **Para configurar emails:**
