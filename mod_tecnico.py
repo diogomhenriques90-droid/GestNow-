@@ -551,6 +551,10 @@ def render_tecnico(*args):
                 elif not obra_sel or obra_sel == "Sem obras":
                     st.error("⚠️ Seleciona uma obra.")
                 else:
+                 else:
+                    # ✅ Acumula todos os períodos e guarda UMA vez
+                    regs_atual = registos_db.copy() if not registos_db.empty else pd.DataFrame()
+                    ids_guardados = []
                     for pv in periodos_validos:
                         new_r = pd.DataFrame([{
                             "ID":          str(uuid.uuid4())[:8].upper(),
@@ -564,10 +568,29 @@ def render_tecnico(*args):
                             "Status":      "0",
                             "Periodo":     periodos_validos.index(pv) + 1
                         }])
-                        updated = pd.concat(
-                            [registos_db, new_r], ignore_index=True
-                        ) if not registos_db.empty else new_r
-                        save_db(updated, "registos.csv")
+                        ids_guardados.append(new_r['ID'].iloc[0])
+                        regs_atual = pd.concat([regs_atual, new_r], ignore_index=True)
+                    
+                    save_db(regs_atual, "registos.csv")  # ✅ guarda tudo de uma vez
+                    
+                    for reg_id in ids_guardados:
+                        log_audit(
+                            usuario=user_nome, acao="REGISTAR_PONTO",
+                            tabela="registos.csv", registro_id=reg_id,
+                            detalhes=f"{total_horas}h em {obra_sel}", ip=""
+                        )
+                    criar_notificacao(
+                        destinatario="admin",
+                        titulo="📋 Novo Registo de Ponto",
+                        mensagem=f"{user_nome} registou {fh(total_horas)} em {obra_sel}",
+                        tipo="info", acao_url="/admin?tab=validacoes"
+                    )
+                    st.session_state.show_reg_form    = False
+                    st.session_state.periodos_trabalho = [{"entrada":"08:00","saida":"17:00"}]
+                    inv()
+                    st.success(f"✅ {fh(total_horas)} registadas em {obra_sel} ({len(periodos_validos)} período(s))")
+                    time.sleep(1)
+                    st.rerun()   
                         log_audit(
                             usuario=user_nome, acao="REGISTAR_PONTO",
                             tabela="registos.csv",
