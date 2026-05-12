@@ -102,7 +102,7 @@ def render_admin(*args):
 
     # ── Tabs Principais ───────────────────────────────────────────────
     tabs = st.tabs([
-        "✅ Validações",
+        "📦 Armazém",
         "👥 RH",
         "🏗️ Obras",
         "🚗 Frota",
@@ -120,10 +120,10 @@ def render_admin(*args):
         "📧 Config Email"
     ])
 
-    # ── TAB 0: VALIDAÇÕES ─────────────────────────────────────────────
-    with tabs[0]:
-        from mod_admin_validacoes import render_validacoes
-        render_validacoes(req_fer_db, req_mat_db, req_epi_db, registos_db, users, obras_db, incs_db)
+    # ── TAB 0: ARMAZÉM ────────────────────────────────────────────────
+        with tabs[0]:
+            from mod_armazem import render_armazem
+            render_armazem(req_fer_db, req_mat_db, req_epi_db, incs_db)
 
     # ── TAB 1: RH ─────────────────────────────────────────────────────
     with tabs[1]:
