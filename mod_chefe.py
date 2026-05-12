@@ -130,9 +130,150 @@ def render_chefe(*args):
         sub_p, sub_h = st.tabs(["🟠 Pendentes", "📋 Histórico"])
 
         with sub_p:
-            df_pend = regs_equipa[regs_equipa['Status'] == '0'] if not regs_equipa.empty else pd.DataFrame()
+            # Fix Data
+            regs_eq_fmt = pd.DataFrame()
+            if not regs_equipa.empty:
+                regs_eq_fmt = regs_equipa.copy()
+                if pd.api.types.is_datetime64_any_dtype(regs_eq_fmt['Data']):
+                    regs_eq_fmt['Data'] = regs_eq_fmt['Data'].dt.strftime('%d/%m/%Y').fillna('—')
+                else:
+                    regs_eq_fmt['Data'] = regs_eq_fmt['Data'].astype(str).replace({'NaT':'—','None':'—'})
+                regs_eq_fmt['Horas_Total'] = pd.to_numeric(
+                    regs_eq_fmt['Horas_Total'], errors='coerce').fillna(0)
+
+            df_pend = regs_eq_fmt[regs_eq_fmt['Status'] == '0'] if not regs_eq_fmt.empty else pd.DataFrame()
+
             if not df_pend.empty:
+                # ── Validar/Rejeitar em massa ─────────────────────
+                col_vm, col_rm = st.columns(2)
+                with col_vm:
+                    if st.button("🟢 Validar Todos", key="ch_val_todos",
+                                  type="primary", use_container_width=True):
+                        for tecnico in df_pend['Técnico'].unique():
+                            registos_db.loc[
+                                (registos_db['Técnico'] == tecnico) &
+                                (registos_db['Status']  == '0'), 'Status'
+                            ] = '1'
+                            criar_notificacao(destinatario=tecnico,
+                                titulo="🟢 Horas Validadas",
+                                mensagem=f"As tuas horas foram validadas pelo chefe {user_nome}.",
+                                tipo="success", acao_url="/")
+                        save_db(registos_db, "registos.csv")
+                        inv(); st.success("✅ Todos validados!"); st.rerun()
+                with col_rm:
+                    if st.button("❌ Rejeitar Todos", key="ch_rej_todos",
+                                  use_container_width=True):
+                        for tecnico in df_pend['Técnico'].unique():
+                            registos_db.loc[
+                                (registos_db['Técnico'] == tecnico) &
+                                (registos_db['Status']  == '0'), 'Status'
+                            ] = '-1'
+                            criar_notificacao(destinatario=tecnico,
+                                titulo="❌ Horas Rejeitadas",
+                                mensagem=f"As tuas horas foram rejeitadas. Contacta {user_nome}.",
+                                tipo="error", acao_url="/")
+                        save_db(registos_db, "registos.csv")
+                        inv(); st.error("❌ Todos rejeitados."); st.rerun()
+
+                st.markdown("---")
+
+                # ── Por técnico com validação individual ──────────
                 for tecnico in df_pend['Técnico'].unique():
+                    regs_t    = df_pend[df_pend['Técnico'] == tecnico]
+                    total_h_t = regs_t['Horas_Total'].sum()
+
+                    with st.expander(
+                        f"👤 {tecnico} — {fh(total_h_t)} ({len(regs_t)} registos)",
+                        expanded=True
+                    ):
+                        # Validar/Rejeitar este técnico
+                        col_vt, col_rt = st.columns(2)
+                        with col_vt:
+                            if st.button(f"🟢 Validar {tecnico}",
+                                          key=f"apr_{tecnico}",
+                                          use_container_width=True, type="primary"):
+                                registos_db.loc[
+                                    (registos_db['Técnico'] == tecnico) &
+                                    (registos_db['Status']  == '0'), 'Status'
+                                ] = '1'
+                                save_db(registos_db, "registos.csv")
+                                criar_notificacao(destinatario=tecnico,
+                                    titulo="🟢 Horas Validadas",
+                                    mensagem=f"As tuas horas foram validadas pelo chefe {user_nome}.",
+                                    tipo="success", acao_url="/")
+                                inv(); st.success("✅"); st.rerun()
+                        with col_rt:
+                            if st.button(f"❌ Rejeitar {tecnico}",
+                                          key=f"rej_{tecnico}",
+                                          use_container_width=True, type="secondary"):
+                                registos_db.loc[
+                                    (registos_db['Técnico'] == tecnico) &
+                                    (registos_db['Status']  == '0'), 'Status'
+                                ] = '-1'
+                                save_db(registos_db, "registos.csv")
+                                criar_notificacao(destinatario=tecnico,
+                                    titulo="❌ Horas Rejeitadas",
+                                    mensagem=f"As tuas horas foram rejeitadas. Contacta {user_nome}.",
+                                    tipo="error", acao_url="/")
+                                inv(); st.error("❌"); st.rerun()
+
+                        st.markdown("---")
+
+                        # Linha a linha
+                        for _, reg in regs_t.iterrows():
+                            reg_id = reg.get('ID','')
+                            col_i, col_v, col_r = st.columns([5, 1, 1])
+                            with col_i:
+                                st.markdown(
+                                    f"<div style='background:#0F172A;border-radius:8px;"
+                                    f"padding:8px 12px;margin-bottom:3px;'>"
+                                    f"<span style='color:#F1F5F9;font-size:0.85rem;'>"
+                                    f"{reg.get('Data','')} · {reg.get('Obra','')} · "
+                                    f"{reg.get('Frente','')} · {reg.get('Turnos','')}</span>"
+                                    f"<span style='float:right;color:#F59E0B;"
+                                    f"font-weight:700;'>{fh(reg.get('Horas_Total',0))}</span>"
+                                    f"</div>",
+                                    unsafe_allow_html=True
+                                )
+                            with col_v:
+                                if st.button("✅", key=f"val_ind_{reg_id}",
+                                              use_container_width=True, help="Validar"):
+                                    registos_db.loc[registos_db['ID'] == reg_id, 'Status'] = '1'
+                                    save_db(registos_db, "registos.csv")
+                                    criar_notificacao(destinatario=tecnico,
+                                        titulo="🟢 Horas Validadas",
+                                        mensagem=f"{fh(reg.get('Horas_Total',0))} em {reg.get('Obra','')} validadas.",
+                                        tipo="success", acao_url="/")
+                                    inv(); st.rerun()
+                            with col_r:
+                                if st.button("❌", key=f"rej_ind_{reg_id}",
+                                              use_container_width=True, help="Rejeitar"):
+                                    registos_db.loc[registos_db['ID'] == reg_id, 'Status'] = '-1'
+                                    save_db(registos_db, "registos.csv")
+                                    criar_notificacao(destinatario=tecnico,
+                                        titulo="❌ Horas Rejeitadas",
+                                        mensagem=f"{fh(reg.get('Horas_Total',0))} rejeitadas.",
+                                        tipo="error", acao_url="/")
+                                    inv(); st.rerun()
+            else:
+                st.success("✅ Sem horas pendentes!")
+
+        with sub_h:
+            hist = regs_equipa[regs_equipa['Status'].isin(['1','2','3','-1'])] \
+                   if not regs_equipa.empty else pd.DataFrame()
+            if not hist.empty:
+                hist = hist.copy()
+                if pd.api.types.is_datetime64_any_dtype(hist['Data']):
+                    hist['Data'] = hist['Data'].dt.strftime('%d/%m/%Y').fillna('—')
+                hist['Estado'] = hist['Status'].map({
+                    "1":"🟢 Validado","2":"🔵 Faturação",
+                    "3":"⚫ Processado","-1":"❌ Rejeitado"
+                })
+                cols_show = [c for c in ['Data','Técnico','Obra','Horas_Total','Estado']
+                             if c in hist.columns]
+                st.dataframe(hist[cols_show], use_container_width=True, hide_index=True)
+            else:
+                st.info("📋 Sem histórico.")  
                     regs_t = df_pend[df_pend['Técnico'] == tecnico]
                     total_h = regs_t['Horas_Total'].astype(float).sum()
                     with st.expander(f"👤 {tecnico} — {fh(total_h)} ({len(regs_t)} registos)"):
