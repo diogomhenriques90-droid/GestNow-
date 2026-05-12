@@ -204,11 +204,14 @@ def _calcular_diarias_semana(
     ts_ini = pd.Timestamp(semana_inicio)
     ts_fim = pd.Timestamp(semana_fim)
 
+    # ✅ Normalizar status para string para comparação segura
+    regs['Status'] = regs['Status'].astype(str).str.strip()
+
     regs_sem = regs[
-        (regs['Status'] == '1') &
+        (regs['Status'].isin(['1', '2'])) &  # validado ou faturação
         (regs['Data_d'] >= ts_ini) &
         (regs['Data_d'] <= ts_fim)
-    ].copy()
+    ].copy()   
 
     if regs_sem.empty:
         return pd.DataFrame()
@@ -231,6 +234,15 @@ def _calcular_diarias_semana(
     grupo = regs_sem.groupby(
         ['Técnico', 'Data_str', 'Obra'], as_index=False
     )['Horas_Total'].sum()
+
+    # ✅ Debug info para confirmar dados encontrados
+    if grupo.empty:
+        st.warning(
+            f"⚠️ Sem registos com Status 1 ou 2 entre "
+            f"{semana_inicio.strftime('%d/%m/%Y')} e "
+            f"{semana_fim.strftime('%d/%m/%Y')}. "
+            f"Certifica-te que as horas estão validadas (🟢 verde)."
+        )
 
     grupo['Elegivel'] = grupo.apply(
         lambda r: (
@@ -426,7 +438,7 @@ def render_admin_diarias(*args):
          incs_db, sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db,
          comuns_db, comuns_u_db, req_fer_db, req_mat_db, req_epi_db,
          avals_db, inst_acessos_db,
-         diarias_config, diarias_faltas, diarias_pagamentos) = args[:23]
+         diarias_config, diarias_faltas, diarias_pagamentos, *_) = args
     else:
         (users, obras_db, frentes_db, registos_db, *_rest) = args
         diarias_config     = pd.DataFrame(columns=[
