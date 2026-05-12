@@ -883,8 +883,19 @@ else:
         else:
             from mod_admin import render_admin
             render_admin(*DATA)
+   
+    elif tipo == 'Secretariado':
+        from mod_secretariado import render_secretariado
+        render_secretariado(*DATA)
+
+    elif tipo == 'Armazém':
+        from mod_armazem import render_armazem
+        req_fer_db2, req_mat_db2, req_epi_db2 = DATA[15], DATA[16], DATA[17]
+        incs_db2 = DATA[6]
+        render_armazem(req_fer_db2, req_mat_db2, req_epi_db2, incs_db2)
+
     else:
-        if f"{ICONS['technician']} Obra" in menu:
+        if f"{ICONS['technician']} Obra" in menu:    
             st.markdown(f"# {ICONS['technician']} Área Técnica")
             if tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
                 from mod_chefe import render_chefe
