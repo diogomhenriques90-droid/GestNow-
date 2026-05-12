@@ -3,7 +3,7 @@ from core import load_all, inv, ICONS
 from datetime import datetime
 
 def render_admin(*args):
-    """Hub Principal do Admin — delega para sub-módulos"""
+    """Hub Principal do Admin — 10 tabs reorganizados"""
 
     st.markdown("""
     <style>
@@ -22,14 +22,14 @@ def render_admin(*args):
      comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db,
      diarias_config_db, diarias_faltas_db, diarias_pagamentos_db,
      folhas_ocr_db) = args
-    
-    # ── Indicadores de conexão e modo offline ─────────────────────────
-    from core import render_connection_indicator, render_offline_banner, sync_data_when_online
+
+    from core import (render_connection_indicator, render_offline_banner,
+                      sync_data_when_online)
     render_connection_indicator()
     render_offline_banner()
     sync_data_when_online()
 
-    # ── Header ────────────────────────────────────────────────────────
+    # ── Header ────────────────────────────────────────────────────
     st.markdown(f"""
     <div style="background:linear-gradient(135deg,#1E293B,#0F172A);padding:30px;
         border-radius:20px;margin-bottom:30px;border:1px solid rgba(255,255,255,0.2);">
@@ -44,37 +44,51 @@ def render_admin(*args):
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Centro de Notificações ────────────────────────────────────────
-    from core import get_notificacoes, marcar_notificacao_lida, contar_notificacoes_nao_lidas
-
+    # ── Notificações ──────────────────────────────────────────────
+    from core import (get_notificacoes, marcar_notificacao_lida,
+                      contar_notificacoes_nao_lidas)
     user_atual  = st.session_state.user
     n_nao_lidas = contar_notificacoes_nao_lidas(user_atual)
 
     col_n1, col_n2 = st.columns([10, 1])
     with col_n2:
         if n_nao_lidas > 0:
-            st.markdown(f"""
-            <div style="text-align:right;">
-                <span style="font-size:1.5rem;">🔔</span>
-                <span style="background:#EF4444;color:white;border-radius:50%;
-                    padding:2px 8px;font-size:0.8rem;margin-left:-10px;">{n_nao_lidas}</span>
-            </div>""", unsafe_allow_html=True)
+            st.markdown(
+                f"<div style='text-align:right;'>"
+                f"<span style='font-size:1.5rem;'>🔔</span>"
+                f"<span style='background:#EF4444;color:white;border-radius:50%;"
+                f"padding:2px 8px;font-size:0.8rem;margin-left:-10px;'>"
+                f"{n_nao_lidas}</span></div>",
+                unsafe_allow_html=True
+            )
         else:
-            st.markdown("<div style='text-align:right;'><span style='font-size:1.5rem;opacity:0.5;'>🔔</span></div>", unsafe_allow_html=True)
+            st.markdown(
+                "<div style='text-align:right;'>"
+                "<span style='font-size:1.5rem;opacity:0.5;'>🔔</span></div>",
+                unsafe_allow_html=True
+            )
 
     with st.expander("🔔 Ver Notificações", expanded=n_nao_lidas > 0):
         notifs_df = get_notificacoes(user_atual, apenas_nao_lidas=True, limite=20)
         if not notifs_df.empty:
             for _, notif in notifs_df.iterrows():
-                cor = {"info":"#3B82F6","warning":"#F59E0B","error":"#EF4444","success":"#10B981"}.get(notif.get('Tipo','info'),"#6B7280")
-                st.markdown(f"""
-                <div style="background:{cor}22;border-left:4px solid {cor};
-                    padding:15px;border-radius:8px;margin-bottom:10px;">
-                    <strong style="color:{cor};">{notif.get('Titulo','')}</strong>
-                    <p style="margin:5px 0 0 0;color:#94A3B8;">{notif.get('Mensagem','')}</p>
-                    <small style="color:#6B7280;">{notif.get('Data','')} {notif.get('Hora','')}</small>
-                </div>""", unsafe_allow_html=True)
-            if st.button("✅ Marcar Todas como Lidas", key="marcar_todas_lidas"):
+                cor = {"info":"#3B82F6","warning":"#F59E0B",
+                       "error":"#EF4444","success":"#10B981"}.get(
+                    notif.get('Tipo','info'),"#6B7280"
+                )
+                st.markdown(
+                    f"<div style='background:{cor}22;border-left:4px solid {cor};"
+                    f"padding:15px;border-radius:8px;margin-bottom:10px;'>"
+                    f"<strong style='color:{cor};'>{notif.get('Titulo','')}</strong>"
+                    f"<p style='margin:5px 0 0 0;color:#94A3B8;'>"
+                    f"{notif.get('Mensagem','')}</p>"
+                    f"<small style='color:#6B7280;'>"
+                    f"{notif.get('Data','')} {notif.get('Hora','')}</small>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+            if st.button("✅ Marcar Todas como Lidas",
+                          key="marcar_todas_lidas"):
                 for _, notif in notifs_df.iterrows():
                     marcar_notificacao_lida(notif['ID'])
                 inv()
@@ -84,7 +98,7 @@ def render_admin(*args):
 
     st.divider()
 
-    # ── Dashboard Métricas ────────────────────────────────────────────
+    # ── Métricas ──────────────────────────────────────────────────
     st.markdown("### 📊 Visão Geral")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1: st.metric("👷 Técnicos", len(users))
@@ -101,206 +115,715 @@ def render_admin(*args):
 
     st.divider()
 
-    # ── Tabs Principais ───────────────────────────────────────────────
+    # ── 10 Tabs principais ────────────────────────────────────────
     tabs = st.tabs([
         "📦 Armazém",
         "👥 RH",
         "🗂️ Secretariado",
-        "🏗️ Obras",
-        "🚗 Frota",
-        "🏨 Dormidas",
-        "🛒 Compras",
+        "🏭 Produção",
         "💰 Faturação",
         "📊 Orçamentação",
         "💼 Comercial",
         "🎯 Qualidade",
-        "📋 Planeamento",
         "💻 IT",
         "🛡️ HSE",
-        "💶 Diárias",
-        "📋 Logs Audit",
-        "📧 Config Email"
     ])
 
-    # ── TAB 0: ARMAZÉM ────────────────────────────────────────────────
+    # ════════════════════════════════════════════════════════════════
+    # TAB 0 — ARMAZÉM
+    # EPIs, Ferramentas, Materiais, Validação Compras
+    # ════════════════════════════════════════════════════════════════
     with tabs[0]:
         from mod_armazem import render_armazem
         render_armazem(req_fer_db, req_mat_db, req_epi_db, incs_db)
 
-    # ── TAB 1: RH ─────────────────────────────────────────────────────
+    # ════════════════════════════════════════════════════════════════
+    # TAB 1 — RH
+    # ════════════════════════════════════════════════════════════════
     with tabs[1]:
         from mod_admin_rh import render_admin_rh as render_rh
-        render_rh(users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
-          sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
-          comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db)
-        
-    # ── TAB 2: SECRETARIADO ───────────────────────────────────────────
+        render_rh(users, obras_db, frentes_db, registos_db, faturas_db,
+                  docs_db, incs_db, sw_db, obs_db, equip_db, diags_db,
+                  diags_u_db, folhas_db, comuns_db, comuns_u_db,
+                  req_fer_db, req_mat_db, req_epi_db, avals_db,
+                  inst_acessos_db)
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 2 — SECRETARIADO
+    # 1ª/2ª validação horas, gasóleo, avarias carrinhas, histórico
+    # ════════════════════════════════════════════════════════════════
     with tabs[2]:
         from mod_secretariado import render_secretariado
         render_secretariado(
-            users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
-            sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
-            comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db,
-            diarias_config_db, diarias_faltas_db, diarias_pagamentos_db
+            users, obras_db, frentes_db, registos_db, faturas_db,
+            docs_db, incs_db, sw_db, obs_db, equip_db, diags_db,
+            diags_u_db, folhas_db, comuns_db, comuns_u_db,
+            req_fer_db, req_mat_db, req_epi_db, avals_db,
+            inst_acessos_db, diarias_config_db, diarias_faltas_db,
+            diarias_pagamentos_db
         )
-        
-    # ── TAB 3: OBRAS ──────────────────────────────────────────────────
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 3 — PRODUÇÃO
+    # Obras, Frota, Dormidas, Planeamento
+    # ════════════════════════════════════════════════════════════════
     with tabs[3]:
-        from mod_admin_obras import render_obras
-        render_obras(obras_db, frentes_db, users, inst_acessos_db)
+        st.markdown("## 🏭 Produção")
+        prod_tabs = st.tabs([
+            "🏗️ Obras",
+            "🚗 Frota",
+            "🏨 Dormidas",
+            "📋 Planeamento",
+        ])
 
-    # ── TAB 4: FROTA ──────────────────────────────────────────────────
+        with prod_tabs[0]:
+            from mod_admin_obras import render_obras
+            render_obras(obras_db, frentes_db, users, inst_acessos_db)
+
+        with prod_tabs[1]:
+            from mod_admin_frota import render_frota
+            render_frota()
+
+        with prod_tabs[2]:
+            from mod_admin_dormidas import render_dormidas
+            render_dormidas()
+
+        with prod_tabs[3]:
+            from mod_admin_planeamento import render_planeamento
+            render_planeamento()
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 4 — FATURAÇÃO
+    # Custos por obra, frota, dormidas, folhas ponto,
+    # faturação horas, diárias, emissão mensal
+    # ════════════════════════════════════════════════════════════════
     with tabs[4]:
-        from mod_admin_frota import render_frota
-        render_frota()
+        st.markdown("## 💰 Faturação")
+        fat_tabs = st.tabs([
+            "📊 Custos por Obra",
+            "💶 Diárias",
+            "📄 Folhas de Ponto",
+            "⏱️ Horas (Faturação)",
+            "📤 Emissão Mensal",
+        ])
 
-    # ── TAB 5: DORMIDAS ───────────────────────────────────────────────
+        with fat_tabs[0]:
+            _render_custos_por_obra(
+                obras_db, registos_db, req_mat_db,
+                req_fer_db, req_epi_db, incs_db
+            )
+
+        with fat_tabs[1]:
+            from mod_admin_diarias import render_admin_diarias
+            render_admin_diarias(
+                users, obras_db, frentes_db, registos_db, faturas_db,
+                docs_db, incs_db, sw_db, obs_db, equip_db, diags_db,
+                diags_u_db, folhas_db, comuns_db, comuns_u_db,
+                req_fer_db, req_mat_db, req_epi_db, avals_db,
+                inst_acessos_db, diarias_config_db, diarias_faltas_db,
+                diarias_pagamentos_db
+            )
+
+        with fat_tabs[2]:
+            _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db)
+
+        with fat_tabs[3]:
+            # Faturação de horas — vem do secretariado tab faturação
+            import streamlit as st
+            import pandas as pd
+            from core import fh, save_db
+            st.markdown("### ⏱️ Horas para Faturação ao Cliente")
+            if registos_db.empty:
+                st.info("📋 Sem registos.")
+            else:
+                from core import load_db as _ld
+                regs = registos_db.copy()
+                regs['Horas_Total'] = pd.to_numeric(
+                    regs['Horas_Total'], errors='coerce'
+                ).fillna(0)
+                azuis = regs[regs['Status'] == '2']
+                if azuis.empty:
+                    st.info("📋 Sem horas com status 🔵 faturação.")
+                else:
+                    obras_fat = sorted(
+                        azuis['Obra'].dropna().unique().tolist()
+                    )
+                    obra_sel_fat = st.selectbox(
+                        "Obra", obras_fat, key="fat_h_obra"
+                    )
+                    azuis_obra = azuis[azuis['Obra'] == obra_sel_fat]
+                    total_h_fat = azuis_obra['Horas_Total'].sum()
+
+                    c1, c2 = st.columns(2)
+                    with c1: st.metric("Registos", len(azuis_obra))
+                    with c2: st.metric("Total Horas", fh(total_h_fat))
+
+                    resumo = azuis_obra.groupby('Técnico').agg(
+                        Horas=('Horas_Total','sum'),
+                        Dias=('Data','nunique')
+                    ).reset_index()
+                    st.dataframe(
+                        resumo, use_container_width=True, hide_index=True
+                    )
+
+                    # Preço hora por técnico
+                    from core import load_db as _ld2
+                    try:
+                        users_full = _ld2("usuarios.csv", ["Nome","PrecoHora"],
+                                          silent=True)
+                    except:
+                        users_full = pd.DataFrame(
+                            columns=["Nome","PrecoHora"]
+                        )
+
+                    st.markdown("---")
+                    st.markdown("#### 💰 Valor a Faturar")
+                    total_faturar = 0
+                    for _, tr in resumo.iterrows():
+                        tec_nome = tr['Técnico']
+                        h_tec    = tr['Horas']
+                        preco_h  = 15.0
+                        if not users_full.empty and \
+                           tec_nome in users_full['Nome'].values:
+                            try:
+                                preco_h = float(
+                                    users_full[
+                                        users_full['Nome'] == tec_nome
+                                    ]['PrecoHora'].values[0]
+                                )
+                            except:
+                                pass
+                        subtotal = round(h_tec * preco_h, 2)
+                        total_faturar += subtotal
+                        st.markdown(
+                            f"<div style='background:#1E293B;"
+                            f"border-radius:8px;padding:10px;"
+                            f"margin-bottom:4px;'>"
+                            f"<b style='color:#F1F5F9;'>{tec_nome}</b>"
+                            f"<span style='float:right;color:#10B981;"
+                            f"font-weight:700;'>€ {subtotal:.2f}</span><br>"
+                            f"<small style='color:#64748B;'>"
+                            f"{fh(h_tec)} × €{preco_h}/h</small>"
+                            f"</div>",
+                            unsafe_allow_html=True
+                        )
+                    st.metric("💰 Total a Faturar", f"€ {total_faturar:.2f}")
+
+        with fat_tabs[4]:
+            _render_emissao_mensal(
+                obras_db, registos_db, faturas_db,
+                diarias_pagamentos_db
+            )
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 5 — ORÇAMENTAÇÃO
+    # ════════════════════════════════════════════════════════════════
     with tabs[5]:
-        from mod_admin_dormidas import render_dormidas
-        render_dormidas()
-
-    # ── TAB 6: COMPRAS ────────────────────────────────────────────────
-    with tabs[6]:
-        from mod_admin_compras import render_compras
-        render_compras()
-
-    # ── TAB 7: FATURAÇÃO ──────────────────────────────────────────────
-    with tabs[7]:
-        from mod_admin_faturacao import render_faturacao
-        render_faturacao(faturas_db, obras_db)
-
-    # ── TAB 8: ORÇAMENTAÇÃO ───────────────────────────────────────────
-    with tabs[8]:
         from mod_admin_orcamentacao import render_orcamentacao
         render_orcamentacao()
 
-    # ── TAB 9: COMERCIAL ──────────────────────────────────────────────
-    with tabs[9]:
+    # ════════════════════════════════════════════════════════════════
+    # TAB 6 — COMERCIAL
+    # ════════════════════════════════════════════════════════════════
+    with tabs[6]:
         from mod_admin_comercial import render_comercial
         render_comercial()
 
-    # ── TAB 10: QUALIDADE ──────────────────────────────────────────────
-    with tabs[10]:
-        from mod_admin_qualidade import render_qualidade
-        render_qualidade()
+    # ════════════════════════════════════════════════════════════════
+    # TAB 7 — QUALIDADE + LOGS AUDIT
+    # ════════════════════════════════════════════════════════════════
+    with tabs[7]:
+        st.markdown("## 🎯 Qualidade & Auditoria")
+        qual_tabs = st.tabs(["🎯 Qualidade", "📋 Logs Audit"])
 
-    # ── TAB 11: PLANEAMENTO ───────────────────────────────────────────
-    with tabs[11]:
-        from mod_admin_planeamento import render_planeamento
-        render_planeamento()
+        with qual_tabs[0]:
+            from mod_admin_qualidade import render_qualidade
+            render_qualidade()
 
-    # ── TAB 12: IT ────────────────────────────────────────────────────
-    with tabs[12]:
-        from mod_admin_it import render_it
-        render_it()
+        with qual_tabs[1]:
+            st.markdown("### 📋 Logs de Auditoria")
+            from core import get_audit_logs
+            col_f1, col_f2, col_f3 = st.columns(3)
+            with col_f1:
+                filtro_user = st.selectbox(
+                    "Utilizador",
+                    ["Todos"] + users['Nome'].tolist(),
+                    key="log_filt_user"
+                )
+            with col_f2:
+                apenas_clientes = st.checkbox(
+                    "👥 Apenas Clientes", key="log_filt_clientes"
+                )
+            with col_f3:
+                limite = st.number_input(
+                    "Limite", min_value=10, max_value=1000,
+                    value=100, key="log_limite"
+                )
+            usuario_f = None if filtro_user == "Todos" else filtro_user
+            logs_df   = get_audit_logs(
+                filtro_usuario=usuario_f, limite=limite
+            )
+            if apenas_clientes and not logs_df.empty:
+                logs_df = logs_df[
+                    logs_df['Usuario'].str.contains("CLIENTE:", na=False)
+                ]
+            if not logs_df.empty:
+                st.metric("Total Ações", len(logs_df))
+                cols_show = [c for c in [
+                    'Data','Hora','Usuario','Acao',
+                    'Tabela','Registro_ID','Detalhes'
+                ] if c in logs_df.columns]
+                st.dataframe(
+                    logs_df[cols_show],
+                    use_container_width=True, hide_index=True
+                )
+                csv_logs = logs_df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    "📥 Exportar Logs",
+                    csv_logs,
+                    f"audit_logs_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                    "text/csv", use_container_width=True
+                )
+            else:
+                st.info("📋 Sem registos de auditoria.")
 
-    # ── TAB 13: HSE ───────────────────────────────────────────────────
-    with tabs[13]:
+    # ════════════════════════════════════════════════════════════════
+    # TAB 8 — IT + CONFIG EMAIL + BACKUP + INFRAESTRUTURA
+    # ════════════════════════════════════════════════════════════════
+    with tabs[8]:
+        st.markdown("## 💻 IT & Sistemas")
+        it_tabs = st.tabs([
+            "💻 IT & Infraestrutura",
+            "📧 Config Email",
+        ])
+
+        with it_tabs[0]:
+            from mod_admin_it import render_it
+            render_it()
+
+        with it_tabs[1]:
+            st.markdown("### 📧 Configuração de Email SMTP")
+            st.info("""
+            **Para configurar emails:**
+            1. Vai ao Google Cloud Console → Secret Manager
+            2. Adiciona: SMTP_SERVER, SMTP_PORT, SMTP_USER,
+               SMTP_PASSWORD, SMTP_FROM_NAME
+            3. Reinicia o Cloud Run
+            """)
+            from core import get_smtp_config, testar_smtp
+            config = get_smtp_config()
+            if config:
+                st.success("✅ SMTP Configurado!")
+                st.markdown(
+                    f"<div style='background:rgba(16,185,129,0.1);"
+                    f"border:2px solid #10B981;border-radius:10px;"
+                    f"padding:20px;'>"
+                    f"<p><b>Server:</b> {config['server']}</p>"
+                    f"<p><b>Porta:</b> {config['port']}</p>"
+                    f"<p><b>User:</b> {config['user']}</p>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+                st.divider()
+                email_teste = st.text_input(
+                    "Email para teste",
+                    placeholder="exemplo@email.com",
+                    key="smtp_test_email"
+                )
+                if st.button(
+                    "📧 Enviar Email de Teste",
+                    use_container_width=True, type="primary"
+                ):
+                    if email_teste:
+                        with st.spinner("A enviar..."):
+                            if testar_smtp(email_teste):
+                                st.success(f"✅ Email enviado para {email_teste}!")
+                            else:
+                                st.error("❌ Falha. Verifica a configuração.")
+                    else:
+                        st.warning("⚠️ Insere um email.")
+            else:
+                st.warning("⚠️ SMTP não configurado.")
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 9 — HSE
+    # ════════════════════════════════════════════════════════════════
+    with tabs[9]:
         st.markdown("### 🛡️ Segurança e HSE")
         tab_inc, tab_sw = st.tabs(["⚠️ Incidentes", "🚶 Safety Walks"])
+
         with tab_inc:
             if not incs_db.empty:
-                hse = incs_db[incs_db.get('Tipo', '') != 'Avaria'] if 'Tipo' in incs_db.columns else incs_db
-                cols_show = [c for c in ['ID','Data','Utilizador','Obra','Descricao','Gravidade','Status'] if c in hse.columns]
-                st.dataframe(hse[cols_show], use_container_width=True, hide_index=True)
+                hse = incs_db[
+                    incs_db.get('Tipo','') != 'Avaria'
+                ] if 'Tipo' in incs_db.columns else incs_db
+                cols_hse = [c for c in [
+                    'ID','Data','Utilizador','Obra',
+                    'Descricao','Gravidade','Status'
+                ] if c in hse.columns]
+                st.dataframe(
+                    hse[cols_hse],
+                    use_container_width=True, hide_index=True
+                )
             else:
-                st.info("📋 Sem incidentes registados.")
+                st.info("📋 Sem incidentes.")
+
         with tab_sw:
             if not sw_db.empty:
-                st.dataframe(sw_db, use_container_width=True, hide_index=True)
+                st.dataframe(
+                    sw_db, use_container_width=True, hide_index=True
+                )
             else:
-                st.info("📋 Sem safety walks registados.")
+                st.info("📋 Sem safety walks.")
 
-    # ── TAB 14: DIÁRIAS ───────────────────────────────────────────────
-    with tabs[14]:
-        from mod_admin_diarias import render_admin_diarias
-        render_admin_diarias(
-            users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
-            sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
-            comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db,
-            diarias_config_db, diarias_faltas_db, diarias_pagamentos_db
-        )
 
-    # ── TAB 15: LOGS AUDITORIA ────────────────────────────────────────
-    with tabs[15]:
-        st.markdown("### 📋 Logs de Auditoria — Compliance SGS/ISO")
-        from core import get_audit_logs
+# =============================================================================
+# FUNÇÕES AUXILIARES DE FATURAÇÃO
+# =============================================================================
 
-        col_f1, col_f2, col_f3 = st.columns(3)
-        with col_f1:
-            filtro_user = st.selectbox("Filtrar por Utilizador",
-                ["Todos"] + users['Nome'].tolist(), key="log_filt_user")
-        with col_f2:
-            apenas_clientes = st.checkbox("👥 Apenas Clientes", key="log_filt_clientes")
-        with col_f3:
-            limite = st.number_input("Limite", min_value=10, max_value=1000, value=100, key="log_limite")
+def _render_custos_por_obra(
+    obras_db, registos_db, req_mat_db,
+    req_fer_db, req_epi_db, incs_db
+):
+    import pandas as pd
+    from core import fh, load_db
+    st.markdown("### 📊 Custos Totais por Obra")
 
-        usuario_f = None if filtro_user == "Todos" else filtro_user
-        logs_df   = get_audit_logs(filtro_usuario=usuario_f, limite=limite)
+    if obras_db.empty:
+        st.info("📋 Sem obras.")
+        return
 
-        if apenas_clientes and not logs_df.empty:
-            logs_df = logs_df[logs_df['Usuario'].str.contains("CLIENTE:", na=False)]
+    obras_ativas = obras_db[obras_db['Ativa'] == 'Ativa']['Obra'].tolist()
+    if not obras_ativas:
+        st.info("📋 Sem obras ativas.")
+        return
 
-        if not logs_df.empty:
-            st.metric("Total Ações", len(logs_df))
-            st.divider()
-            cols_show = [c for c in ['Data','Hora','Usuario','Acao','Tabela','Registro_ID','Detalhes'] if c in logs_df.columns]
-            st.dataframe(logs_df[cols_show], use_container_width=True, hide_index=True)
-            csv_logs = logs_df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                "📥 Exportar Logs (CSV)", csv_logs,
-                f"audit_logs_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-                "text/csv", use_container_width=True
+    obra_c = st.selectbox("Obra", obras_ativas, key="custos_obra")
+
+    # Horas
+    horas_obra = 0
+    if not registos_db.empty:
+        ro = registos_db[registos_db['Obra'] == obra_c]
+        horas_obra = pd.to_numeric(
+            ro['Horas_Total'], errors='coerce'
+        ).fillna(0).sum()
+
+    # Materiais
+    mat_total = 0
+    try:
+        compras_db = load_db("compras.csv", [
+            "Obra","Total","Status"
+        ], silent=True)
+        if not compras_db.empty:
+            mc = compras_db[compras_db['Obra'] == obra_c]
+            mat_total = pd.to_numeric(
+                mc['Total'], errors='coerce'
+            ).fillna(0).sum()
+    except:
+        pass
+
+    # Dormidas
+    dorm_total = 0
+    try:
+        dormidas_db = load_db("dormidas.csv", [
+            "Obra","Total"
+        ], silent=True)
+        if not dormidas_db.empty:
+            dc = dormidas_db[dormidas_db['Obra'] == obra_c]
+            dorm_total = pd.to_numeric(
+                dc['Total'], errors='coerce'
+            ).fillna(0).sum()
+    except:
+        pass
+
+    # Combustível frota
+    comb_total = 0
+    try:
+        comb_db = load_db("frota_combustivel.csv", [
+            "Valor"
+        ], silent=True)
+        if not comb_db.empty:
+            comb_total = pd.to_numeric(
+                comb_db['Valor'], errors='coerce'
+            ).fillna(0).sum()
+    except:
+        pass
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: st.metric("⏱️ Horas",      fh(horas_obra))
+    with c2: st.metric("📦 Materiais",  f"€ {mat_total:.2f}")
+    with c3: st.metric("🏨 Dormidas",   f"€ {dorm_total:.2f}")
+    with c4: st.metric("⛽ Combustível", f"€ {comb_total:.2f}")
+
+    total_custos = mat_total + dorm_total + comb_total
+    st.metric("💰 Total Custos (sem horas)", f"€ {total_custos:.2f}")
+
+
+def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
+    import pandas as pd
+    st.markdown("### 📄 Folhas de Ponto por Obra")
+
+    obras_lista = obras_db[
+        obras_db['Ativa'] == 'Ativa'
+    ]['Obra'].tolist() if not obras_db.empty else []
+
+    if not obras_lista:
+        st.info("📋 Sem obras ativas.")
+        return
+
+    obra_fp = st.selectbox("Obra", obras_lista, key="fat_fp_obra")
+
+    # Folhas assinadas
+    st.markdown("#### ✍️ Folhas Assinadas pelo Chefe")
+    if not folhas_db.empty and 'Obra' in folhas_db.columns:
+        fp_obra = folhas_db[folhas_db['Obra'] == obra_fp]
+        if not fp_obra.empty:
+            cols_fp = [c for c in [
+                'Periodo','Responsavel','Data_Assinatura','Selo','Status'
+            ] if c in fp_obra.columns]
+            st.dataframe(
+                fp_obra[cols_fp],
+                use_container_width=True, hide_index=True
             )
         else:
-            st.info("📋 Sem registos de auditoria encontrados.")
+            st.info(f"📋 Sem folhas assinadas para {obra_fp}.")
+    else:
+        st.info("📋 Sem folhas.")
 
-    # ── TAB 16: CONFIG EMAIL ──────────────────────────────────────────
-    with tabs[16]:
-        st.markdown("### 📧 Configuração de Email SMTP")
-        st.info("""
-        **Para configurar emails:**
-        1. Vai ao Google Cloud Console → Secret Manager
-        2. Adiciona os secrets: SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM_NAME
-        3. Reinicia o Cloud Run e volta aqui para testar
-        """)
+    # Folhas OCR (extraídas por IA)
+    st.markdown("---")
+    st.markdown("#### 🤖 Folhas Extraídas por IA (OCR)")
+    if not folhas_ocr_db.empty and 'Obra' in folhas_ocr_db.columns:
+        ocr_obra = folhas_ocr_db[folhas_ocr_db['Obra'] == obra_fp]
+        if not ocr_obra.empty:
+            cols_ocr = [c for c in [
+                'Semana_Inicio','Semana_Fim','Tecnico',
+                'Horas_Folha','Extraido_Em','Extraido_Por'
+            ] if c in ocr_obra.columns]
+            st.dataframe(
+                ocr_obra[cols_ocr],
+                use_container_width=True, hide_index=True
+            )
 
-        from core import get_smtp_config, testar_smtp
-
-        config = get_smtp_config()
-        if config:
-            st.success("✅ SMTP Configurado!")
-            st.markdown(f"""
-            <div style="background:rgba(16,185,129,0.1);border:2px solid #10B981;
-                border-radius:10px;padding:20px;">
-                <p><strong>Server:</strong> {config['server']}</p>
-                <p><strong>Porta:</strong> {config['port']}</p>
-                <p><strong>User:</strong> {config['user']}</p>
-                <p><strong>From:</strong> {config['from_name']} &lt;{config['from_email']}&gt;</p>
-            </div>""", unsafe_allow_html=True)
-
-            st.divider()
-            st.markdown("### 🧪 Testar Envio de Email")
-            email_teste = st.text_input("Email para teste", placeholder="exemplo@email.com", key="smtp_test_email")
-            if st.button("📧 Enviar Email de Teste", use_container_width=True, type="primary"):
-                if email_teste:
-                    with st.spinner("A enviar..."):
-                        if testar_smtp(email_teste):
-                            st.success(f"✅ Email de teste enviado para {email_teste}!")
-                        else:
-                            st.error("❌ Falha ao enviar. Verifica a configuração SMTP.")
+            # Admin pode ver e descarregar
+            st.markdown("---")
+            st.markdown("#### 👁️ Ver Folha de Ponto (Imagem)")
+            periodos_ocr = ocr_obra['Semana_Inicio'].unique().tolist()
+            periodo_ver  = st.selectbox(
+                "Período", periodos_ocr, key="fat_periodo_ver"
+            )
+            ocr_periodo = ocr_obra[
+                ocr_obra['Semana_Inicio'] == periodo_ver
+            ]
+            if not ocr_periodo.empty:
+                img_b64 = ocr_periodo.iloc[0].get('Imagem_b64','')
+                if img_b64 and len(img_b64) > 100:
+                    import base64
+                    try:
+                        st.image(
+                            f"data:image/jpeg;base64,{img_b64}",
+                            caption=f"Folha de ponto — {periodo_ver}",
+                            use_column_width=True
+                        )
+                        img_bytes = base64.b64decode(img_b64)
+                        st.download_button(
+                            "📥 Descarregar Imagem",
+                            data=img_bytes,
+                            file_name=f"folha_{obra_fp}_{periodo_ver.replace('/','')}.jpg",
+                            mime="image/jpeg",
+                            key="dl_folha_img"
+                        )
+                    except:
+                        st.info("📷 Imagem não disponível para visualização.")
                 else:
-                    st.warning("⚠️ Insere um email para teste.")
+                    st.info("📷 Imagem não armazenada neste registo.")
         else:
-            st.warning("⚠️ SMTP Não Configurado")
-            st.markdown("""
-            <div style="background:rgba(245,158,11,0.1);border:2px solid #F59E0B;
-                border-radius:10px;padding:20px;">
-                <p><strong>Passos para configurar:</strong></p>
-                <ol style="color:#94A3B8;">
-                    <li>Vai ao <a href="https://console.cloud.google.com/security/secret-manager" target="_blank">Google Cloud Secret Manager</a></li>
-                    <li>Cria os secrets: SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM_NAME</li>
-                    <li>Adiciona permissão Secret Accessor ao service account do Cloud Run</li>
-                    <li>Reinicia o Cloud Run para carregar os novos secrets</li>
-                </ol>
-            </div>""", unsafe_allow_html=True)
+            st.info(f"📋 Sem folhas OCR para {obra_fp}.")
+    else:
+        st.info("📋 Sem folhas OCR disponíveis.")
+
+
+def _render_emissao_mensal(
+    obras_db, registos_db, faturas_db, diarias_pagamentos_db
+):
+    import pandas as pd
+    from core import fh, save_db, load_db
+    import uuid
+    from datetime import datetime
+
+    st.markdown("### 📤 Emissão de Fatura Mensal ao Cliente")
+    st.info(
+        "Gera o resumo mensal de custos por obra para enviar ao cliente."
+    )
+
+    obras_ativas = obras_db[
+        obras_db['Ativa'] == 'Ativa'
+    ]['Obra'].tolist() if not obras_db.empty else []
+
+    if not obras_ativas:
+        st.info("📋 Sem obras ativas.")
+        return
+
+    col_e1, col_e2 = st.columns(2)
+    with col_e1:
+        obra_em = st.selectbox("Obra", obras_ativas, key="emissao_obra")
+    with col_e2:
+        import calendar
+        hoje_em = datetime.now()
+        meses   = {
+            "Janeiro":1,"Fevereiro":2,"Março":3,"Abril":4,
+            "Maio":5,"Junho":6,"Julho":7,"Agosto":8,
+            "Setembro":9,"Outubro":10,"Novembro":11,"Dezembro":12
+        }
+        mes_sel_em = st.selectbox(
+            "Mês",
+            list(meses.keys()),
+            index=hoje_em.month - 1,
+            key="emissao_mes"
+        )
+
+    mes_num = meses[mes_sel_em]
+    ano_em  = hoje_em.year
+
+    # Horas processadas (Status 3)
+    horas_fat = 0
+    valor_horas = 0
+    if not registos_db.empty:
+        regs_em = registos_db[
+            (registos_db['Obra']   == obra_em) &
+            (registos_db['Status'] == '3')
+        ].copy()
+        regs_em['Data_d'] = pd.to_datetime(
+            regs_em['Data'], dayfirst=True, errors='coerce'
+        )
+        regs_mes = regs_em[
+            (regs_em['Data_d'].dt.month == mes_num) &
+            (regs_em['Data_d'].dt.year  == ano_em)
+        ]
+        horas_fat = pd.to_numeric(
+            regs_mes['Horas_Total'], errors='coerce'
+        ).fillna(0).sum()
+
+    # Diárias do mês
+    diarias_mes = 0
+    if not diarias_pagamentos_db.empty:
+        dp_em = diarias_pagamentos_db[
+            diarias_pagamentos_db['Obras'].str.contains(
+                obra_em, na=False
+            )
+        ]
+        diarias_mes = pd.to_numeric(
+            dp_em['Valor_Total'], errors='coerce'
+        ).fillna(0).sum()
+
+    # Materiais
+    mat_mes = 0
+    try:
+        compras_em = load_db("compras.csv",["Obra","Total"], silent=True)
+        if not compras_em.empty:
+            mat_mes = pd.to_numeric(
+                compras_em[compras_em['Obra'] == obra_em]['Total'],
+                errors='coerce'
+            ).fillna(0).sum()
+    except:
+        pass
+
+    # Dormidas
+    dorm_mes = 0
+    try:
+        dorm_em = load_db("dormidas.csv",["Obra","Total"], silent=True)
+        if not dorm_em.empty:
+            dorm_mes = pd.to_numeric(
+                dorm_em[dorm_em['Obra'] == obra_em]['Total'],
+                errors='coerce'
+            ).fillna(0).sum()
+    except:
+        pass
+
+    st.markdown(f"#### 📊 Resumo — {mes_sel_em} {ano_em} — {obra_em}")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: st.metric("⏱️ Horas",     fh(horas_fat))
+    with c2: st.metric("💶 Diárias",   f"€ {diarias_mes:.2f}")
+    with c3: st.metric("📦 Materiais", f"€ {mat_mes:.2f}")
+    with c4: st.metric("🏨 Dormidas",  f"€ {dorm_mes:.2f}")
+
+    total_fat = diarias_mes + mat_mes + dorm_mes
+    st.metric("💰 Total a Faturar (sem horas)", f"€ {total_fat:.2f}")
+    st.info(
+        "ℹ️ O valor das horas depende do preço/hora contratado com o cliente."
+    )
+
+    if st.button(
+        "📄 Gerar Resumo PDF",
+        key="btn_gerar_fat_mensal",
+        type="primary",
+        use_container_width=True
+    ):
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.platypus import (
+                SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+            )
+            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.lib import colors
+            from reportlab.lib.units import cm
+            import io
+
+            buf = io.BytesIO()
+            doc = SimpleDocTemplate(buf, pagesize=A4,
+                                    rightMargin=2*cm, leftMargin=2*cm,
+                                    topMargin=2*cm, bottomMargin=2*cm)
+            styles = getSampleStyleSheet()
+            story  = []
+
+            story.append(Paragraph(
+                f"RESUMO DE FATURAÇÃO — {mes_sel_em.upper()} {ano_em}",
+                styles['Heading1']
+            ))
+            story.append(Paragraph(
+                f"Obra: {obra_em}", styles['Normal']
+            ))
+            story.append(Spacer(1, 0.5*cm))
+
+            dados_pdf = [
+                ["Descrição", "Valor (€)"],
+                ["Horas trabalhadas", f"{fh(horas_fat)}"],
+                ["Ajudas de custo (diárias)", f"€ {diarias_mes:.2f}"],
+                ["Materiais/Compras", f"€ {mat_mes:.2f}"],
+                ["Alojamento (dormidas)", f"€ {dorm_mes:.2f}"],
+                ["TOTAL (sem horas)", f"€ {total_fat:.2f}"],
+            ]
+            t = Table(dados_pdf, colWidths=[12*cm, 5*cm])
+            t.setStyle(TableStyle([
+                ('BACKGROUND',    (0,0),(-1,0),  colors.HexColor('#1E293B')),
+                ('TEXTCOLOR',     (0,0),(-1,0),  colors.white),
+                ('FONTNAME',      (0,0),(-1,0),  'Helvetica-Bold'),
+                ('FONTSIZE',      (0,0),(-1,-1), 11),
+                ('GRID',          (0,0),(-1,-1), 0.5, colors.grey),
+                ('BACKGROUND',    (0,-1),(-1,-1),colors.HexColor('#F1F5F9')),
+                ('FONTNAME',      (0,-1),(-1,-1),'Helvetica-Bold'),
+                ('TOPPADDING',    (0,0),(-1,-1), 8),
+                ('BOTTOMPADDING', (0,0),(-1,-1), 8),
+            ]))
+            story.append(t)
+            story.append(Spacer(1, 0.5*cm))
+            story.append(Paragraph(
+                f"Documento gerado em "
+                f"{datetime.now().strftime('%d/%m/%Y %H:%M')} — GESTNOW v3.0",
+                styles['Normal']
+            ))
+            doc.build(story)
+            buf.seek(0)
+
+            st.download_button(
+                f"📥 Descarregar PDF — {mes_sel_em} {ano_em}",
+                data=buf.getvalue(),
+                file_name=(
+                    f"faturacao_{obra_em.replace(' ','_')}_"
+                    f"{mes_num:02d}_{ano_em}.pdf"
+                ),
+                mime="application/pdf",
+                key="dl_fat_mensal_pdf"
+            )
+        except Exception as e:
+            st.error(f"❌ Erro ao gerar PDF: {e}")
