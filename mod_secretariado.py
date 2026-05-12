@@ -142,7 +142,8 @@ def render_secretariado(*args):
 
                 st.markdown("---")
 
-                for _, row in df_view.iterrows():
+                for idx1, row in df_view.iterrows():
+                    reg_id = row.get('ID', '') or f"idx_{idx1}" 
                     reg_id = row.get('ID', '')
                     col_i, col_v, col_r = st.columns([5, 1, 1])
                     with col_i:
@@ -159,7 +160,7 @@ def render_secretariado(*args):
                             unsafe_allow_html=True
                         )
                     with col_v:
-                        if st.button("✅", key=f"s1_val_{reg_id}",
+                        if st.button("✅", key=f"s1_val_{reg_id}_{idx1}",         
                                       use_container_width=True, help="Validar"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status']         = '1'
                             registos_db.loc[registos_db['ID'] == reg_id, 'Validado1_Por']  = user_nome
@@ -171,7 +172,7 @@ def render_secretariado(*args):
                                 tipo="success", acao_url="/")
                             inv(); st.rerun()
                     with col_r:
-                        if st.button("❌", key=f"s1_rej_{reg_id}",
+                        if st.button("❌", key=f"s1_rej_{reg_id}_{idx1}",            
                                       use_container_width=True, help="Rejeitar"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status'] = '-1'
                             save_db(registos_db, "registos.csv")
@@ -247,8 +248,8 @@ def render_secretariado(*args):
 
                 st.markdown("---")
 
-                for _, row in df_view2.iterrows():
-                    reg_id = row.get('ID','')
+                for idx2, row in df_view2.iterrows():
+                    reg_id = row.get('ID','') or f"idx_{idx2}"   
                     col_i, col_v, col_d = st.columns([5, 1, 1])
                     with col_i:
                         st.markdown(
@@ -264,7 +265,7 @@ def render_secretariado(*args):
                             unsafe_allow_html=True
                         )
                     with col_v:
-                        if st.button("🔵", key=f"s2_val_{reg_id}",
+                        if st.button("🔵", key=f"s2_val_{reg_id}_{idx2}",             
                                       use_container_width=True,
                                       help="Enviar para faturação"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status']         = '2'
@@ -273,7 +274,7 @@ def render_secretariado(*args):
                             save_db(registos_db, "registos.csv")
                             inv(); st.rerun()
                     with col_d:
-                        if st.button("🟠", key=f"s2_dev_{reg_id}",
+                        if st.button("🟠", key=f"s2_dev_{reg_id}_{idx2}",            
                                       use_container_width=True,
                                       help="Devolver"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status'] = '0'
