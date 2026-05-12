@@ -1,5 +1,6 @@
 import streamlit as st
-from core import load_all, inv, ICONS
+import pandas as pd
+from core import load_all, inv, ICONS, fh, save_db
 from datetime import datetime
 
 def render_admin(*args):
@@ -229,9 +230,7 @@ def render_admin(*args):
 
         with fat_tabs[3]:
             # Faturação de horas — vem do secretariado tab faturação
-            import streamlit as st
             import pandas as pd
-            from core import fh, save_db
             st.markdown("### ⏱️ Horas para Faturação ao Cliente")
             if registos_db.empty:
                 st.info("📋 Sem registos.")
