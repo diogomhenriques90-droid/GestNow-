@@ -50,9 +50,11 @@ def _load_users_fresh():
     return pd.DataFrame()
 
 def render_tecnico(*args):
+    # ✅ *_ apanha os novos valores de diárias sem quebrar
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
-     comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = args
+     comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db,
+     *_) = args
 
     user_nome  = st.session_state.get('user', '')
     cargo_user = st.session_state.get('cargo', 'Técnico')
@@ -200,7 +202,6 @@ def render_tecnico(*args):
             mes_label  = _MESES_PT[dias_sem[3].month - 1]
             ano_label  = dias_sem[3].year
 
-            # Cabeçalho do mês
             col_prev, col_mes, col_next = st.columns([1, 4, 1])
             with col_prev:
                 if st.button("‹", key="cal_prev", use_container_width=True):
@@ -219,7 +220,6 @@ def render_tecnico(*args):
                     st.session_state.semana_offset += 1
                     st.rerun()
 
-            # Letras dos dias
             letras_cols = st.columns(7)
             for col, d in zip(letras_cols, dias_sem):
                 with col:
@@ -233,7 +233,6 @@ def render_tecnico(*args):
                         unsafe_allow_html=True
                     )
 
-            # Botões dos dias
             btn_cols = st.columns(7)
             for col, d in zip(btn_cols, dias_sem):
                 with col:
@@ -255,7 +254,6 @@ def render_tecnico(*args):
                         st.session_state.data_consulta = d
                         st.rerun()
 
-                    # Dot de status por baixo
                     if dot_cor:
                         st.markdown(
                             f"<div style='width:7px;height:7px;border-radius:50%;"
@@ -268,7 +266,6 @@ def render_tecnico(*args):
                             unsafe_allow_html=True
                         )
 
-            # Legenda
             st.markdown(
                 "<div style='display:flex;gap:12px;justify-content:center;"
                 "flex-wrap:wrap;margin:4px 0 12px;'>"
@@ -289,7 +286,6 @@ def render_tecnico(*args):
                 unsafe_allow_html=True
             )
 
-            # ── Registos do dia ───────────────────────────────────
             data_sel    = st.session_state.data_consulta
             meses       = _MESES_PT[data_sel.month - 1]
             dia_l       = _DIAS_LETRA[(data_sel.weekday() + 1) % 7]
@@ -312,7 +308,6 @@ def render_tecnico(*args):
 
             st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
-            # Listar registos
             regs_dia = pd.DataFrame()
             if not registos_db.empty and 'Técnico' in registos_db.columns:
                 meus = registos_db[registos_db['Técnico'] == user_nome].copy()
@@ -389,7 +384,6 @@ def render_tecnico(*args):
         else:
             data_sel = st.session_state.data_consulta
 
-            # Header
             st.markdown(
                 f"<div style='background:#1E293B;border-radius:14px;"
                 f"padding:14px 16px;margin-bottom:14px;border:1px solid #334155;'>"
@@ -403,7 +397,6 @@ def render_tecnico(*args):
 
             with st.form("form_ponto", clear_on_submit=False):
 
-                # Obra
                 st.markdown(
                     "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
                     "letter-spacing:0.08em;text-transform:uppercase;margin:0 0 6px;'>"
@@ -420,7 +413,6 @@ def render_tecnico(*args):
                     key="reg_obra", label_visibility="collapsed"
                 )
 
-                # Código da obra
                 if not obras_db.empty and obra_sel in obras_db['Obra'].values:
                     oi  = obras_db[obras_db['Obra'] == obra_sel].iloc[0]
                     cod = oi.get('Codigo', '')
@@ -434,7 +426,6 @@ def render_tecnico(*args):
                             unsafe_allow_html=True
                         )
 
-                # Frente
                 st.markdown(
                     "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
                     "letter-spacing:0.08em;text-transform:uppercase;margin:8px 0 6px;'>"
@@ -451,7 +442,6 @@ def render_tecnico(*args):
                     unsafe_allow_html=True
                 )
 
-                # Horas
                 st.markdown(
                     "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
                     "letter-spacing:0.08em;text-transform:uppercase;margin:0 0 8px;'>"
@@ -505,7 +495,6 @@ def render_tecnico(*args):
                     elif delta < 0:
                         st.warning("⚠️ Saída antes da entrada")
 
-                # Total
                 if total_horas > 0:
                     st.markdown(
                         f"<div style='background:#7F1D1D;border-radius:10px;"
@@ -535,18 +524,15 @@ def render_tecnico(*args):
                         "➕ Período", use_container_width=True
                     )
 
-            # Cancelar (fora do form)
             if st.button("← Voltar", key="btn_voltar"):
                 st.session_state.show_reg_form    = False
                 st.session_state.periodos_trabalho = [{"entrada":"08:00","saida":"17:00"}]
                 st.rerun()
 
-            # Adicionar período (fora do form)
             if mais_per:
                 st.session_state.periodos_trabalho.append({"entrada":"13:00","saida":"17:00"})
                 st.rerun()
 
-            # Guardar
             if guardar:
                 if total_horas <= 0:
                     st.error("⚠️ Horas têm de ser superiores a 0.")
@@ -596,7 +582,7 @@ def render_tecnico(*args):
                     st.rerun()
 
     # ════════════════════════════════════════════════════════════════
-    # TABS RESTANTES — iguais às versões anteriores
+    # TABS RESTANTES
     # ════════════════════════════════════════════════════════════════
     offset = 0
     if is_chefe:
@@ -699,6 +685,9 @@ def render_tecnico(*args):
                 else:
                     st.warning("⚠️ Descreve o incidente.")
 
+    # ════════════════════════════════════════════════════════════════
+    # TAB PERFIL
+    # ════════════════════════════════════════════════════════════════
     with tabs[-2]:
         st.markdown("### 👤 Perfil")
         if user_data is not None:
@@ -900,9 +889,80 @@ def render_tecnico(*args):
                     unsafe_allow_html=True
                 )
 
+            # ── Histórico de Diárias ──────────────────────────────
+            st.markdown("---")
+            st.markdown("#### 💶 Histórico de Diárias")
+            try:
+                diarias_hist = load_db("diarias_pagamentos.csv", [
+                    "ID","Semana_Inicio","Semana_Fim","Técnico",
+                    "Obras","Dias_Total","Valor_Total","Status",
+                    "Data_Pagamento","Recibo_b64"
+                ], silent=True)
+                if not diarias_hist.empty:
+                    meus_pag = diarias_hist[
+                        diarias_hist['Técnico'] == user_nome
+                    ].sort_values('Semana_Inicio', ascending=False)
+                    if not meus_pag.empty:
+                        total_recebido = pd.to_numeric(
+                            meus_pag['Valor_Total'], errors='coerce'
+                        ).fillna(0).sum()
+                        st.markdown(
+                            f"<p style='color:#10B981;font-weight:700;'>"
+                            f"Total recebido: € {total_recebido:.2f}</p>",
+                            unsafe_allow_html=True
+                        )
+                        for _, dp in meus_pag.head(10).iterrows():
+                            col_di, col_dr = st.columns([4, 1])
+                            with col_di:
+                                st.markdown(
+                                    f"<div style='background:#1E293B;"
+                                    f"border-radius:8px;padding:10px;"
+                                    f"margin-bottom:5px;'>"
+                                    f"<b style='color:#F1F5F9;font-size:0.85rem;'>"
+                                    f"{dp.get('Semana_Inicio','')} — "
+                                    f"{dp.get('Semana_Fim','')}</b>"
+                                    f"<span style='float:right;color:#10B981;"
+                                    f"font-weight:700;'>"
+                                    f"€ {float(dp.get('Valor_Total',0)):.2f}"
+                                    f"</span><br>"
+                                    f"<small style='color:#64748B;'>"
+                                    f"{dp.get('Obras','')} · "
+                                    f"{dp.get('Dias_Total','')} dia(s) · "
+                                    f"{dp.get('Status','')}</small>"
+                                    f"</div>",
+                                    unsafe_allow_html=True
+                                )
+                            with col_dr:
+                                rec = dp.get('Recibo_b64','')
+                                if rec:
+                                    try:
+                                        st.download_button(
+                                            "📄",
+                                            data=base64.b64decode(rec),
+                                            file_name=(
+                                                f"recibo_"
+                                                f"{dp.get('Semana_Inicio','').replace('/','')}"
+                                                f".pdf"
+                                            ),
+                                            mime="application/pdf",
+                                            key=f"dp_{dp.get('ID','')}",
+                                            use_container_width=True
+                                        )
+                                    except:
+                                        pass
+                    else:
+                        st.info("Sem diárias registadas.")
+                else:
+                    st.info("Sem diárias registadas.")
+            except:
+                st.info("Módulo de diárias não disponível.")
+
         else:
             st.warning("⚠️ Não foi possível carregar os dados.")
 
+    # ════════════════════════════════════════════════════════════════
+    # TAB PEDIDOS
+    # ════════════════════════════════════════════════════════════════
     with tabs[-1]:
         st.markdown("### 📦 Pedidos")
         s1,s2,s3,s4,s5,s6 = st.tabs([
