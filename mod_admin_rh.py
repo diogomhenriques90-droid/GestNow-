@@ -11,8 +11,8 @@ from core import (
 )
 
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
-TIPOS_USUARIO = ["Técnico","Instrumentista","Engenheiro","Chefe de Equipa","Admin","Cliente"]
-
+TIPOS_USUARIO = ["Técnico","Instrumentista","Engenheiro","Chefe de Equipa",
+                 "Secretariado","Armazém","Admin","Cliente"]
 CARGOS_POR_TIPO = {
     "Técnico":        ["Técnico Eletricista","Técnico Mecânico","Técnico Automação",
                        "Técnico Instrumentação","Operador Especializado","Serralheiro","Outro"],
@@ -23,6 +23,8 @@ CARGOS_POR_TIPO = {
     "Chefe de Equipa":["Chefe de Equipa","Encarregado","Supervisor de Obra"],
     "Admin":          ["Administrador","Gestor RH","Gestor IT"],
     "Cliente":        ["Gestor de Projeto","Fiscal de Obra","Responsável Técnico"],
+    "Secretariado": ["Secretária","Administrativo","Faturação","RH"],
+    "Armazém":      ["Responsável de Armazém","Técnico de Armazém"],
 }
 
 # Campos do colaborador para exportação / visualização completa
