@@ -185,7 +185,7 @@ def render_tecnico(*args):
             if not ru.empty:
                 ru['Data_d'] = pd.to_datetime(
                     ru['Data'], dayfirst=True, errors='coerce'
-                ).dt.date
+                ).dt.normalize().dt.date 
                 sp = {"4":6,"3":5,"2":4,"1":3,"0":2,"-1":1}
                 for d_u in ru['Data_d'].dropna().unique():
                     rd     = ru[ru['Data_d'] == d_u]
@@ -312,8 +312,15 @@ def render_tecnico(*args):
             if not registos_db.empty and 'Técnico' in registos_db.columns:
                 meus = registos_db[registos_db['Técnico'] == user_nome].copy()
                 if not meus.empty:
-                    dp       = pd.to_datetime(meus['Data'], dayfirst=True, errors='coerce').dt.date
-                    regs_dia = meus[dp == data_sel].copy()
+                    # ✅ Normalizar data_sel para date puro
+                    if hasattr(data_sel, 'date'):
+                        data_sel_d = data_sel.date()
+                    else:
+                        data_sel_d = data_sel
+                    dp = pd.to_datetime(
+                        meus['Data'], dayfirst=True, errors='coerce'
+                    ).dt.normalize().dt.date
+                    regs_dia = meus[dp == data_sel_d].copy()
 
             if not regs_dia.empty:
                 regs_dia['_h'] = pd.to_numeric(
