@@ -768,12 +768,18 @@ else:
                             "Aceita: Word (.docx), PDF, JPG ou PNG</p>",
                             unsafe_allow_html=True
                         )
+                        st.markdown(
+                            "<p style='color:#93C5FD;font-size:0.82rem;margin:0 0 6px;'>"
+                            "Aceita: Word (.docx), PDF, JPG ou PNG</p>",
+                            unsafe_allow_html=True
+                        )
                         ficheiro_assin = st.file_uploader(
                             "📤 Upload do contrato assinado",
                             type=["jpg","jpeg","png","pdf","docx"],
                             key="blk_ct_upload"
                         )
                         if ficheiro_assin:
+                            # Mostrar nome e tamanho
                             tam_kb = len(ficheiro_assin.getvalue()) / 1024
                             st.success(
                                 f"✅ Ficheiro: **{ficheiro_assin.name}** "
@@ -788,9 +794,7 @@ else:
                                           key="blk_btn_assin",
                                           type="primary",
                                           use_container_width=True):
-                                f_b64 = base64.b64encode(
-                                    ficheiro_assin.getvalue()
-                                ).decode()
+                                f_b64 = base64.b64encode(ficheiro_assin.getvalue()).decode()
                                 u_up  = _load_users_fresh()
                                 mask  = u_up['Nome'] == user_nome
                                 if mask.any():
