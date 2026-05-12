@@ -514,14 +514,26 @@ def render_tecnico(*args):
 
                 st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
-                col_g, col_c = st.columns(2)
-                with col_g:
-                    guardar = st.form_submit_button(
-                        "💾 Guardar", use_container_width=True, type="primary"
-                    )
+                # Desktop: + Período à esquerda, Guardar à direita
+                # Mobile: + Período em cima, Guardar em baixo
+                st.markdown("""
+                <style>
+                @media (max-width: 768px) {
+                    [data-testid="stHorizontalBlock"]:has(button) {
+                        flex-direction: column !important;
+                    }
+                }
+                </style>
+                """, unsafe_allow_html=True)
+
+                col_c, col_g = st.columns(2)
                 with col_c:
                     mais_per = st.form_submit_button(
                         "➕ Período", use_container_width=True
+                    )
+                with col_g:
+                    guardar = st.form_submit_button(
+                        "💾 Guardar", use_container_width=True, type="primary"
                     )
 
             if st.button("← Voltar", key="btn_voltar"):
