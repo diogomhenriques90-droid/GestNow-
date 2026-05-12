@@ -594,11 +594,6 @@ def render_secretariado(*args):
                             inv()
                             st.success(f"✅ Pagamento processado para {obra_sel}!")
                             st.rerun()
-                        "<p style='color:#94A3B8;font-size:0.85rem;'>"
-                        "Introduz as horas totais da folha de ponto física por técnico "
-                        "para comparar com os registos da app:</p>",
-                        unsafe_allow_html=True
-                    )
 
                     inconformes = []
                     todos_ok    = True
