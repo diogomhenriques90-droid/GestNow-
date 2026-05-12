@@ -395,7 +395,8 @@ def render_chefe(*args):
 
     # ── TAB 3: FOLHA DE PONTO ───────────────────────────────────────────
     with tabs[3]:
-        st.markdown("### 📊 Folha de Ponto & Assinatura")
+        st.markdown("### 📊 Folha de Ponto & Upload Físico")
+
         obras_l_fp = obras_db['Obra'].unique().tolist() if not obras_db.empty else ["Sem Obras"]
         obra_fp    = st.selectbox("Obra", obras_l_fp, key="fp_ch_obra")
         ini_s      = hoje - timedelta(days=hoje.weekday())
@@ -412,58 +413,266 @@ def render_chefe(*args):
             ]
 
         if not regs_fp.empty:
-            st.markdown(f"#### Registos {sem_ini.strftime('%d/%m')} — {sem_fim.strftime('%d/%m/%Y')}")
+            st.markdown(f"#### Registos na App — {sem_ini.strftime('%d/%m')} a {sem_fim.strftime('%d/%m/%Y')}")
             for tec in regs_fp['Técnico'].unique():
                 rt  = regs_fp[regs_fp['Técnico'] == tec]
                 tot = rt['Horas_Total'].astype(float).sum()
-                st.markdown(f"""
-                <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);
-                    border-radius:10px;padding:12px;margin-bottom:8px;">
-                    <b>👤 {tec}</b> — {len(rt)} dias | <b>{tot:.1f}h</b>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(
+                    f"<div style='background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);"
+                    f"border-radius:10px;padding:12px;margin-bottom:8px;'>"
+                    f"<b>👤 {tec}</b> — {len(rt)} dia(s) | <b>{tot:.1f}h</b>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
 
-            st.markdown("### ✍️ Assinatura")
-            nome_resp = st.text_input("Nome do Responsável", key="fp_ch_resp")
+        st.markdown("---")
+        st.markdown("### 📷 Upload da Folha de Ponto Física")
+        st.info(
+            "Tira uma foto clara à folha de ponto assinada e faz upload. "
+            "O sistema vai ler automaticamente os nomes e horas com IA."
+        )
 
-            if st.button("📋 Gerar Folha Assinada", use_container_width=True, type="primary", key="btn_fp_ch"):
-                if nome_resp:
-                    esign_id = secrets.token_hex(6).upper()
-                    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    nova_folha = pd.DataFrame([{
-                        "ID": str(uuid.uuid4())[:8].upper(), "Obra": obra_fp,
-                        "Periodo": f"{sem_ini.strftime('%d/%m')} - {sem_fim.strftime('%d/%m/%Y')}",
-                        "Responsavel": nome_resp, "Data_Assinatura": ts,
-                        "Assinatura_b64": "", "Selo": esign_id, "Status": "Assinado"
-                    }])
-                    updated = pd.concat([folhas_db, nova_folha], ignore_index=True) if not folhas_db.empty else nova_folha
-                    save_db(updated, "folhas_ponto.csv")
-                    log_audit(usuario=user_nome, acao="ASSINAR_FOLHA_PONTO",
-                              tabela="folhas_ponto.csv", registro_id=nova_folha['ID'].iloc[0],
-                              detalhes=f"Folha assinada: {nome_resp} | {obra_fp}", ip="")
-                    st.markdown(f"""
-                    <div style="border:2px dashed #10B981;padding:15px;background:rgba(16,185,129,0.1);
-                        border-radius:10px;font-family:monospace;color:#10B981;">
-                        <b>🔒 SELO #{esign_id}</b><br>
-                        Assinado por: {nome_resp} | {ts}<br>
-                        Período: {sem_ini.strftime('%d/%m')} a {sem_fim.strftime('%d/%m/%Y')} | Obra: {obra_fp}
-                    </div>
-                    """, unsafe_allow_html=True)
+        foto_folha = st.file_uploader(
+            "📷 Foto da folha de ponto (JPG, PNG ou PDF)",
+            type=["jpg","jpeg","png","pdf"],
+            key="fp_foto_upload"
+        )
+
+        if foto_folha:
+            # Mostrar preview se for imagem
+            if foto_folha.type in ["image/jpeg","image/png","image/jpg"]:
+                st.image(foto_folha, caption="Preview da folha", use_column_width=True)
+
+            st.success(f"✅ Ficheiro carregado: {foto_folha.name}")
+
+            if st.button("🤖 Extrair Dados com IA",
+                          key="btn_extrair_vision",
+                          type="primary",
+                          use_container_width=True):
+                with st.spinner("A analisar a folha de ponto com Claude Vision..."):
+                    try:
+                        from core import extrair_folha_ponto_vision
+                        import base64 as _b64
+
+                        # Preparar imagem
+                        file_bytes = foto_folha.read()
+                        img_b64    = _b64.b64encode(file_bytes).decode('utf-8')
+
+                        # Determinar media type
+                        mt_map = {
+                            "image/jpeg": "image/jpeg",
+                            "image/jpg":  "image/jpeg",
+                            "image/png":  "image/png",
+                            "application/pdf": "application/pdf"
+                        }
+                        media_type = mt_map.get(foto_folha.type, "image/jpeg")
+
+                        # Chamar Vision
+                        resultado = extrair_folha_ponto_vision(img_b64, media_type)
+
+                        if resultado["sucesso"] and resultado["dados"]:
+                            st.session_state['fp_ocr_resultado']  = resultado
+                            st.session_state['fp_ocr_obra']       = obra_fp
+                            st.session_state['fp_ocr_sem_ini']    = sem_ini.strftime('%d/%m/%Y')
+                            st.session_state['fp_ocr_sem_fim']    = sem_fim.strftime('%d/%m/%Y')
+                            st.session_state['fp_ocr_img_b64']    = img_b64
+                            st.success(
+                                f"✅ Extraídos **{len(resultado['dados'])}** "
+                                f"trabalhador(es) da folha!"
+                            )
+                            if resultado.get('periodo'):
+                                st.info(f"📅 Período identificado: {resultado['periodo']}")
+                        else:
+                            st.error(f"❌ Erro na extração: {resultado.get('erro','Resultado vazio')}")
+                            if resultado.get('raw'):
+                                with st.expander("Ver resposta bruta"):
+                                    st.text(resultado['raw'])
+
+                    except Exception as e:
+                        st.error(f"❌ Erro: {e}")
+
+        # ── Mostrar e confirmar resultado da extração ─────────────────
+        if st.session_state.get('fp_ocr_resultado') and \
+           st.session_state.get('fp_ocr_obra') == obra_fp:
+
+            resultado  = st.session_state['fp_ocr_resultado']
+            sem_ini_s  = st.session_state.get('fp_ocr_sem_ini','')
+            sem_fim_s  = st.session_state.get('fp_ocr_sem_fim','')
+
+            st.markdown("---")
+            st.markdown("### ✅ Dados Extraídos — Confirmar antes de Guardar")
+
+            if resultado.get('obs'):
+                st.info(f"ℹ️ Nota da IA: {resultado['obs']}")
+
+            dados_editados = []
+            for i, trab in enumerate(resultado['dados']):
+                col_n, col_h = st.columns([3, 1])
+                with col_n:
+                    nome_ed = st.text_input(
+                        "Nome",
+                        value=trab.get('nome',''),
+                        key=f"ocr_nome_{i}",
+                        label_visibility="collapsed"
+                    )
+                with col_h:
+                    horas_ed = st.number_input(
+                        "Horas",
+                        value=float(trab.get('horas_total', 0)),
+                        min_value=0.0, step=0.5,
+                        key=f"ocr_horas_{i}",
+                        label_visibility="collapsed"
+                    )
+                dados_editados.append({
+                    "nome":        nome_ed,
+                    "horas_total": horas_ed,
+                    "dias":        trab.get('dias', [])
+                })
+
+            st.markdown(
+                "<p style='color:#94A3B8;font-size:0.8rem;'>"
+                "Corrige os dados se necessário antes de guardar.</p>",
+                unsafe_allow_html=True
+            )
+
+            if st.button("💾 Guardar Folha de Ponto",
+                          key="btn_guardar_ocr",
+                          type="primary",
+                          use_container_width=True):
+                import uuid as _uuid, json as _json
+                from core import save_db as _save
+
+                # Carregar CSV de folhas OCR
+                try:
+                    from core import load_db as _load
+                    folhas_ocr_db = _load("folhas_ocr.csv", [
+                        "ID","Obra","Periodo","Semana_Inicio","Semana_Fim",
+                        "Tecnico","Horas_Folha","Dias","Extraido_Em",
+                        "Extraido_Por","Imagem_b64","Confianca"
+                    ], silent=True)
+                except:
+                    folhas_ocr_db = pd.DataFrame(columns=[
+                        "ID","Obra","Periodo","Semana_Inicio","Semana_Fim",
+                        "Tecnico","Horas_Folha","Dias","Extraido_Em",
+                        "Extraido_Por","Imagem_b64","Confianca"
+                    ])
+
+                novas = []
+                img_b64_store = st.session_state.get('fp_ocr_img_b64','')
+
+                for d in dados_editados:
+                    if d['nome'].strip() and d['horas_total'] > 0:
+                        novas.append({
+                            "ID":           str(_uuid.uuid4())[:8].upper(),
+                            "Obra":         obra_fp,
+                            "Periodo":      f"{sem_ini_s} - {sem_fim_s}",
+                            "Semana_Inicio":sem_ini_s,
+                            "Semana_Fim":   sem_fim_s,
+                            "Tecnico":      d['nome'].strip(),
+                            "Horas_Folha":  d['horas_total'],
+                            "Dias":         _json.dumps(d['dias']),
+                            "Extraido_Em":  datetime.now().strftime('%d/%m/%Y %H:%M'),
+                            "Extraido_Por": user_nome,
+                            "Imagem_b64":   img_b64_store[:500],  # guardar só preview
+                            "Confianca":    "Vision"
+                        })
+
+                if novas:
+                    df_novas = pd.DataFrame(novas)
+
+                    # Remover entradas anteriores da mesma obra+período
+                    if not folhas_ocr_db.empty:
+                        folhas_ocr_db = folhas_ocr_db[
+                            ~(
+                                (folhas_ocr_db['Obra']          == obra_fp) &
+                                (folhas_ocr_db['Semana_Inicio']  == sem_ini_s)
+                            )
+                        ]
+                    updated = pd.concat([folhas_ocr_db, df_novas], ignore_index=True) \
+                              if not folhas_ocr_db.empty else df_novas
+
+                    _save(updated, "folhas_ocr.csv")
+                    log_audit(
+                        usuario=user_nome,
+                        acao="UPLOAD_FOLHA_PONTO_OCR",
+                        tabela="folhas_ocr.csv",
+                        registro_id=f"{obra_fp}_{sem_ini_s}",
+                        detalhes=f"{len(novas)} técnicos extraídos via Vision",
+                        ip=""
+                    )
                     inv()
-                    st.success(f"✅ Folha #{esign_id} gerada!")
+                    st.session_state.pop('fp_ocr_resultado', None)
+                    st.session_state.pop('fp_ocr_img_b64', None)
+                    st.success(
+                        f"✅ Folha de ponto guardada — "
+                        f"{len(novas)} técnico(s) para {obra_fp}!"
+                    )
                     st.rerun()
                 else:
-                    st.warning("⚠️ Indica o nome do responsável.")
-        else:
-            st.info(f"📋 Sem registos para {obra_fp} neste período.")
+                    st.error("❌ Sem dados válidos para guardar.")
 
-        if not folhas_db.empty:
-            st.divider()
-            st.markdown("#### 📋 Folhas Anteriores")
-            fp_show = folhas_db[folhas_db['Obra'] == obra_fp] if 'Obra' in folhas_db.columns else folhas_db
-            if not fp_show.empty:
-                cols_s = [c for c in ['Periodo','Responsavel','Data_Assinatura','Selo','Status'] if c in fp_show.columns]
-                st.dataframe(fp_show[cols_s], use_container_width=True, hide_index=True)
+        # ── Folhas já guardadas ────────────────────────────────────────
+        st.markdown("---")
+        st.markdown("#### 📋 Folhas Guardadas")
+        try:
+            from core import load_db as _load2
+            folhas_ok = _load2("folhas_ocr.csv", [
+                "ID","Obra","Periodo","Tecnico","Horas_Folha","Extraido_Em","Extraido_Por"
+            ], silent=True)
+            if not folhas_ok.empty:
+                fp_obra = folhas_ok[folhas_ok['Obra'] == obra_fp]
+                if not fp_obra.empty:
+                    st.dataframe(fp_obra, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Sem folhas guardadas para esta obra.")
+            else:
+                st.info("Sem folhas guardadas.")
+        except:
+            st.info("Sem folhas guardadas.")
+
+        # ── Assinatura digital (mantida do original) ──────────────────
+        st.markdown("---")
+        st.markdown("### ✍️ Gerar Folha com Selo Digital")
+        nome_resp = st.text_input("Nome do Responsável", key="fp_ch_resp")
+        if st.button("📋 Gerar Folha com Selo",
+                      use_container_width=True, type="primary",
+                      key="btn_fp_ch"):
+            if nome_resp:
+                esign_id = secrets.token_hex(6).upper()
+                ts       = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                nova_folha = pd.DataFrame([{
+                    "ID": str(uuid.uuid4())[:8].upper(),
+                    "Obra": obra_fp,
+                    "Periodo": f"{sem_ini.strftime('%d/%m')} - {sem_fim.strftime('%d/%m/%Y')}",
+                    "Responsavel": nome_resp,
+                    "Data_Assinatura": ts,
+                    "Assinatura_b64": "",
+                    "Selo": esign_id,
+                    "Status": "Assinado"
+                }])
+                updated = pd.concat([folhas_db, nova_folha], ignore_index=True) \
+                          if not folhas_db.empty else nova_folha
+                save_db(updated, "folhas_ponto.csv")
+                log_audit(usuario=user_nome, acao="ASSINAR_FOLHA_PONTO",
+                          tabela="folhas_ponto.csv",
+                          registro_id=nova_folha['ID'].iloc[0],
+                          detalhes=f"Folha assinada: {nome_resp} | {obra_fp}", ip="")
+                st.markdown(
+                    f"<div style='border:2px dashed #10B981;padding:15px;"
+                    f"background:rgba(16,185,129,0.1);border-radius:10px;"
+                    f"font-family:monospace;color:#10B981;'>"
+                    f"<b>🔒 SELO #{esign_id}</b><br>"
+                    f"Assinado por: {nome_resp} | {ts}<br>"
+                    f"Período: {sem_ini.strftime('%d/%m')} a "
+                    f"{sem_fim.strftime('%d/%m/%Y')} | Obra: {obra_fp}"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+                inv()
+                st.success(f"✅ Folha #{esign_id} gerada!")
+                st.rerun()
+            else:
+                st.warning("⚠️ Indica o nome do responsável.")  
 
     # ── TAB 4: HSE ──────────────────────────────────────────────────────
     with tabs[4]:
