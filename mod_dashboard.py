@@ -34,8 +34,9 @@ def render_dashboard(*args):
     """, unsafe_allow_html=True)
 
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
-     sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
-     comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = args
+    sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
+    comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db,
+    *_) = args
 
     st.markdown(f"""
     <div style="background:linear-gradient(135deg,#1E293B,#0F172A);padding:30px;
