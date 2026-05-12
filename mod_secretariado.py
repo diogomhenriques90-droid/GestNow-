@@ -15,10 +15,10 @@ from datetime import datetime, date, timedelta
 from core import save_db, inv, log_audit, criar_notificacao, fh
 
 _STATUS_COR = {
-    "0": "#F97316",   # laranja
-    "1": "#10B981",   # verde
-    "2": "#3B82F6",   # azul
-    "3": "#6B7280",   # cinzento
+    "0": "#F97316",
+    "1": "#10B981",
+    "2": "#3B82F6",
+    "3": "#6B7280",
 }
 _STATUS_LABEL = {
     "0": "🟠 Pendente",
@@ -29,7 +29,6 @@ _STATUS_LABEL = {
 
 
 def _fmt_data(val):
-    """Formata datetime64 ou string para dd/mm/YYYY."""
     try:
         if pd.isnull(val):
             return "—"
@@ -44,7 +43,6 @@ def _fmt_data(val):
 
 
 def _regs_com_data(registos_db: pd.DataFrame) -> pd.DataFrame:
-    """Devolve cópia com Data formatada como string."""
     df = registos_db.copy()
     if pd.api.types.is_datetime64_any_dtype(df['Data']):
         df['Data'] = df['Data'].dt.strftime('%d/%m/%Y').fillna('—')
@@ -72,8 +70,7 @@ def render_secretariado(*args):
     ])
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 1 — 1ª VALIDAÇÃO (Status 0 → 1)
-    # Pode vir do chefe ou do secretariado (obras sem chefe)
+    # TAB 1 — 1ª VALIDAÇÃO
     # ════════════════════════════════════════════════════════════════
     with tab_1val:
         st.markdown("### 🟢 Primeira Validação de Horas")
@@ -91,7 +88,6 @@ def render_secretariado(*args):
             if pendentes.empty:
                 st.success("✅ Sem horas pendentes de 1ª validação.")
             else:
-                # Filtros
                 col_f1, col_f2 = st.columns(2)
                 with col_f1:
                     tecs = ["Todos"] + sorted(pendentes['Técnico'].dropna().unique().tolist())
@@ -106,16 +102,15 @@ def render_secretariado(*args):
 
                 st.markdown(f"**{len(df_view)} registo(s) pendente(s)**")
 
-                # Validar/Rejeitar todos os filtrados
                 col_va, col_vr = st.columns(2)
                 with col_va:
                     if st.button("🟢 Validar Todos (filtro)",
                                   key="s1_val_todos", type="primary",
                                   use_container_width=True):
                         ids = df_view.index
-                        registos_db.loc[ids, 'Status']            = '1'
-                        registos_db.loc[ids, 'Validado1_Por']      = user_nome
-                        registos_db.loc[ids, 'Validado1_Data']     = datetime.now().strftime('%d/%m/%Y %H:%M')
+                        registos_db.loc[ids, 'Status']         = '1'
+                        registos_db.loc[ids, 'Validado1_Por']  = user_nome
+                        registos_db.loc[ids, 'Validado1_Data'] = datetime.now().strftime('%d/%m/%Y %H:%M')
                         save_db(registos_db, "registos.csv")
                         for _, r in df_view.iterrows():
                             criar_notificacao(destinatario=r['Técnico'],
@@ -147,7 +142,6 @@ def render_secretariado(*args):
 
                 st.markdown("---")
 
-                # Tabela + validação individual
                 for _, row in df_view.iterrows():
                     reg_id = row.get('ID', '')
                     col_i, col_v, col_r = st.columns([5, 1, 1])
@@ -167,9 +161,9 @@ def render_secretariado(*args):
                     with col_v:
                         if st.button("✅", key=f"s1_val_{reg_id}",
                                       use_container_width=True, help="Validar"):
-                            registos_db.loc[registos_db['ID'] == reg_id, 'Status']        = '1'
-                            registos_db.loc[registos_db['ID'] == reg_id, 'Validado1_Por'] = user_nome
-                            registos_db.loc[registos_db['ID'] == reg_id, 'Validado1_Data']= datetime.now().strftime('%d/%m/%Y %H:%M')
+                            registos_db.loc[registos_db['ID'] == reg_id, 'Status']         = '1'
+                            registos_db.loc[registos_db['ID'] == reg_id, 'Validado1_Por']  = user_nome
+                            registos_db.loc[registos_db['ID'] == reg_id, 'Validado1_Data'] = datetime.now().strftime('%d/%m/%Y %H:%M')
                             save_db(registos_db, "registos.csv")
                             criar_notificacao(destinatario=row.get('Técnico',''),
                                 titulo="🟢 Horas Validadas",
@@ -188,7 +182,7 @@ def render_secretariado(*args):
                             inv(); st.rerun()
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 2 — 2ª VALIDAÇÃO (Status 1 → 2)
+    # TAB 2 — 2ª VALIDAÇÃO
     # ════════════════════════════════════════════════════════════════
     with tab_2val:
         st.markdown("### 🔵 Segunda Validação — Enviar para Faturação")
@@ -218,7 +212,6 @@ def render_secretariado(*args):
                 if filtro_tec2  != "Todos": df_view2 = df_view2[df_view2['Técnico'] == filtro_tec2]
                 if filtro_obra2 != "Todas": df_view2 = df_view2[df_view2['Obra']    == filtro_obra2]
 
-                # KPI
                 total_h = df_view2['Horas_Total'].sum()
                 col_k1, col_k2 = st.columns(2)
                 with col_k1: st.metric("📋 Registos", len(df_view2))
@@ -230,9 +223,9 @@ def render_secretariado(*args):
                                   key="s2_val_todos", type="primary",
                                   use_container_width=True):
                         ids2 = df_view2.index
-                        registos_db.loc[ids2, 'Status']        = '2'
-                        registos_db.loc[ids2, 'Validado2_Por'] = user_nome
-                        registos_db.loc[ids2, 'Validado2_Data']= datetime.now().strftime('%d/%m/%Y %H:%M')
+                        registos_db.loc[ids2, 'Status']         = '2'
+                        registos_db.loc[ids2, 'Validado2_Por']  = user_nome
+                        registos_db.loc[ids2, 'Validado2_Data'] = datetime.now().strftime('%d/%m/%Y %H:%M')
                         save_db(registos_db, "registos.csv")
                         log_audit(usuario=user_nome, acao="VALIDACAO2_HORAS",
                                   tabela="registos.csv",
@@ -313,14 +306,12 @@ def render_secretariado(*args):
                 with c1: st.metric("Total Registos", len(azuis_obra))
                 with c2: st.metric("Total Horas (App)", fh(total_app))
 
-                # Por técnico
                 resumo_tec = azuis_obra.groupby('Técnico').agg(
                     Horas=('Horas_Total','sum'),
                     Dias=('Data','nunique')
                 ).reset_index()
                 st.dataframe(resumo_tec, use_container_width=True, hide_index=True)
 
-                # ── Folha de ponto ────────────────────────────────
                 st.markdown("---")
                 st.markdown("#### 📋 Folha de Ponto Física")
 
@@ -328,20 +319,13 @@ def render_secretariado(*args):
                 if not folhas_db.empty and 'Obra' in folhas_db.columns:
                     folhas_obra = folhas_db[folhas_db['Obra'] == obra_sel]
 
-                if folhas_obra.empty:
-                    st.warning(
-                        "⚠️ Nenhuma folha de ponto carregada para esta obra. "
-                        "O Chefe de Equipa precisa de fazer upload no seu módulo."
-                    )
-                else:
-                    # Mostrar folhas disponíveis
+                if not folhas_obra.empty:
                     for _, fp in folhas_obra.iterrows():
                         periodo = fp.get('Periodo','')
                         resp    = fp.get('Responsavel','')
                         selo    = fp.get('Selo','')
                         status  = fp.get('Status','')
-
-                        cor_fp = "#10B981" if status == 'Conferido' else "#F59E0B"
+                        cor_fp  = "#10B981" if status == 'Conferido' else "#F59E0B"
                         st.markdown(
                             f"<div style='background:#1E293B;border-radius:10px;"
                             f"padding:12px 16px;margin-bottom:8px;"
@@ -354,254 +338,40 @@ def render_secretariado(*args):
                             unsafe_allow_html=True
                         )
 
-                    # ── Comparação automática ─────────────────────
-                    st.markdown("---")
-                    st.markdown("#### ⚖️ Comparação App vs Folha de Ponto (IA)")
+                # ── Comparação automática ─────────────────────────
+                st.markdown("---")
+                st.markdown("#### ⚖️ Comparação App vs Folha de Ponto (IA)")
 
-                    # Carregar folhas OCR desta obra e período
-                    from core import load_db as _load_ocr
-                    try:
-                        folhas_ocr = _load_ocr("folhas_ocr.csv", [
-                            "ID","Obra","Semana_Inicio","Semana_Fim",
-                            "Tecnico","Horas_Folha"
-                        ], silent=True)
-                    except:
-                        folhas_ocr = pd.DataFrame()
+                from core import load_db as _load_ocr
+                try:
+                    folhas_ocr = _load_ocr("folhas_ocr.csv", [
+                        "ID","Obra","Semana_Inicio","Semana_Fim",
+                        "Tecnico","Horas_Folha"
+                    ], silent=True)
+                except:
+                    folhas_ocr = pd.DataFrame()
 
-                    # Filtrar pela obra selecionada
-                    ocr_obra = pd.DataFrame()
-                    if not folhas_ocr.empty:
-                        ocr_obra = folhas_ocr[folhas_ocr['Obra'] == obra_sel].copy()
-                        ocr_obra['Horas_Folha'] = pd.to_numeric(
-                            ocr_obra['Horas_Folha'], errors='coerce'
-                        ).fillna(0)
+                ocr_obra = pd.DataFrame()
+                if not folhas_ocr.empty:
+                    ocr_obra = folhas_ocr[folhas_ocr['Obra'] == obra_sel].copy()
+                    ocr_obra['Horas_Folha'] = pd.to_numeric(
+                        ocr_obra['Horas_Folha'], errors='coerce'
+                    ).fillna(0)
 
-                    if ocr_obra.empty:
-                        st.warning(
-                            "⚠️ Sem folha de ponto extraída para esta obra. "
-                            "O Chefe de Equipa precisa de fazer upload da foto "
-                            "da folha física no seu módulo."
-                        )
-                        # Fallback: comparação manual
-                        st.markdown("**Introdução manual como alternativa:**")
-                        inconformes = []
-                        todos_ok    = True
-                        for _, tec_row in resumo_tec.iterrows():
-                            tec_nome  = tec_row['Técnico']
-                            horas_app = tec_row['Horas']
-                            col_tn, col_happ, col_hfp, col_diff = st.columns([3,1,1,1])
-                            with col_tn:
-                                st.markdown(
-                                    f"<p style='color:#F1F5F9;font-size:0.88rem;"
-                                    f"padding:8px 0;margin:0;'>{tec_nome}</p>",
-                                    unsafe_allow_html=True
-                                )
-                            with col_happ:
-                                st.markdown(
-                                    f"<p style='color:#3B82F6;font-size:0.82rem;"
-                                    f"padding:8px 0;margin:0;'>App: <b>{fh(horas_app)}</b></p>",
-                                    unsafe_allow_html=True
-                                )
-                            with col_hfp:
-                                h_folha = st.number_input(
-                                    "Folha",
-                                    min_value=0.0,
-                                    value=float(horas_app),
-                                    step=0.5,
-                                    key=f"fat_fp_manual_{tec_nome.replace(' ','_')}",
-                                    label_visibility="collapsed"
-                                )
-                            with col_diff:
-                                diff = round(horas_app - h_folha, 2)
-                                if abs(diff) > 0.25:
-                                    todos_ok = False
-                                    inconformes.append({
-                                        "Técnico":      tec_nome,
-                                        "Horas App":    fh(horas_app),
-                                        "Horas Folha":  fh(h_folha),
-                                        "Diferença":    fh(abs(diff)),
-                                        "Sentido":      "App > Folha" if diff > 0 else "Folha > App"
-                                    })
-                                    st.markdown(
-                                        f"<p style='color:#EF4444;font-size:0.8rem;"
-                                        f"padding:8px 0;margin:0;'>⚠️ {fh(abs(diff))}</p>",
-                                        unsafe_allow_html=True
-                                    )
-                                else:
-                                    st.markdown(
-                                        "<p style='color:#10B981;font-size:0.8rem;"
-                                        "padding:8px 0;margin:0;'>✅ OK</p>",
-                                        unsafe_allow_html=True
-                                    )
-                    else:
-                        # ── Comparação AUTOMÁTICA com dados da IA ─
-                        st.success("✅ Folha de ponto extraída por IA disponível — comparação automática!")
+                inconformes = []
+                todos_ok    = True
 
-                        # Mostrar período da folha disponível
-                        periodos_disp = ocr_obra['Semana_Inicio'].unique().tolist()
-                        if len(periodos_disp) > 1:
-                            periodo_sel = st.selectbox(
-                                "Período da folha",
-                                periodos_disp,
-                                key="fat_periodo_ocr"
-                            )
-                            ocr_obra = ocr_obra[ocr_obra['Semana_Inicio'] == periodo_sel]
-
-                        # Criar dict nome → horas da folha
-                        folha_dict = {
-                            row['Tecnico']: float(row['Horas_Folha'])
-                            for _, row in ocr_obra.iterrows()
-                        }
-
-                        inconformes = []
-                        todos_ok    = True
-
-                        st.markdown("| Técnico | App | Folha | Diferença | Estado |")
-                        st.markdown("|---------|-----|-------|-----------|--------|")
-
-                        for _, tec_row in resumo_tec.iterrows():
-                            tec_nome  = tec_row['Técnico']
-                            horas_app = float(tec_row['Horas'])
-
-                            # Tentar correspondência por nome exacto ou parcial
-                            h_folha = None
-                            for nome_ocr, h_ocr in folha_dict.items():
-                                if (tec_nome.lower() in nome_ocr.lower() or
-                                    nome_ocr.lower() in tec_nome.lower() or
-                                    tec_nome.split()[0].lower() in nome_ocr.lower()):
-                                    h_folha = h_ocr
-                                    break
-
-                            if h_folha is None:
-                                # Não encontrado na folha
-                                inconformes.append({
-                                    "Técnico":     tec_nome,
-                                    "Horas App":   fh(horas_app),
-                                    "Horas Folha": "—",
-                                    "Diferença":   "—",
-                                    "Sentido":     "❌ Não encontrado na folha"
-                                })
-                                todos_ok = False
-                                col_i, col_a, col_f, col_d, col_e = st.columns([3,1,1,1,1])
-                                with col_i: st.markdown(f"**{tec_nome}**")
-                                with col_a: st.markdown(f"🔵 {fh(horas_app)}")
-                                with col_f: st.markdown("—")
-                                with col_d: st.markdown("—")
-                                with col_e: st.markdown("❌ Não na folha")
-                            else:
-                                diff = round(horas_app - h_folha, 2)
-                                if abs(diff) > 0.25:
-                                    todos_ok = False
-                                    inconformes.append({
-                                        "Técnico":     tec_nome,
-                                        "Horas App":   fh(horas_app),
-                                        "Horas Folha": fh(h_folha),
-                                        "Diferença":   fh(abs(diff)),
-                                        "Sentido":     "App > Folha" if diff > 0 else "Folha > App"
-                                    })
-                                    col_i, col_a, col_f, col_d, col_e = st.columns([3,1,1,1,1])
-                                    with col_i: st.markdown(f"**{tec_nome}**")
-                                    with col_a: st.markdown(f"🔵 {fh(horas_app)}")
-                                    with col_f: st.markdown(f"📋 {fh(h_folha)}")
-                                    with col_d:
-                                        st.markdown(
-                                            f"<span style='color:#EF4444;font-weight:700;'>"
-                                            f"⚠️ {fh(abs(diff))}</span>",
-                                            unsafe_allow_html=True
-                                        )
-                                    with col_e:
-                                        st.markdown(
-                                            f"<span style='color:#EF4444;'>"
-                                            f"{'App > Folha' if diff>0 else 'Folha > App'}"
-                                            f"</span>",
-                                            unsafe_allow_html=True
-                                        )
-                                else:
-                                    col_i, col_a, col_f, col_d, col_e = st.columns([3,1,1,1,1])
-                                    with col_i: st.markdown(f"**{tec_nome}**")
-                                    with col_a: st.markdown(f"🔵 {fh(horas_app)}")
-                                    with col_f: st.markdown(f"📋 {fh(h_folha)}")
-                                    with col_d: st.markdown("✅ OK")
-                                    with col_e: st.markdown("✅")
-
-                        # Técnicos na folha mas não na app
-                        nomes_app = set(resumo_tec['Técnico'].str.lower().tolist())
-                        for nome_ocr, h_ocr in folha_dict.items():
-                            encontrado = any(
-                                nome_ocr.lower() in n or n in nome_ocr.lower()
-                                for n in nomes_app
-                            )
-                            if not encontrado:
-                                inconformes.append({
-                                    "Técnico":     nome_ocr,
-                                    "Horas App":   "—",
-                                    "Horas Folha": fh(h_ocr),
-                                    "Diferença":   "—",
-                                    "Sentido":     "❌ Só na folha, não na app"
-                                })
-                                todos_ok = False
-                                st.markdown(
-                                    f"<div style='background:rgba(239,68,68,0.1);"
-                                    f"border-radius:8px;padding:8px;margin-top:4px;'>"
-                                    f"⚠️ <b>{nome_ocr}</b> — na folha ({fh(h_ocr)}) "
-                                    f"mas <b>sem registo na app</b>"
-                                    f"</div>",
-                                    unsafe_allow_html=True
-                                )
-
-                    # ── Resultado final e botões ──────────────────
-                    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-
-                    if not todos_ok:
-                        st.error(
-                            f"🚨 **{len(inconformes)} inconformidade(s) detetada(s)** — "
-                            f"Pagamento bloqueado até resolução manual."
-                        )
-                        st.dataframe(pd.DataFrame(inconformes),
-                                     use_container_width=True, hide_index=True)
-                        st.warning(
-                            "⚠️ Verifica com o Chefe de Equipa se houve erro "
-                            "na app, na folha de ponto ou no registo do técnico."
-                        )
-                        with st.expander("🔓 Forçar aprovação com justificação"):
-                            justificacao = st.text_area(
-                                "Justificação obrigatória *",
-                                key="fat_just",
-                                placeholder="Descreve o motivo..."
-                            )
-                            if st.button("⚠️ Aprovar com Inconformidade",
-                                          key="fat_forcar", type="secondary",
-                                          use_container_width=True):
-                                if justificacao.strip():
-                                    _processar_pagamento(
-                                        registos_db, azuis_obra, obra_sel,
-                                        user_nome, justificacao, inconformes
-                                    )
-                                    inv()
-                                    st.success("✅ Processado com ressalva.")
-                                    st.rerun()
-                                else:
-                                    st.error("❌ Justificação obrigatória.")
-                    else:
-                        st.success("✅ Todos os registos conferem com a folha de ponto!")
-                        if st.button("✅ Processar Pagamento",
-                                      key="fat_processar", type="primary",
-                                      use_container_width=True):
-                            _processar_pagamento(
-                                registos_db, azuis_obra, obra_sel,
-                                user_nome, "Conferido sem inconformidades", []
-                            )
-                            inv()
-                            st.success(f"✅ Pagamento processado para {obra_sel}!")
-                            st.rerun()
-
-                    inconformes = []
-                    todos_ok    = True
-
+                if ocr_obra.empty:
+                    st.warning(
+                        "⚠️ Sem folha de ponto extraída por IA para esta obra. "
+                        "O Chefe precisa de fazer upload da foto no seu módulo. "
+                        "Podes introduzir manualmente abaixo como alternativa."
+                    )
+                    # Comparação manual fallback
                     for _, tec_row in resumo_tec.iterrows():
                         tec_nome  = tec_row['Técnico']
                         horas_app = tec_row['Horas']
-                        col_tn, col_happ, col_hfp, col_diff = st.columns([3, 1, 1, 1])
+                        col_tn, col_happ, col_hfp, col_diff = st.columns([3,1,1,1])
                         with col_tn:
                             st.markdown(
                                 f"<p style='color:#F1F5F9;font-size:0.88rem;"
@@ -616,10 +386,11 @@ def render_secretariado(*args):
                             )
                         with col_hfp:
                             h_folha = st.number_input(
-                                "Folha (h)",
-                                min_value=0.0, value=float(horas_app),
+                                "Folha",
+                                min_value=0.0,
+                                value=float(horas_app),
                                 step=0.5,
-                                key=f"fat_fp_{tec_nome.replace(' ','_')}",
+                                key=f"fat_fp_manual_{tec_nome.replace(' ','_')}",
                                 label_visibility="collapsed"
                             )
                         with col_diff:
@@ -627,16 +398,15 @@ def render_secretariado(*args):
                             if abs(diff) > 0.25:
                                 todos_ok = False
                                 inconformes.append({
-                                    "Técnico": tec_nome,
-                                    "Horas App": fh(horas_app),
+                                    "Técnico":     tec_nome,
+                                    "Horas App":   fh(horas_app),
                                     "Horas Folha": fh(h_folha),
-                                    "Diferença": fh(abs(diff)),
-                                    "Sentido": "App > Folha" if diff > 0 else "Folha > App"
+                                    "Diferença":   fh(abs(diff)),
+                                    "Sentido":     "App > Folha" if diff > 0 else "Folha > App"
                                 })
                                 st.markdown(
                                     f"<p style='color:#EF4444;font-size:0.8rem;"
-                                    f"padding:8px 0;margin:0;'>"
-                                    f"⚠️ {'+' if diff>0 else ''}{fh(abs(diff))}</p>",
+                                    f"padding:8px 0;margin:0;'>⚠️ {fh(abs(diff))}</p>",
                                     unsafe_allow_html=True
                                 )
                             else:
@@ -645,58 +415,143 @@ def render_secretariado(*args):
                                     "padding:8px 0;margin:0;'>✅ OK</p>",
                                     unsafe_allow_html=True
                                 )
+                else:
+                    # Comparação AUTOMÁTICA com IA
+                    st.success("✅ Folha extraída por IA disponível — comparação automática!")
 
-                    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-
-                    if not todos_ok:
-                        st.error(
-                            f"🚨 **{len(inconformes)} inconformidade(s) detetada(s)** — "
-                            f"Pagamento bloqueado até resolução manual."
+                    periodos_disp = ocr_obra['Semana_Inicio'].unique().tolist()
+                    if len(periodos_disp) > 1:
+                        periodo_sel = st.selectbox(
+                            "Período da folha", periodos_disp, key="fat_periodo_ocr"
                         )
-                        st.markdown("#### ❌ Registos Inconformes")
-                        df_inc = pd.DataFrame(inconformes)
-                        st.dataframe(df_inc, use_container_width=True, hide_index=True)
+                        ocr_obra = ocr_obra[ocr_obra['Semana_Inicio'] == periodo_sel]
 
-                        st.warning(
-                            "⚠️ Verifica com o Chefe de Equipa se houve erro na app, "
-                            "na folha de ponto ou no registo do técnico. "
-                            "Só após resolução manual podes processar o pagamento."
-                        )
+                    folha_dict = {
+                        row['Tecnico']: float(row['Horas_Folha'])
+                        for _, row in ocr_obra.iterrows()
+                    }
 
-                        # Opção de forçar com justificação
-                        with st.expander("🔓 Forçar aprovação com justificação (responsabilidade do operador)"):
-                            justificacao = st.text_area(
-                                "Justificação obrigatória *",
-                                key="fat_just",
-                                placeholder="Descreve o motivo da aprovação com inconformidade..."
-                            )
-                            if st.button("⚠️ Aprovar com Inconformidade",
-                                          key="fat_forcar",
-                                          type="secondary",
-                                          use_container_width=True):
-                                if justificacao.strip():
-                                    _processar_pagamento(
-                                        registos_db, azuis_obra, obra_sel,
-                                        user_nome, justificacao, inconformes
+                    for _, tec_row in resumo_tec.iterrows():
+                        tec_nome  = tec_row['Técnico']
+                        horas_app = float(tec_row['Horas'])
+
+                        h_folha = None
+                        for nome_ocr, h_ocr in folha_dict.items():
+                            if (tec_nome.lower() in nome_ocr.lower() or
+                                nome_ocr.lower() in tec_nome.lower() or
+                                tec_nome.split()[0].lower() in nome_ocr.lower()):
+                                h_folha = h_ocr
+                                break
+
+                        col_i, col_a, col_f, col_d, col_e = st.columns([3,1,1,1,1])
+                        if h_folha is None:
+                            todos_ok = False
+                            inconformes.append({
+                                "Técnico": tec_nome, "Horas App": fh(horas_app),
+                                "Horas Folha": "—", "Diferença": "—",
+                                "Sentido": "❌ Não encontrado na folha"
+                            })
+                            with col_i: st.markdown(f"**{tec_nome}**")
+                            with col_a: st.markdown(f"🔵 {fh(horas_app)}")
+                            with col_f: st.markdown("—")
+                            with col_d: st.markdown("—")
+                            with col_e: st.markdown("❌ Não na folha")
+                        else:
+                            diff = round(horas_app - h_folha, 2)
+                            with col_i: st.markdown(f"**{tec_nome}**")
+                            with col_a: st.markdown(f"🔵 {fh(horas_app)}")
+                            with col_f: st.markdown(f"📋 {fh(h_folha)}")
+                            if abs(diff) > 0.25:
+                                todos_ok = False
+                                inconformes.append({
+                                    "Técnico": tec_nome, "Horas App": fh(horas_app),
+                                    "Horas Folha": fh(h_folha), "Diferença": fh(abs(diff)),
+                                    "Sentido": "App > Folha" if diff > 0 else "Folha > App"
+                                })
+                                with col_d:
+                                    st.markdown(
+                                        f"<span style='color:#EF4444;font-weight:700;'>"
+                                        f"⚠️ {fh(abs(diff))}</span>",
+                                        unsafe_allow_html=True
                                     )
-                                    inv()
-                                    st.success("✅ Processado com ressalva.")
-                                    st.rerun()
-                                else:
-                                    st.error("❌ Justificação obrigatória.")
-                    else:
-                        st.success("✅ Todos os registos conferem com a folha de ponto!")
-                        if st.button("✅ Processar Pagamento",
-                                      key="fat_processar",
-                                      type="primary",
-                                      use_container_width=True):
-                            _processar_pagamento(
-                                registos_db, azuis_obra, obra_sel,
-                                user_nome, "Conferido sem inconformidades", []
+                                with col_e:
+                                    st.markdown(
+                                        f"<span style='color:#EF4444;'>"
+                                        f"{'App > Folha' if diff>0 else 'Folha > App'}"
+                                        f"</span>",
+                                        unsafe_allow_html=True
+                                    )
+                            else:
+                                with col_d: st.markdown("✅ OK")
+                                with col_e: st.markdown("✅")
+
+                    # Técnicos só na folha
+                    nomes_app = set(resumo_tec['Técnico'].str.lower().tolist())
+                    for nome_ocr, h_ocr in folha_dict.items():
+                        encontrado = any(
+                            nome_ocr.lower() in n or n in nome_ocr.lower()
+                            for n in nomes_app
+                        )
+                        if not encontrado:
+                            todos_ok = False
+                            inconformes.append({
+                                "Técnico": nome_ocr, "Horas App": "—",
+                                "Horas Folha": fh(h_ocr), "Diferença": "—",
+                                "Sentido": "❌ Só na folha, não na app"
+                            })
+                            st.markdown(
+                                f"<div style='background:rgba(239,68,68,0.1);"
+                                f"border-radius:8px;padding:8px;margin-top:4px;'>"
+                                f"⚠️ <b>{nome_ocr}</b> — na folha ({fh(h_ocr)}) "
+                                f"mas <b>sem registo na app</b></div>",
+                                unsafe_allow_html=True
                             )
-                            inv()
-                            st.success(f"✅ Pagamento processado para {obra_sel}!")
-                            st.rerun()
+
+                # ── Resultado final ───────────────────────────────
+                st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+
+                if not todos_ok:
+                    st.error(
+                        f"🚨 **{len(inconformes)} inconformidade(s) detetada(s)** — "
+                        f"Pagamento bloqueado até resolução manual."
+                    )
+                    st.dataframe(pd.DataFrame(inconformes),
+                                 use_container_width=True, hide_index=True)
+                    st.warning(
+                        "⚠️ Verifica com o Chefe de Equipa se houve erro "
+                        "na app, na folha ou no registo do técnico."
+                    )
+                    with st.expander("🔓 Forçar aprovação com justificação"):
+                        justificacao = st.text_area(
+                            "Justificação obrigatória *",
+                            key="fat_just",
+                            placeholder="Descreve o motivo..."
+                        )
+                        if st.button("⚠️ Aprovar com Inconformidade",
+                                      key="fat_forcar", type="secondary",
+                                      use_container_width=True):
+                            if justificacao.strip():
+                                _processar_pagamento(
+                                    registos_db, azuis_obra, obra_sel,
+                                    user_nome, justificacao, inconformes
+                                )
+                                inv()
+                                st.success("✅ Processado com ressalva.")
+                                st.rerun()
+                            else:
+                                st.error("❌ Justificação obrigatória.")
+                else:
+                    st.success("✅ Todos os registos conferem com a folha de ponto!")
+                    if st.button("✅ Processar Pagamento",
+                                  key="fat_processar", type="primary",
+                                  use_container_width=True):
+                        _processar_pagamento(
+                            registos_db, azuis_obra, obra_sel,
+                            user_nome, "Conferido sem inconformidades", []
+                        )
+                        inv()
+                        st.success(f"✅ Pagamento processado para {obra_sel}!")
+                        st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB 4 — HISTÓRICO
@@ -709,7 +564,6 @@ def render_secretariado(*args):
         else:
             regs = _regs_com_data(registos_db)
 
-            # Filtros
             col_h1, col_h2, col_h3 = st.columns(3)
             with col_h1:
                 anos = sorted(set(
@@ -736,30 +590,27 @@ def render_secretariado(*args):
                 )
 
             status_map = {
-                "🟢 Verde (1)":   "1",
-                "🔵 Azul (2)":    "2",
+                "🟢 Verde (1)":    "1",
+                "🔵 Azul (2)":     "2",
                 "⚫ Processado (3)":"3",
-                "❌ Rejeitado":   "-1",
+                "❌ Rejeitado":    "-1",
             }
 
             hist_all = regs[regs['Status'].isin(['1','2','3','-1'])].copy()
 
-            # Filtrar por ano
             if ano_sel != "Todos":
-                hist_all = hist_all[hist_all['Data'].str.startswith(
-                    ano_sel[-4:] if len(ano_sel) == 4 else ano_sel
-                ) | hist_all['Data'].str.endswith(ano_sel)]
-
-            # Filtrar por mês
+                hist_all = hist_all[
+                    hist_all['Data'].str.endswith(ano_sel, na=False)
+                ]
             if mes_sel != "Todos":
                 mes_num = mes_sel[:2]
-                hist_all = hist_all[hist_all['Data'].str.contains(
-                    f"/{mes_num}/", na=False
-                )]
-
-            # Filtrar por status
+                hist_all = hist_all[
+                    hist_all['Data'].str.contains(f"/{mes_num}/", na=False)
+                ]
             if status_sel != "Todos":
-                hist_all = hist_all[hist_all['Status'] == status_map.get(status_sel,'')]
+                hist_all = hist_all[
+                    hist_all['Status'] == status_map.get(status_sel,'')
+                ]
 
             hist_all['Estado'] = hist_all['Status'].map(_STATUS_LABEL)
 
@@ -776,12 +627,11 @@ def render_secretariado(*args):
                     use_container_width=True, hide_index=True
                 )
 
-                # Export CSV
                 csv = hist_all[cols_show].to_csv(index=False, encoding='utf-8-sig')
                 st.download_button(
                     "📥 Exportar CSV",
                     data=csv.encode('utf-8-sig'),
-                    file_name=f"historico_horas_{ano_sel}_{mes_sel[:2] if mes_sel!='Todos' else 'all'}.csv",
+                    file_name=f"historico_{ano_sel}_{mes_sel[:2] if mes_sel!='Todos' else 'all'}.csv",
                     mime="text/csv",
                     key="hist_export"
                 )
@@ -797,14 +647,12 @@ def _processar_pagamento(
     justificacao: str,
     inconformes: list
 ):
-    """Marca registos como processados (Status 3) e faz log."""
     ids = azuis_obra.index
-    registos_db.loc[ids, 'Status']       = '3'
-    registos_db.loc[ids, 'Processado_Por']= user_nome
-    registos_db.loc[ids, 'Processado_Data']= datetime.now().strftime('%d/%m/%Y %H:%M')
+    registos_db.loc[ids, 'Status']          = '3'
+    registos_db.loc[ids, 'Processado_Por']  = user_nome
+    registos_db.loc[ids, 'Processado_Data'] = datetime.now().strftime('%d/%m/%Y %H:%M')
     save_db(registos_db, "registos.csv")
 
-    # Notificar técnicos
     for tec in azuis_obra['Técnico'].unique():
         criar_notificacao(
             destinatario=tec,
@@ -819,7 +667,7 @@ def _processar_pagamento(
         tabela="registos.csv",
         registro_id=f"{obra}_{datetime.now().strftime('%Y%m%d')}",
         detalhes=(
-            f"Obra: {obra} · {len(azuis_obra)} registos processados. "
+            f"Obra: {obra} · {len(azuis_obra)} registos. "
             f"Inconformes: {len(inconformes)}. "
             f"Justificação: {justificacao[:100]}"
         ),
