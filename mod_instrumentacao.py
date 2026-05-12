@@ -246,7 +246,7 @@ def _validar_material_tag(tag, packing_df, hookups_df, bom_df):
 def render_instrumentacao(*args):
     """Render principal do módulo de instrumentação"""
     (users, obras_db, frentes_db, registos_db, fats, docs, incs, sw, obs, equip,
-     diags, diags_u, folhas, comuns, comuns_u, req_fer, req_mat, req_epi, avals, inst_acessos) = args
+     diags, diags_u, folhas, comuns, comuns_u, req_fer, req_mat, req_epi, avals, inst_acessos, *_) = args
     
     # 📴 MODO OFFLINE - INDICADORES
     render_connection_indicator()
