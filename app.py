@@ -32,6 +32,11 @@ init_session()
 check_timeout()
 init_language()
 
+from streamlit_autorefresh import st_autorefresh
+
+if st.session_state.get('user'):
+    st_autorefresh(interval=30000, limit=None, key="auto_refresh")
+
 page = st.query_params.get("page", "")
 if page == "criar_admin":
     from criar_admin import render_criar_admin
