@@ -362,7 +362,7 @@ def load_all():
         "Registado_Por", "Registado_Em"
     ])
     
-     folhas_ocr = load_db("folhas_ocr.csv", [
+    folhas_ocr = load_db("folhas_ocr.csv", [
         "ID", "Obra", "Periodo", "Semana_Inicio", "Semana_Fim",
         "Tecnico", "Horas_Folha", "Dias", "Extraido_Em",
         "Extraido_Por", "Imagem_b64", "Confianca"
