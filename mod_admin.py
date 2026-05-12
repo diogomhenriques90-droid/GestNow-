@@ -123,8 +123,8 @@ def render_admin(*args):
 
     # ── TAB 0: ARMAZÉM ────────────────────────────────────────────────
     with tabs[0]:
-            from mod_armazem import render_armazem
-            render_armazem(req_fer_db, req_mat_db, req_epi_db, incs_db)
+        from mod_armazem import render_armazem
+        render_armazem(req_fer_db, req_mat_db, req_epi_db, incs_db)
 
     # ── TAB 1: RH ─────────────────────────────────────────────────────
     with tabs[1]:
