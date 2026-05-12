@@ -793,13 +793,19 @@ def render_admin_rh(*args):
             "`{{categoria profissional}}` `{{local}}` `{{Cliente}}` `{{data}}`"
         )
 
+        if template_existe:
+            st.warning(
+                "⚠️ Já existe um template. Fazer upload de um novo **substitui** o atual."
+            )
+
         template_file = st.file_uploader(
-            "Selecionar template .docx",
+            "Selecionar novo template .docx",
             type=["docx"],
             key="upload_template_ct"
         )
         if template_file:
-            acao_label = "🔄 Substituir Template" if template_existe else "💾 Guardar Template"
+            acao_label = "🔄 Substituir Template Atual" if template_existe \
+                         else "💾 Guardar Template"
             if st.button(acao_label,
                           key="btn_guardar_template",
                           type="primary", use_container_width=True):
