@@ -361,6 +361,12 @@ def load_all():
         "ID", "Data", "Técnico", "Obra", "Motivo",
         "Registado_Por", "Registado_Em"
     ])
+    
+     folhas_ocr = load_db("folhas_ocr.csv", [
+        "ID", "Obra", "Periodo", "Semana_Inicio", "Semana_Fim",
+        "Tecnico", "Horas_Folha", "Dias", "Extraido_Em",
+        "Extraido_Por", "Imagem_b64", "Confianca"
+    ])
 
     diarias_pagamentos = load_db("diarias_pagamentos.csv", [
         "ID", "Semana_Inicio", "Semana_Fim", "Técnico",
@@ -370,8 +376,8 @@ def load_all():
 
     return (users, obras, frentes, regs, fats, docs, incs, sw, obs, equip,
             diags, diags_u, folhas, comuns, comuns_u, req_fer, req_mat, req_epi,
-            avals, inst_acessos, diarias_config, diarias_faltas, diarias_pagamentos)
-
+            avals, inst_acessos, diarias_config, diarias_faltas, diarias_pagamentos,
+            folhas_ocr)
 def inv():
     st.cache_data.clear()
 
@@ -1002,3 +1008,105 @@ def testar_smtp(email_teste):
         "data": datetime.now().strftime("%d/%m/%Y"), "validador": "SYSTEM"
     })
     return enviar_email(email_teste, f"TESTE SMTP - {assunto}", html, texto)
+
+# =============================================================================
+# CLAUDE VISION — EXTRAÇÃO FOLHAS DE PONTO
+# =============================================================================
+
+def extrair_folha_ponto_vision(imagem_b64: str, media_type: str = "image/jpeg") -> dict:
+    """
+    Envia imagem da folha de ponto para Claude Vision.
+    Devolve dict com lista de técnicos e horas extraídas.
+    Formato devolvido:
+    {
+        "sucesso": True,
+        "dados": [
+            {"tecnico": "João Silva", "horas_total": 8.0, "dias": ["08/05","09/05"]},
+            ...
+        ],
+        "raw": "texto bruto extraído",
+        "erro": ""
+    }
+    """
+    import anthropic, os, json
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return {"sucesso": False, "dados": [], "raw": "", "erro": "API key não configurada."}
+
+    prompt = """Analisa esta imagem de uma folha de ponto de obra.
+Extrai TODOS os nomes de trabalhadores/técnicos e as horas que cada um trabalhou.
+
+Devolve APENAS um JSON válido com este formato exacto, sem texto adicional:
+{
+  "trabalhadores": [
+    {
+      "nome": "Nome Completo do Trabalhador",
+      "horas_total": 8.0,
+      "dias": ["01/05/2025", "02/05/2025"]
+    }
+  ],
+  "periodo": "período identificado na folha ou vazio",
+  "obra": "nome da obra se visível ou vazio",
+  "observacoes": "qualquer nota relevante ou vazio"
+}
+
+Regras:
+- horas_total é a soma de todas as horas da semana/período desse trabalhador
+- dias é a lista de datas em que o trabalhador aparece registado
+- Se não conseguires ler um nome claramente, inclui o que consegues ver
+- Se não houver horas numéricas, estima pelas marcas (X, /, tick)
+- Responde APENAS com o JSON, sem markdown, sem ```"""
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2000,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type":       "base64",
+                            "media_type": media_type,
+                            "data":       imagem_b64,
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": prompt
+                    }
+                ]
+            }]
+        )
+
+        raw_text = response.content[0].text.strip()
+
+        # Limpar markdown se vier
+        raw_text = raw_text.replace("```json","").replace("```","").strip()
+
+        dados_json = json.loads(raw_text)
+        trabalhadores = dados_json.get("trabalhadores", [])
+
+        return {
+            "sucesso":  True,
+            "dados":    trabalhadores,
+            "periodo":  dados_json.get("periodo",""),
+            "obra":     dados_json.get("obra",""),
+            "obs":      dados_json.get("observacoes",""),
+            "raw":      raw_text,
+            "erro":     ""
+        }
+
+    except json.JSONDecodeError as e:
+        return {
+            "sucesso": False, "dados": [], "raw": raw_text if 'raw_text' in dir() else "",
+            "erro": f"Erro ao interpretar JSON: {e}"
+        }
+    except Exception as e:
+        return {
+            "sucesso": False, "dados": [], "raw": "",
+            "erro": f"Erro Vision API: {e}"
+        }
