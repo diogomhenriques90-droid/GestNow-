@@ -104,6 +104,7 @@ def render_admin(*args):
     tabs = st.tabs([
         "📦 Armazém",
         "👥 RH",
+        "🗂️ Secretariado",
         "🏗️ Obras",
         "🚗 Frota",
         "🏨 Dormidas",
@@ -131,59 +132,69 @@ def render_admin(*args):
         render_rh(users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
           sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
           comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db)
-
-    # ── TAB 2: OBRAS ──────────────────────────────────────────────────
+        
+    # ── TAB 2: SECRETARIADO ───────────────────────────────────────────
     with tabs[2]:
+        from mod_secretariado import render_secretariado
+        render_secretariado(
+            users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
+            sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
+            comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db,
+            diarias_config_db, diarias_faltas_db, diarias_pagamentos_db
+        )
+        
+    # ── TAB 3: OBRAS ──────────────────────────────────────────────────
+    with tabs[3]:
         from mod_admin_obras import render_obras
         render_obras(obras_db, frentes_db, users, inst_acessos_db)
 
-    # ── TAB 3: FROTA ──────────────────────────────────────────────────
-    with tabs[3]:
+    # ── TAB 4: FROTA ──────────────────────────────────────────────────
+    with tabs[4]:
         from mod_admin_frota import render_frota
         render_frota()
 
-    # ── TAB 4: DORMIDAS ───────────────────────────────────────────────
-    with tabs[4]:
+    # ── TAB 5: DORMIDAS ───────────────────────────────────────────────
+    with tabs[5]:
         from mod_admin_dormidas import render_dormidas
         render_dormidas()
 
-    # ── TAB 5: COMPRAS ────────────────────────────────────────────────
-    with tabs[5]:
+    # ── TAB 6: COMPRAS ────────────────────────────────────────────────
+    with tabs[6]:
         from mod_admin_compras import render_compras
         render_compras()
 
-    # ── TAB 6: FATURAÇÃO ──────────────────────────────────────────────
-    with tabs[6]:
+    # ── TAB 7: FATURAÇÃO ──────────────────────────────────────────────
+    with tabs[7]:
         from mod_admin_faturacao import render_faturacao
         render_faturacao(faturas_db, obras_db)
 
-    # ── TAB 7: ORÇAMENTAÇÃO ───────────────────────────────────────────
-    with tabs[7]:
+    # ── TAB 8: ORÇAMENTAÇÃO ───────────────────────────────────────────
+    with tabs[8]:
         from mod_admin_orcamentacao import render_orcamentacao
         render_orcamentacao()
 
-    # ── TAB 8: COMERCIAL ──────────────────────────────────────────────
-    with tabs[8]:
+    # ── TAB 9: COMERCIAL ──────────────────────────────────────────────
+    with tabs[9]:
         from mod_admin_comercial import render_comercial
         render_comercial()
 
-    # ── TAB 9: QUALIDADE ──────────────────────────────────────────────
-    with tabs[9]:
+    # ── TAB 10: QUALIDADE ──────────────────────────────────────────────
+    with tabs[10]:
         from mod_admin_qualidade import render_qualidade
         render_qualidade()
 
-    # ── TAB 10: PLANEAMENTO ───────────────────────────────────────────
-    with tabs[10]:
+    # ── TAB 11: PLANEAMENTO ───────────────────────────────────────────
+    with tabs[11]:
         from mod_admin_planeamento import render_planeamento
         render_planeamento()
 
-    # ── TAB 11: IT ────────────────────────────────────────────────────
-    with tabs[11]:
+    # ── TAB 12: IT ────────────────────────────────────────────────────
+    with tabs[12]:
         from mod_admin_it import render_it
         render_it()
 
-    # ── TAB 12: HSE ───────────────────────────────────────────────────
-    with tabs[12]:
+    # ── TAB 13: HSE ───────────────────────────────────────────────────
+    with tabs[13]:
         st.markdown("### 🛡️ Segurança e HSE")
         tab_inc, tab_sw = st.tabs(["⚠️ Incidentes", "🚶 Safety Walks"])
         with tab_inc:
@@ -199,8 +210,8 @@ def render_admin(*args):
             else:
                 st.info("📋 Sem safety walks registados.")
 
-    # ── TAB 13: DIÁRIAS ───────────────────────────────────────────────
-    with tabs[13]:
+    # ── TAB 14: DIÁRIAS ───────────────────────────────────────────────
+    with tabs[14]:
         from mod_admin_diarias import render_admin_diarias
         render_admin_diarias(
             users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
@@ -209,8 +220,8 @@ def render_admin(*args):
             diarias_config_db, diarias_faltas_db, diarias_pagamentos_db
         )
 
-    # ── TAB 14: LOGS AUDITORIA ────────────────────────────────────────
-    with tabs[14]:
+    # ── TAB 15: LOGS AUDITORIA ────────────────────────────────────────
+    with tabs[15]:
         st.markdown("### 📋 Logs de Auditoria — Compliance SGS/ISO")
         from core import get_audit_logs
 
@@ -243,8 +254,8 @@ def render_admin(*args):
         else:
             st.info("📋 Sem registos de auditoria encontrados.")
 
-    # ── TAB 15: CONFIG EMAIL ──────────────────────────────────────────
-    with tabs[15]:
+    # ── TAB 16: CONFIG EMAIL ──────────────────────────────────────────
+    with tabs[16]:
         st.markdown("### 📧 Configuração de Email SMTP")
         st.info("""
         **Para configurar emails:**
