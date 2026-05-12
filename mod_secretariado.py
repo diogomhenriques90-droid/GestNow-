@@ -648,10 +648,21 @@ def _processar_pagamento(
     justificacao: str,
     inconformes: list
 ):
-    ids = azuis_obra.index
-    registos_db.loc[ids, 'Status']          = '3'
-    registos_db.loc[ids, 'Processado_Por']  = user_nome
-    registos_db.loc[ids, 'Processado_Data'] = datetime.now().strftime('%d/%m/%Y %H:%M')
+    # ✅ Usar IDs em vez de índices para garantir correspondência correta
+    ids_processar = azuis_obra['ID'].tolist() if 'ID' in azuis_obra.columns else []
+
+    if ids_processar:
+        mask = registos_db['ID'].isin(ids_processar)
+        registos_db.loc[mask, 'Status']          = '3'
+        registos_db.loc[mask, 'Processado_Por']  = user_nome
+        registos_db.loc[mask, 'Processado_Data'] = datetime.now().strftime('%d/%m/%Y %H:%M')
+    else:
+        # Fallback por índice se não houver IDs
+        ids_idx = azuis_obra.index
+        registos_db.loc[ids_idx, 'Status']          = '3'
+        registos_db.loc[ids_idx, 'Processado_Por']  = user_nome
+        registos_db.loc[ids_idx, 'Processado_Data'] = datetime.now().strftime('%d/%m/%Y %H:%M')
+
     save_db(registos_db, "registos.csv")
 
     for tec in azuis_obra['Técnico'].unique():
@@ -673,4 +684,4 @@ def _processar_pagamento(
             f"Justificação: {justificacao[:100]}"
         ),
         ip=""
-    )
+    )  
