@@ -562,6 +562,15 @@ GLOBAL_CSS = """
 ul[role="listbox"] { background: #FFFFFF !important; }
 ul[role="listbox"] li { color: #111827 !important; }
 ul[role="listbox"] li:hover { background: #F1F5F9 !important; }
+}
+[data-baseweb="select"] * { color: #111827 !important; }
+[data-baseweb="menu"] { background: #FFFFFF !important; }
+[data-baseweb="menu"] * { color: #111827 !important; background: #FFFFFF !important; }
+[data-baseweb="popover"] { background: #FFFFFF !important; }
+[data-baseweb="popover"] * { color: #111827 !important; }
+ul[role="listbox"] { background: #FFFFFF !important; }
+ul[role="listbox"] li { color: #111827 !important; }
+ul[role="listbox"] li:hover { background: #F1F5F9 !important; }
 .stDataFrame { background: var(--bg-white) !important; color: var(--text-dark) !important; }
 .stDataFrame td, .stDataFrame th { color: var(--text-dark) !important; background: var(--bg-white) !important; }
 section[data-testid="stSidebar"] {
