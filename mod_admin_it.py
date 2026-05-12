@@ -466,8 +466,7 @@ def render_it():
                                 "versao": "GESTNOW_v3",
                                 "data_backup": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
                             }
-                            zf.writestr("BACKUP_INFO.json",
-                                        json.dumps(meta, indent=2))
+                            zf.writestr("BACKUP_INFO.json", json.dumps(meta, indent=2))
 
                             for csv_name in _CSVS_APP:
                                 try:
@@ -491,44 +490,48 @@ def render_it():
                                 zf.writestr("backup_status.json", bs.read())
 
                             if erros_bkp:
-                                zf.writestr("ERROS_BACKUP.txt",
-                                            "\n".join(erros_bkp))
+                                zf.writestr("ERROS_BACKUP.txt", "\n".join(erros_bkp))
 
                         buf_zip.seek(0)
                         zip_bytes = buf_zip.getvalue()
 
+                        # ✅ Guardar no session_state para persistir após rerun
+                        ts = datetime.now().strftime("%Y%m%d_%H%M")
+                        st.session_state['backup_zip_bytes'] = zip_bytes
+                        st.session_state['backup_zip_fname'] = f"gestnow_backup_{ts}.zip"
+                        st.session_state['backup_incluidos']  = len(incluidos)
+                        st.session_state['backup_erros']      = erros_bkp
+
                         _registar_backup(admin_nome)
                         inv()
 
-                        ts    = datetime.now().strftime("%Y%m%d_%H%M")
-                        fname = f"gestnow_backup_{ts}.zip"
-
-                        st.success(
-                            f"✅ Backup criado — **{len(incluidos)} ficheiros**."
-                            f"{' ⚠️ ' + str(len(erros_bkp)) + ' erros.' if erros_bkp else ''}"
-                        )
-                        st.download_button(
-                            f"📥 Descarregar {fname}",
-                            data=zip_bytes,
-                            file_name=fname,
-                            mime="application/zip",
-                            key="btn_dl_backup"
-                        )
-                        if erros_bkp:
-                            with st.expander("⚠️ Ficheiros com erro"):
-                                for e in erros_bkp:
-                                    st.text(e)
                     except Exception as ex:
                         st.error(f"❌ Erro ao criar backup: {ex}")
 
-            st.markdown("---")
-            if st.button("✅ Confirmar que fiz backup (externo/manual)",
-                          key="btn_confirmar_bkp_it",
-                          use_container_width=True):
-                _registar_backup(admin_nome)
-                inv()
-                st.success("✅ Backup confirmado! Alerta limpo.")
-                st.rerun()
+            # ✅ Mostrar download FORA do if — persiste entre reruns
+            if st.session_state.get('backup_zip_bytes'):
+                n_inc    = st.session_state.get('backup_incluidos', 0)
+                erros_bkp = st.session_state.get('backup_erros', [])
+                fname    = st.session_state.get('backup_zip_fname', 'backup.zip')
+
+                st.success(
+                    f"✅ Backup pronto — **{n_inc} ficheiros**."
+                    f"{' ⚠️ ' + str(len(erros_bkp)) + ' erros.' if erros_bkp else ''}"
+                )
+                st.download_button(
+                    f"📥 Descarregar {fname}",
+                    data=st.session_state['backup_zip_bytes'],
+                    file_name=fname,
+                    mime="application/zip",
+                    key="btn_dl_backup_persistente"
+                )
+                if erros_bkp:
+                    with st.expander("⚠️ Ficheiros com erro"):
+                        for e in erros_bkp:
+                            st.text(e)
+                if st.button("🗑️ Limpar", key="btn_limpar_backup"):
+                    st.session_state.pop('backup_zip_bytes', None)
+                    st.rerun()             
 
             # ── Restauro ──────────────────────────────────────────
             st.markdown("---")
