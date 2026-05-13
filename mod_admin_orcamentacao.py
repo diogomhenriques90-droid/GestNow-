@@ -486,4 +486,49 @@ def render_orcamentacao(*_):
                               delta_color="inverse")
                 with col_cv3:
                     st.metric("📊 Orçado (c/ margem)",
-                              f"€{tot_orc:,.2f
+                              f"€{tot_orc:,.2f}")
+
+                # Gráfico waterfall
+                import plotly.graph_objects as go
+                fig_w = go.Figure(go.Waterfall(
+                    orientation="v",
+                    measure=["absolute","absolute","relative"],
+                    x=["Orçado","Real","Desvio"],
+                    y=[tot_orc_sm, real_total, 0],
+                    text=[f"€{tot_orc_sm:,.0f}",
+                          f"€{real_total:,.0f}",
+                          f"€{desvio:+,.0f}"],
+                    textposition="outside",
+                    textfont={"color":"#F1F5F9"},
+                    connector={"line":{"color":"#334155"}},
+                    increasing={"marker":{"color":"#EF4444"}},
+                    decreasing={"marker":{"color":"#10B981"}},
+                    totals={"marker":{"color":"#3B82F6"}}
+                ))
+                fig_w.update_layout(
+                    title={'text':f'Orçado vs Real — {obra_comp}',
+                           'font':{'color':'#F1F5F9'}},
+                    height=260,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(30,41,59,0.5)',
+                    font={'color':'#F1F5F9'},
+                    xaxis={'gridcolor':'#334155',
+                           'tickfont':{'color':'#94A3B8'}},
+                    yaxis={'gridcolor':'#334155',
+                           'tickfont':{'color':'#94A3B8'},
+                           'tickprefix':'€'},
+                    margin=dict(t=40,b=20,l=10,r=10),
+                    showlegend=False
+                )
+                st.plotly_chart(fig_w, use_container_width=True)
+
+                if desvio > 0:
+                    st.error(
+                        f"⚠️ Custo real **€{desvio:,.2f} acima** do orçado "
+                        f"({desvio_pct:+.1f}%)"
+                    )
+                else:
+                    st.success(
+                        f"✅ Custo real **€{abs(desvio):,.2f} abaixo** do orçado "
+                        f"({desvio_pct:.1f}%)"
+                    )
