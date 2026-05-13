@@ -214,6 +214,13 @@ def _render_card_opcao(opcao: dict, idx: int,
     selected = False
 
     with st.container():
+       with st.container():
+        notas_opcao = opcao.get('notas','') or ''
+        notas_html  = (
+            f"<br><small style='color:#94A3B8;'>{notas_opcao}</small>"
+            if notas_opcao else ""
+        )
+
         st.markdown(
             f"<div style='background:#1E293B;"
             f"border-radius:12px;padding:16px;"
@@ -249,10 +256,19 @@ def _render_card_opcao(opcao: dict, idx: int,
             f"<span style='color:{cor_canc};"
             f"font-size:0.72rem;'>{canc}</span>"
             f"</div></div>"
-            f"{'<br><small style=color:#94A3B8;>' + opcao.get(\"notas\",\"\") + '</small>' if opcao.get('notas') else ''}"
+            f"{notas_html}"
             f"</div>",
             unsafe_allow_html=True
         )
+
+        col_b1, col_b2, col_b3 = st.columns([2,2,1])
+        with col_b1:
+            if link:
+                st.link_button(
+                    "🔗 Ver no site",
+                    url=link,
+                    use_container_width=True
+                ) 
 
         col_b1, col_b2, col_b3 = st.columns([2,2,1])
         with col_b1:
