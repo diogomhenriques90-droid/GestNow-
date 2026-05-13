@@ -1,6 +1,8 @@
+# mod_secretariado.py — VERSÃO CORRIGIDA (com Gasóleo e Avarias adicionados)
 """
 GESTNOW v3 — mod_secretariado.py
-Validação de horas (1ª e 2ª), faturação e comparação com folhas de ponto.
+Validação de horas (1ª e 2ª), faturação, comparação com folhas de ponto,
+gasóleo e avarias de frota.
 
 Status das horas:
   0 = 🟠 Pendente      (técnico registou)
@@ -60,12 +62,14 @@ def render_secretariado(*args):
 
     user_nome = st.session_state.get('user', '')
 
-    st.markdown("# 🗂️ Secretariado — Validação de Horas")
+    st.markdown("# 🗂️ Secretariado")
 
-    tab_1val, tab_2val, tab_fat, tab_hist = st.tabs([
+    tab_1val, tab_2val, tab_fat, tab_gasoleos, tab_avarias, tab_hist = st.tabs([
         "🟢 1ª Validação",
         "🔵 2ª Validação (Faturação)",
         "📄 Faturação & Folhas",
+        "⛽ Gasóleo",
+        "🔧 Avarias Frota",
         "📋 Histórico",
     ])
 
@@ -143,8 +147,7 @@ def render_secretariado(*args):
                 st.markdown("---")
 
                 for idx1, row in df_view.iterrows():
-                    reg_id = row.get('ID', '') or f"idx_{idx1}" 
-                    reg_id = row.get('ID', '')
+                    reg_id = row.get('ID', '') or f"idx_{idx1}"
                     col_i, col_v, col_r = st.columns([5, 1, 1])
                     with col_i:
                         st.markdown(
@@ -160,7 +163,7 @@ def render_secretariado(*args):
                             unsafe_allow_html=True
                         )
                     with col_v:
-                        if st.button("✅", key=f"s1_val_{reg_id}_{idx1}",         
+                        if st.button("✅", key=f"s1_val_{reg_id}_{idx1}",
                                       use_container_width=True, help="Validar"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status']         = '1'
                             registos_db.loc[registos_db['ID'] == reg_id, 'Validado1_Por']  = user_nome
@@ -172,7 +175,7 @@ def render_secretariado(*args):
                                 tipo="success", acao_url="/")
                             inv(); st.rerun()
                     with col_r:
-                        if st.button("❌", key=f"s1_rej_{reg_id}_{idx1}",            
+                        if st.button("❌", key=f"s1_rej_{reg_id}_{idx1}",
                                       use_container_width=True, help="Rejeitar"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status'] = '-1'
                             save_db(registos_db, "registos.csv")
@@ -249,7 +252,7 @@ def render_secretariado(*args):
                 st.markdown("---")
 
                 for idx2, row in df_view2.iterrows():
-                    reg_id = row.get('ID','') or f"idx_{idx2}"   
+                    reg_id = row.get('ID','') or f"idx_{idx2}"
                     col_i, col_v, col_d = st.columns([5, 1, 1])
                     with col_i:
                         st.markdown(
@@ -265,7 +268,7 @@ def render_secretariado(*args):
                             unsafe_allow_html=True
                         )
                     with col_v:
-                        if st.button("🔵", key=f"s2_val_{reg_id}_{idx2}",             
+                        if st.button("🔵", key=f"s2_val_{reg_id}_{idx2}",
                                       use_container_width=True,
                                       help="Enviar para faturação"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status']         = '2'
@@ -274,7 +277,7 @@ def render_secretariado(*args):
                             save_db(registos_db, "registos.csv")
                             inv(); st.rerun()
                     with col_d:
-                        if st.button("🟠", key=f"s2_dev_{reg_id}_{idx2}",            
+                        if st.button("🟠", key=f"s2_dev_{reg_id}_{idx2}",
                                       use_container_width=True,
                                       help="Devolver"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status'] = '0'
@@ -339,7 +342,6 @@ def render_secretariado(*args):
                             unsafe_allow_html=True
                         )
 
-                # ── Comparação automática ─────────────────────────
                 st.markdown("---")
                 st.markdown("#### ⚖️ Comparação App vs Folha de Ponto (IA)")
 
@@ -365,10 +367,8 @@ def render_secretariado(*args):
                 if ocr_obra.empty:
                     st.warning(
                         "⚠️ Sem folha de ponto extraída por IA para esta obra. "
-                        "O Chefe precisa de fazer upload da foto no seu módulo. "
-                        "Podes introduzir manualmente abaixo como alternativa."
+                        "O Chefe precisa de fazer upload da foto no seu módulo."
                     )
-                    # Comparação manual fallback
                     for _, tec_row in resumo_tec.iterrows():
                         tec_nome  = tec_row['Técnico']
                         horas_app = tec_row['Horas']
@@ -417,7 +417,6 @@ def render_secretariado(*args):
                                     unsafe_allow_html=True
                                 )
                 else:
-                    # Comparação AUTOMÁTICA com IA
                     st.success("✅ Folha extraída por IA disponível — comparação automática!")
 
                     periodos_disp = ocr_obra['Semana_Inicio'].unique().tolist()
@@ -486,7 +485,6 @@ def render_secretariado(*args):
                                 with col_d: st.markdown("✅ OK")
                                 with col_e: st.markdown("✅")
 
-                    # Técnicos só na folha
                     nomes_app = set(resumo_tec['Técnico'].str.lower().tolist())
                     for nome_ocr, h_ocr in folha_dict.items():
                         encontrado = any(
@@ -508,7 +506,6 @@ def render_secretariado(*args):
                                 unsafe_allow_html=True
                             )
 
-                # ── Resultado final ───────────────────────────────
                 st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
                 if not todos_ok:
@@ -555,7 +552,189 @@ def render_secretariado(*args):
                         st.rerun()
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 4 — HISTÓRICO
+    # TAB 4 — GASÓLEO (migrado do armazém)
+    # ════════════════════════════════════════════════════════════════
+    with tab_gasoleos:
+        st.markdown("### ⛽ Validação de Gasóleo")
+        sub_p, sub_h = st.tabs(["🟠 Pendentes", "📋 Histórico"])
+
+        with sub_p:
+            if not req_mat_db.empty:
+                if 'Data_Validacao' not in req_mat_db.columns: req_mat_db['Data_Validacao'] = ""
+                if 'Validado_Por'   not in req_mat_db.columns: req_mat_db['Validado_Por']   = ""
+                pend_gas = req_mat_db[
+                    (req_mat_db['Status'] == 'Pendente') &
+                    (req_mat_db.get('Tipo', pd.Series([''] * len(req_mat_db))) == 'Gasóleo')
+                ]
+                if not pend_gas.empty:
+                    st.markdown(f"**{len(pend_gas)} pedido(s) pendente(s)**")
+                    for idx, ped in pend_gas.iterrows():
+                        ped_id = ped.get('ID', f"GAS_{idx}")
+                        with st.expander(
+                            f"⛽ {ped.get('Litros',0)}L — "
+                            f"{ped.get('Solicitante','N/A')} ({ped.get('Obra','N/A')})",
+                            expanded=True
+                        ):
+                            st.markdown(f"""
+                            <div style="background:rgba(255,255,255,0.05);
+                                padding:15px;border-radius:10px;">
+                                <p><strong>Solicitante:</strong> {ped.get('Solicitante','N/A')}</p>
+                                <p><strong>Obra:</strong> {ped.get('Obra','N/A')}</p>
+                                <p><strong>Litros:</strong> {ped.get('Litros',0)}L</p>
+                                <p><strong>Valor:</strong> €{ped.get('Valor',0)}</p>
+                                <p><strong>Data:</strong> {ped.get('Data_Abastecimento','N/A')}</p>
+                            </div>""", unsafe_allow_html=True)
+                            if ped.get('Recibo_b64'):
+                                recibo_str = str(ped.get('Recibo_b64',''))
+                                if recibo_str.startswith('JVBER'):
+                                    st.info("📄 Recibo PDF — descarrega para visualizar")
+                                else:
+                                    try:
+                                        st.image(
+                                            f"data:image/png;base64,{recibo_str}",
+                                            caption="Recibo", width=300
+                                        )
+                                    except:
+                                        pass
+                            ca, cr = st.columns(2)
+                            with ca:
+                                if st.button("✅ Validar", key=f"sec_apr_gas_{ped_id}",
+                                              use_container_width=True):
+                                    req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Status']         = 'Aprovado'
+                                    req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                                    req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Validado_Por']   = user_nome
+                                    save_db(req_mat_db, "req_materiais.csv")
+                                    criar_notificacao(
+                                        destinatario=ped.get('Solicitante',''),
+                                        titulo="✅ Gasóleo Validado",
+                                        mensagem=f"{ped.get('Litros')}L validados!",
+                                        tipo="success", acao_url="/tecnico"
+                                    )
+                                    inv(); st.success("✅"); st.rerun()
+                            with cr:
+                                if st.button("❌ Rejeitar", key=f"sec_rej_gas_{ped_id}",
+                                              use_container_width=True, type="secondary"):
+                                    req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Status']         = 'Rejeitado'
+                                    req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                                    req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Validado_Por']   = user_nome
+                                    save_db(req_mat_db, "req_materiais.csv")
+                                    inv(); st.error("❌"); st.rerun()
+                else:
+                    st.success("✅ Sem gasóleos pendentes!")
+            else:
+                st.info("📋 Sem registos de gasóleo.")
+
+        with sub_h:
+            if not req_mat_db.empty:
+                hist_gas = req_mat_db[
+                    (req_mat_db['Status'].isin(['Aprovado','Rejeitado'])) &
+                    (req_mat_db.get('Tipo', pd.Series([''] * len(req_mat_db))) == 'Gasóleo')
+                ]
+                if not hist_gas.empty:
+                    cols = [c for c in ['Data','Solicitante','Obra','Litros',
+                                        'Valor','Status','Data_Validacao','Validado_Por']
+                            if c in hist_gas.columns]
+                    st.dataframe(hist_gas[cols], use_container_width=True, hide_index=True)
+                else:
+                    st.info("📋 Sem histórico de gasóleo.")
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 5 — AVARIAS FROTA (migrado do armazém)
+    # ════════════════════════════════════════════════════════════════
+    with tab_avarias:
+        st.markdown("### 🔧 Avarias de Frota")
+        sub_p, sub_h = st.tabs(["🟠 Pendentes", "📋 Histórico"])
+
+        with sub_p:
+            if not incs_db.empty:
+                if 'Data_Validacao' not in incs_db.columns: incs_db['Data_Validacao'] = ""
+                if 'Validado_Por'   not in incs_db.columns: incs_db['Validado_Por']   = ""
+                pend_av = incs_db[
+                    (incs_db['Status'] == 'Pendente') &
+                    (incs_db.get('Tipo', pd.Series([''] * len(incs_db))) == 'Avaria')
+                ]
+                if not pend_av.empty:
+                    st.markdown(f"**{len(pend_av)} avaria(s) pendente(s)**")
+                    for idx, ped in pend_av.iterrows():
+                        ped_id = ped.get('ID', f"AVAR_{idx}")
+                        cor_u  = {"Baixa":"#10B981","Média":"#F59E0B",
+                                  "Alta":"#EF4444","Crítica - Paragem":"#DC2626"}.get(
+                                      ped.get('Urgencia','Média'),"#6B7280")
+                        with st.expander(
+                            f"🔧 {str(ped.get('Equipamento','Equipamento'))[:40]} — "
+                            f"{ped.get('Solicitante','N/A')}",
+                            expanded=True
+                        ):
+                            st.markdown(f"""
+                            <div style="background:rgba(255,255,255,0.05);
+                                padding:15px;border-radius:10px;
+                                border-left:4px solid {cor_u};">
+                                <p><strong>Solicitante:</strong> {ped.get('Solicitante','N/A')}</p>
+                                <p><strong>Obra:</strong> {ped.get('Obra','N/A')}</p>
+                                <p><strong>Equipamento:</strong> {ped.get('Equipamento','N/A')}</p>
+                                <p><strong>Descrição:</strong> {ped.get('Descricao','N/A')}</p>
+                                <p><strong>Urgência:</strong>
+                                    <span style="color:{cor_u};font-weight:bold;">
+                                        {ped.get('Urgencia','N/A')}
+                                    </span></p>
+                                <p><strong>Valor Estimado:</strong> €{ped.get('Valor_Estimado',0)}</p>
+                            </div>""", unsafe_allow_html=True)
+                            if ped.get('Fatura_b64'):
+                                fat_str = str(ped.get('Fatura_b64',''))
+                                if fat_str.startswith('JVBER'):
+                                    st.info("📄 Fatura PDF")
+                                else:
+                                    try:
+                                        st.image(
+                                            f"data:image/png;base64,{fat_str}",
+                                            caption="Fatura", width=300
+                                        )
+                                    except:
+                                        pass
+                            ca, cr = st.columns(2)
+                            with ca:
+                                if st.button("✅ Aprovar", key=f"sec_apr_av_{ped_id}",
+                                              use_container_width=True):
+                                    incs_db.loc[incs_db.index == idx, 'Status']         = 'Aprovado'
+                                    incs_db.loc[incs_db.index == idx, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                                    incs_db.loc[incs_db.index == idx, 'Validado_Por']   = user_nome
+                                    save_db(incs_db, "incidentes.csv")
+                                    criar_notificacao(
+                                        destinatario=ped.get('Solicitante',''),
+                                        titulo="✅ Reparação Aprovada",
+                                        mensagem=f"A tua reparação de {ped.get('Equipamento')} foi aprovada!",
+                                        tipo="success", acao_url="/tecnico"
+                                    )
+                                    inv(); st.success("✅"); st.rerun()
+                            with cr:
+                                if st.button("❌ Rejeitar", key=f"sec_rej_av_{ped_id}",
+                                              use_container_width=True, type="secondary"):
+                                    incs_db.loc[incs_db.index == idx, 'Status']         = 'Rejeitado'
+                                    incs_db.loc[incs_db.index == idx, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                                    incs_db.loc[incs_db.index == idx, 'Validado_Por']   = user_nome
+                                    save_db(incs_db, "incidentes.csv")
+                                    inv(); st.error("❌"); st.rerun()
+                else:
+                    st.success("✅ Sem avarias pendentes!")
+            else:
+                st.info("📋 Sem avarias registadas.")
+
+        with sub_h:
+            if not incs_db.empty:
+                hist_av = incs_db[
+                    (incs_db['Status'].isin(['Aprovado','Rejeitado'])) &
+                    (incs_db.get('Tipo', pd.Series([''] * len(incs_db))) == 'Avaria')
+                ]
+                if not hist_av.empty:
+                    cols = [c for c in ['Data','Solicitante','Obra','Equipamento',
+                                        'Urgencia','Status','Data_Validacao','Validado_Por']
+                            if c in hist_av.columns]
+                    st.dataframe(hist_av[cols], use_container_width=True, hide_index=True)
+                else:
+                    st.info("📋 Sem histórico de avarias.")
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 6 — HISTÓRICO
     # ════════════════════════════════════════════════════════════════
     with tab_hist:
         st.markdown("### 📋 Histórico de Horas Processadas")
@@ -591,10 +770,10 @@ def render_secretariado(*args):
                 )
 
             status_map = {
-                "🟢 Verde (1)":    "1",
-                "🔵 Azul (2)":     "2",
-                "⚫ Processado (3)":"3",
-                "❌ Rejeitado":    "-1",
+                "🟢 Verde (1)":     "1",
+                "🔵 Azul (2)":      "2",
+                "⚫ Processado (3)": "3",
+                "❌ Rejeitado":     "-1",
             }
 
             hist_all = regs[regs['Status'].isin(['1','2','3','-1'])].copy()
@@ -648,7 +827,6 @@ def _processar_pagamento(
     justificacao: str,
     inconformes: list
 ):
-    # ✅ Usar IDs em vez de índices para garantir correspondência correta
     ids_processar = azuis_obra['ID'].tolist() if 'ID' in azuis_obra.columns else []
 
     if ids_processar:
@@ -657,7 +835,6 @@ def _processar_pagamento(
         registos_db.loc[mask, 'Processado_Por']  = user_nome
         registos_db.loc[mask, 'Processado_Data'] = datetime.now().strftime('%d/%m/%Y %H:%M')
     else:
-        # Fallback por índice se não houver IDs
         ids_idx = azuis_obra.index
         registos_db.loc[ids_idx, 'Status']          = '3'
         registos_db.loc[ids_idx, 'Processado_Por']  = user_nome
@@ -684,4 +861,4 @@ def _processar_pagamento(
             f"Justificação: {justificacao[:100]}"
         ),
         ip=""
-    )  
+    )
