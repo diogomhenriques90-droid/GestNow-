@@ -166,7 +166,7 @@ def render_admin(*args):
 
     # ════════════════════════════════════════════════════════════════
     # TAB 3 — PRODUÇÃO
-    # Obras, Frota, Dormidas, Planeamento
+    # Obras, Frota, Dormidas, Planeamento, Acessos
     # ════════════════════════════════════════════════════════════════
     with tabs[3]:
         st.markdown("## 🏭 Produção")
@@ -175,23 +175,23 @@ def render_admin(*args):
             "🚗 Frota",
             "🏨 Dormidas",
             "📋 Planeamento",
+            "🔐 Acessos",          # ← NOVO
         ])
-
         with prod_tabs[0]:
             from mod_admin_obras import render_obras
             render_obras(obras_db, frentes_db, users, inst_acessos_db)
-
         with prod_tabs[1]:
             from mod_admin_frota import render_frota
             render_frota()
-
         with prod_tabs[2]:
             from mod_admin_dormidas import render_dormidas
             render_dormidas()
-
         with prod_tabs[3]:
             from mod_admin_planeamento import render_planeamento
             render_planeamento()
+        with prod_tabs[4]:                          # ← NOVO
+            from mod_admin_acessos_obras import render_acessos_obras
+            render_acessos_obras(users, obras_db)
 
     # ════════════════════════════════════════════════════════════════
     # TAB 4 — FATURAÇÃO
