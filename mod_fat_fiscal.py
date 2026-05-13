@@ -1131,7 +1131,7 @@ def render_fat_fiscal(obras_db, registos_db,
                 f"Taxa efetiva: {irc_calc['taxa_efetiva']:.1f}%</span>"
                 f"<span style='color:#3B82F6;"
                 f"font-size:0.8rem;'>"
-                f"Reservar €{irc_calc['reserva_mensal']:,.2f}/mês"
+                f"Reservar €{irc_calc.get('reserva_mensal', 0):,.2f}/mês"
                 f"</span></div></div>",
                 unsafe_allow_html=True
             )
