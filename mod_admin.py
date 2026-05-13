@@ -405,17 +405,25 @@ def render_admin(*args):
         render_comercial()
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 7 — QUALIDADE + LOGS AUDIT
+    # TAB 7 — QUALIDADE + ISO 9001 + LOGS AUDIT
     # ════════════════════════════════════════════════════════════════
     with tabs[7]:
         st.markdown("## 🎯 Qualidade & Auditoria")
-        qual_tabs = st.tabs(["🎯 Qualidade", "📋 Logs Audit"])
+        qual_tabs = st.tabs([
+            "🎯 Qualidade Operacional",
+            "🏆 ISO 9001:2015",
+            "📋 Logs Audit"
+        ])
 
         with qual_tabs[0]:
             from mod_admin_qualidade import render_qualidade
             render_qualidade()
 
         with qual_tabs[1]:
+            from mod_iso9001 import render_iso9001
+            render_iso9001()
+
+        with qual_tabs[2]:
             st.markdown("### 📋 Logs de Auditoria")
             from core import get_audit_logs
             col_f1, col_f2, col_f3 = st.columns(3)
