@@ -201,20 +201,96 @@ def render_admin(*args):
     with tabs[4]:
         st.markdown("## 💰 Faturação")
         fat_tabs = st.tabs([
+            # ── 13 módulos novos ──────────────────────────
+            "📊 Dashboard CFO",
+            "🧾 Clientes & Faturação",
+            "📥 Fornecedores",
+            "👥 RH Financeiro",
+            "🚗 Frota & Renting",
+            "📈 Performance Obras",
+            "💵 Tesouraria",
+            "🆘 Simulador Crise",
+            "🇪🇺 Fundos Europeus",
+            "🏭 Imobilizado",
+            "🧾 Fiscal",
+            "📋 Auditoria Anual",
+            "📊 Reporting",
+            # ── módulos existentes a manter ───────────────
             "📊 Custos por Obra",
             "💶 Diárias",
             "📄 Folhas de Ponto",
-            "⏱️ Horas (Faturação)",
+            "⏱️ Horas Faturação",
             "📤 Emissão Mensal",
         ])
 
+        # ── 13 módulos novos ──────────────────────────────
         with fat_tabs[0]:
+            from mod_fat_dashboard import render_fat_dashboard
+            render_fat_dashboard(obras_db, registos_db,
+                                 faturas_db, diarias_pagamentos_db)
+
+        with fat_tabs[1]:
+            from mod_fat_clientes import render_fat_clientes
+            render_fat_clientes(obras_db, registos_db)
+
+        with fat_tabs[2]:
+            from mod_fat_fornecedores import render_fat_fornecedores
+            render_fat_fornecedores(obras_db)
+
+        with fat_tabs[3]:
+            from mod_fat_rh import render_fat_rh
+            render_fat_rh(obras_db, registos_db)
+
+        with fat_tabs[4]:
+            from mod_fat_frota import render_fat_frota
+            render_fat_frota()
+
+        with fat_tabs[5]:
+            from mod_fat_obras import render_fat_obras
+            render_fat_obras(obras_db, registos_db,
+                             faturas_db, diarias_pagamentos_db)
+
+        with fat_tabs[6]:
+            from mod_fat_tesouraria import render_fat_tesouraria
+            render_fat_tesouraria(obras_db, registos_db,
+                                  faturas_db, diarias_pagamentos_db)
+
+        with fat_tabs[7]:
+            from mod_fat_crise import render_fat_crise
+            render_fat_crise(obras_db, registos_db,
+                             faturas_db, diarias_pagamentos_db)
+
+        with fat_tabs[8]:
+            from mod_fat_fundos import render_fat_fundos
+            render_fat_fundos()
+
+        with fat_tabs[9]:
+            from mod_fat_imobilizado import render_fat_imobilizado
+            render_fat_imobilizado()
+
+        with fat_tabs[10]:
+            from mod_fat_fiscal import render_fat_fiscal
+            render_fat_fiscal(obras_db, registos_db,
+                              faturas_db, diarias_pagamentos_db)
+
+        with fat_tabs[11]:
+            from mod_fat_auditoria import render_fat_auditoria
+            render_fat_auditoria(obras_db, registos_db,
+                                 faturas_db, diarias_pagamentos_db)
+
+        with fat_tabs[12]:
+            from mod_fat_reporting import render_fat_reporting
+            render_fat_reporting(obras_db, registos_db,
+                                 faturas_db, diarias_pagamentos_db)
+
+
+        with fat_tabs[13]:
             _render_custos_por_obra(
                 obras_db, registos_db, req_mat_db,
                 req_fer_db, req_epi_db, incs_db
             )
 
-        with fat_tabs[1]:
+        with fat_tabs[14]:
             from mod_admin_diarias import render_admin_diarias
             render_admin_diarias(
                 users, obras_db, frentes_db, registos_db, faturas_db,
@@ -225,10 +301,10 @@ def render_admin(*args):
                 diarias_pagamentos_db
             )
 
-        with fat_tabs[2]:
+        with fat_tabs[15]:
             _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db)
 
-        with fat_tabs[3]:
+        with fat_tabs[16]:
             # Faturação de horas — vem do secretariado tab faturação
             import pandas as pd
             st.markdown("### ⏱️ Horas para Faturação ao Cliente")
@@ -308,7 +384,7 @@ def render_admin(*args):
                         )
                     st.metric("💰 Total a Faturar", f"€ {total_faturar:.2f}")
 
-        with fat_tabs[4]:
+        with fat_tabs[17]:
             _render_emissao_mensal(
                 obras_db, registos_db, faturas_db,
                 diarias_pagamentos_db
