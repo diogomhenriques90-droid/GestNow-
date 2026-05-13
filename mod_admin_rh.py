@@ -126,6 +126,7 @@ def render_admin_rh(*args):
         "📋 Gestão Individual",
         "📄 Contratos",
         "⚙️ Templates & Config",
+        "🎓 Formações",
     ])
 
     # ════════════════════════════════════════════════════════════════
@@ -841,3 +842,10 @@ def render_admin_rh(*args):
                          ".wordprocessingml.document",
                     key="btn_dl_template"
                 )
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 5 — FORMAÇÕES
+    # ════════════════════════════════════════════════════════════════
+    with tab_formacoes:
+        from mod_admin_formacoes import render_formacoes
+        render_formacoes(users, obras_db)
