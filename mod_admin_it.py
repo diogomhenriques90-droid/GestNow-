@@ -485,6 +485,10 @@ def render_it():
                 # ── Exportação Contabilidade ──────────────────────
                 "historico_exports_cont.csv",
                 "contabilidade_config.json",
+                # ── Formações ─────────────────────────────────────
+                "formacoes.csv",
+                "formacoes_plano.csv",
+                "formacoes_catalogo.csv",
             ]
 
             # ── Estado atual ──────────────────────────────────────
