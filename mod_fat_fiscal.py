@@ -873,8 +873,7 @@ def render_fat_fiscal(obras_db, registos_db,
     with c2: st.metric("💰 IVA Anual Est.", f"€{iva_anual_pagar:,.2f}")
     with c3: st.metric("🏛️ IRC Estimado",   f"€{irc_est['total_a_pagar']:,.2f}")
     with c4: st.metric("📋 Retenções Fonte",f"€{ret_total:,.2f}")
-    with c5: st.metric("💵 Reserva/Mês IRC"f"€{irc_est.get('reserva_mensal', 0):,.2f}")
-
+    with c5: st.metric("💰 Reserva/Mês IRC", f"€{irc_est.get('reserva_mensal', 0):,.2f}")
     st.divider()
 
     # ── Sub-tabs ──────────────────────────────────────────────────
