@@ -695,61 +695,111 @@ def render_admin_diarias(*args):
                             st.rerun()
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 2 — CONFIGURAR VALORES
+    # TAB 2 — CONFIGURAR VALORES  ← SUBSTITUIR ESTE BLOCO
     # ════════════════════════════════════════════════════════════════
     with tab_config:
         st.markdown("### ⚙️ Valor da Diária por Obra")
         st.info(
             f"Valor padrão: **€ {_VALOR_DIARIA_PADRAO:.2f}/dia** "
             f"(aplicado a obras sem configuração específica). "
-            f"Mínimo de horas para contar 1 diária: **{_MIN_HORAS_DIARIA:.0f}h**."
+            f"Mínimo de horas para contar 1 diária: "
+            f"**{_MIN_HORAS_DIARIA:.0f}h**."
         )
 
-        obras_lista = obras_db['Obra'].tolist() if not obras_db.empty else []
+        obras_lista = obras_db['Obra'].tolist() \
+                      if not obras_db.empty else []
 
         if not obras_lista:
             st.warning("⚠️ Sem obras registadas.")
         else:
-            with st.form("form_config_diarias"):
-                st.markdown("**Define o valor da diária por obra:**")
-                valores = {}
-                for obra in obras_lista:
-                    valor_atual = _get_valor_diaria(obra, diarias_config)
-                    col_o, col_v = st.columns([3, 1])
-                    with col_o:
-                        st.markdown(
-                            f"<p style='color:#F1F5F9;font-size:0.9rem;"
-                            f"padding:8px 0;margin:0;'>{obra}</p>",
-                            unsafe_allow_html=True
-                        )
-                    with col_v:
-                        valores[obra] = st.number_input(
-                            "€/dia",
-                            min_value=0.0,
-                            value=valor_atual,
-                            step=0.5,
-                            key=f"diaria_{obra.replace(' ','_')[:20]}",
-                            label_visibility="collapsed"
-                        )
+            # ── Construir dataframe editável ──────────────────────
+            rows_cfg = []
+            for obra in obras_lista:
+                rows_cfg.append({
+                    "Obra":       obra,
+                    "€ / Dia":    _get_valor_diaria(obra, diarias_config),
+                    "Ativa":      True,
+                })
+            df_cfg = pd.DataFrame(rows_cfg)
 
-                if st.form_submit_button(
+            st.markdown(
+                "<p style='color:#94A3B8;font-size:0.82rem;"
+                "margin:0 0 6px;'>"
+                "✏️ Edita directamente na tabela e clica "
+                "<b>💾 Guardar</b>.</p>",
+                unsafe_allow_html=True
+            )
+
+            # data_editor — compacto, sem scroll da página
+            df_editado = st.data_editor(
+                df_cfg,
+                use_container_width=True,
+                hide_index=True,
+                num_rows="fixed",
+                column_config={
+                    "Obra": st.column_config.TextColumn(
+                        "Obra", disabled=True, width="large"
+                    ),
+                    "€ / Dia": st.column_config.NumberColumn(
+                        "€ / Dia",
+                        min_value=0.0,
+                        max_value=999.0,
+                        step=0.5,
+                        format="€ %.2f",
+                        width="small"
+                    ),
+                    "Ativa": st.column_config.CheckboxColumn(
+                        "Ativa",
+                        help="Desativa para excluir da contagem",
+                        width="small"
+                    ),
+                },
+                key="data_editor_diarias_config"
+            )
+
+            col_sv1, col_sv2 = st.columns(2)
+            with col_sv1:
+                if st.button(
                     "💾 Guardar Configuração",
-                    use_container_width=True, type="primary"
+                    use_container_width=True,
+                    type="primary",
+                    key="btn_guardar_diarias_cfg"
                 ):
                     novas_config = []
-                    for obra, val in valores.items():
+                    for _, row in df_editado.iterrows():
                         novas_config.append({
-                            "Obra":          obra,
-                            "Valor_Diaria":  str(val),
+                            "Obra":          row["Obra"],
+                            "Valor_Diaria":  str(row["€ / Dia"]),
                             "Atualizado_Em": datetime.now().strftime(
-                                '%d/%m/%Y %H:%M'),
+                                '%d/%m/%Y %H:%M'
+                            ),
                             "Atualizado_Por":admin_nome
                         })
-                    save_db(pd.DataFrame(novas_config), "diarias_config.csv")
+                    save_db(
+                        pd.DataFrame(novas_config),
+                        "diarias_config.csv"
+                    )
                     inv()
                     st.success("✅ Configuração guardada!")
                     st.rerun()
 
+            with col_sv2:
+                # Preview — total semanal estimado por obra
+                total_est = df_editado['€ / Dia'].sum()
+                st.markdown(
+                    f"<div style='background:#1E293B;"
+                    f"border-radius:8px;padding:10px;"
+                    f"text-align:center;'>"
+                    f"<small style='color:#64748B;'>"
+                    f"Custo máx. estimado / dia</small><br>"
+                    f"<b style='color:#10B981;"
+                    f"font-size:1.1rem;'>"
+                    f"€{total_est:,.2f}</b><br>"
+                    f"<small style='color:#64748B;'>"
+                    f"(todas as obras × 1 técnico)</small>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
     # ════════════════════════════════════════════════════════════════
     # TAB 3 — FALTAS INJUSTIFICADAS
     # ════════════════════════════════════════════════════════════════
