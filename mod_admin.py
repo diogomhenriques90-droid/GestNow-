@@ -163,19 +163,19 @@ def render_admin(*args):
             inst_acessos_db, diarias_config_db, diarias_faltas_db,
             diarias_pagamentos_db
         )
-
+        
     # ════════════════════════════════════════════════════════════════
     # TAB 3 — PRODUÇÃO
-    # Obras, Frota, Dormidas, Planeamento, Acessos
+    # Obras, Frota, Deslocações, Planeamento, Acessos
     # ════════════════════════════════════════════════════════════════
     with tabs[3]:
         st.markdown("## 🏭 Produção")
         prod_tabs = st.tabs([
             "🏗️ Obras",
             "🚗 Frota",
-            "🏨 Dormidas",
+            "🗺️ Deslocações",      # ← era "🏨 Dormidas"
             "📋 Planeamento",
-            "🔐 Acessos",          # ← NOVO
+            "🔐 Acessos",
         ])
         with prod_tabs[0]:
             from mod_admin_obras import render_obras
@@ -184,12 +184,12 @@ def render_admin(*args):
             from mod_admin_frota import render_frota
             render_frota()
         with prod_tabs[2]:
-            from mod_admin_dormidas import render_dormidas
-            render_dormidas()
+            from mod_admin_deslocacoes import render_deslocacoes
+            render_deslocacoes(obras_db, users)
         with prod_tabs[3]:
             from mod_admin_planeamento import render_planeamento
             render_planeamento()
-        with prod_tabs[4]:                          # ← NOVO
+        with prod_tabs[4]:
             from mod_admin_acessos_obras import render_acessos_obras
             render_acessos_obras(users, obras_db)
 
