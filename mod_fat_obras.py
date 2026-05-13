@@ -289,7 +289,7 @@ def _grafico_pl_waterfall(pl: dict, obra: str):
             'font':{'color':cor_margem,'size':14,'family':'Arial Black'},
             'align':'right'
         }]
-    ))
+    )
     return fig
 
 
