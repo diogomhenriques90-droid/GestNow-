@@ -1591,7 +1591,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                         f"padding:8px 0;border-bottom:"
                         f"1px solid #1E293B;'>"
                         f"<span style='color:#94A3B8;'>{label}</span>"
-                        f"<b style='color:{cor};">€{val:,.2f}</b></div>",
+                        f"<b style='color:{cor};'>&#8364;{val:.2f}</b></div>",
                         unsafe_allow_html=True
                     )
                 st.markdown(
