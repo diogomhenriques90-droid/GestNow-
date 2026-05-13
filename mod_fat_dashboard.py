@@ -441,6 +441,7 @@ def _grafico_donut_custos(custos_mes):
         textfont={'color': '#F1F5F9', 'size': 11},
         hovertemplate='%{label}: €%{value:,.0f}<extra></extra>'
     ))
+    # ── FIX BUG 1 ── era `))` (parêntesis duplo), corrigido para `)`
     fig.update_layout(
         title={'text': 'Breakdown Custos',
                'font': {'color': '#F1F5F9'}},
@@ -458,7 +459,7 @@ def _grafico_donut_custos(custos_mes):
             'font_color': '#F1F5F9',
             'showarrow': False
         }]
-    ))
+    )
     return fig
 
 
@@ -971,6 +972,8 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
     """, unsafe_allow_html=True)
 
     # ── Header ────────────────────────────────────────────────────
+    saude_icon = ('🟢' if score_saude >= 70
+                  else '🟡' if score_saude >= 40 else '🔴')
     st.markdown(f"""
     <div style="background:linear-gradient(135deg,#1E293B,#0F172A);
         padding:24px;border-radius:16px;margin-bottom:20px;
@@ -987,10 +990,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                 </p>
             </div>
             <div style="text-align:right;">
-                <div style="font-size:2rem;">
-                    {'🟢' if score_saude >= 70
-                     else '🟡' if score_saude >= 40 else '🔴'}
-                </div>
+                <div style="font-size:2rem;">{saude_icon}</div>
                 <div style="color:#64748B;font-size:0.75rem;">
                     Saúde: {score_saude}/100
                 </div>
@@ -1093,18 +1093,30 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
             unsafe_allow_html=True
         )
         for alerta in alertas[:5]:
+            # ── FIX BUG 2 ── extrair acao_html antes do f-string
+            # para evitar backslash em expressão f-string (Python < 3.12)
+            acao_val = alerta.get('acao', '')
+            if acao_val:
+                acao_html = (
+                    "<small style='color:#3B82F6;cursor:pointer;'>→ "
+                    + acao_val
+                    + "</small>"
+                )
+            else:
+                acao_html = ""
+
             st.markdown(
                 f"<div class='alerta-card' "
-                f"style='background:{alerta[\"cor\"]}12;"
-                f"border-left-color:{alerta[\"cor\"]};'>"
+                f"style='background:{alerta['cor']}12;"
+                f"border-left-color:{alerta['cor']};'>"
                 f"<div style='display:flex;justify-content:space-between;"
                 f"align-items:flex-start;'>"
                 f"<div>"
-                f"<b style='color:{alerta[\"cor\"]};font-size:0.88rem;'>"
+                f"<b style='color:{alerta['cor']};font-size:0.88rem;'>"
                 f"{alerta['icone']} {alerta['titulo']}</b><br>"
                 f"<small style='color:#64748B;'>{alerta['desc']}</small>"
                 f"</div>"
-                f"{'<small style=\"color:#3B82F6;cursor:pointer;\">→ ' + alerta[\"acao\"] + '</small>' if alerta['acao'] else ''}"
+                f"{acao_html}"
                 f"</div></div>",
                 unsafe_allow_html=True
             )
@@ -1224,6 +1236,11 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                        else "#F59E0B" if det_o.get('Cobrança',0) >= 8 \
                        else "#EF4444"
 
+                # Ícones calculados antes dos f-strings
+                mg_ic = '🟢' if mg_c == '#10B981' else '🟡' if mg_c == '#F59E0B' else '🔴'
+                vl_ic = '🟢' if vl_c == '#10B981' else '🟡' if vl_c == '#F59E0B' else '🔴'
+                cb_ic = '🟢' if cb_c == '#10B981' else '🟡' if cb_c == '#F59E0B' else '🔴'
+
                 col_nome, col_sc2, col_mg, col_vl, col_cb, col_rd = \
                     st.columns([2, 1, 1, 1, 1, 1])
 
@@ -1253,8 +1270,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                         f"border-radius:8px;padding:10px;"
                         f"text-align:center;'>"
                         f"<span style='color:{mg_c};font-size:0.85rem;'>"
-                        f"{'🟢' if mg_c=='#10B981' else '🟡' if mg_c=='#F59E0B' else '🔴'}"
-                        f" {det_o.get('Margem',0)}/20</span>"
+                        f"{mg_ic} {det_o.get('Margem',0)}/20</span>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1264,8 +1280,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                         f"border-radius:8px;padding:10px;"
                         f"text-align:center;'>"
                         f"<span style='color:{vl_c};font-size:0.85rem;'>"
-                        f"{'🟢' if vl_c=='#10B981' else '🟡' if vl_c=='#F59E0B' else '🔴'}"
-                        f" {det_o.get('Validação',0)}/15</span>"
+                        f"{vl_ic} {det_o.get('Validação',0)}/15</span>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1275,8 +1290,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                         f"border-radius:8px;padding:10px;"
                         f"text-align:center;'>"
                         f"<span style='color:{cb_c};font-size:0.85rem;'>"
-                        f"{'🟢' if cb_c=='#10B981' else '🟡' if cb_c=='#F59E0B' else '🔴'}"
-                        f" {det_o.get('Cobrança',0)}/15</span>"
+                        f"{cb_ic} {det_o.get('Cobrança',0)}/15</span>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1286,7 +1300,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                         use_container_width=True,
                         help="Ver radar desta obra"
                     ):
-                        st.session_state[f'radar_obra'] = obra
+                        st.session_state['radar_obra'] = obra
 
             # Mostrar radar da obra selecionada
             if st.session_state.get('radar_obra'):
