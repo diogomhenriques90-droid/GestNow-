@@ -932,13 +932,13 @@ def render_fat_obras(obras_db, registos_db,
             fig_rank = _grafico_evolucao_margem(todas_pl)
             if fig_rank:
                 st.plotly_chart(
-                    fig_rank, use_container_width=True
+                    fig_rank, use_container_width=True, key="rank_obras"
                 )
         with col_g2:
             fig_sc_all = _grafico_scatter_obras(todas_pl)
             if fig_sc_all:
                 st.plotly_chart(
-                    fig_sc_all, use_container_width=True
+                    fig_sc_all, use_container_width=True, key="scatter_all"
                 )
 
         st.markdown("---")
@@ -1048,7 +1048,7 @@ def render_fat_obras(obras_db, registos_db,
                 with col_rar1:
                     st.plotly_chart(
                         _grafico_radar_score(pl_r['det'], obra_r),
-                        use_container_width=True
+                        use_container_width=True, key="radar_rar" 
                     )
                 with col_rar2:
                     st.markdown(
@@ -1145,12 +1145,12 @@ def render_fat_obras(obras_db, registos_db,
             with col_wf:
                 st.plotly_chart(
                     _grafico_pl_waterfall(pl_sel, obra_pl),
-                    use_container_width=True
+                    use_container_width=True, key="waterfall_pl"
                 )
             with col_rd:
                 st.plotly_chart(
                     _grafico_radar_score(det_sel, obra_pl),
-                    use_container_width=True
+                    use_container_width=True, key="radar_sel"
                 )
 
             # Detalhe linhas P&L
@@ -1397,7 +1397,7 @@ def render_fat_obras(obras_db, registos_db,
             if pl_orc:
                 st.plotly_chart(
                     _grafico_orc_vs_real(pl_orc, orc_row, obra_orc),
-                    use_container_width=True
+                    use_container_width=True, key="orc_vs_real"
                 )
 
                 # Tabela desvios
@@ -1651,7 +1651,7 @@ def render_fat_obras(obras_db, registos_db,
             faturas_cli, diarias_pag_db, obra_tl
         )
         if fig_tl:
-            st.plotly_chart(fig_tl, use_container_width=True)
+            st.plotly_chart(fig_tl, use_container_width=True, key="timeline_fin" )
         else:
             st.info(
                 f"📋 Sem eventos financeiros registados "
@@ -1702,7 +1702,7 @@ def render_fat_obras(obras_db, registos_db,
         fig_scat = _grafico_scatter_obras(todas_pl)
         if fig_scat:
             st.plotly_chart(
-                fig_scat, use_container_width=True
+                fig_scat, use_container_width=True, key="scatter_obras"
             )
 
         # Tabela comparativa todas as obras
