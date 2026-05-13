@@ -434,11 +434,16 @@ def render_it():
                 # ── Frota ─────────────────────────────────────────
                 "frota_viaturas.csv", "frota_combustivel.csv",
                 "frota_avarias.csv",
-                # ── Dormidas ──────────────────────────────────────
+                # ── Deslocações ───────────────────────────────────
                 "dormidas.csv",
+                "bilhetes_viagem.csv",
                 # ── Planeamento ───────────────────────────────────
                 "planeamento_pacotes.csv", "planeamento_milestones.csv",
                 "planeamento_recursos.csv", "planeamento_desenhos.csv",
+                # ── Acessos a Obras ───────────────────────────────
+                "acessos_obras.csv",
+                "acessos_documentos.csv",
+                "acessos_requisitos_obras.csv",
                 # ── Compras ───────────────────────────────────────
                 "compras.csv", "fornecedores_compras.csv",
                 # ── Orçamentação ──────────────────────────────────
@@ -477,7 +482,10 @@ def render_it():
                 "iso_partes_interessadas.csv",
                 "iso_auditorias.csv",
                 "iso_fornecedores_aval.csv",
-            ]  
+                # ── Exportação Contabilidade ──────────────────────
+                "historico_exports_cont.csv",
+                "contabilidade_config.json",
+            ]
 
             # ── Estado atual ──────────────────────────────────────
             status_bkp, ultima_bkp = _verificar_alerta_backup()
