@@ -417,6 +417,7 @@ def render_it():
 
             # Lista de todos os CSVs da app
             _CSVS_APP = [
+                # ── Core ──────────────────────────────────────────
                 "usuarios.csv", "obras_lista.csv", "frentes_lista.csv",
                 "registos.csv", "faturas.csv", "documentos.csv",
                 "incidentes.csv", "safety_walks.csv", "obs_seguranca.csv",
@@ -425,7 +426,52 @@ def render_it():
                 "req_ferramentas.csv", "req_materiais.csv", "req_epis.csv",
                 "avaliacoes.csv", "inst_acessos.csv", "pdfs_obrigatorios.csv",
                 "notificacoes.csv", "logs_audit.csv",
-            ]
+                # ── Diárias ───────────────────────────────────────
+                "diarias_config.csv", "diarias_faltas.csv",
+                "diarias_pagamentos.csv",
+                # ── Folhas OCR ────────────────────────────────────
+                "folhas_ocr.csv",
+                # ── Frota ─────────────────────────────────────────
+                "frota_viaturas.csv", "frota_combustivel.csv",
+                "frota_avarias.csv",
+                # ── Dormidas ──────────────────────────────────────
+                "dormidas.csv",
+                # ── Planeamento ───────────────────────────────────
+                "planeamento_pacotes.csv", "planeamento_milestones.csv",
+                "planeamento_recursos.csv", "planeamento_desenhos.csv",
+                # ── Compras ───────────────────────────────────────
+                "compras.csv", "fornecedores_compras.csv",
+                # ── Orçamentação ──────────────────────────────────
+                "orcamentos.csv", "orcamentos_linhas.csv",
+                # ── Comercial ─────────────────────────────────────
+                "pipeline_comercial.csv", "clientes_comercial.csv",
+                # ── Qualidade ─────────────────────────────────────
+                "nao_conformidades.csv", "documentos_sgq.csv",
+                "inspecoes_qualidade.csv",
+                # ── Módulo Faturação — Clientes ───────────────────
+                "faturas_clientes.csv", "faturas_linhas.csv",
+                "clientes_financeiro.csv", "contratos_financeiro.csv",
+                # ── Módulo Faturação — Fornecedores ───────────────
+                "faturas_fornecedores.csv", "fornecedores.csv",
+                "iban_historico.csv",
+                # ── Módulo Faturação — RH ─────────────────────────
+                "colaboradores_rh.csv", "ferias_db.csv",
+                "provisoes_db.csv",
+                # ── Módulo Faturação — Frota Renting ─────────────
+                "renting_contratos.csv", "renting_kms.csv",
+                # ── Módulo Faturação — Obras ──────────────────────
+                "obras_orcamento.csv", "obras_wip.csv",
+                # ── Módulo Faturação — Tesouraria ─────────────────
+                "contas_bancarias.csv", "movimentos_bancarios.csv",
+                "fundo_maneio.csv",
+                # ── Módulo Faturação — Fundos ─────────────────────
+                "fundos_candidaturas.csv",
+                # ── Módulo Faturação — Imobilizado ────────────────
+                "imobilizado_db.csv", "seguros_db.csv",
+                "caucoes_db.csv", "alvaras_db.csv",
+                # ── Módulo Faturação — Reporting ──────────────────
+                "regras_negocio.csv",
+            ]  
 
             # ── Estado atual ──────────────────────────────────────
             status_bkp, ultima_bkp = _verificar_alerta_backup()
