@@ -121,7 +121,7 @@ def render_admin_rh(*args):
 
     st.markdown("# 👥 Recursos Humanos")
 
-    tab_lista, tab_gestao, tab_contrato, tab_template = st.tabs([
+    tab_lista, tab_gestao, tab_contrato, tab_template, tab_formacoes = st.tabs([     
         "👥 Colaboradores",
         "📋 Gestão Individual",
         "📄 Contratos",
