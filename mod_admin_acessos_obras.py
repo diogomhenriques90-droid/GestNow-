@@ -639,6 +639,24 @@ def render_acessos_obras(users, obras_db, *_):
                         n_docs_colab = len(dc[dc['Dias_N'] >= 0])
                         n_docs_exp   = len(dc[dc['Dias_N'] < 0])
 
+                # ── FIX BUG 1 ── extrair motivo_html antes do f-string
+                # para evitar backslash dentro de expressão f-string
+                # (SyntaxError em Python < 3.12)
+                motivo_suspensao = ac.get('Motivo_Suspensao', '')
+                if motivo_suspensao:
+                    motivo_html = (
+                        "<br><small style='color:#F59E0B;'>"
+                        + str(motivo_suspensao)
+                        + "</small>"
+                    )
+                else:
+                    motivo_html = ""
+
+                docs_exp_html = (
+                    f"&nbsp;&nbsp;🔴 {n_docs_exp} expirado(s)"
+                    if n_docs_exp > 0 else ""
+                )
+
                 col_ac1, col_ac2 = st.columns([6,1])
                 with col_ac1:
                     st.markdown(
@@ -667,9 +685,9 @@ def render_acessos_obras(users, obras_db, *_):
                         f"{ic_df} Validade: {txt_df}</span><br>"
                         f"<small style='color:#64748B;'>"
                         f"📄 {n_docs_colab} doc(s) válido(s)"
-                        f"{'  🔴 ' + str(n_docs_exp) + ' expirado(s)' if n_docs_exp > 0 else ''}"
+                        f"{docs_exp_html}"
                         f"</small></div></div>"
-                        f"{'<br><small style=color:#F59E0B;>' + str(ac.get(\"Motivo_Suspensao\",\"\")) + '</small>' if ac.get('Motivo_Suspensao') else ''}"
+                        f"{motivo_html}"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1245,11 +1263,9 @@ def render_acessos_obras(users, obras_db, *_):
                         (len(docs_obrig) - len(docs_falta)) /
                         len(docs_obrig) * 100
                     ) if docs_obrig else 100
-                    cor_comp = _cor_rag(completude) \
-                               if '_cor_rag' in dir() \
-                               else ("#10B981" if completude>=80
-                                     else "#F59E0B" if completude>=50
-                                     else "#EF4444")
+                    cor_comp = ("#10B981" if completude >= 80
+                                else "#F59E0B" if completude >= 50
+                                else "#EF4444")
 
                     with st.expander(
                         f"{ic_e} {ac.get('Colaborador','')} "
@@ -1262,6 +1278,11 @@ def render_acessos_obras(users, obras_db, *_):
                     ):
                         col_ca1, col_ca2 = st.columns([3,1])
                         with col_ca1:
+                            cracha_estado = (
+                                'Emitido'
+                                if ac.get('Cracha_Emitido') == 'Sim'
+                                else 'Por emitir'
+                            )
                             st.markdown(
                                 f"<div style='background:#1E293B;"
                                 f"border-radius:8px;padding:12px;'>"
@@ -1278,7 +1299,7 @@ def render_acessos_obras(users, obras_db, *_):
                                 f"<p style='color:#F1F5F9;margin:2px 0;'>"
                                 f"<b>Crachá:</b> "
                                 f"{ac.get('Cracha_Numero','—')} "
-                                f"({'Emitido' if ac.get('Cracha_Emitido')=='Sim' else 'Por emitir'})"
+                                f"({cracha_estado})"
                                 f"</p>"
                                 f"</div>",
                                 unsafe_allow_html=True
@@ -1559,6 +1580,18 @@ def render_acessos_obras(users, obras_db, *_):
                         f"🏗️ {rq.get('Obra','')} "
                         f"[{nivel_rq}] — {len(docs_rq)} docs obrigatórios"
                     ):
+                        # ── FIX BUG 2 ── extrair instrucoes_html antes do
+                        # f-string para evitar backslash em Python < 3.12
+                        instrucoes_val = rq.get('Instrucoes', '')
+                        if instrucoes_val:
+                            instrucoes_html = (
+                                "<p style='color:#94A3B8;margin:4px 0;'>"
+                                + str(instrucoes_val)
+                                + "</p>"
+                            )
+                        else:
+                            instrucoes_html = ""
+
                         st.markdown(
                             f"<div style='background:#1E293B;"
                             f"border-radius:8px;padding:12px;'>"
@@ -1568,7 +1601,7 @@ def render_acessos_obras(users, obras_db, *_):
                             f"<b>Nível segurança:</b> "
                             f"<span style='color:{cor_rq};'>"
                             f"{nivel_rq}</span></p>"
-                            f"{'<p style=color:#94A3B8;margin:4px 0;>' + str(rq.get(\"Instrucoes\",\"\")) + '</p>' if rq.get('Instrucoes') else ''}"
+                            f"{instrucoes_html}"
                             f"</div>",
                             unsafe_allow_html=True
                         )
@@ -1653,15 +1686,15 @@ def render_acessos_obras(users, obras_db, *_):
             alertas.sort(key=lambda x: x['dias'])
             for alerta in alertas:
                 st.markdown(
-                    f"<div style='background:{alerta[\"cor\"]}12;"
-                    f"border-left:4px solid {alerta[\"cor\"]};"
+                    f"<div style='background:{alerta['cor']}12;"
+                    f"border-left:4px solid {alerta['cor']};"
                     f"border-radius:8px;padding:10px 14px;"
                     f"margin-bottom:5px;'>"
-                    f"<b style='color:{alerta[\"cor\"]};'>"
+                    f"<b style='color:{alerta['cor']};'>"
                     f"{alerta['tipo']}</b> — "
                     f"<span style='color:#F1F5F9;'>"
                     f"{alerta['msg']}</span>"
-                    f"<span style='float:right;color:{alerta[\"cor\"]};'>"
+                    f"<span style='float:right;color:{alerta['cor']};'>"
                     f"{'EXPIRADO' if alerta['dias']<0 else str(alerta['dias'])+'d'}"
                     f"</span></div>",
                     unsafe_allow_html=True
