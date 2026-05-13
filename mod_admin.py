@@ -221,6 +221,7 @@ def render_admin(*args):
             "📄 Folhas de Ponto",
             "⏱️ Horas Faturação",
             "📤 Emissão Mensal",
+            "📤 Export Contabilidade",
         ])
 
         # ── 13 módulos novos ──────────────────────────────
@@ -389,6 +390,10 @@ def render_admin(*args):
                 obras_db, registos_db, faturas_db,
                 diarias_pagamentos_db
             )
+            
+        with fat_tabs[18]:
+            from mod_exportacao_contabilidade import render_exportacao_contabilidade
+            render_exportacao_contabilidade()
 
     # ════════════════════════════════════════════════════════════════
     # TAB 5 — ORÇAMENTAÇÃO
