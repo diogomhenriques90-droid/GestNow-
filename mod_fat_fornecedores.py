@@ -619,7 +619,7 @@ def render_fat_fornecedores(obras_db, *_):
             with col_g1:
                 st.plotly_chart(
                     _grafico_top_fornecedores(fat_forn),
-                    use_container_width=True, key="top_forn_aging" 
+                    use_container_width=True, key="top_lista_aging" 
                 )
             with col_g2:
                 st.plotly_chart(
@@ -1156,7 +1156,7 @@ def render_fat_fornecedores(obras_db, *_):
         with col_ag1:
             st.plotly_chart(
                 _grafico_aging_fornecedores(fat_forn),
-                use_container_width=True, key="lista_forn"
+                use_container_width=True, key="aging_forn"
             )
         with col_ag2:
             st.plotly_chart(
