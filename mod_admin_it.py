@@ -471,6 +471,12 @@ def render_it():
                 "caucoes_db.csv", "alvaras_db.csv",
                 # ── Módulo Faturação — Reporting ──────────────────
                 "regras_negocio.csv",
+                # ── ISO 9001 ──────────────────────────────────────
+                "iso_objetivos.csv",
+                "iso_riscos.csv",
+                "iso_partes_interessadas.csv",
+                "iso_auditorias.csv",
+                "iso_fornecedores_aval.csv",
             ]  
 
             # ── Estado atual ──────────────────────────────────────
