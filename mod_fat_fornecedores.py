@@ -219,7 +219,6 @@ def _grafico_top_fornecedores(fat_forn):
         fornecedores = top.index.tolist()
         valores      = top.values.tolist()
 
-    # Cores gradiente
     n = len(fornecedores)
     cores = [
         f"rgba(59,130,246,{1.0 - i*0.08:.2f})"
@@ -276,6 +275,7 @@ def _grafico_custos_categoria(fat_forn):
         hovertemplate='%{label}: €%{value:,.0f}<extra></extra>'
     ))
     total_v = sum(values)
+    # ── FIX BUG ── era `))` (parêntesis duplo), corrigido para `)`
     fig.update_layout(
         title={'text':'Custos por Categoria',
                'font':{'color':'#F1F5F9'}},
@@ -290,7 +290,7 @@ def _grafico_custos_categoria(fat_forn):
             'font_size':13,'font_color':'#F1F5F9',
             'showarrow':False
         }]
-    ))
+    )
     return fig
 
 
@@ -315,7 +315,7 @@ def _grafico_aging_fornecedores(fat_forn):
         for _, row in nao_pagas.iterrows():
             dias = (hoje_ts - row['Venc_d']).days \
                    if pd.notna(row['Venc_d']) else -1
-            if dias < 0:    valores[0] += row['Total_Num']
+            if dias < 0:     valores[0] += row['Total_Num']
             elif dias <= 30: valores[1] += row['Total_Num']
             elif dias <= 60: valores[2] += row['Total_Num']
             else:            valores[3] += row['Total_Num']
@@ -615,7 +615,6 @@ def render_fat_fornecedores(obras_db, *_):
         with col_lista_f:
             st.markdown("#### 📋 Lista de Fornecedores")
 
-            # Gráficos
             col_g1, col_g2 = st.columns(2)
             with col_g1:
                 st.plotly_chart(
@@ -631,7 +630,6 @@ def render_fat_fornecedores(obras_db, *_):
             if fornecedores_db.empty:
                 st.info("📋 Sem fornecedores registados.")
             else:
-                # Filtro categoria
                 cats = ["Todos"] + \
                        fornecedores_db['Categoria'].unique().tolist() \
                        if 'Categoria' in fornecedores_db.columns \
@@ -650,7 +648,6 @@ def render_fat_fornecedores(obras_db, *_):
                     is_sub   = forn.get('Subempreiteiro','Não') == 'Sim'
                     cor_card = '#EF4444' if is_sub else '#F59E0B'
 
-                    # Volume total faturado
                     vol_f = 0.0
                     if not fat_forn.empty and \
                        'Fornecedor' in fat_forn.columns:
@@ -662,10 +659,10 @@ def render_fat_fornecedores(obras_db, *_):
                         ).fillna(0).sum()
 
                     badge_sub = (
-                        f"<span class='badge' "
-                        f"style='background:rgba(239,68,68,0.2);"
-                        f"color:#EF4444;margin-left:6px;'>"
-                        f"🔨 Subempreiteiro</span>"
+                        "<span class='badge' "
+                        "style='background:rgba(239,68,68,0.2);"
+                        "color:#EF4444;margin-left:6px;'>"
+                        "🔨 Subempreiteiro</span>"
                     ) if is_sub else ""
 
                     st.markdown(
@@ -697,7 +694,6 @@ def render_fat_fornecedores(obras_db, *_):
                         unsafe_allow_html=True
                     )
 
-                    # Editar IBAN com registo histórico
                     col_ie, col_id = st.columns([3,1])
                     with col_ie:
                         novo_iban = st.text_input(
@@ -716,7 +712,6 @@ def render_fat_fornecedores(obras_db, *_):
                         ):
                             iban_ant = forn.get('IBAN','')
                             if novo_iban != iban_ant:
-                                # Registar histórico
                                 novo_hist = pd.DataFrame([{
                                     "ID":             str(uuid.uuid4())[:8].upper(),
                                     "Entidade":       forn.get('Nome',''),
@@ -732,7 +727,6 @@ def render_fat_fornecedores(obras_db, *_):
                                 ) if not iban_hist.empty else novo_hist
                                 save_db(upd_h, "iban_historico.csv")
 
-                                # Atualizar fornecedor
                                 fornecedores_db.loc[
                                     fornecedores_db['ID'] == forn_id,
                                     'IBAN'
@@ -766,7 +760,6 @@ def render_fat_fornecedores(obras_db, *_):
         with col_reg:
             st.markdown("#### ➕ Registar Fatura Recebida")
 
-            # Upload com OCR
             st.markdown(
                 "<p style='color:#94A3B8;font-size:0.8rem;"
                 "margin:0 0 6px;'>"
@@ -780,7 +773,6 @@ def render_fat_fornecedores(obras_db, *_):
                 key="forn_fat_upload"
             )
 
-            # Valores pré-preenchidos (OCR ou manual)
             ocr_dados = st.session_state.get('ocr_forn_dados', {})
 
             if upload_fat and not ocr_dados:
@@ -867,7 +859,6 @@ def render_fat_fornecedores(obras_db, *_):
                         unsafe_allow_html=True
                     )
 
-                # Retenção automática se subempreiteiro
                 f_ret_pct = 0.0
                 if f_forn and not fornecedores_db.empty:
                     forn_row = fornecedores_db[
@@ -919,7 +910,6 @@ def render_fat_fornecedores(obras_db, *_):
                         f_ret_v = round(
                             f_sub_val * f_ret_pct / 100, 2
                         )
-                        # Data vencimento
                         try:
                             d_em = datetime.strptime(
                                 f_data, "%d/%m/%Y"
@@ -970,7 +960,6 @@ def render_fat_fornecedores(obras_db, *_):
                             ip=""
                         )
                         inv()
-                        # Limpar OCR
                         st.session_state.pop('ocr_forn_dados', None)
                         st.session_state.pop('ocr_forn_pdf', None)
                         st.success(
@@ -985,7 +974,6 @@ def render_fat_fornecedores(obras_db, *_):
             if fat_forn.empty:
                 st.info("📋 Sem faturas de fornecedores.")
             else:
-                # Filtros
                 col_ff1, col_ff2 = st.columns(2)
                 with col_ff1:
                     est_ff = st.selectbox(
@@ -1130,7 +1118,6 @@ def render_fat_fornecedores(obras_db, *_):
         else:
             st.markdown(f"**{len(subs)} subempreiteiro(s) registado(s)**")
             for _, sub in subs.iterrows():
-                # Faturas deste subempreiteiro
                 fats_sub = fat_forn[
                     fat_forn['Fornecedor'] == sub.get('Nome','')
                 ] if not fat_forn.empty and \
@@ -1177,7 +1164,6 @@ def render_fat_fornecedores(obras_db, *_):
                 use_container_width=True
             )
 
-        # SEPA XML para pagamentos em lote
         st.markdown("---")
         st.markdown("#### 🏦 Pagamento em Lote (SEPA XML)")
 
@@ -1200,7 +1186,6 @@ def render_fat_fornecedores(obras_db, *_):
                 f"€{total_pag_lote:,.2f}"
             )
 
-            # Verificar IBANs
             sem_iban = 0
             if not fornecedores_db.empty:
                 for _, prow in pendentes_pag.iterrows():
@@ -1218,7 +1203,6 @@ def render_fat_fornecedores(obras_db, *_):
                     f"— não incluídos no XML."
                 )
 
-            # Verificar IBANs alterados recentemente
             if not iban_hist.empty:
                 recentes = iban_hist[
                     pd.to_datetime(
@@ -1292,7 +1276,6 @@ def render_fat_fornecedores(obras_db, *_):
                             if not iban_f or len(iban_f) < 15:
                                 continue
 
-                            # Valor a pagar = total - retenção
                             tot_p = float(prow.get('Total',0) or 0)
                             ret_p = float(prow.get('Retencao_Val',0) or 0)
                             val_p = round(tot_p - ret_p, 2)
@@ -1361,7 +1344,6 @@ def render_fat_fornecedores(obras_db, *_):
             use_container_width=True
         )
 
-        # Selecionar mês para guia
         col_rm, col_ra = st.columns(2)
         with col_rm:
             meses_pt = {
@@ -1385,7 +1367,6 @@ def render_fat_fornecedores(obras_db, *_):
 
         mes_num_r = meses_pt[mes_ret]
 
-        # Calcular retenções do mês
         retencoes_mes = []
         if not fat_forn.empty and 'Data' in fat_forn.columns:
             ff_r = fat_forn.copy()
@@ -1432,12 +1413,10 @@ def render_fat_fornecedores(obras_db, *_):
                 unsafe_allow_html=True
             )
 
-            # Tabela
             df_ret = pd.DataFrame(retencoes_mes)
             st.dataframe(df_ret, use_container_width=True,
                          hide_index=True)
 
-            # Gerar guia PDF
             if st.button(
                 "📄 Gerar Guia de Retenção PDF",
                 key="btn_guia_ret",
@@ -1482,7 +1461,6 @@ def render_fat_fornecedores(obras_db, *_):
             "**Pagamentos são bloqueados por 30 dias após alteração.**"
         )
 
-        # Alertas de IBANs recentes
         if not iban_hist.empty and 'Data_Alteracao' in iban_hist.columns:
             iban_hist_c = iban_hist.copy()
             iban_hist_c['Alt_d'] = pd.to_datetime(
@@ -1506,6 +1484,10 @@ def render_fat_fornecedores(obras_db, *_):
                     ).days if pd.notna(ih['Alt_d']) else 0
                     bloqueado = dias_alt < 30
 
+                    # estado_iban calculado antes do f-string
+                    estado_iban = '🔒 BLOQUEADO' if bloqueado else '🔓 Desbloqueado'
+                    cor_iban    = '#EF4444' if bloqueado else '#10B981'
+
                     st.markdown(
                         f"<div style='background:rgba(239,68,68,0.1);"
                         f"border:2px solid #EF4444;"
@@ -1515,9 +1497,9 @@ def render_fat_fornecedores(obras_db, *_):
                         f"⚠️ {ih.get('Entidade','')} "
                         f"({ih.get('Tipo','')})</b>"
                         f"<span style='float:right;"
-                        f"color:{'#EF4444' if bloqueado else '#10B981'};"
+                        f"color:{cor_iban};"
                         f"font-size:0.8rem;font-weight:700;'>"
-                        f"{'🔒 BLOQUEADO' if bloqueado else '🔓 Desbloqueado'}"
+                        f"{estado_iban}"
                         f"</span><br>"
                         f"<small style='color:#94A3B8;'>"
                         f"Anterior: {ih.get('IBAN_Anterior','N/D')}<br>"
@@ -1572,7 +1554,6 @@ def render_fat_fornecedores(obras_db, *_):
                 use_container_width=True, hide_index=True
             )
 
-            # Export auditoria
             csv_iban = iban_hist[cols_h].to_csv(
                 index=False, encoding='utf-8-sig'
             )
