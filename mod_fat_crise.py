@@ -1382,7 +1382,6 @@ def render_fat_crise(obras_db, registos_db,
                             label_cen=cen['titulo']
                         ),
                         use_container_width=True, key=f"cf_{cen['id']}")
-                    )
 
                     # Ações recomendadas
                     st.markdown(
