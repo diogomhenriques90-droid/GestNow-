@@ -1547,11 +1547,26 @@ def render_fat_reporting(obras_db, registos_db,
         col_p1, col_p2 = st.columns(2)
 
         with col_p1:
-            st.markdown("#### 🏢 Dados da Empresa")
+            st.markdown("#### 🏢 Dados da Empresa")  
+
+            empresa_rows = ''.join([
+                '<tr><td style=color:#64748B;font-size:0.8rem;padding:4px 0;>' + k +
+                '</td><td style=color:#F1F5F9;font-size:0.85rem;font-weight:700;>' + v +
+                '</td></tr>'
+                for k, v in [
+                    ('Nome',           empresa.get('nome','')),
+                    ('NIF',            empresa.get('nif','')),
+                    ('Morada',         empresa.get('morada','')),
+                    ('Setor',          'Instrumentação Industrial'),
+                    ('Constituição',   '—'),
+                    ('Capital Social', '—'),
+              ]   
+         ])      
+          
             st.markdown(
                 f"<div class='passaporte-section'>"
                 f"<table style='width:100%;border-collapse:collapse;'>"
-                f"{''.join(['<tr><td style=color:#64748B;font-size:0.8rem;padding:4px 0;>' + k + '</td><td style=color:#F1F5F9;font-size:0.85rem;font-weight:700;>' + v + '</td></tr>' for k,v in [('Nome', empresa.get('nome','')), ('NIF', empresa.get('nif','')), ('Morada', empresa.get('morada','')), ('Setor', 'Instrumentação Industrial'), ('Constituição', '—'), ('Capital Social', '—')]])}"
+                f"{empresa_rows}"
                 f"</table></div>",
                 unsafe_allow_html=True
             )
@@ -1559,11 +1574,25 @@ def render_fat_reporting(obras_db, registos_db,
             st.markdown("#### 📊 Performance Financeira")
             fat_anual_est = kpis['fat_ytd']/kpis['mes']*12 \
                             if kpis['mes'] > 0 else 0
+
+            perf_rows = ''.join([
+                '<tr><td style=color:#64748B;font-size:0.8rem;padding:4px 0;>' + k +
+                '</td><td style=color:#F1F5F9;font-size:0.85rem;font-weight:700;>' + v +
+                '</td></tr>'
+                for k, v in [
+                    ('Faturação Anual (proj.)', f'\u20AC{fat_anual_est:,.0f}'),
+                    ('YTD Acumulado',           f'\u20AC{kpis["fat_ytd"]:,.0f}'),
+                    ('Margem Operacional',      f'{kpis["margem_pct"]:.1f}%'),
+                    ('Obras Ativas',            str(kpis['n_obras'])),
+                    ('DSO',                     f'{kpis["dso"]:.0f} dias'),
+                    ('Autonomia',               f'{kpis["autonomia"]:.1f} meses'),
+               ]
+          ])
+          
             st.markdown(
                 f"<div class='passaporte-section'>"
                 f"<table style='width:100%;border-collapse:collapse;'>"
-                f"{''.join(['<tr><td style=color:#64748B;font-size:0.8rem;padding:4px 0;>' + k + '</td><td style=color:#F1F5F9;font-size:0.85rem;font-weight:700;>' + v + '</td></tr>' for k,v in [('Faturação Anual (proj.)', f'€{fat_anual_est:,.0f}'), ('YTD Acumulado', f'€{kpis[\"fat_ytd\"]:,.0f}'), ('Margem Operacional', f'{kpis[\"margem_pct\"]:.1f}%'), ('Obras Ativas', str(kpis[\"n_obras\"])), ('DSO', f'{kpis[\"dso\"]:.0f} dias'), ('Autonomia', f'{kpis[\"autonomia\"]:.1f} meses')]])}"
-                f"</table></div>",
+                f"{perf_rows}"
                 unsafe_allow_html=True
             )
 
