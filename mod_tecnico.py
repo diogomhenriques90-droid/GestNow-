@@ -597,31 +597,7 @@ def render_tecnico(*args):
                     st.success(f"✅ {fh(total_horas)} registadas em {obra_sel} ({len(periodos_validos)} período(s))")
                     time.sleep(1)
                     st.rerun()   
-                        log_audit(
-                            usuario=user_nome, acao="REGISTAR_PONTO",
-                            tabela="registos.csv",
-                            registro_id=new_r['ID'].iloc[0],
-                            detalhes=f"{pv['horas']}h em {obra_sel} "
-                                     f"({pv['entrada']}-{pv['saida']})",
-                            ip=""
-                        )
-
-                    criar_notificacao(
-                        destinatario="admin",
-                        titulo="📋 Novo Registo de Ponto",
-                        mensagem=f"{user_nome} registou {fh(total_horas)} "
-                                 f"em {obra_sel}",
-                        tipo="info",
-                        acao_url="/admin?tab=validacoes"
-                    )
-
-                    st.session_state.show_reg_form    = False
-                    st.session_state.periodos_trabalho = [{"entrada":"08:00","saida":"17:00"}]
-                    inv()
-                    st.success(f"✅ {fh(total_horas)} registadas em {obra_sel}")
-                    time.sleep(1)
-                    st.rerun()
-
+                   
     # ════════════════════════════════════════════════════════════════
     # TABS RESTANTES
     # ════════════════════════════════════════════════════════════════
