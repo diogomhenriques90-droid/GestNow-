@@ -1104,7 +1104,7 @@ def render_iso9001(*_):
                     ["Cliente","Fornecedor","Colaborador",
                      "Acionista / Sócio","Regulador / Estado",
                      "Comunidade","Parceiro","Outro"],
-                    key="p_tipo"
+                    key="iso_p_tipo"
                 )
                 p_exp   = st.text_area(
                     "Expectativas", key="p_exp",
