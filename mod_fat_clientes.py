@@ -1017,9 +1017,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
             # Funil
             col_fun, col_aging_g = st.columns(2)
             with col_fun:
-                st.plotly_chart(
-                    _grafico_funil_faturas(faturas_cli),
-                    use_container_width=True
+                st.plotly_chart(_grafico_aging_detalhado(faturas_cli), use_container_width=True, key="aging_lista")
                 )
             with col_aging_g:
                 st.plotly_chart(
