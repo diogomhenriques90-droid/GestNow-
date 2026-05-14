@@ -1243,7 +1243,7 @@ def render_fat_reporting(obras_db, registos_db,
 
         st.plotly_chart(
             _grafico_benchmark(kpis),
-            use_container_width=True
+            use_container_width=True, key="bench_tab"
         )
 
         # Tabela comparativa
