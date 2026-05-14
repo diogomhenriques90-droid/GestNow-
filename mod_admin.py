@@ -858,3 +858,6 @@ def _render_emissao_mensal(obras_db, registos_db, faturas_db,
             )
         except Exception as e:
             st.error(f"❌ Erro ao gerar PDF: {e}")
+
+
+
