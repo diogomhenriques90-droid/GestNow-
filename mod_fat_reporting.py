@@ -1493,6 +1493,13 @@ def render_fat_reporting(obras_db, registos_db,
                         else "✅" if ativa \
                         else "⏸️"
 
+                # Adicionar antes do st.markdown:
+                acao_txt = (
+                    '<br><small style=color:#EF4444;>' +
+                    str(regra.get('Acao','')) +
+                    '</small>'
+                ) if disparada else ''
+              
                 st.markdown(
                     f"<div class='regra-card' "
                     f"style='border-left-color:{cor_r};"
@@ -1504,14 +1511,13 @@ def render_fat_reporting(obras_db, registos_db,
                     f"font-size:0.88rem;'>"
                     f"{ic_r} {regra.get('Nome','')}</b><br>"
                     f"<small style='color:#64748B;'>"
-                    f"{regra.get('Condicao','').replace('X',str(regra.get('Limiar','')))}"
+                    f"{acao_txt}"
                     f"</small>"
                     f"</div>"
                     f"<span style='color:{cor_r};"
                     f"font-size:0.75rem;font-weight:700;'>"
                     f"{'🔴 DISPARADA' if disparada else '🟢 OK'}"
                     f"</span></div>"
-                    f"{'<br><small style=color:#EF4444;>' + str(regra.get(\"Acao\",\"\")) + '</small>' if disparada else ''}"
                     f"</div>",
                     unsafe_allow_html=True
                 )
