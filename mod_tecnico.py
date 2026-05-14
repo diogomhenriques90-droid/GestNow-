@@ -558,7 +558,6 @@ def render_tecnico(*args):
                 elif not obra_sel or obra_sel == "Sem obras":
                     st.error("⚠️ Seleciona uma obra.")
                 else:
-                 else:
                     # ✅ Acumula todos os períodos e guarda UMA vez
                     regs_atual = registos_db.copy() if not registos_db.empty else pd.DataFrame()
                     ids_guardados = []
