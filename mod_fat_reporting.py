@@ -1044,12 +1044,12 @@ def render_fat_reporting(obras_db, registos_db,
                     kpis['meses_pt'],
                     kpis['mes']
                 ),
-                use_container_width=True
+                use_container_width=True, key="area_fat"
             )
         with col_d2:
             st.plotly_chart(
                 _grafico_waterfall_resultado(kpis),
-                use_container_width=True
+                use_container_width=True, key="waterfall_resultado"
             )
 
         # Bullet objetivo
@@ -1059,7 +1059,7 @@ def render_fat_reporting(obras_db, registos_db,
                 kpis['fat_objetivo'],
                 kpis['mes']
             ),
-            use_container_width=True
+            use_container_width=True,  key="bullet_objetivo"
         )
 
         # Linha 2
@@ -1068,12 +1068,12 @@ def render_fat_reporting(obras_db, registos_db,
             fig_tree = _grafico_treemap_obras(obras_db, registos_db)
             if fig_tree:
                 st.plotly_chart(
-                    fig_tree, use_container_width=True
+                    fig_tree, use_container_width=True, key="treemap_obras"
                 )
         with col_d4:
             st.plotly_chart(
                 _grafico_benchmark(kpis),
-                use_container_width=True
+                use_container_width=True, key="bench_dash" 
             )
 
         # Narrativa IA
@@ -1123,7 +1123,7 @@ def render_fat_reporting(obras_db, registos_db,
                 kpis['meses_pt'],
                 kpis['mes']
             ),
-            use_container_width=True
+            use_container_width=True, key="projecao_fecho_ano"
         )
 
         # Tabela de cenários
@@ -1466,7 +1466,7 @@ def render_fat_reporting(obras_db, registos_db,
             fig_reg = _grafico_motor_regras(regras_avaliadas)
             if fig_reg:
                 st.plotly_chart(
-                    fig_reg, use_container_width=True
+                    fig_reg, use_container_width=True,  key="motor_regras" 
                 )
 
             n_disparadas = sum(
