@@ -3,7 +3,6 @@ import pandas as pd
 from core import load_all, inv, ICONS, fh, save_db
 from datetime import datetime
 
-
 def render_admin(*args):
     """Hub Principal do Admin — 10 tabs reorganizados"""
 
@@ -74,9 +73,9 @@ def render_admin(*args):
         notifs_df = get_notificacoes(user_atual, apenas_nao_lidas=True, limite=20)
         if not notifs_df.empty:
             for _, notif in notifs_df.iterrows():
-                cor = {"info": "#3B82F6", "warning": "#F59E0B",
-                       "error": "#EF4444", "success": "#10B981"}.get(
-                    notif.get('Tipo', 'info'), "#6B7280"
+                cor = {"info":"#3B82F6","warning":"#F59E0B",
+                       "error":"#EF4444","success":"#10B981"}.get(
+                    notif.get('Tipo','info'),"#6B7280"
                 )
                 st.markdown(
                     f"<div style='background:{cor}22;border-left:4px solid {cor};"
@@ -89,7 +88,8 @@ def render_admin(*args):
                     f"</div>",
                     unsafe_allow_html=True
                 )
-            if st.button("✅ Marcar Todas como Lidas", key="marcar_todas_lidas"):
+            if st.button("✅ Marcar Todas como Lidas",
+                          key="marcar_todas_lidas"):
                 for _, notif in notifs_df.iterrows():
                     marcar_notificacao_lida(notif['ID'])
                 inv()
@@ -132,6 +132,7 @@ def render_admin(*args):
 
     # ════════════════════════════════════════════════════════════════
     # TAB 0 — ARMAZÉM
+    # EPIs, Ferramentas, Materiais, Validação Compras
     # ════════════════════════════════════════════════════════════════
     with tabs[0]:
         from mod_armazem import render_armazem
@@ -150,6 +151,7 @@ def render_admin(*args):
 
     # ════════════════════════════════════════════════════════════════
     # TAB 2 — SECRETARIADO
+    # 1ª/2ª validação horas, gasóleo, avarias carrinhas, histórico
     # ════════════════════════════════════════════════════════════════
     with tabs[2]:
         from mod_secretariado import render_secretariado
@@ -161,16 +163,17 @@ def render_admin(*args):
             inst_acessos_db, diarias_config_db, diarias_faltas_db,
             diarias_pagamentos_db
         )
-
+        
     # ════════════════════════════════════════════════════════════════
     # TAB 3 — PRODUÇÃO
+    # Obras, Frota, Deslocações, Planeamento, Acessos
     # ════════════════════════════════════════════════════════════════
     with tabs[3]:
         st.markdown("## 🏭 Produção")
         prod_tabs = st.tabs([
             "🏗️ Obras",
             "🚗 Frota",
-            "🗺️ Deslocações",
+            "🗺️ Deslocações",      # ← era "🏨 Dormidas"
             "📋 Planeamento",
             "🔐 Acessos",
         ])
@@ -192,10 +195,13 @@ def render_admin(*args):
 
     # ════════════════════════════════════════════════════════════════
     # TAB 4 — FATURAÇÃO
+    # Custos por obra, frota, dormidas, folhas ponto,
+    # faturação horas, diárias, emissão mensal
     # ════════════════════════════════════════════════════════════════
     with tabs[4]:
         st.markdown("## 💰 Faturação")
         fat_tabs = st.tabs([
+            # ── 13 módulos novos ──────────────────────────
             "📊 Dashboard CFO",
             "🧾 Clientes & Faturação",
             "📥 Fornecedores",
@@ -209,6 +215,7 @@ def render_admin(*args):
             "🧾 Fiscal",
             "📋 Auditoria Anual",
             "📊 Reporting",
+            # ── módulos existentes a manter ───────────────
             "📊 Custos por Obra",
             "💶 Diárias",
             "📄 Folhas de Ponto",
@@ -217,6 +224,7 @@ def render_admin(*args):
             "📤 Export Contabilidade",
         ])
 
+        # ── 13 módulos novos ──────────────────────────────
         with fat_tabs[0]:
             from mod_fat_dashboard import render_fat_dashboard
             render_fat_dashboard(obras_db, registos_db,
@@ -276,6 +284,7 @@ def render_admin(*args):
             render_fat_reporting(obras_db, registos_db,
                                  faturas_db, diarias_pagamentos_db)
 
+
         with fat_tabs[13]:
             _render_custos_por_obra(
                 obras_db, registos_db, req_mat_db,
@@ -297,6 +306,7 @@ def render_admin(*args):
             _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db)
 
         with fat_tabs[16]:
+            # Faturação de horas — vem do secretariado tab faturação
             import pandas as pd
             st.markdown("### ⏱️ Horas para Faturação ao Cliente")
             if registos_db.empty:
@@ -317,7 +327,7 @@ def render_admin(*args):
                     obra_sel_fat = st.selectbox(
                         "Obra", obras_fat, key="fat_h_obra"
                     )
-                    azuis_obra  = azuis[azuis['Obra'] == obra_sel_fat]
+                    azuis_obra = azuis[azuis['Obra'] == obra_sel_fat]
                     total_h_fat = azuis_obra['Horas_Total'].sum()
 
                     c1, c2 = st.columns(2)
@@ -325,18 +335,22 @@ def render_admin(*args):
                     with c2: st.metric("Total Horas", fh(total_h_fat))
 
                     resumo = azuis_obra.groupby('Técnico').agg(
-                        Horas=('Horas_Total', 'sum'),
-                        Dias=('Data', 'nunique')
+                        Horas=('Horas_Total','sum'),
+                        Dias=('Data','nunique')
                     ).reset_index()
-                    st.dataframe(resumo, use_container_width=True,
-                                 hide_index=True)
+                    st.dataframe(
+                        resumo, use_container_width=True, hide_index=True
+                    )
 
+                    # Preço hora por técnico
                     from core import load_db as _ld2
                     try:
-                        users_full = _ld2("usuarios.csv",
-                                          ["Nome", "PrecoHora"], silent=True)
+                        users_full = _ld2("usuarios.csv", ["Nome","PrecoHora"],
+                                          silent=True)
                     except:
-                        users_full = pd.DataFrame(columns=["Nome", "PrecoHora"])
+                        users_full = pd.DataFrame(
+                            columns=["Nome","PrecoHora"]
+                        )
 
                     st.markdown("---")
                     st.markdown("#### 💰 Valor a Faturar")
@@ -363,21 +377,20 @@ def render_admin(*args):
                             f"margin-bottom:4px;'>"
                             f"<b style='color:#F1F5F9;'>{tec_nome}</b>"
                             f"<span style='float:right;color:#10B981;"
-                            f"font-weight:700;'>\u20AC {subtotal:.2f}</span><br>"
+                            f"font-weight:700;'>€ {subtotal:.2f}</span><br>"
                             f"<small style='color:#64748B;'>"
-                            f"{fh(h_tec)} \u00D7 \u20AC{preco_h}/h</small>"
+                            f"{fh(h_tec)} × €{preco_h}/h</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
-                    st.metric("💰 Total a Faturar",
-                              f"\u20AC {total_faturar:.2f}")
+                    st.metric("💰 Total a Faturar", f"€ {total_faturar:.2f}")
 
         with fat_tabs[17]:
             _render_emissao_mensal(
                 obras_db, registos_db, faturas_db,
                 diarias_pagamentos_db
             )
-
+            
         with fat_tabs[18]:
             from mod_exportacao_contabilidade import render_exportacao_contabilidade
             render_exportacao_contabilidade()
@@ -435,7 +448,9 @@ def render_admin(*args):
                     value=100, key="log_limite"
                 )
             usuario_f = None if filtro_user == "Todos" else filtro_user
-            logs_df   = get_audit_logs(filtro_usuario=usuario_f, limite=limite)
+            logs_df   = get_audit_logs(
+                filtro_usuario=usuario_f, limite=limite
+            )
             if apenas_clientes and not logs_df.empty:
                 logs_df = logs_df[
                     logs_df['Usuario'].str.contains("CLIENTE:", na=False)
@@ -443,14 +458,17 @@ def render_admin(*args):
             if not logs_df.empty:
                 st.metric("Total Ações", len(logs_df))
                 cols_show = [c for c in [
-                    'Data', 'Hora', 'Usuario', 'Acao',
-                    'Tabela', 'Registro_ID', 'Detalhes'
+                    'Data','Hora','Usuario','Acao',
+                    'Tabela','Registro_ID','Detalhes'
                 ] if c in logs_df.columns]
-                st.dataframe(logs_df[cols_show],
-                             use_container_width=True, hide_index=True)
+                st.dataframe(
+                    logs_df[cols_show],
+                    use_container_width=True, hide_index=True
+                )
                 csv_logs = logs_df.to_csv(index=False).encode('utf-8')
                 st.download_button(
-                    "📥 Exportar Logs", csv_logs,
+                    "📥 Exportar Logs",
+                    csv_logs,
                     f"audit_logs_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
                     "text/csv", use_container_width=True
                 )
@@ -458,7 +476,7 @@ def render_admin(*args):
                 st.info("📋 Sem registos de auditoria.")
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 8 — IT
+    # TAB 8 — IT + CONFIG EMAIL + BACKUP + INFRAESTRUTURA
     # ════════════════════════════════════════════════════════════════
     with tabs[8]:
         st.markdown("## 💻 IT & Sistemas")
@@ -500,13 +518,14 @@ def render_admin(*args):
                     placeholder="exemplo@email.com",
                     key="smtp_test_email"
                 )
-                if st.button("📧 Enviar Email de Teste",
-                             use_container_width=True, type="primary"):
+                if st.button(
+                    "📧 Enviar Email de Teste",
+                    use_container_width=True, type="primary"
+                ):
                     if email_teste:
                         with st.spinner("A enviar..."):
                             if testar_smtp(email_teste):
-                                st.success(
-                                    f"✅ Email enviado para {email_teste}!")
+                                st.success(f"✅ Email enviado para {email_teste}!")
                             else:
                                 st.error("❌ Falha. Verifica a configuração.")
                     else:
@@ -524,20 +543,24 @@ def render_admin(*args):
         with tab_inc:
             if not incs_db.empty:
                 hse = incs_db[
-                    incs_db.get('Tipo', '') != 'Avaria'
+                    incs_db.get('Tipo','') != 'Avaria'
                 ] if 'Tipo' in incs_db.columns else incs_db
                 cols_hse = [c for c in [
-                    'ID', 'Data', 'Utilizador', 'Obra',
-                    'Descricao', 'Gravidade', 'Status'
+                    'ID','Data','Utilizador','Obra',
+                    'Descricao','Gravidade','Status'
                 ] if c in hse.columns]
-                st.dataframe(hse[cols_hse],
-                             use_container_width=True, hide_index=True)
+                st.dataframe(
+                    hse[cols_hse],
+                    use_container_width=True, hide_index=True
+                )
             else:
                 st.info("📋 Sem incidentes.")
 
         with tab_sw:
             if not sw_db.empty:
-                st.dataframe(sw_db, use_container_width=True, hide_index=True)
+                st.dataframe(
+                    sw_db, use_container_width=True, hide_index=True
+                )
             else:
                 st.info("📋 Sem safety walks.")
 
@@ -546,8 +569,10 @@ def render_admin(*args):
 # FUNÇÕES AUXILIARES DE FATURAÇÃO
 # =============================================================================
 
-def _render_custos_por_obra(obras_db, registos_db, req_mat_db,
-                             req_fer_db, req_epi_db, incs_db):
+def _render_custos_por_obra(
+    obras_db, registos_db, req_mat_db,
+    req_fer_db, req_epi_db, incs_db
+):
     import pandas as pd
     from core import fh, load_db
     st.markdown("### 📊 Custos Totais por Obra")
@@ -563,6 +588,7 @@ def _render_custos_por_obra(obras_db, registos_db, req_mat_db,
 
     obra_c = st.selectbox("Obra", obras_ativas, key="custos_obra")
 
+    # Horas
     horas_obra = 0
     if not registos_db.empty:
         ro = registos_db[registos_db['Obra'] == obra_c]
@@ -570,10 +596,12 @@ def _render_custos_por_obra(obras_db, registos_db, req_mat_db,
             ro['Horas_Total'], errors='coerce'
         ).fillna(0).sum()
 
+    # Materiais
     mat_total = 0
     try:
-        compras_db = load_db("compras.csv", ["Obra", "Total", "Status"],
-                             silent=True)
+        compras_db = load_db("compras.csv", [
+            "Obra","Total","Status"
+        ], silent=True)
         if not compras_db.empty:
             mc = compras_db[compras_db['Obra'] == obra_c]
             mat_total = pd.to_numeric(
@@ -582,9 +610,12 @@ def _render_custos_por_obra(obras_db, registos_db, req_mat_db,
     except:
         pass
 
+    # Dormidas
     dorm_total = 0
     try:
-        dormidas_db = load_db("dormidas.csv", ["Obra", "Total"], silent=True)
+        dormidas_db = load_db("dormidas.csv", [
+            "Obra","Total"
+        ], silent=True)
         if not dormidas_db.empty:
             dc = dormidas_db[dormidas_db['Obra'] == obra_c]
             dorm_total = pd.to_numeric(
@@ -593,9 +624,12 @@ def _render_custos_por_obra(obras_db, registos_db, req_mat_db,
     except:
         pass
 
+    # Combustível frota
     comb_total = 0
     try:
-        comb_db = load_db("frota_combustivel.csv", ["Valor"], silent=True)
+        comb_db = load_db("frota_combustivel.csv", [
+            "Valor"
+        ], silent=True)
         if not comb_db.empty:
             comb_total = pd.to_numeric(
                 comb_db['Valor'], errors='coerce'
@@ -605,12 +639,12 @@ def _render_custos_por_obra(obras_db, registos_db, req_mat_db,
 
     c1, c2, c3, c4 = st.columns(4)
     with c1: st.metric("⏱️ Horas",      fh(horas_obra))
-    with c2: st.metric("📦 Materiais",  f"\u20AC {mat_total:.2f}")
-    with c3: st.metric("🏨 Dormidas",   f"\u20AC {dorm_total:.2f}")
-    with c4: st.metric("⛽ Combustível", f"\u20AC {comb_total:.2f}")
+    with c2: st.metric("📦 Materiais",  f"€ {mat_total:.2f}")
+    with c3: st.metric("🏨 Dormidas",   f"€ {dorm_total:.2f}")
+    with c4: st.metric("⛽ Combustível", f"€ {comb_total:.2f}")
 
     total_custos = mat_total + dorm_total + comb_total
-    st.metric("💰 Total Custos (sem horas)", f"\u20AC {total_custos:.2f}")
+    st.metric("💰 Total Custos (sem horas)", f"€ {total_custos:.2f}")
 
 
 def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
@@ -627,40 +661,50 @@ def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
 
     obra_fp = st.selectbox("Obra", obras_lista, key="fat_fp_obra")
 
+    # Folhas assinadas
     st.markdown("#### ✍️ Folhas Assinadas pelo Chefe")
     if not folhas_db.empty and 'Obra' in folhas_db.columns:
         fp_obra = folhas_db[folhas_db['Obra'] == obra_fp]
         if not fp_obra.empty:
             cols_fp = [c for c in [
-                'Periodo', 'Responsavel', 'Data_Assinatura', 'Selo', 'Status'
+                'Periodo','Responsavel','Data_Assinatura','Selo','Status'
             ] if c in fp_obra.columns]
-            st.dataframe(fp_obra[cols_fp],
-                         use_container_width=True, hide_index=True)
+            st.dataframe(
+                fp_obra[cols_fp],
+                use_container_width=True, hide_index=True
+            )
         else:
             st.info(f"📋 Sem folhas assinadas para {obra_fp}.")
     else:
         st.info("📋 Sem folhas.")
 
+    # Folhas OCR (extraídas por IA)
     st.markdown("---")
     st.markdown("#### 🤖 Folhas Extraídas por IA (OCR)")
     if not folhas_ocr_db.empty and 'Obra' in folhas_ocr_db.columns:
         ocr_obra = folhas_ocr_db[folhas_ocr_db['Obra'] == obra_fp]
         if not ocr_obra.empty:
             cols_ocr = [c for c in [
-                'Semana_Inicio', 'Semana_Fim', 'Tecnico',
-                'Horas_Folha', 'Extraido_Em', 'Extraido_Por'
+                'Semana_Inicio','Semana_Fim','Tecnico',
+                'Horas_Folha','Extraido_Em','Extraido_Por'
             ] if c in ocr_obra.columns]
-            st.dataframe(ocr_obra[cols_ocr],
-                         use_container_width=True, hide_index=True)
+            st.dataframe(
+                ocr_obra[cols_ocr],
+                use_container_width=True, hide_index=True
+            )
 
+            # Admin pode ver e descarregar
             st.markdown("---")
             st.markdown("#### 👁️ Ver Folha de Ponto (Imagem)")
             periodos_ocr = ocr_obra['Semana_Inicio'].unique().tolist()
-            periodo_ver  = st.selectbox("Período", periodos_ocr,
-                                        key="fat_periodo_ver")
-            ocr_periodo  = ocr_obra[ocr_obra['Semana_Inicio'] == periodo_ver]
+            periodo_ver  = st.selectbox(
+                "Período", periodos_ocr, key="fat_periodo_ver"
+            )
+            ocr_periodo = ocr_obra[
+                ocr_obra['Semana_Inicio'] == periodo_ver
+            ]
             if not ocr_periodo.empty:
-                img_b64 = ocr_periodo.iloc[0].get('Imagem_b64', '')
+                img_b64 = ocr_periodo.iloc[0].get('Imagem_b64','')
                 if img_b64 and len(img_b64) > 100:
                     import base64
                     try:
@@ -673,10 +717,7 @@ def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
                         st.download_button(
                             "📥 Descarregar Imagem",
                             data=img_bytes,
-                            file_name=(
-                                f"folha_{obra_fp}_"
-                                f"{periodo_ver.replace('/','')}.jpg"
-                            ),
+                            file_name=f"folha_{obra_fp}_{periodo_ver.replace('/','')}.jpg",
                             mime="image/jpeg",
                             key="dl_folha_img"
                         )
@@ -690,15 +731,18 @@ def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
         st.info("📋 Sem folhas OCR disponíveis.")
 
 
-def _render_emissao_mensal(obras_db, registos_db, faturas_db,
-                            diarias_pagamentos_db):
+def _render_emissao_mensal(
+    obras_db, registos_db, faturas_db, diarias_pagamentos_db
+):
     import pandas as pd
-    import uuid
     from core import fh, save_db, load_db
+    import uuid
     from datetime import datetime
 
     st.markdown("### 📤 Emissão de Fatura Mensal ao Cliente")
-    st.info("Gera o resumo mensal de custos por obra para enviar ao cliente.")
+    st.info(
+        "Gera o resumo mensal de custos por obra para enviar ao cliente."
+    )
 
     obras_ativas = obras_db[
         obras_db['Ativa'] == 'Ativa'
@@ -715,19 +759,23 @@ def _render_emissao_mensal(obras_db, registos_db, faturas_db,
         import calendar
         hoje_em = datetime.now()
         meses   = {
-            "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4,
-            "Maio": 5, "Junho": 6, "Julho": 7, "Agosto": 8,
-            "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
+            "Janeiro":1,"Fevereiro":2,"Março":3,"Abril":4,
+            "Maio":5,"Junho":6,"Julho":7,"Agosto":8,
+            "Setembro":9,"Outubro":10,"Novembro":11,"Dezembro":12
         }
         mes_sel_em = st.selectbox(
-            "Mês", list(meses.keys()),
-            index=hoje_em.month - 1, key="emissao_mes"
+            "Mês",
+            list(meses.keys()),
+            index=hoje_em.month - 1,
+            key="emissao_mes"
         )
 
     mes_num = meses[mes_sel_em]
     ano_em  = hoje_em.year
 
+    # Horas processadas (Status 3)
     horas_fat = 0
+    valor_horas = 0
     if not registos_db.empty:
         regs_em = registos_db[
             (registos_db['Obra']   == obra_em) &
@@ -736,7 +784,7 @@ def _render_emissao_mensal(obras_db, registos_db, faturas_db,
         regs_em['Data_d'] = pd.to_datetime(
             regs_em['Data'], dayfirst=True, errors='coerce'
         )
-        regs_mes  = regs_em[
+        regs_mes = regs_em[
             (regs_em['Data_d'].dt.month == mes_num) &
             (regs_em['Data_d'].dt.year  == ano_em)
         ]
@@ -744,18 +792,22 @@ def _render_emissao_mensal(obras_db, registos_db, faturas_db,
             regs_mes['Horas_Total'], errors='coerce'
         ).fillna(0).sum()
 
+    # Diárias do mês
     diarias_mes = 0
     if not diarias_pagamentos_db.empty:
         dp_em = diarias_pagamentos_db[
-            diarias_pagamentos_db['Obras'].str.contains(obra_em, na=False)
+            diarias_pagamentos_db['Obras'].str.contains(
+                obra_em, na=False
+            )
         ]
         diarias_mes = pd.to_numeric(
             dp_em['Valor_Total'], errors='coerce'
         ).fillna(0).sum()
 
+    # Materiais
     mat_mes = 0
     try:
-        compras_em = load_db("compras.csv", ["Obra", "Total"], silent=True)
+        compras_em = load_db("compras.csv",["Obra","Total"], silent=True)
         if not compras_em.empty:
             mat_mes = pd.to_numeric(
                 compras_em[compras_em['Obra'] == obra_em]['Total'],
@@ -764,9 +816,10 @@ def _render_emissao_mensal(obras_db, registos_db, faturas_db,
     except:
         pass
 
+    # Dormidas
     dorm_mes = 0
     try:
-        dorm_em = load_db("dormidas.csv", ["Obra", "Total"], silent=True)
+        dorm_em = load_db("dormidas.csv",["Obra","Total"], silent=True)
         if not dorm_em.empty:
             dorm_mes = pd.to_numeric(
                 dorm_em[dorm_em['Obra'] == obra_em]['Total'],
@@ -775,23 +828,25 @@ def _render_emissao_mensal(obras_db, registos_db, faturas_db,
     except:
         pass
 
-    st.markdown(
-        f"#### 📊 Resumo — {mes_sel_em} {ano_em} — {obra_em}"
-    )
+    st.markdown(f"#### 📊 Resumo — {mes_sel_em} {ano_em} — {obra_em}")
     c1, c2, c3, c4 = st.columns(4)
     with c1: st.metric("⏱️ Horas",     fh(horas_fat))
-    with c2: st.metric("💶 Diárias",   f"\u20AC {diarias_mes:.2f}")
-    with c3: st.metric("📦 Materiais", f"\u20AC {mat_mes:.2f}")
-    with c4: st.metric("🏨 Dormidas",  f"\u20AC {dorm_mes:.2f}")
+    with c2: st.metric("💶 Diárias",   f"€ {diarias_mes:.2f}")
+    with c3: st.metric("📦 Materiais", f"€ {mat_mes:.2f}")
+    with c4: st.metric("🏨 Dormidas",  f"€ {dorm_mes:.2f}")
 
     total_fat = diarias_mes + mat_mes + dorm_mes
-    st.metric("💰 Total a Faturar (sem horas)", f"\u20AC {total_fat:.2f}")
+    st.metric("💰 Total a Faturar (sem horas)", f"€ {total_fat:.2f}")
     st.info(
         "ℹ️ O valor das horas depende do preço/hora contratado com o cliente."
     )
 
-    if st.button("📄 Gerar Resumo PDF", key="btn_gerar_fat_mensal",
-                 type="primary", use_container_width=True):
+    if st.button(
+        "📄 Gerar Resumo PDF",
+        key="btn_gerar_fat_mensal",
+        type="primary",
+        use_container_width=True
+    ):
         try:
             from reportlab.lib.pagesizes import A4
             from reportlab.platypus import (
@@ -802,10 +857,10 @@ def _render_emissao_mensal(obras_db, registos_db, faturas_db,
             from reportlab.lib.units import cm
             import io
 
-            buf    = io.BytesIO()
-            doc    = SimpleDocTemplate(buf, pagesize=A4,
-                                       rightMargin=2*cm, leftMargin=2*cm,
-                                       topMargin=2*cm, bottomMargin=2*cm)
+            buf = io.BytesIO()
+            doc = SimpleDocTemplate(buf, pagesize=A4,
+                                    rightMargin=2*cm, leftMargin=2*cm,
+                                    topMargin=2*cm, bottomMargin=2*cm)
             styles = getSampleStyleSheet()
             story  = []
 
@@ -813,28 +868,30 @@ def _render_emissao_mensal(obras_db, registos_db, faturas_db,
                 f"RESUMO DE FATURAÇÃO — {mes_sel_em.upper()} {ano_em}",
                 styles['Heading1']
             ))
-            story.append(Paragraph(f"Obra: {obra_em}", styles['Normal']))
+            story.append(Paragraph(
+                f"Obra: {obra_em}", styles['Normal']
+            ))
             story.append(Spacer(1, 0.5*cm))
 
             dados_pdf = [
-                ["Descrição", "Valor"],
-                ["Horas trabalhadas",        fh(horas_fat)],
-                ["Ajudas de custo (diárias)", f"\u20AC {diarias_mes:.2f}"],
-                ["Materiais/Compras",         f"\u20AC {mat_mes:.2f}"],
-                ["Alojamento (dormidas)",     f"\u20AC {dorm_mes:.2f}"],
-                ["TOTAL (sem horas)",         f"\u20AC {total_fat:.2f}"],
+                ["Descrição", "Valor (€)"],
+                ["Horas trabalhadas", f"{fh(horas_fat)}"],
+                ["Ajudas de custo (diárias)", f"€ {diarias_mes:.2f}"],
+                ["Materiais/Compras", f"€ {mat_mes:.2f}"],
+                ["Alojamento (dormidas)", f"€ {dorm_mes:.2f}"],
+                ["TOTAL (sem horas)", f"€ {total_fat:.2f}"],
             ]
             t = Table(dados_pdf, colWidths=[12*cm, 5*cm])
             t.setStyle(TableStyle([
-                ('BACKGROUND',    (0, 0), (-1, 0),  colors.HexColor('#1E293B')),
-                ('TEXTCOLOR',     (0, 0), (-1, 0),  colors.white),
-                ('FONTNAME',      (0, 0), (-1, 0),  'Helvetica-Bold'),
-                ('FONTSIZE',      (0, 0), (-1, -1), 11),
-                ('GRID',          (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BACKGROUND',    (0, -1), (-1, -1), colors.HexColor('#F1F5F9')),
-                ('FONTNAME',      (0, -1), (-1, -1), 'Helvetica-Bold'),
-                ('TOPPADDING',    (0, 0), (-1, -1), 8),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('BACKGROUND',    (0,0),(-1,0),  colors.HexColor('#1E293B')),
+                ('TEXTCOLOR',     (0,0),(-1,0),  colors.white),
+                ('FONTNAME',      (0,0),(-1,0),  'Helvetica-Bold'),
+                ('FONTSIZE',      (0,0),(-1,-1), 11),
+                ('GRID',          (0,0),(-1,-1), 0.5, colors.grey),
+                ('BACKGROUND',    (0,-1),(-1,-1),colors.HexColor('#F1F5F9')),
+                ('FONTNAME',      (0,-1),(-1,-1),'Helvetica-Bold'),
+                ('TOPPADDING',    (0,0),(-1,-1), 8),
+                ('BOTTOMPADDING', (0,0),(-1,-1), 8),
             ]))
             story.append(t)
             story.append(Spacer(1, 0.5*cm))
@@ -850,7 +907,7 @@ def _render_emissao_mensal(obras_db, registos_db, faturas_db,
                 f"📥 Descarregar PDF — {mes_sel_em} {ano_em}",
                 data=buf.getvalue(),
                 file_name=(
-                    f"faturacao_{obra_em.replace(' ', '_')}_"
+                    f"faturacao_{obra_em.replace(' ','_')}_"
                     f"{mes_num:02d}_{ano_em}.pdf"
                 ),
                 mime="application/pdf",
@@ -858,6 +915,3 @@ def _render_emissao_mensal(obras_db, registos_db, faturas_db,
             )
         except Exception as e:
             st.error(f"❌ Erro ao gerar PDF: {e}")
-
-
-
