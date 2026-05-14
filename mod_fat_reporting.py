@@ -554,15 +554,9 @@ def _grafico_projecao_fecho_ano(fat_12m: list,
             line={'color':'#EF4444','width':2,'dash':'dot'}
         ))
 
-    # Linha corte hoje
-    if meses_reais:
-        fig.add_vline(
-            x=meses_reais[-1],
-            line_dash="dash", line_color="#64748B",
-            line_width=1, annotation_text="Hoje",
-            annotation_font_color="#94A3B8"
-        )
+    # Linha de corte hoje
 
+                                   
     fig.update_layout(
         title={'text':'Projeção de Fecho de Ano',
                'font':{'color':'#F1F5F9'}},
