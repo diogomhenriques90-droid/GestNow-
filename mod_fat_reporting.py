@@ -626,7 +626,7 @@ def _grafico_motor_regras(regras: list):
     """Bar chart de regras ativas vs disparadas."""
     if not regras:
         return None
-    nomes    = [r['nome'][:30] for r in regras]
+    nomes = [r.get('nome', r.get('Nome', ''))[:30] for r in regras]
     ativas   = [1 if r['ativa'] else 0      for r in regras]
     disparadas=[1 if r.get('disparada') else 0 for r in regras]
 
