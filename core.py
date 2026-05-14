@@ -224,7 +224,7 @@ def _fill_contrato_template(substituicoes: dict):
 # =============================================================================
 # GESTÃO DE DADOS
 # =============================================================================
-@st.cache_data(ttl=30, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)  # 5 minutos — alinhado com o refresh
 def load_db(fn, cols, silent=False):
     """Carrega CSV do GCS. silent=True suprime warnings."""
     buf = _gcs_read(fn)
