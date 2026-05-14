@@ -145,6 +145,11 @@ def render_qualidade(*_):
                 ):
                     col_nc1, col_nc2 = st.columns([3,1])
                     with col_nc1:
+
+                        causa_txt = ('<p style=color:#F59E0B;margin:2px 0;><b>Causa Raiz:</b> ' + str(nc.get('Causa_Raiz','')) + '</p>') if nc.get('Causa_Raiz') else ''
+                        ac_txt    = ('<p style=color:#3B82F6;margin:2px 0;><b>Ação Corretiva:</b> ' + str(nc.get('Acao_Corretiva','')) + '</p>') if nc.get('Acao_Corretiva') else ''
+                        prazo_txt = ('<p style=color:#64748B;margin:2px 0;><b>Prazo AC:</b> ' + str(nc.get('Prazo_AC','')) + ' · Resp: ' + str(nc.get('Responsavel_AC','')) + '</p>') if nc.get('Prazo_AC') else ''
+
                         st.markdown(
                             f"<div style='background:#1E293B;"
                             f"border-radius:8px;padding:12px;"
@@ -155,14 +160,14 @@ def render_qualidade(*_):
                             f"<b>Tipo:</b> {nc.get('Tipo','')}</p>"
                             f"<p style='color:#F1F5F9;margin:2px 0;'>"
                             f"<b>Reportado por:</b> {nc.get('Reportado_Por','')}</p>"
-                            f"<p style='color:#94A3B8;margin:4px 0;'>"
+                            f"<p style='color:#94A388;margin:4px 0;'>"
                             f"{nc.get('Descricao','')}</p>"
-                            f"{'<p style=color:#F59E0B;margin:2px 0;><b>Causa Raiz:</b> ' + str(nc.get('Causa_Raiz','')) + '</p>' if nc.get('Causa_Raiz') else ''}"
-                            f"{'<p style=color:#3B82F6;margin:2px 0;><b>Ação Corretiva:</b> ' + str(nc.get('Acao_Corretiva','')) + '</p>' if nc.get('Acao_Corretiva') else ''}"
-                            f"{'<p style=color:#64748B;margin:2px 0;><b>Prazo AC:</b> ' + str(nc.get('Prazo_AC','')) + ' · Resp: ' + str(nc.get('Responsavel_AC','')) + '</p>' if nc.get('Prazo_AC') else ''}"
+                            f"{causa_txt}"
+                            f"{ac_txt}"
+                            f"{prazo_txt}"
                             f"</div>",
                             unsafe_allow_html=True
-                        )
+                         )   
 
                     with col_nc2:
                         st.markdown(
@@ -417,6 +422,9 @@ def render_qualidade(*_):
                         'Não Conforme':'#EF4444',
                         'Condicionado':'#F59E0B'
                     }.get(res,'#6B7280')
+
+                    obs_txt = ('<br><small style=color:#94A3B8;>' + str(ins.get('Obs',''))[:60] + '</small>') if ins.get('Obs') else ''
+                    
                     st.markdown(
                         f"<div style='background:#1E293B;"
                         f"border-radius:8px;padding:10px 14px;"
@@ -432,7 +440,7 @@ def render_qualidade(*_):
                         f"{ins.get('Obra','')} · "
                         f"{ins.get('Realizado_Por','')}"
                         f"</small>"
-                        f"{'<br><small style=color:#94A3B8;>' + str(ins.get(\"Obs\",\"\"))[:60] + '</small>' if ins.get('Obs') else ''}"
+                        f"{obs_txt}"
                         f"</div>",
                         unsafe_allow_html=True
                     )
