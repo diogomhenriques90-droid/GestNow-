@@ -1593,6 +1593,7 @@ def render_fat_reporting(obras_db, registos_db,
                 f"<div class='passaporte-section'>"
                 f"<table style='width:100%;border-collapse:collapse;'>"
                 f"{perf_rows}"
+                f"</table></div>",  
                 unsafe_allow_html=True
             )
 
