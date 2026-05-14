@@ -1015,18 +1015,18 @@ def render_fat_crise(obras_db, registos_db,
                 _grafico_gauge_saude(
                     score_global, "Score Global"
                 ),
-                use_container_width=True
+                use_container_width=True, key="gauge_score_global"
             )
         with col_g2:
             st.plotly_chart(
                 _grafico_autonomia_gauge(autonomia),
-                use_container_width=True
+                use_container_width=True, key="gauge_autonomia"
             )
 
         # Gráfico indicadores
         st.plotly_chart(
             _grafico_semaforo_indicadores(indicadores),
-            use_container_width=True
+            use_container_width=True, key="semaforo_indicadores"
         )
 
         # Cards por indicador
@@ -1381,7 +1381,7 @@ def render_fat_crise(obras_db, registos_db,
                             label_base="Situação Atual",
                             label_cen=cen['titulo']
                         ),
-                        use_container_width=True
+                        use_container_width=True, key=f"cf_{cen['id']}")
                     )
 
                     # Ações recomendadas
@@ -1520,7 +1520,7 @@ def render_fat_crise(obras_db, registos_db,
                 label_base="Situação Atual",
                 label_cen="Simulação"
             ),
-            use_container_width=True
+            use_container_width=True, key="cf_simulador"
         )
 
         # Veredito
@@ -1635,7 +1635,7 @@ def render_fat_crise(obras_db, registos_db,
                     z_score_norm,
                     f"Z-Score: {altman['z_score']:.3f}"
                 ),
-                use_container_width=True
+                use_container_width=True, key="gauge_altman"
             )
 
             # Resultado
@@ -1691,7 +1691,7 @@ def render_fat_crise(obras_db, registos_db,
         # Waterfall componentes
         st.plotly_chart(
             _grafico_waterfall_altman(altman),
-            use_container_width=True
+            use_container_width=True, key="waterfall_altman"
         )
 
         # Explicação das componentes
