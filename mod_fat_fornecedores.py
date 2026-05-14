@@ -1362,7 +1362,7 @@ def render_fat_fornecedores(obras_db, *_):
                 "Ano",
                 min_value=2020,
                 value=date.today().year,
-                key="ret_ano"
+                key="forn_ret_ano"
             )
 
         mes_num_r = meses_pt[mes_ret]
