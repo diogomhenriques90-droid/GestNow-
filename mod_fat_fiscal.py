@@ -1061,7 +1061,7 @@ def render_fat_fiscal(obras_db, registos_db,
         st.info("Retencoes sobre pagamentos a subempreiteiros (25%). Entrega AT ate dia 20 do mes seguinte.")
 
         ano_ret = st.number_input("Ano", min_value=2020,
-                                   value=ano_atual, key="ret_ano")
+                           value=ano_atual, key="fiscal_ret_ano")                      
 
         # FIX: key único
         st.plotly_chart(
