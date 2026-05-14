@@ -28,6 +28,16 @@ st.set_page_config(
 
 inject_pwa_meta()
 inject_global_css()
+
+# Fix flash autorefresh
+st.markdown("""
+<style>
+.stApp { transition: none !important; }
+[data-testid="stAppViewContainer"] { transition: none !important; }
+iframe { transition: none !important; }
+</style>
+""", unsafe_allow_html=True)
+
 init_session()
 check_timeout()
 init_language()
@@ -35,7 +45,7 @@ init_language()
 from streamlit_autorefresh import st_autorefresh
 
 if st.session_state.get('user'):
-    st_autorefresh(interval=30000, limit=None, key="auto_refresh")
+    st_autorefresh(interval=300000, limit=None, key="auto_refresh")  # 5 minutos
 
 page = st.query_params.get("page", "")
 if page == "criar_admin":
