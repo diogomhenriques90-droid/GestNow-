@@ -42,105 +42,294 @@ def _load_users_fresh():
 # =============================================================================
 # FOLHA DE PONTO — gerador HTML para download / preview
 # =============================================================================
-def _gerar_html_folha(obra, periodo_str, regs_df, responsavel, empresa="CPS"):
-    """Gera HTML formatado da folha de ponto para preview e download."""
-    linhas_html = ""
+def _gerar_html_folha(obra, periodo_str, regs_df, responsavel,
+                      empresa="Correia, Plácido e Sousa, Lda.",
+                      nif_empresa="517182718",
+                      logo_b64: str = ""):
+    """
+    Gera HTML profissional da folha de ponto para preview e download.
+    logo_b64: opcional — base64 da imagem PNG/JPG do logotipo CPS.
+    """
+    # ── Agrupar por técnico e calcular totais ──────────────────────────────
     total_h = 0.0
+    tec_map: dict = {}   # tec → list de rows
     if not regs_df.empty:
         for _, r in regs_df.iterrows():
             h = pd.to_numeric(r.get('Horas_Total', 0), errors='coerce') or 0
             total_h += h
-            data_r  = str(r.get('Data', '—'))
-            tec_r   = str(r.get('Técnico', '—'))
-            frente_r= str(r.get('Frente', '—'))
-            turno_r = str(r.get('Turnos', '—'))
-            h_str   = fh(h) if h > 0 else '—'
-            relat_r = str(r.get('Relatorio', ''))[:60]
-            linhas_html += f"""
-            <tr>
-                <td>{data_r}</td>
-                <td>{tec_r}</td>
-                <td>{frente_r}</td>
-                <td style="text-align:center">{turno_r}</td>
-                <td style="text-align:center;font-weight:bold;color:#1E40AF">{h_str}</td>
-                <td style="font-size:11px;color:#64748B">{relat_r}</td>
-            </tr>"""
+            tec = str(r.get('Técnico', '—'))
+            if tec not in tec_map:
+                tec_map[tec] = []
+            tec_map[tec].append({
+                'data':   str(r.get('Data',   '—')),
+                'frente': str(r.get('Frente', '—')),
+                'turno':  str(r.get('Turnos', '—')),
+                'horas':  h,
+                'relat':  str(r.get('Relatorio', ''))[:80],
+            })
 
-    ts_gera = datetime.now().strftime("%d/%m/%Y %H:%M")
+    # ── Linhas da tabela agrupadas por técnico ─────────────────────────────
+    rows_html = ""
+    for tec, regs in tec_map.items():
+        tec_h = sum(r['horas'] for r in regs)
+        first = True
+        for rr in regs:
+            bg = "#F8FAFC" if first else "#FFFFFF"
+            rows_html += f"""
+            <tr style="background:{bg}">
+              {'<td rowspan="' + str(len(regs)) + '" style="vertical-align:middle;font-weight:700;color:#1E293B;border-right:2px solid #E2E8F0;background:#F1F5F9;font-size:12px;">' + tec + '</td>' if first else ''}
+              <td style="font-size:12px;color:#475569">{rr['data']}</td>
+              <td style="font-size:12px">{rr['frente']}</td>
+              <td style="text-align:center;font-size:12px;color:#475569">{rr['turno']}</td>
+              <td style="text-align:center;font-weight:700;color:#1E40AF;font-size:12px">{fh(rr['horas'])}</td>
+              <td style="font-size:11px;color:#64748B">{rr['relat']}</td>
+            </tr>"""
+            first = False
+        rows_html += f"""
+        <tr style="background:#EFF6FF">
+          <td colspan="4" style="text-align:right;font-size:11px;
+              color:#1E40AF;font-weight:700;padding:4px 12px;
+              border-top:1px dashed #BFDBFE;">
+              Total {tec.split()[0]}
+          </td>
+          <td style="text-align:center;font-weight:900;color:#1E40AF;
+              border-top:1px dashed #BFDBFE;">{fh(tec_h)}</td>
+          <td style="border-top:1px dashed #BFDBFE;"></td>
+        </tr>"""
+
+    ts_gera  = datetime.now().strftime("%d/%m/%Y %H:%M")
+    doc_num  = f"FP-{datetime.now().strftime('%Y%m')}-{secrets.token_hex(3).upper()}"
+    n_tecs   = len(tec_map)
+    n_regs   = sum(len(v) for v in tec_map.values())
+
+    # Logo: imagem real ou bloco de texto profissional
+    if logo_b64 and len(logo_b64) > 100:
+        logo_html = f"""<img src="data:image/png;base64,{logo_b64}"
+            style="height:60px;object-fit:contain;" alt="CPS Logo">"""
+    else:
+        logo_html = """
+        <div style="display:inline-flex;align-items:center;gap:8px;">
+          <div style="width:50px;height:50px;background:#DC2626;border-radius:8px;
+              display:flex;align-items:center;justify-content:center;
+              font-weight:900;color:white;font-size:18px;letter-spacing:-1px;">CPS</div>
+          <div>
+            <div style="font-size:14px;font-weight:900;color:#1E293B;
+                letter-spacing:0.02em;">CORREIA, PLÁCIDO E SOUSA</div>
+            <div style="font-size:10px;color:#64748B;letter-spacing:0.05em;">
+                INSTRUMENTAÇÃO INDUSTRIAL, LDA.</div>
+          </div>
+        </div>"""
+
     html = f"""<!DOCTYPE html>
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Folha de Ponto — {obra}</title>
 <style>
-  body {{ font-family: Arial, sans-serif; margin: 30px; color: #1E293B; }}
-  .header {{ border-bottom: 3px solid #DC2626; padding-bottom: 16px; margin-bottom: 20px; }}
-  .header h1 {{ margin: 0; font-size: 22px; color: #DC2626; }}
-  .header p {{ margin: 4px 0; font-size: 13px; color: #475569; }}
-  .meta {{ display: flex; gap: 30px; margin-bottom: 20px; flex-wrap: wrap; }}
-  .meta-item {{ background: #F1F5F9; padding: 10px 16px; border-radius: 8px; }}
-  .meta-item label {{ font-size: 11px; color: #64748B; font-weight: bold;
-                      text-transform: uppercase; display: block; }}
-  .meta-item span {{ font-size: 15px; font-weight: bold; color: #1E293B; }}
-  table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
-  th {{ background: #1E293B; color: white; padding: 10px 12px; text-align: left; }}
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  @page {{ size: A4; margin: 15mm 12mm; }}
+  body {{
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #1E293B; background: white;
+    font-size: 13px; line-height: 1.5;
+  }}
+  /* ── Cabeçalho ── */
+  .page-header {{
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 3px solid #DC2626; padding-bottom: 16px; margin-bottom: 20px;
+  }}
+  .doc-info {{ text-align: right; }}
+  .doc-title {{
+    font-size: 20px; font-weight: 900; color: #DC2626;
+    letter-spacing: -0.02em; margin-bottom: 2px;
+  }}
+  .doc-num {{
+    font-size: 11px; color: #64748B; font-family: monospace;
+  }}
+  /* ── Faixa de obra ── */
+  .obra-banner {{
+    background: #1E293B; color: white; border-radius: 10px;
+    padding: 14px 20px; margin-bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }}
+  .obra-name {{ font-size: 17px; font-weight: 800; }}
+  .obra-periodo {{ font-size: 12px; color: #94A3B8; margin-top: 2px; }}
+  .obra-badge {{
+    background: #DC2626; border-radius: 8px;
+    padding: 8px 16px; text-align: center;
+  }}
+  .obra-badge-h {{ font-size: 22px; font-weight: 900; }}
+  .obra-badge-lbl {{ font-size: 10px; color: rgba(255,255,255,0.7);
+                     text-transform: uppercase; letter-spacing: 0.05em; }}
+  /* ── Meta grid ── */
+  .meta-grid {{
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; margin-bottom: 18px;
+  }}
+  .meta-cell {{
+    background: #F8FAFC; border: 1px solid #E2E8F0;
+    border-radius: 8px; padding: 10px 12px;
+  }}
+  .meta-lbl {{ font-size: 10px; color: #64748B; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 0.05em; }}
+  .meta-val {{ font-size: 14px; font-weight: 700; color: #1E293B; margin-top: 2px; }}
+  /* ── Tabela ── */
+  .section-title {{
+    font-size: 11px; font-weight: 700; color: #DC2626;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 6px; padding-left: 4px;
+  }}
+  table {{ width: 100%; border-collapse: collapse; border-radius: 10px;
+           overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }}
+  thead tr {{ background: #1E293B; }}
+  th {{
+    padding: 10px 12px; text-align: left; color: white;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }}
   td {{ padding: 9px 12px; border-bottom: 1px solid #E2E8F0; }}
-  tr:nth-child(even) td {{ background: #F8FAFC; }}
-  .total-row td {{ background: #1E293B; color: white; font-weight: bold; }}
-  .signature-area {{ margin-top: 50px; display: flex;
-                     justify-content: space-between; gap: 40px; }}
-  .sig-box {{ flex: 1; text-align: center; }}
-  .sig-line {{ border-top: 2px solid #1E293B; margin-top: 60px;
-               padding-top: 8px; font-size: 12px; color: #475569; }}
-  .footer {{ margin-top: 30px; font-size: 11px; color: #94A3B8;
-             border-top: 1px solid #E2E8F0; padding-top: 10px; }}
-  .seal {{ background: #ECFDF5; border: 2px dashed #10B981; border-radius: 10px;
-           padding: 12px 20px; margin-top: 30px; font-family: monospace;
-           font-size: 12px; color: #065F46; }}
+  .total-final td {{
+    background: #1E293B !important; color: white !important;
+    font-weight: 900; font-size: 13px;
+    border-top: 2px solid #DC2626;
+  }}
+  /* ── Assinaturas ── */
+  .sig-section {{
+    margin-top: 40px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px;
+  }}
+  .sig-box {{ text-align: center; }}
+  .sig-area {{
+    height: 70px; border-bottom: 2px solid #1E293B;
+    margin-bottom: 8px; position: relative;
+  }}
+  .sig-label {{ font-size: 11px; color: #64748B; }}
+  .sig-name {{ font-size: 12px; font-weight: 700; color: #1E293B; margin-top: 2px; }}
+  /* ── Selo ── */
+  .seal-box {{
+    margin-top: 24px; background: #F0FDF4;
+    border: 1.5px dashed #10B981; border-radius: 8px;
+    padding: 10px 16px; display: flex; align-items: center; gap: 14px;
+  }}
+  .seal-icon {{ font-size: 24px; flex-shrink: 0; }}
+  .seal-text {{ font-family: monospace; font-size: 11px; color: #065F46; }}
+  /* ── Footer ── */
+  .page-footer {{
+    margin-top: 20px; padding-top: 10px;
+    border-top: 1px solid #E2E8F0;
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: #94A3B8;
+  }}
+  @media print {{
+    body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+    .no-print {{ display: none; }}
+  }}
 </style>
 </head>
 <body>
-<div class="header">
-  <h1>📋 Folha de Ponto — {empresa}</h1>
-  <p>Documento gerado automaticamente pelo GESTNOW v3</p>
+
+<!-- CABEÇALHO -->
+<div class="page-header">
+  <div>{logo_html}</div>
+  <div class="doc-info">
+    <div class="doc-title">Folha de Ponto</div>
+    <div class="doc-num">Nº {doc_num}</div>
+    <div style="font-size:11px;color:#94A3B8;margin-top:4px;">
+      Gerado em {ts_gera}
+    </div>
+  </div>
 </div>
-<div class="meta">
-  <div class="meta-item"><label>Obra</label><span>{obra}</span></div>
-  <div class="meta-item"><label>Período</label><span>{periodo_str}</span></div>
-  <div class="meta-item"><label>Total Horas</label>
-    <span style="color:#DC2626">{fh(total_h)}</span></div>
-  <div class="meta-item"><label>Gerado em</label><span>{ts_gera}</span></div>
+
+<!-- FAIXA OBRA -->
+<div class="obra-banner">
+  <div>
+    <div class="obra-name">🏭 {obra}</div>
+    <div class="obra-periodo">📅 {periodo_str}</div>
+  </div>
+  <div class="obra-badge">
+    <div class="obra-badge-h">{fh(total_h)}</div>
+    <div class="obra-badge-lbl">Total Horas</div>
+  </div>
 </div>
+
+<!-- META GRID -->
+<div class="meta-grid">
+  <div class="meta-cell">
+    <div class="meta-lbl">Responsável</div>
+    <div class="meta-val">{responsavel}</div>
+  </div>
+  <div class="meta-cell">
+    <div class="meta-lbl">Técnicos</div>
+    <div class="meta-val">{n_tecs}</div>
+  </div>
+  <div class="meta-cell">
+    <div class="meta-lbl">Nº de Registos</div>
+    <div class="meta-val">{n_regs}</div>
+  </div>
+  <div class="meta-cell">
+    <div class="meta-lbl">Empresa (NIF)</div>
+    <div class="meta-val" style="font-size:11px;">{empresa}<br>
+      <span style="color:#64748B;font-weight:400;">NIF {nif_empresa}</span>
+    </div>
+  </div>
+</div>
+
+<!-- TABELA -->
+<div class="section-title">📋 Registos de Trabalho</div>
 <table>
   <thead>
     <tr>
-      <th>Data</th><th>Técnico</th><th>Frente</th>
-      <th>Horário</th><th>Horas</th><th>Descrição</th>
+      <th style="width:16%">Técnico</th>
+      <th style="width:12%">Data</th>
+      <th style="width:22%">Frente de Trabalho</th>
+      <th style="width:14%;text-align:center">Horário</th>
+      <th style="width:10%;text-align:center">Horas</th>
+      <th>Observações</th>
     </tr>
   </thead>
   <tbody>
-    {linhas_html}
-    <tr class="total-row">
-      <td colspan="4" style="text-align:right">TOTAL</td>
+    {rows_html}
+    <tr class="total-final">
+      <td colspan="4" style="text-align:right;padding-right:16px;">
+          TOTAL GERAL
+      </td>
       <td style="text-align:center">{fh(total_h)}</td>
-      <td></td>
+      <td>{n_regs} registo(s) · {n_tecs} técnico(s)</td>
     </tr>
   </tbody>
 </table>
-<div class="signature-area">
+
+<!-- ASSINATURAS -->
+<div class="sig-section">
   <div class="sig-box">
-    <div class="sig-line">Responsável pela Equipa<br><b>{responsavel}</b></div>
+    <div class="sig-area"></div>
+    <div class="sig-label">Chefe de Equipa / Responsável</div>
+    <div class="sig-name">{responsavel}</div>
   </div>
   <div class="sig-box">
-    <div class="sig-line">Representante do Cliente<br><b>&nbsp;</b></div>
+    <div class="sig-area"></div>
+    <div class="sig-label">Representante do Cliente</div>
+    <div class="sig-name">&nbsp;</div>
   </div>
   <div class="sig-box">
-    <div class="sig-line">Data e Visto<br><b>&nbsp;</b></div>
+    <div class="sig-area"></div>
+    <div class="sig-label">Data e Carimbo</div>
+    <div class="sig-name">&nbsp;</div>
   </div>
 </div>
-<div class="footer">
-  GESTNOW v3 · Gestão de Instrumentação Industrial · {ts_gera}
+
+<!-- RODAPÉ -->
+<div class="page-footer">
+  <span>{empresa} · NIF {nif_empresa}</span>
+  <span>GESTNOW v3 · {ts_gera}</span>
+  <span>Documento nº {doc_num}</span>
 </div>
+
+<script>
+// Auto-print quando aberto directamente no browser
+// window.onload = () => window.print();
+</script>
 </body>
 </html>"""
     return html, total_h
@@ -411,6 +600,7 @@ def render_chefe(*args):
                     save_db(upd, "comunicados.csv")
                     inv("comunicados.csv")
                     st.success("✅ Comunicado enviado!")
+                    st.session_state['_menu_locked'] = True
                     st.rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -467,6 +657,7 @@ def render_chefe(*args):
                         save_db(registos_db, "registos.csv")
                         inv("registos.csv")
                         st.success("✅ Todos validados!")
+                        st.session_state['_menu_locked'] = True
                         st.rerun()
                 with col_rm:
                     if st.button("❌ Rejeitar Todos", key="ch_rej_todos",
@@ -482,6 +673,7 @@ def render_chefe(*args):
                         save_db(registos_db, "registos.csv")
                         inv("registos.csv")
                         st.error("❌ Todos rejeitados.")
+                        st.session_state['_menu_locked'] = True
                         st.rerun()
 
                 st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
@@ -531,6 +723,7 @@ def render_chefe(*args):
                                 mensagem=f"As tuas horas foram validadas por {user_nome}.",
                                 tipo="success", acao_url="/")
                             inv("registos.csv")
+                            st.session_state['_menu_locked'] = True
                             st.rerun()
                     with col_rt:
                         if st.button(f"❌ Rejeitar todos de {tecnico.split()[0]}",
@@ -544,6 +737,7 @@ def render_chefe(*args):
                                 mensagem=f"As tuas horas foram rejeitadas. Contacta {user_nome}.",
                                 tipo="error", acao_url="/")
                             inv("registos.csv")
+                            st.session_state['_menu_locked'] = True
                             st.rerun()
 
                     # Registos individuais
@@ -577,6 +771,7 @@ def render_chefe(*args):
                                     mensagem=f"{fh(horas_r)} em {obra_r} validadas.",
                                     tipo="success", acao_url="/")
                                 inv("registos.csv")
+                                st.session_state['_menu_locked'] = True
                                 st.rerun()
                         with col_r:
                             if st.button("❌", key=f"rej_ind_{reg_id}",
@@ -589,6 +784,7 @@ def render_chefe(*args):
                                     mensagem=f"{fh(horas_r)} rejeitadas.",
                                     tipo="error", acao_url="/")
                                 inv("registos.csv")
+                                st.session_state['_menu_locked'] = True
                                 st.rerun()
 
                     st.markdown("</div>", unsafe_allow_html=True)
@@ -908,7 +1104,8 @@ def render_chefe(*args):
             col_prev, col_mes, col_foto = st.columns([1, 5, 1])
             with col_prev:
                 if st.button("‹", key="ch_cal_prev", use_container_width=True):
-                    st.session_state.semana_offset_ch -= 1; st.rerun()
+                    st.session_state.semana_offset_ch -= 1; st.session_state['_menu_locked'] = True
+                    st.rerun()
             with col_mes:
                 st.markdown(
                     f"<div style='text-align:center;padding:6px 0;'>"
@@ -919,7 +1116,8 @@ def render_chefe(*args):
                 col_next, col_img = st.columns([1,1])
                 with col_next:
                     if st.button("›", key="ch_cal_next", use_container_width=True):
-                        st.session_state.semana_offset_ch += 1; st.rerun()
+                        st.session_state.semana_offset_ch += 1; st.session_state['_menu_locked'] = True
+                        st.rerun()
                 with col_img:
                     if foto_b64 and len(foto_b64) > 100:
                         try:
@@ -951,7 +1149,8 @@ def render_chefe(*args):
                     btn_type = "primary" if eh_sel else "secondary"
                     if st.button(str(d.day), key=f"ch_day_{d.strftime('%Y%m%d')}",
                                  use_container_width=True, type=btn_type):
-                        st.session_state.data_consulta_ch = d; st.rerun()
+                        st.session_state.data_consulta_ch = d; st.session_state['_menu_locked'] = True
+                        st.rerun()
                     if dot_cor:
                         st.markdown(
                             f"<div style='width:7px;height:7px;border-radius:50%;"
@@ -987,6 +1186,7 @@ def render_chefe(*args):
                 if st.button("＋", key="ch_fab_btn", type="primary", use_container_width=True):
                     st.session_state.show_reg_form_ch    = True
                     st.session_state.periodos_trabalho_ch = [{"entrada":"08:00","saida":"17:00"}]
+                    st.session_state['_menu_locked'] = True
                     st.rerun()
 
             st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
@@ -1167,10 +1367,12 @@ def render_chefe(*args):
             if st.button("← Voltar", key="ch_btn_voltar"):
                 st.session_state.show_reg_form_ch    = False
                 st.session_state.periodos_trabalho_ch = [{"entrada":"08:00","saida":"17:00"}]
+                st.session_state['_menu_locked'] = True
                 st.rerun()
 
             if mais_per:
                 st.session_state.periodos_trabalho_ch.append({"entrada":"13:00","saida":"17:00"})
+                st.session_state['_menu_locked'] = True
                 st.rerun()
 
             if guardar:
@@ -1209,6 +1411,7 @@ def render_chefe(*args):
                     st.session_state.periodos_trabalho_ch = [{"entrada":"08:00","saida":"17:00"}]
                     st.session_state.data_consulta_ch    = data_sel
                     inv("registos.csv")
+                    st.session_state['_menu_locked'] = True
                     st.rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -1315,6 +1518,7 @@ def render_chefe(*args):
                         st.session_state.fp_periodo     = periodo_str
                         st.session_state.fp_responsavel = nome_resp
                         st.session_state.fp_regs        = regs_fp.to_dict('records')
+                        st.session_state['_menu_locked'] = True
                         st.rerun()
             else:
                 st.info("📋 Sem registos para o período e obra seleccionados.")
@@ -1396,6 +1600,7 @@ def render_chefe(*args):
                              use_container_width=True, type="primary"):
                     st.session_state.fp_modo_assin = 'digital'
                     st.session_state.fp_step = 'assinar'
+                    st.session_state['_menu_locked'] = True
                     st.rerun()
 
             with col_man:
@@ -1414,11 +1619,13 @@ def render_chefe(*args):
                              use_container_width=True):
                     st.session_state.fp_modo_assin = 'manual'
                     st.session_state.fp_step = 'assinar'
+                    st.session_state['_menu_locked'] = True
                     st.rerun()
 
             if st.button("← Voltar à Configuração", key="btn_fp_back",
                          use_container_width=True):
                 st.session_state.fp_step = 'configurar'
+                st.session_state['_menu_locked'] = True
                 st.rerun()
 
         # ── PASSO 3: Assinar ──────────────────────────────────────────────────
@@ -1477,6 +1684,7 @@ def render_chefe(*args):
 
                 if cancelar:
                     st.session_state.fp_step = 'preview'
+                    st.session_state['_menu_locked'] = True
                     st.rerun()
 
                 if confirmar:
@@ -1518,6 +1726,7 @@ def render_chefe(*args):
                         st.session_state.fp_folha_id = folha_id
                         st.session_state.fp_step     = 'concluida'
                         inv("folhas_ponto.csv")
+                        st.session_state['_menu_locked'] = True
                         st.rerun()
 
             # ── Modo Manual ───────────────────────────────────────────────────
@@ -1588,11 +1797,13 @@ def render_chefe(*args):
                         st.session_state.fp_folha_id = folha_id
                         st.session_state.fp_step     = 'concluida'
                         inv("folhas_ponto.csv")
+                        st.session_state['_menu_locked'] = True
                         st.rerun()
 
                 if st.button("← Voltar ao Preview", key="btn_fp_back_man",
                              use_container_width=True):
                     st.session_state.fp_step = 'preview'
+                    st.session_state['_menu_locked'] = True
                     st.rerun()
 
         # ── PASSO FINAL: Concluída ─────────────────────────────────────────────
@@ -1629,6 +1840,7 @@ def render_chefe(*args):
                           'fp_regs','fp_responsavel','fp_modo_assin','fp_folha_id']:
                     if k in st.session_state:
                         del st.session_state[k]
+                st.session_state['_menu_locked'] = True
                 st.rerun()
 
         # ── Histórico de folhas emitidas ──────────────────────────────────────
@@ -1676,6 +1888,7 @@ def render_chefe(*args):
                         save_db(upd, "incidentes.csv")
                         inv("incidentes.csv")
                         st.success("✅ Alerta HSE submetido!")
+                        st.session_state['_menu_locked'] = True
                         st.rerun()
 
         with sub_list:
