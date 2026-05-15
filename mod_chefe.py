@@ -19,8 +19,9 @@ from translations import t
 
 def render_chefe(*args):
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
-     sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
-     comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db) = args
+    sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
+    comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db,
+    *_) = args
 
     user_nome  = st.session_state.get('user', '')
     user_tipo  = st.session_state.get('tipo', '')
