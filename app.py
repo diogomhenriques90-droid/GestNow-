@@ -406,6 +406,23 @@ def _render_validacao_obrigatoria(user_nome):
                 grau = st.text_input("Grau Parentesco",
                     value=user_data.get('Grau_Parentesco',''), key="onb_grau")
 
+            st.markdown("#### 💼 Dados Profissionais")
+            col_p1, col_p2 = st.columns(2)
+            with col_p1:
+                profissao = st.text_input("Profissão",
+                    value=user_data.get('Profissao',''), key="onb_prof",
+                    placeholder="Ex: Instrumentista")
+                categoria = st.text_input("Categoria Profissional",
+                    value=user_data.get('Categoria_Profissional',''), key="onb_cat",
+                    placeholder="Ex: Técnico Sénior")
+with col_p2:
+    hab_opts = ["9º Ano","12º Ano","Licenciatura","Mestrado","Doutoramento","Outro"]
+    hab_v = user_data.get('Habilitacoes_Literarias','12º Ano')
+    habilitacoes = st.selectbox("Habilitações",
+        hab_opts,
+        index=hab_opts.index(hab_v) if hab_v in hab_opts else 1,
+        key="onb_hab")
+
             st.markdown("#### 👕 Fardamento")
             col10, col11, col12 = st.columns(3)
             cam_opts = ["XS","S","M","L","XL","XXL","XXXL"]
@@ -452,6 +469,9 @@ def _render_validacao_obrigatoria(user_nome):
                         'Nome_Emergencia': nome_emerg.strip(), 'Contacto_Emergencia': tel_emerg.strip(),
                         'Grau_Parentesco': grau.strip(), 'Tamanho_Camisola': tam_cam,
                         'Tamanho_Calca': tam_cal, 'Tamanho_Botas': tam_bot,
+                        'Profissao':                 profissao.strip(),
+                        'Categoria_Profissional':    categoria.strip(),
+                        'Habilitacoes_Literarias':   habilitacoes,
                         'Perfil_Completo': 'Sim',
                         'Perfil_Data': datetime.now().strftime("%d/%m/%Y %H:%M"),
                     }.items():
