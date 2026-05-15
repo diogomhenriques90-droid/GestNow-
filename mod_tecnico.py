@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import uuid, base64, json, secrets
@@ -11,7 +10,7 @@ from core import (
     ICONS, COLORS, TIPOS_FRENTE, REGRAS_OURO,
     log_audit, criar_notificacao, process_and_compress_image,
     _gcs_read, hp, _load_users_cached
-)   
+)
 
 _DOT_COLOR = {
     "0":  "#F97316",
@@ -36,9 +35,7 @@ _HORAS_30   = [f"{h:02d}:{m:02d}" for h in range(0, 24) for m in (0, 30)]
 
 
 def _load_users_fresh():
-    return _load_users_cached()   
-            time.sleep(0.3)
-    return pd.DataFrame()
+    return _load_users_cached()
 
 
 def render_tecnico(*args):
@@ -785,14 +782,12 @@ def render_tecnico(*args):
                         acao_url="/admin?tab=validacoes"
                     )
 
-                    # ✅ FIX PRINCIPAL: voltar ao calendário e mostrar
-                    # imediatamente o histórico do dia guardado
                     st.session_state.show_reg_form    = False
                     st.session_state.periodos_trabalho = [{"entrada": "08:00",
                                                             "saida":   "17:00"}]
-                    st.session_state.data_consulta    = data_sel  # manter dia
-                    inv()
-                    st.rerun()  # sem success nem sleep — o card aparece imediatamente
+                    st.session_state.data_consulta    = data_sel
+                    inv("registos.csv")
+                    st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TABS RESTANTES
@@ -979,7 +974,7 @@ def render_tecnico(*args):
                             regs_upd.loc[
                                 regs_upd['ID'] == rid, 'Status'
                             ] = '1'
-                        inv("registos.csv")
+                        save_db(regs_upd, "registos.csv")
                         log_audit(
                             usuario=user_nome,
                             acao="VALIDAR_HORAS_MASSA",
@@ -1001,7 +996,7 @@ def render_tecnico(*args):
                             tipo="success",
                             acao_url="/admin?tab=validacoes"
                         )
-                        inv()
+                        inv("registos.csv")
                         st.rerun()
                 with col_masa3:
                     if st.button(
@@ -1016,7 +1011,7 @@ def render_tecnico(*args):
                             regs_upd.loc[
                                 regs_upd['ID'] == rid, 'Status'
                             ] = '-1'
-                        inv("registos.csv")
+                        save_db(regs_upd, "registos.csv")
                         log_audit(
                             usuario=user_nome,
                             acao="REJEITAR_HORAS_MASSA",
@@ -1028,7 +1023,7 @@ def render_tecnico(*args):
                             ),
                             ip=""
                         )
-                        inv()
+                        inv("registos.csv")
                         st.rerun()
 
                 st.markdown(
@@ -1123,7 +1118,7 @@ def render_tecnico(*args):
                                 regs_upd.loc[
                                     regs_upd['ID'] == rid, 'Status'
                                 ] = '1'
-                                inv("registos.csv")
+                                save_db(regs_upd, "registos.csv")
                                 log_audit(
                                     usuario=user_nome,
                                     acao="VALIDAR_HORAS",
@@ -1146,7 +1141,7 @@ def render_tecnico(*args):
                                     tipo="success",
                                     acao_url="/"
                                 )
-                                
+                                inv("registos.csv")
                                 st.rerun()
                         with col_rr:
                             if st.button(
@@ -1159,7 +1154,7 @@ def render_tecnico(*args):
                                 regs_upd.loc[
                                     regs_upd['ID'] == rid, 'Status'
                                 ] = '-1'
-                                inv("registos.csv")
+                                save_db(regs_upd, "registos.csv")
                                 log_audit(
                                     usuario=user_nome,
                                     acao="REJEITAR_HORAS",
@@ -1183,7 +1178,7 @@ def render_tecnico(*args):
                                     tipo="error",
                                     acao_url="/"
                                 )
-                                
+                                inv("registos.csv")
                                 st.rerun()
 
                     st.markdown(
@@ -1272,9 +1267,9 @@ def render_tecnico(*args):
                             }])
                             upd = (pd.concat([folhas_db, nova], ignore_index=True)
                                    if not folhas_db.empty else nova)
-                            inv("folhas_ponto.csv")
+                            save_db(upd, "folhas_ponto.csv")
                             st.success(f"✅ Folha #{selo} gerada — {ts}")
-                            inv()
+                            inv("folhas_ponto.csv")
                         else:
                             st.warning("⚠️ Indica o nome do responsável.")
                 else:
@@ -1319,8 +1314,8 @@ def render_tecnico(*args):
                     }])
                     upd = (pd.concat([incs_db, ni], ignore_index=True)
                            if not incs_db.empty else ni)
+                    save_db(upd, "incidentes.csv")
                     inv("incidentes.csv")
-                    inv()
                     st.success("✅ Alerta HSE enviado!")
                     st.rerun()
                 else:
@@ -1368,7 +1363,34 @@ def render_tecnico(*args):
             except:
                 cb = []
 
+            # ── Banner de primeiro preenchimento ─────────────
+            campos_obrigatorios = ['Telefone', 'NIF', 'Data_Nascimento', 'Morada']
+            perfil_incompleto = any(
+                not str(user_data.get(c, '')).strip()
+                for c in campos_obrigatorios
+            )
+            if perfil_incompleto:
+                st.markdown(
+                    "<div style='background:rgba(245,158,11,0.12);"
+                    "border-left:4px solid #F59E0B;border-radius:10px;"
+                    "padding:12px 16px;margin-bottom:14px;'>"
+                    "<b style='color:#FCD34D;'>⚠️ Perfil incompleto</b>"
+                    "<p style='color:#94A3B8;font-size:0.82rem;margin:4px 0 0;'>"
+                    "Por favor preenche os teus dados pessoais e profissionais "
+                    "para activar a tua conta.</p>"
+                    "</div>",
+                    unsafe_allow_html=True
+                )
+
             with st.form("form_perfil"):
+
+                # ── Secção 1: Dados Pessoais ──────────────────
+                st.markdown(
+                    "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
+                    "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
+                    "👤 Dados Pessoais</p>",
+                    unsafe_allow_html=True
+                )
                 c1, c2 = st.columns(2)
                 with c1:
                     tel = st.text_input(
@@ -1381,22 +1403,35 @@ def render_tecnico(*args):
                         value=user_data.get('Email', ''),
                         disabled='Email' in cb, key="p_em"
                     )
-                    ce_ = st.text_input(
-                        "Tel. Emergência",
-                        value=user_data.get('Contacto_Emergencia', ''),
-                        disabled='Contacto_Emergencia' in cb, key="p_ce"
-                    )
                 with c2:
-                    ne_ = st.text_input(
-                        "Nome Emergência",
-                        value=user_data.get('Nome_Emergencia', ''),
-                        disabled='Nome_Emergencia' in cb, key="p_ne"
+                    nif_ = st.text_input(
+                        "NIF",
+                        value=user_data.get('NIF', ''),
+                        disabled='NIF' in cb,
+                        placeholder="Ex: 123456789",
+                        key="p_nif"
                     )
-                    gp_ = st.text_input(
-                        "Grau Parentesco",
-                        value=user_data.get('Grau_Parentesco', ''),
-                        disabled='Grau_Parentesco' in cb, key="p_gp"
+                    dn_ = st.text_input(
+                        "Data de Nascimento",
+                        value=user_data.get('Data_Nascimento', ''),
+                        disabled='Data_Nascimento' in cb,
+                        placeholder="DD/MM/AAAA",
+                        key="p_dn"
                     )
+
+                st.markdown(
+                    "<hr style='border:none;border-top:1px solid #1E293B;"
+                    "margin:10px 0;'>",
+                    unsafe_allow_html=True
+                )
+
+                # ── Secção 2: Morada ──────────────────────────
+                st.markdown(
+                    "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
+                    "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
+                    "🏠 Morada</p>",
+                    unsafe_allow_html=True
+                )
                 mor_ = st.text_input(
                     "Morada",
                     value=user_data.get('Morada', ''),
@@ -1421,12 +1456,58 @@ def render_tecnico(*args):
                         value=user_data.get('Codigo_Postal', ''),
                         disabled='Codigo_Postal' in cb, key="p_cp"
                     )
+
+                st.markdown(
+                    "<hr style='border:none;border-top:1px solid #1E293B;"
+                    "margin:10px 0;'>",
+                    unsafe_allow_html=True
+                )
+
+                # ── Secção 3: Contacto de Emergência ─────────
+                st.markdown(
+                    "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
+                    "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
+                    "🚨 Contacto de Emergência</p>",
+                    unsafe_allow_html=True
+                )
                 c6, c7 = st.columns(2)
                 with c6:
+                    ne_ = st.text_input(
+                        "Nome",
+                        value=user_data.get('Nome_Emergencia', ''),
+                        disabled='Nome_Emergencia' in cb, key="p_ne"
+                    )
+                    ce_ = st.text_input(
+                        "Telefone",
+                        value=user_data.get('Contacto_Emergencia', ''),
+                        disabled='Contacto_Emergencia' in cb, key="p_ce"
+                    )
+                with c7:
+                    gp_ = st.text_input(
+                        "Grau de Parentesco",
+                        value=user_data.get('Grau_Parentesco', ''),
+                        disabled='Grau_Parentesco' in cb, key="p_gp"
+                    )
+
+                st.markdown(
+                    "<hr style='border:none;border-top:1px solid #1E293B;"
+                    "margin:10px 0;'>",
+                    unsafe_allow_html=True
+                )
+
+                # ── Secção 4: Segurança ───────────────────────
+                st.markdown(
+                    "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
+                    "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
+                    "🔐 Segurança</p>",
+                    unsafe_allow_html=True
+                )
+                c8, c9 = st.columns(2)
+                with c8:
                     pa_ = st.text_input(
                         "Password atual", type="password", key="p_pa"
                     )
-                with c7:
+                with c9:
                     pn_ = st.text_input(
                         "Nova password", type="password", key="p_pn"
                     )
@@ -1434,12 +1515,18 @@ def render_tecnico(*args):
                     "🔢 Novo PIN (4 dígitos)",
                     max_chars=4, key="p_pin", placeholder="0000"
                 )
-                st.info(
-                    "🔒 Nome, Tipo, Cargo e IBAN são geridos "
-                    "pelo Administrador."
+
+                st.markdown(
+                    "<div style='background:rgba(59,130,246,0.08);"
+                    "border-radius:8px;padding:10px 14px;margin:8px 0;'>"
+                    "<p style='color:#64748B;font-size:0.75rem;margin:0;'>"
+                    "🔒 Nome, Tipo, Cargo e IBAN são geridos pelo Administrador."
+                    "</p></div>",
+                    unsafe_allow_html=True
                 )
+
                 if st.form_submit_button(
-                    "💾 Guardar",
+                    "💾 Guardar Perfil",
                     use_container_width=True,
                     type="primary"
                 ):
@@ -1450,6 +1537,8 @@ def render_tecnico(*args):
                             for campo, val in {
                                 'Telefone':             tel.strip(),
                                 'Email':                em_.strip(),
+                                'NIF':                  nif_.strip(),
+                                'Data_Nascimento':      dn_.strip(),
                                 'Morada':               mor_.strip(),
                                 'Localidade':           loc_.strip(),
                                 'Concelho':             con_.strip(),
@@ -1459,6 +1548,9 @@ def render_tecnico(*args):
                                 'Grau_Parentesco':      gp_.strip(),
                             }.items():
                                 if campo not in cb:
+                                    # garantir que a coluna existe
+                                    if campo not in ul.columns:
+                                        ul[campo] = ''
                                     ul.loc[m, campo] = val
                             if pn_.strip() and pa_.strip():
                                 from core import cp as chk
@@ -1477,7 +1569,7 @@ def render_tecnico(*args):
                                     ul.loc[m, 'PIN'] = pin_.strip()
                                 else:
                                     st.error("❌ PIN: 4 dígitos numéricos.")
-                            inv("usuarios.csv")
+                            save_db(ul, "usuarios.csv")
                             log_audit(
                                 usuario=user_nome,
                                 acao="EDITAR_PERFIL",
@@ -1486,7 +1578,7 @@ def render_tecnico(*args):
                                 detalhes="Perfil atualizado",
                                 ip=""
                             )
-                            inv()
+                            inv("usuarios.csv")
                             st.success("✅ Perfil atualizado!")
                             st.rerun()
 
@@ -1557,7 +1649,7 @@ def render_tecnico(*args):
                             u_ct.loc[mask, 'Contrato_Assinatura_Data'] = (
                                 datetime.now().strftime("%d/%m/%Y %H:%M")
                             )
-                            inv("usuarios.csv")
+                            save_db(u_ct, "usuarios.csv")
                             criar_notificacao(
                                 destinatario="admin",
                                 titulo="✍️ Contrato Assinado",
@@ -1574,7 +1666,7 @@ def render_tecnico(*args):
                                 detalhes="Contrato assinado submetido",
                                 ip=""
                             )
-                            inv()
+                            inv("usuarios.csv")
                             st.success(
                                 "✅ Assinatura submetida! O RH será notificado."
                             )
@@ -1704,9 +1796,9 @@ def render_tecnico(*args):
                         }])
                         upd = (pd.concat([req_fer_db, n], ignore_index=True)
                                if not req_fer_db.empty else n)
-                        inv("req_ferramentas.csv")
+                        save_db(upd, "req_ferramentas.csv")
                         _notif("🔧 Ferramenta", f"{user_nome}: {d_[:40]}")
-                        inv(); st.success("✅"); st.rerun()
+                        inv("req_ferramentas.csv"); st.success("✅"); st.rerun()
                     else:
                         st.warning("⚠️ Descreve a ferramenta.")
 
@@ -1744,9 +1836,9 @@ def render_tecnico(*args):
                     }])
                     upd = (pd.concat([req_epi_db, n], ignore_index=True)
                            if not req_epi_db.empty else n)
-                    inv("req_epis.csv")
+                    save_db(upd, "req_epis.csv")
                     _notif("🦺 EPI", f"{user_nome}: {q_}x {i_}")
-                    inv(); st.success("✅"); st.rerun()
+                    inv("req_epis.csv"); st.success("✅"); st.rerun()
 
         with s3:
             with st.form("fm"):
@@ -1782,12 +1874,12 @@ def render_tecnico(*args):
                         }])
                         upd = (pd.concat([req_mat_db, n], ignore_index=True)
                                if not req_mat_db.empty else n)
-                        inv("req_materiais.csv")
+                        save_db(upd, "req_materiais.csv")
                         _notif(
                             "📦 Material",
                             f"{user_nome}: {q_}{u_} de {d_[:30]}"
                         )
-                        inv(); st.success("✅"); st.rerun()
+                        inv("req_materiais.csv"); st.success("✅"); st.rerun()
                     else:
                         st.warning("⚠️ Descreve o material.")
 
@@ -1834,9 +1926,9 @@ def render_tecnico(*args):
                         }])
                         upd = (pd.concat([req_mat_db, n], ignore_index=True)
                                if not req_mat_db.empty else n)
-                        inv("req_materiais.csv")
+                        save_db(upd, "req_materiais.csv")
                         _notif("⛽ Gasóleo", f"{user_nome}: {l_}L")
-                        inv(); st.success("✅"); st.rerun()
+                        inv("req_materiais.csv"); st.success("✅"); st.rerun()
                     else:
                         st.warning("⚠️ Faz upload do recibo e indica os litros.")
 
@@ -1887,9 +1979,9 @@ def render_tecnico(*args):
                         }])
                         upd = (pd.concat([incs_db, n], ignore_index=True)
                                if not incs_db.empty else n)
-                        inv("incidentes.csv")
+                        save_db(upd, "incidentes.csv")
                         _notif("🔧 Avaria", f"{u_}: {eq_} em {o_}")
-                        inv(); st.success("✅"); st.rerun()
+                        inv("incidentes.csv"); st.success("✅"); st.rerun()
                     else:
                         st.warning("⚠️ Descreve e faz upload da fatura.")
 
