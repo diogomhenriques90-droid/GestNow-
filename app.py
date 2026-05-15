@@ -415,13 +415,13 @@ def _render_validacao_obrigatoria(user_nome):
                 categoria = st.text_input("Categoria Profissional",
                     value=user_data.get('Categoria_Profissional',''), key="onb_cat",
                     placeholder="Ex: Técnico Sénior")
-with col_p2:
-    hab_opts = ["9º Ano","12º Ano","Licenciatura","Mestrado","Doutoramento","Outro"]
-    hab_v = user_data.get('Habilitacoes_Literarias','12º Ano')
-    habilitacoes = st.selectbox("Habilitações",
-        hab_opts,
-        index=hab_opts.index(hab_v) if hab_v in hab_opts else 1,
-        key="onb_hab")
+            with col_p2:
+                hab_opts = ["9º Ano","12º Ano","Licenciatura","Mestrado","Doutoramento","Outro"]
+                hab_v = user_data.get('Habilitacoes_Literarias','12º Ano')
+                habilitacoes = st.selectbox("Habilitações",
+                    hab_opts,
+                    index=hab_opts.index(hab_v) if hab_v in hab_opts else 1,
+                    key="onb_hab")
 
             st.markdown("#### 👕 Fardamento")
             col10, col11, col12 = st.columns(3)
