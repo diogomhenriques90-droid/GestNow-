@@ -13,13 +13,13 @@ import fitz  # PyMuPDF
 # Importações do core.py
 try:
     from core import (
-        load_db, save_db, inv, fh, render_metric,
-        process_and_compress_image, ICONS, COLORS, log_audit, criar_notificacao,
-        gerar_hash_assinatura, render_signature_pad, validar_assinatura,
-        render_connection_indicator, render_offline_banner, sync_data_when_online,
-        save_to_local_cache, add_action_to_queue, check_connection_status,
-        gerar_qr_code_data, parse_qr_code_data, render_qr_code_image, render_camera_scanner
-    )
+    load_db, save_db, inv, fh, render_metric,
+    process_and_compress_image, ICONS, COLORS, log_audit, criar_notificacao,
+    gerar_hash_assinatura, render_signature_pad,
+    render_connection_indicator, render_offline_banner, sync_data_when_online,
+    save_to_local_cache, add_action_to_queue, check_connection_status,
+    gerar_qr_code_data, parse_qr_code_data, render_qr_code_image, render_camera_scanner
+)   
 except ImportError as e:
     st.error(f"Erro ao importar do core.py: {e}")
 
