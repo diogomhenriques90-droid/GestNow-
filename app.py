@@ -5,7 +5,9 @@ from datetime import datetime
 from core import (init_session, check_timeout, load_all, inject_pwa_meta,
                   inject_global_css, ICONS, hp, save_db, log_audit,
                   criar_notificacao, load_db, _gcs_read, inv,
-                  _verificar_alerta_backup, _registar_backup)
+                  _verificar_alerta_backup, _registar_backup,
+                  # FIX 1 — importar a versão cached de core em vez de redefinir
+                  _load_users_cached)
 from translations import init_language, t, get_language_options, set_language
 
 try:
@@ -29,7 +31,6 @@ st.set_page_config(
 inject_pwa_meta()
 inject_global_css()
 
-# Fix flash autorefresh
 st.markdown("""
 <style>
 .stApp { transition: none !important; }
@@ -45,7 +46,7 @@ init_language()
 from streamlit_autorefresh import st_autorefresh
 
 if st.session_state.get('user'):
-    st_autorefresh(interval=300000, limit=None, key="auto_refresh")  # 5 minutos
+    st_autorefresh(interval=300000, limit=None, key="auto_refresh")
 
 page = st.query_params.get("page", "")
 if page == "criar_admin":
@@ -54,23 +55,19 @@ if page == "criar_admin":
     st.stop()
 
 # =============================================================================
-# FUNÇÕES DE VALIDAÇÃO OBRIGATÓRIA
+# FIX 1 — _load_users_fresh usa agora _load_users_cached do core (TTL=60s)
+# Em vez de fazer leitura directa ao GCS em cada chamada,
+# reutiliza o resultado em cache durante 60 segundos.
+# Quando é necessário forçar leitura fresca (após save),
+# chama-se _load_users_cached.clear() via inv("usuarios.csv").
 # =============================================================================
 def _load_users_fresh():
-    for tentativa in range(3):
-        try:
-            buf = _gcs_read("usuarios.csv")
-            if buf:
-                df = pd.read_csv(buf, dtype=str, on_bad_lines='skip', encoding='utf-8-sig')
-                df.columns = df.columns.str.strip()
-                for col in df.select_dtypes(include='object').columns:
-                    df[col] = df[col].str.strip()
-                return df.fillna("")
-            time.sleep(0.3)
-        except:
-            if tentativa == 2: return pd.DataFrame()
-            time.sleep(0.3)
-    return pd.DataFrame()
+    """
+    Wrapper que usa a versão cached do core.
+    Para forçar re-leitura: inv("usuarios.csv")
+    """
+    return _load_users_cached()
+
 
 def _verificar_validacoes_pendentes(user_nome):
     try:
@@ -247,13 +244,18 @@ def _render_validacao_obrigatoria(user_nome):
                                      use_container_width=True, type="primary"):
                             pdfs_vistos.append(pdf_id)
                             novos_val = len([p for p in pdfs_vistos if p in pdf_ids_validos])
-                            users_live.loc[user_idx, 'PDFs_Vistos'] = json.dumps(pdfs_vistos)
-                            if novos_val >= total_pdfs:
-                                users_live.loc[user_idx, 'PDFs_Validados']      = 'Sim'
-                                users_live.loc[user_idx, 'PDFs_Validacao_Data'] = \
-                                    datetime.now().strftime("%d/%m/%Y %H:%M")
-                            save_db(users_live, "usuarios.csv")
-                            inv()
+                            # Recarregar users frescos para editar
+                            u_edit = _load_users_cached().copy()
+                            mask   = u_edit['Nome'] == user_nome
+                            if mask.any():
+                                u_edit.loc[mask, 'PDFs_Vistos'] = json.dumps(pdfs_vistos)
+                                if novos_val >= total_pdfs:
+                                    u_edit.loc[mask, 'PDFs_Validados']      = 'Sim'
+                                    u_edit.loc[mask, 'PDFs_Validacao_Data'] = \
+                                        datetime.now().strftime("%d/%m/%Y %H:%M")
+                                save_db(u_edit, "usuarios.csv")
+                                # FIX 2 — inv selectivo
+                                inv("usuarios.csv")
                             if novos_val >= total_pdfs:
                                 log_audit(usuario=user_nome, acao="VALIDAR_PDFS",
                                           tabela="usuarios.csv", registro_id=user_nome,
@@ -299,46 +301,44 @@ def _render_validacao_obrigatoria(user_nome):
         with col_ac:
             if st.button("✅ ACEITAR", key="app_aceitar_preco",
                           use_container_width=True, type="primary"):
-                u2 = _load_users_fresh()
-                if not u2.empty:
-                    mask = u2['Nome'] == user_nome
-                    if mask.any():
-                        u2.loc[mask, 'PrecoHoraStatus'] = 'Aceite'
-                        u2.loc[mask, 'PrecoHoraData']   = datetime.now().strftime("%d/%m/%Y %H:%M")
-                        save_db(u2, "usuarios.csv")
-                        inv()
-                        log_audit(usuario=user_nome, acao="ACEITAR_PRECO_HORA",
-                                  tabela="usuarios.csv", registro_id=user_nome,
-                                  detalhes=f"Aceitou €{preco_hora_valor}/hora", ip="")
-                        criar_notificacao(destinatario="admin",
-                            titulo="💰 Preço Hora Aceite",
-                            mensagem=f"{user_nome} aceitou €{preco_hora_valor}/hora.",
-                            tipo="success", acao_url="/admin?tab=rh")
-                        st.success("✅ Preço hora aceite!")
-                        st.balloons()
-                        time.sleep(1.5)
-                        st.rerun()
+                u2 = _load_users_cached().copy()
+                mask = u2['Nome'] == user_nome
+                if mask.any():
+                    u2.loc[mask, 'PrecoHoraStatus'] = 'Aceite'
+                    u2.loc[mask, 'PrecoHoraData']   = datetime.now().strftime("%d/%m/%Y %H:%M")
+                    save_db(u2, "usuarios.csv")
+                    inv("usuarios.csv")  # FIX 2 — selectivo
+                    log_audit(usuario=user_nome, acao="ACEITAR_PRECO_HORA",
+                              tabela="usuarios.csv", registro_id=user_nome,
+                              detalhes=f"Aceitou €{preco_hora_valor}/hora", ip="")
+                    criar_notificacao(destinatario="admin",
+                        titulo="💰 Preço Hora Aceite",
+                        mensagem=f"{user_nome} aceitou €{preco_hora_valor}/hora.",
+                        tipo="success", acao_url="/admin?tab=rh")
+                    st.success("✅ Preço hora aceite!")
+                    st.balloons()
+                    time.sleep(1.5)
+                    st.rerun()
         with col_rec:
             if st.button("❌ RECUSAR", key="app_recusar_preco",
                           use_container_width=True, type="secondary"):
-                u2 = _load_users_fresh()
-                if not u2.empty:
-                    mask = u2['Nome'] == user_nome
-                    if mask.any():
-                        u2.loc[mask, 'PrecoHoraStatus'] = 'Recusado'
-                        u2.loc[mask, 'PrecoHoraData']   = datetime.now().strftime("%d/%m/%Y %H:%M")
-                        save_db(u2, "usuarios.csv")
-                        inv()
-                        log_audit(usuario=user_nome, acao="RECUSAR_PRECO_HORA",
-                                  tabela="usuarios.csv", registro_id=user_nome,
-                                  detalhes=f"Recusou €{preco_hora_valor}/hora", ip="")
-                        criar_notificacao(destinatario="admin",
-                            titulo="💰 Preço Hora RECUSADO",
-                            mensagem=f"{user_nome} RECUSOU €{preco_hora_valor}/hora.",
-                            tipo="error", acao_url="/admin?tab=rh")
-                        st.warning("❌ Preço recusado. Admin notificado.")
-                        time.sleep(1.5)
-                        st.rerun()
+                u2 = _load_users_cached().copy()
+                mask = u2['Nome'] == user_nome
+                if mask.any():
+                    u2.loc[mask, 'PrecoHoraStatus'] = 'Recusado'
+                    u2.loc[mask, 'PrecoHoraData']   = datetime.now().strftime("%d/%m/%Y %H:%M")
+                    save_db(u2, "usuarios.csv")
+                    inv("usuarios.csv")  # FIX 2 — selectivo
+                    log_audit(usuario=user_nome, acao="RECUSAR_PRECO_HORA",
+                              tabela="usuarios.csv", registro_id=user_nome,
+                              detalhes=f"Recusou €{preco_hora_valor}/hora", ip="")
+                    criar_notificacao(destinatario="admin",
+                        titulo="💰 Preço Hora RECUSADO",
+                        mensagem=f"{user_nome} RECUSOU €{preco_hora_valor}/hora.",
+                        tipo="error", acao_url="/admin?tab=rh")
+                    st.warning("❌ Preço recusado. Admin notificado.")
+                    time.sleep(1.5)
+                    st.rerun()
         st.stop()
 
     # ── PASSO 3: PERFIL ───────────────────────────────────────────────
@@ -394,8 +394,6 @@ def _render_validacao_obrigatoria(user_nome):
             with col7:
                 email = st.text_input("Email", value=user_data.get('Email',''),
                     key="onb_email", placeholder="exemplo@email.com")
-                iban  = st.text_input("IBAN", value=user_data.get('Banco_IBAN',''),
-                    key="onb_iban", placeholder="PT50 XXXX...")
 
             st.markdown("#### 🚨 Emergência")
             col8, col9 = st.columns(2)
@@ -441,37 +439,38 @@ def _render_validacao_obrigatoria(user_nome):
             if erros:
                 st.error(f"❌ Campos em falta: {', '.join(erros)}")
             else:
-                u3 = _load_users_fresh()
-                if not u3.empty:
-                    mask = u3['Nome'] == user_nome
-                    if mask.any():
-                        for campo, valor in {
-                            'Telefone': telefone.strip(), 'NIF': nif.strip(),
-                            'DataNasc': data_nasc.strip(), 'Morada': morada.strip(),
-                            'Localidade': localidade.strip(), 'Concelho': concelho.strip(),
-                            'Codigo_Postal': cod_postal.strip(), 'Naturalidade': naturalidade.strip(),
-                            'Estado_Civil': estado_civil, 'CC': cc.strip(), 'CC_Validade': cc_v.strip(),
-                            'NISS': niss.strip(), 'Email': email.strip(), 'Banco_IBAN': iban.strip(),
-                            'Nome_Emergencia': nome_emerg.strip(), 'Contacto_Emergencia': tel_emerg.strip(),
-                            'Grau_Parentesco': grau.strip(), 'Tamanho_Camisola': tam_cam,
-                            'Tamanho_Calca': tam_cal, 'Tamanho_Botas': tam_bot,
-                            'Perfil_Completo': 'Sim',
-                            'Perfil_Data': datetime.now().strftime("%d/%m/%Y %H:%M"),
-                        }.items():
-                            u3.loc[mask, campo] = valor
-                        save_db(u3, "usuarios.csv")
-                        inv()
-                        log_audit(usuario=user_nome, acao="COMPLETAR_PERFIL_ONBOARDING",
-                                  tabela="usuarios.csv", registro_id=user_nome,
-                                  detalhes="Perfil preenchido no onboarding", ip="")
-                        criar_notificacao(destinatario="admin",
-                            titulo="👤 Perfil Preenchido",
-                            mensagem=f"{user_nome} completou todos os passos de integração.",
-                            tipo="success", acao_url="/admin?tab=rh")
-                        st.success("✅ Perfil guardado! Bem-vindo(a) ao GESTNOW!")
-                        st.balloons()
-                        time.sleep(2)
-                        st.rerun()
+                u3 = _load_users_cached().copy()
+                mask = u3['Nome'] == user_nome
+                if mask.any():
+                    for campo, valor in {
+                        'Telefone': telefone.strip(), 'NIF': nif.strip(),
+                        'DataNasc': data_nasc.strip(), 'Morada': morada.strip(),
+                        'Localidade': localidade.strip(), 'Concelho': concelho.strip(),
+                        'Codigo_Postal': cod_postal.strip(), 'Naturalidade': naturalidade.strip(),
+                        'Estado_Civil': estado_civil, 'CC': cc.strip(), 'CC_Validade': cc_v.strip(),
+                        'NISS': niss.strip(), 'Email': email.strip(),
+                        'Nome_Emergencia': nome_emerg.strip(), 'Contacto_Emergencia': tel_emerg.strip(),
+                        'Grau_Parentesco': grau.strip(), 'Tamanho_Camisola': tam_cam,
+                        'Tamanho_Calca': tam_cal, 'Tamanho_Botas': tam_bot,
+                        'Perfil_Completo': 'Sim',
+                        'Perfil_Data': datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    }.items():
+                        if campo not in u3.columns:
+                            u3[campo] = ''
+                        u3.loc[mask, campo] = valor
+                    save_db(u3, "usuarios.csv")
+                    inv("usuarios.csv")  # FIX 2 — selectivo
+                    log_audit(usuario=user_nome, acao="COMPLETAR_PERFIL_ONBOARDING",
+                              tabela="usuarios.csv", registro_id=user_nome,
+                              detalhes="Perfil preenchido no onboarding", ip="")
+                    criar_notificacao(destinatario="admin",
+                        titulo="👤 Perfil Preenchido",
+                        mensagem=f"{user_nome} completou todos os passos de integração.",
+                        tipo="success", acao_url="/admin?tab=rh")
+                    st.success("✅ Perfil guardado! Bem-vindo(a) ao GESTNOW!")
+                    st.balloons()
+                    time.sleep(2)
+                    st.rerun()
         st.stop()
 
     # ── PASSO 4: UPLOAD COMPROVATIVO IBAN ─────────────────────────────
@@ -508,26 +507,25 @@ def _render_validacao_obrigatoria(user_nome):
             if st.button("💾 Guardar e Concluir Integração",
                          use_container_width=True, type="primary",
                          key="btn_guardar_iban"):
-                u4 = _load_users_fresh()
-                if not u4.empty:
-                    mask = u4['Nome'] == user_nome
-                    if mask.any():
-                        u4.loc[mask, 'IBAN_Comprovativo_b64'] = file_b64
-                        u4.loc[mask, 'IBAN_Data_Upload']      = \
-                            datetime.now().strftime("%d/%m/%Y %H:%M")
-                        save_db(u4, "usuarios.csv")
-                        inv()
-                        log_audit(usuario=user_nome, acao="UPLOAD_IBAN",
-                                  tabela="usuarios.csv", registro_id=user_nome,
-                                  detalhes="Comprovativo IBAN uploaded", ip="")
-                        criar_notificacao(destinatario="admin",
-                            titulo="🏦 Comprovativo IBAN",
-                            mensagem=f"{user_nome} submeteu o comprovativo bancário.",
-                            tipo="info", acao_url="/admin?tab=rh")
-                        st.success("✅ Integração completa! Bem-vindo(a) ao GESTNOW!")
-                        st.balloons()
-                        time.sleep(2)
-                        st.rerun()
+                u4 = _load_users_cached().copy()
+                mask = u4['Nome'] == user_nome
+                if mask.any():
+                    u4.loc[mask, 'IBAN_Comprovativo_b64'] = file_b64
+                    u4.loc[mask, 'IBAN_Data_Upload']      = \
+                        datetime.now().strftime("%d/%m/%Y %H:%M")
+                    save_db(u4, "usuarios.csv")
+                    inv("usuarios.csv")  # FIX 2 — selectivo
+                    log_audit(usuario=user_nome, acao="UPLOAD_IBAN",
+                              tabela="usuarios.csv", registro_id=user_nome,
+                              detalhes="Comprovativo IBAN uploaded", ip="")
+                    criar_notificacao(destinatario="admin",
+                        titulo="🏦 Comprovativo IBAN",
+                        mensagem=f"{user_nome} submeteu o comprovativo bancário.",
+                        tipo="info", acao_url="/admin?tab=rh")
+                    st.success("✅ Integração completa! Bem-vindo(a) ao GESTNOW!")
+                    st.balloons()
+                    time.sleep(2)
+                    st.rerun()
         else:
             st.info("👆 Seleciona o ficheiro para continuar.")
 
@@ -695,7 +693,6 @@ if not st.session_state.get('user'):
     render_login()
 else:
     DATA = load_all()
-    # ✅ ATUALIZADO — 23 valores (3 novos: diarias_config_db, diarias_faltas_db, diarias_pagamentos_db)
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
      comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db,
@@ -779,23 +776,12 @@ else:
                         </div>
                         """, unsafe_allow_html=True)
 
-                        st.markdown(
-                            "<p style='color:#93C5FD;font-size:0.82rem;margin:0 0 6px;'>"
-                            "Aceita: Word (.docx), PDF, JPG ou PNG</p>",
-                            unsafe_allow_html=True
-                        )
-                        st.markdown(
-                            "<p style='color:#93C5FD;font-size:0.82rem;margin:0 0 6px;'>"
-                            "Aceita: Word (.docx), PDF, JPG ou PNG</p>",
-                            unsafe_allow_html=True
-                        )
                         ficheiro_assin = st.file_uploader(
                             "📤 Upload do contrato assinado",
                             type=["jpg","jpeg","png","pdf","docx"],
                             key="blk_ct_upload"
                         )
                         if ficheiro_assin:
-                            # Mostrar nome e tamanho
                             tam_kb = len(ficheiro_assin.getvalue()) / 1024
                             st.success(
                                 f"✅ Ficheiro: **{ficheiro_assin.name}** "
@@ -811,7 +797,7 @@ else:
                                           type="primary",
                                           use_container_width=True):
                                 f_b64 = base64.b64encode(ficheiro_assin.getvalue()).decode()
-                                u_up  = _load_users_fresh()
+                                u_up  = _load_users_cached().copy()
                                 mask  = u_up['Nome'] == user_nome
                                 if mask.any():
                                     u_up.loc[mask,'Contrato_Assinado']        = 'Sim'
@@ -831,7 +817,7 @@ else:
                                               registro_id=user_nome,
                                               detalhes="Contrato assinado submetido",
                                               ip="")
-                                    inv()
+                                    inv("usuarios.csv")  # FIX 2 — selectivo
                                     st.success("✅ Assinatura submetida! O RH será notificado.")
                                     time.sleep(1.5)
                                     st.rerun()
@@ -899,7 +885,7 @@ else:
         else:
             from mod_admin import render_admin
             render_admin(*DATA)
-   
+
     elif tipo == 'Secretariado':
         from mod_secretariado import render_secretariado
         render_secretariado(*DATA)
@@ -911,7 +897,7 @@ else:
         render_armazem(req_fer_db2, req_mat_db2, req_epi_db2, incs_db2)
 
     else:
-        if f"{ICONS['technician']} Obra" in menu:    
+        if f"{ICONS['technician']} Obra" in menu:
             st.markdown(f"# {ICONS['technician']} Área Técnica")
             if tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
                 from mod_chefe import render_chefe
