@@ -274,43 +274,7 @@ def render_chefe(*args):
                 st.dataframe(hist[cols_show], use_container_width=True, hide_index=True)
             else:
                 st.info("📋 Sem histórico.")  
-                    regs_t = df_pend[df_pend['Técnico'] == tecnico]
-                    total_h = regs_t['Horas_Total'].astype(float).sum()
-                    with st.expander(f"👤 {tecnico} — {fh(total_h)} ({len(regs_t)} registos)"):
-                        cols_show = [c for c in ['Data','Obra','Frente','Turnos','Horas_Total','Relatorio'] if c in regs_t.columns]
-                        st.dataframe(regs_t[cols_show], use_container_width=True, hide_index=True)
-                        col_a, col_r = st.columns(2)
-                        with col_a:
-                            if st.button(f"✅ Aprovar {tecnico}", key=f"apr_{tecnico}", use_container_width=True, type="primary"):
-                                registos_db.loc[(registos_db['Técnico'] == tecnico) & (registos_db['Status'] == '0'), 'Status'] = '1'
-                                save_db(registos_db, "registos.csv")
-                                criar_notificacao(destinatario=tecnico, titulo="✅ Horas Aprovadas",
-                                    mensagem=f"As tuas horas foram aprovadas pelo chefe {user_nome}.", tipo="success", acao_url="/")
-                                inv()
-                                st.success("✅ Aprovado!")
-                                st.rerun()
-                        with col_r:
-                            if st.button(f"❌ Rejeitar {tecnico}", key=f"rej_{tecnico}", use_container_width=True, type="secondary"):
-                                registos_db.loc[(registos_db['Técnico'] == tecnico) & (registos_db['Status'] == '0'), 'Status'] = '-1'
-                                save_db(registos_db, "registos.csv")
-                                criar_notificacao(destinatario=tecnico, titulo="❌ Horas Rejeitadas",
-                                    mensagem=f"As tuas horas foram rejeitadas. Contacta {user_nome}.", tipo="error", acao_url="/")
-                                inv()
-                                st.error("❌ Rejeitado.")
-                                st.rerun()
-            else:
-                st.success("✅ Sem horas pendentes!")
-
-        with sub_h:
-            hist = regs_equipa[regs_equipa['Status'].isin(['1','2','-1'])] if not regs_equipa.empty else pd.DataFrame()
-            if not hist.empty:
-                hist = hist.copy()
-                hist['Estado'] = hist['Status'].map({"1":"✅ Aprovado","2":"🔵 Faturação","-1":"❌ Rejeitado"})
-                cols_show = [c for c in ['Data','Técnico','Obra','Horas_Total','Estado'] if c in hist.columns]
-                st.dataframe(hist[cols_show], use_container_width=True, hide_index=True)
-            else:
-                st.info("📋 Sem histórico.")
-
+                   
     # ── TAB 2: MEU PONTO ────────────────────────────────────────────────
     with tabs[2]:
         st.markdown("### 📈 Registo de Ponto")
