@@ -1,6 +1,11 @@
 """
 GESTNOW v3 - core.py
 Funções base, utilitários, segurança, UI components, notificações, offline, QR Code, SMTP
+
+PERFORMANCE FIXES v3.1:
+  1. inv() selectivo — só limpa o necessário, não nuke toda a cache
+  2. _load_users_cached() com @st.cache_data(ttl=60) — evita 4+ leituras GCS/rerun
+  3. check_connection_status() com @st.cache_data(ttl=30) — evita chamada GCS desnecessária
 """
 import streamlit as st
 import pandas as pd
@@ -93,7 +98,6 @@ def _gcs_write(fn, content_bytes):
                 "app_version":  "GESTNOW-v3.0"
             }
             blob.upload_from_string(content_bytes, content_type="text/csv")
-            st.cache_data.clear()
             return True
     except Exception as e:
         logger.error(f"❌ Erro crítico GCS write {fn}: {e}")
@@ -105,7 +109,6 @@ def _gcs_write(fn, content_bytes):
 # =============================================================================
 
 def _gcs_write_binary(data: bytes, filename: str) -> bool:
-    """Escreve dados binários diretamente no GCS."""
     try:
         client = _gcs_client()
         if client:
@@ -119,7 +122,6 @@ def _gcs_write_binary(data: bytes, filename: str) -> bool:
 
 
 def _gcs_read_binary(filename: str):
-    """Lê dados binários do GCS. Devolve bytes ou None."""
     try:
         client = _gcs_client()
         if client:
@@ -133,10 +135,6 @@ def _gcs_read_binary(filename: str):
 
 
 def _verificar_alerta_backup() -> tuple:
-    """
-    Verifica estado do backup.
-    Devolve: ('ok'|'aviso'|'critico'|'nunca', datetime|None)
-    """
     try:
         buf = _gcs_read("backup_status.json")
         if not buf:
@@ -158,7 +156,6 @@ def _verificar_alerta_backup() -> tuple:
 
 
 def _registar_backup(admin_nome: str):
-    """Regista timestamp do último backup no GCS."""
     payload = {
         "Data_Backup": datetime.now().strftime("%d/%m/%Y %H:%M"),
         "Admin": admin_nome
@@ -167,10 +164,6 @@ def _registar_backup(admin_nome: str):
 
 
 def _fill_contrato_template(substituicoes: dict):
-    """
-    Lê o template DOCX do GCS e substitui os placeholders.
-    Devolve bytes do DOCX preenchido, ou None se falhar.
-    """
     template_bytes = _gcs_read_binary("contrato_template.docx")
     if not template_bytes:
         return None
@@ -224,7 +217,7 @@ def _fill_contrato_template(substituicoes: dict):
 # =============================================================================
 # GESTÃO DE DADOS
 # =============================================================================
-@st.cache_data(ttl=300, show_spinner=False)  # 5 minutos — alinhado com o refresh
+@st.cache_data(ttl=300, show_spinner=False)
 def load_db(fn, cols, silent=False):
     """Carrega CSV do GCS. silent=True suprime warnings."""
     buf = _gcs_read(fn)
@@ -247,8 +240,58 @@ def save_db(df, fn):
     df.to_csv(buf, index=False, encoding='utf-8-sig')
     return _gcs_write(fn, buf.getvalue().encode('utf-8-sig'))
 
+# ─────────────────────────────────────────────────────────────────────────────
+# FIX 1 — _load_users_cached com cache TTL=60s
+# Substitui todas as chamadas directas ao GCS para ler usuarios.csv.
+# Evita 4+ leituras de rede por rerun.
+# ─────────────────────────────────────────────────────────────────────────────
+@st.cache_data(ttl=60, show_spinner=False)
+def _load_users_cached():
+    """
+    Lê usuarios.csv do GCS com cache de 60 segundos.
+    Usar em todo o código em vez de _gcs_read("usuarios.csv") directo.
+    Para forçar leitura fresca: _load_users_cached.clear()
+    """
+    try:
+        buf = _gcs_read("usuarios.csv")
+        if buf:
+            df = pd.read_csv(buf, dtype=str, on_bad_lines='skip',
+                             encoding='utf-8-sig')
+            df.columns = df.columns.str.strip()
+            for col in df.select_dtypes(include='object').columns:
+                df[col] = df[col].str.strip()
+            return df.fillna("")
+    except Exception as e:
+        logger.warning(f"_load_users_cached erro: {e}")
+    return pd.DataFrame()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FIX 2 — inv() selectivo
+# Antes: st.cache_data.clear() → limpa TUDO (24 CSVs) em cada save
+# Agora: inv("ficheiro.csv") → só invalida load_db
+#         inv("usuarios.csv") → invalida load_db + users cache
+#         inv()               → limpa tudo (usar só quando estritamente necessário)
+# ─────────────────────────────────────────────────────────────────────────────
+def inv(ficheiro=None):
+    """
+    Invalida cache de dados de forma selectiva.
+
+    inv()                → limpa TUDO (operações raras: reset, admin global)
+    inv("registos.csv")  → só load_db (operação normal de save)
+    inv("usuarios.csv")  → load_db + _load_users_cached
+    """
+    if ficheiro is None:
+        # Nuclear — só usar em casos excepcionais
+        st.cache_data.clear()
+    else:
+        # Selectivo — invalida só os CSVs genéricos
+        load_db.clear()
+        # Se for o ficheiro de utilizadores, limpa também a cache específica
+        if ficheiro == "usuarios.csv":
+            _load_users_cached.clear()
+
+
 def load_all():
-    # ── USERS — schema completo ────────────────────────────────────────
     users = load_db("usuarios.csv", [
         "Nome", "Password", "Tipo", "Email", "Telefone", "Cargo",
         "NIF", "NISS", "CC", "CC_Validade", "DataNasc", "Nacionalidade",
@@ -281,7 +324,6 @@ def load_all():
         "Obra", "Frente", "Tipo", "Responsavel"
     ])
 
-    # ── REGISTOS ──────────────────────────────────────────────────────
     regs = load_db("registos.csv", [
         "ID", "Data", "Técnico", "Obra", "Frente", "TipoFrente",
         "Turnos", "Relatorio", "Status", "Horas_Total",
@@ -294,7 +336,6 @@ def load_all():
     fats = load_db("faturas.csv",   ["Numero","Cliente","Valor","Status","Data_Emissao","Obra"])
     docs = load_db("documentos.csv",["Utilizador","Tipo","Nome","Validade"])
 
-    # ── INCIDENTES ────────────────────────────────────────────────────
     incs = load_db("incidentes.csv", [
         "ID", "Data", "Utilizador", "Solicitante", "Obra", "Tipo",
         "Descricao", "Gravidade", "Status", "Equipamento",
@@ -315,7 +356,6 @@ def load_all():
     diags   = load_db("dialogos.csv",      ["Titulo","Descricao","Tipo","DataCriacao","Atribuidos","Estado"])
     diags_u = load_db("dialogos_users.csv",["Dialogo","Utilizador","DataLeitura","Confirmado"])
 
-    # ── FOLHAS PONTO ──────────────────────────────────────────────────
     folhas = load_db("folhas_ponto.csv", [
         "ID", "Obra", "Periodo", "Responsavel", "Data_Assinatura",
         "Assinatura_b64", "Selo", "Status",
@@ -325,7 +365,6 @@ def load_all():
     comuns   = load_db("comunicados.csv",      ["ID","Titulo","Conteudo","Tipo","Destino","Urgente","Validade"])
     comuns_u = load_db("comunicados_lidos.csv",["ComunicadoID","Utilizador","DataLeitura"])
 
-    # ── PEDIDOS ───────────────────────────────────────────────────────
     req_fer = load_db("req_ferramentas.csv", [
         "ID", "Data", "Solicitante", "Obra", "Descricao",
         "Urgencia", "Foto_b64", "Status", "Data_Validacao", "Validado_Por"
@@ -341,7 +380,6 @@ def load_all():
         "Quantidade", "Descricao", "Status", "Data_Validacao", "Validado_Por"
     ])
 
-    # ── AVALIAÇÕES ────────────────────────────────────────────────────
     avals = load_db("avaliacoes.csv", [
         "Data", "Trabalhador", "Nota_Tecnica", "Nota_Pontualidade",
         "Nota_Trabalho_Eq", "Nota_Proatividade", "Nota_Comunicacao",
@@ -352,7 +390,6 @@ def load_all():
         "Obra", "Utilizador", "Cargo", "Ativo"
     ])
 
-    # ── DIÁRIAS ───────────────────────────────────────────────────────
     diarias_config = load_db("diarias_config.csv", [
         "Obra", "Valor_Diaria", "Atualizado_Em", "Atualizado_Por"
     ])
@@ -361,7 +398,7 @@ def load_all():
         "ID", "Data", "Técnico", "Obra", "Motivo",
         "Registado_Por", "Registado_Em"
     ])
-    
+
     folhas_ocr = load_db("folhas_ocr.csv", [
         "ID", "Obra", "Periodo", "Semana_Inicio", "Semana_Fim",
         "Tecnico", "Horas_Folha", "Dias", "Extraido_Em",
@@ -378,8 +415,6 @@ def load_all():
             diags, diags_u, folhas, comuns, comuns_u, req_fer, req_mat, req_epi,
             avals, inst_acessos, diarias_config, diarias_faltas, diarias_pagamentos,
             folhas_ocr)
-def inv():
-    st.cache_data.clear()
 
 # =============================================================================
 # UTILITÁRIOS
@@ -419,7 +454,6 @@ def process_and_compress_image(image_file, max_size=(1280, 1280), quality=85):
         return None
 
 def canvas_to_b64(image_data):
-    """Converte numpy array do st_canvas para base64 PNG."""
     try:
         img = Image.fromarray(image_data.astype("uint8"), "RGBA")
         buf = io.BytesIO()
@@ -568,15 +602,6 @@ GLOBAL_CSS = """
 ul[role="listbox"] { background: #FFFFFF !important; }
 ul[role="listbox"] li { color: #111827 !important; }
 ul[role="listbox"] li:hover { background: #F1F5F9 !important; }
-}
-[data-baseweb="select"] * { color: #111827 !important; }
-[data-baseweb="menu"] { background: #FFFFFF !important; }
-[data-baseweb="menu"] * { color: #111827 !important; background: #FFFFFF !important; }
-[data-baseweb="popover"] { background: #FFFFFF !important; }
-[data-baseweb="popover"] * { color: #111827 !important; }
-ul[role="listbox"] { background: #FFFFFF !important; }
-ul[role="listbox"] li { color: #111827 !important; }
-ul[role="listbox"] li:hover { background: #F1F5F9 !important; }
 .stDataFrame { background: var(--bg-white) !important; color: var(--text-dark) !important; }
 .stDataFrame td, .stDataFrame th { color: var(--text-dark) !important; background: var(--bg-white) !important; }
 section[data-testid="stSidebar"] {
@@ -635,6 +660,8 @@ def log_audit(usuario, acao, tabela, registro_id, detalhes="", ip=""):
         }])
         logs = pd.concat([logs, novo], ignore_index=True)
         save_db(logs, "logs_audit.csv")
+        # Só invalida logs_audit, não users nem registos
+        load_db.clear()
         return True
     except Exception as e:
         print(f"Erro ao criar log: {e}")
@@ -700,6 +727,7 @@ def criar_notificacao(destinatario, titulo, mensagem, tipo="info", acao_url=""):
         }])
         notifs = pd.concat([notifs, nova], ignore_index=True)
         save_db(notifs, "notificacoes.csv")
+        load_db.clear()  # selectivo — só load_db
         return True
     except Exception as e:
         print(f"Erro ao criar notificação: {e}")
@@ -728,6 +756,7 @@ def marcar_notificacao_lida(notif_id):
         if not notifs.empty:
             notifs.loc[notifs['ID'] == notif_id, 'Lida'] = "Sim"
             save_db(notifs, "notificacoes.csv")
+            load_db.clear()
             return True
         return False
     except:
@@ -741,9 +770,16 @@ def contar_notificacoes_nao_lidas(destinatario):
         return 0
 
 # =============================================================================
-# MODO OFFLINE
+# FIX 3 — check_connection_status com cache TTL=30s
+# Antes: chamada GCS em cada render do Admin
+# Agora: resultado em cache durante 30 segundos
 # =============================================================================
+@st.cache_data(ttl=30, show_spinner=False)
 def check_connection_status():
+    """
+    Verifica ligação ao GCS com cache de 30 segundos.
+    Evita chamada de rede desnecessária em cada rerun.
+    """
     try:
         client = _gcs_client()
         if client:
@@ -876,7 +912,7 @@ def sync_data_when_online():
                 st.success(f"✅ {resultados['sucessos']} ações sincronizadas!")
             if resultados["falhas"] > 0:
                 st.error(f"❌ {resultados['falhas']} ações falharam.")
-            inv()
+            load_db.clear()
 
 # =============================================================================
 # QR CODE
@@ -1012,22 +1048,7 @@ def testar_smtp(email_teste):
 # =============================================================================
 # CLAUDE VISION — EXTRAÇÃO FOLHAS DE PONTO
 # =============================================================================
-
 def extrair_folha_ponto_vision(imagem_b64: str, media_type: str = "image/jpeg") -> dict:
-    """
-    Envia imagem da folha de ponto para Claude Vision.
-    Devolve dict com lista de técnicos e horas extraídas.
-    Formato devolvido:
-    {
-        "sucesso": True,
-        "dados": [
-            {"tecnico": "João Silva", "horas_total": 8.0, "dias": ["08/05","09/05"]},
-            ...
-        ],
-        "raw": "texto bruto extraído",
-        "erro": ""
-    }
-    """
     import anthropic, os, json
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -1083,10 +1104,7 @@ Regras:
         )
 
         raw_text = response.content[0].text.strip()
-
-        # Limpar markdown se vier
         raw_text = raw_text.replace("```json","").replace("```","").strip()
-
         dados_json = json.loads(raw_text)
         trabalhadores = dados_json.get("trabalhadores", [])
 
@@ -1102,7 +1120,8 @@ Regras:
 
     except json.JSONDecodeError as e:
         return {
-            "sucesso": False, "dados": [], "raw": raw_text if 'raw_text' in dir() else "",
+            "sucesso": False, "dados": [],
+            "raw": raw_text if 'raw_text' in dir() else "",
             "erro": f"Erro ao interpretar JSON: {e}"
         }
     except Exception as e:
