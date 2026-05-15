@@ -10,8 +10,8 @@ from core import (
     save_db, inv, fh, sl, load_db, canvas_to_b64,
     ICONS, COLORS, TIPOS_FRENTE, REGRAS_OURO,
     log_audit, criar_notificacao, process_and_compress_image,
-    _gcs_read, hp
-)
+    _gcs_read, hp, _load_users_cached
+)   
 
 _DOT_COLOR = {
     "0":  "#F97316",
@@ -36,20 +36,7 @@ _HORAS_30   = [f"{h:02d}:{m:02d}" for h in range(0, 24) for m in (0, 30)]
 
 
 def _load_users_fresh():
-    for tentativa in range(3):
-        try:
-            buf = _gcs_read("usuarios.csv")
-            if buf:
-                df = pd.read_csv(buf, dtype=str, on_bad_lines='skip',
-                                 encoding='utf-8-sig')
-                df.columns = df.columns.str.strip()
-                for col in df.select_dtypes(include='object').columns:
-                    df[col] = df[col].str.strip()
-                return df.fillna("")
-            time.sleep(0.3)
-        except:
-            if tentativa == 2:
-                return pd.DataFrame()
+    return _load_users_cached()   
             time.sleep(0.3)
     return pd.DataFrame()
 
@@ -992,7 +979,7 @@ def render_tecnico(*args):
                             regs_upd.loc[
                                 regs_upd['ID'] == rid, 'Status'
                             ] = '1'
-                        save_db(regs_upd, "registos.csv")
+                        inv("registos.csv")
                         log_audit(
                             usuario=user_nome,
                             acao="VALIDAR_HORAS_MASSA",
@@ -1029,7 +1016,7 @@ def render_tecnico(*args):
                             regs_upd.loc[
                                 regs_upd['ID'] == rid, 'Status'
                             ] = '-1'
-                        save_db(regs_upd, "registos.csv")
+                        inv("registos.csv")
                         log_audit(
                             usuario=user_nome,
                             acao="REJEITAR_HORAS_MASSA",
@@ -1136,7 +1123,7 @@ def render_tecnico(*args):
                                 regs_upd.loc[
                                     regs_upd['ID'] == rid, 'Status'
                                 ] = '1'
-                                save_db(regs_upd, "registos.csv")
+                                inv("registos.csv")
                                 log_audit(
                                     usuario=user_nome,
                                     acao="VALIDAR_HORAS",
@@ -1159,7 +1146,7 @@ def render_tecnico(*args):
                                     tipo="success",
                                     acao_url="/"
                                 )
-                                inv()
+                                
                                 st.rerun()
                         with col_rr:
                             if st.button(
@@ -1172,7 +1159,7 @@ def render_tecnico(*args):
                                 regs_upd.loc[
                                     regs_upd['ID'] == rid, 'Status'
                                 ] = '-1'
-                                save_db(regs_upd, "registos.csv")
+                                inv("registos.csv")
                                 log_audit(
                                     usuario=user_nome,
                                     acao="REJEITAR_HORAS",
@@ -1196,7 +1183,7 @@ def render_tecnico(*args):
                                     tipo="error",
                                     acao_url="/"
                                 )
-                                inv()
+                                
                                 st.rerun()
 
                     st.markdown(
@@ -1285,7 +1272,7 @@ def render_tecnico(*args):
                             }])
                             upd = (pd.concat([folhas_db, nova], ignore_index=True)
                                    if not folhas_db.empty else nova)
-                            save_db(upd, "folhas_ponto.csv")
+                            inv("folhas_ponto.csv")
                             st.success(f"✅ Folha #{selo} gerada — {ts}")
                             inv()
                         else:
@@ -1332,7 +1319,7 @@ def render_tecnico(*args):
                     }])
                     upd = (pd.concat([incs_db, ni], ignore_index=True)
                            if not incs_db.empty else ni)
-                    save_db(upd, "incidentes.csv")
+                    inv("incidentes.csv")
                     inv()
                     st.success("✅ Alerta HSE enviado!")
                     st.rerun()
@@ -1490,7 +1477,7 @@ def render_tecnico(*args):
                                     ul.loc[m, 'PIN'] = pin_.strip()
                                 else:
                                     st.error("❌ PIN: 4 dígitos numéricos.")
-                            save_db(ul, "usuarios.csv")
+                            inv("usuarios.csv")
                             log_audit(
                                 usuario=user_nome,
                                 acao="EDITAR_PERFIL",
@@ -1570,7 +1557,7 @@ def render_tecnico(*args):
                             u_ct.loc[mask, 'Contrato_Assinatura_Data'] = (
                                 datetime.now().strftime("%d/%m/%Y %H:%M")
                             )
-                            save_db(u_ct, "usuarios.csv")
+                            inv("usuarios.csv")
                             criar_notificacao(
                                 destinatario="admin",
                                 titulo="✍️ Contrato Assinado",
@@ -1717,7 +1704,7 @@ def render_tecnico(*args):
                         }])
                         upd = (pd.concat([req_fer_db, n], ignore_index=True)
                                if not req_fer_db.empty else n)
-                        save_db(upd, "req_ferramentas.csv")
+                        inv("req_ferramentas.csv")
                         _notif("🔧 Ferramenta", f"{user_nome}: {d_[:40]}")
                         inv(); st.success("✅"); st.rerun()
                     else:
@@ -1757,7 +1744,7 @@ def render_tecnico(*args):
                     }])
                     upd = (pd.concat([req_epi_db, n], ignore_index=True)
                            if not req_epi_db.empty else n)
-                    save_db(upd, "req_epis.csv")
+                    inv("req_epis.csv")
                     _notif("🦺 EPI", f"{user_nome}: {q_}x {i_}")
                     inv(); st.success("✅"); st.rerun()
 
@@ -1795,7 +1782,7 @@ def render_tecnico(*args):
                         }])
                         upd = (pd.concat([req_mat_db, n], ignore_index=True)
                                if not req_mat_db.empty else n)
-                        save_db(upd, "req_materiais.csv")
+                        inv("req_materiais.csv")
                         _notif(
                             "📦 Material",
                             f"{user_nome}: {q_}{u_} de {d_[:30]}"
@@ -1847,7 +1834,7 @@ def render_tecnico(*args):
                         }])
                         upd = (pd.concat([req_mat_db, n], ignore_index=True)
                                if not req_mat_db.empty else n)
-                        save_db(upd, "req_materiais.csv")
+                        inv("req_materiais.csv")
                         _notif("⛽ Gasóleo", f"{user_nome}: {l_}L")
                         inv(); st.success("✅"); st.rerun()
                     else:
@@ -1900,7 +1887,7 @@ def render_tecnico(*args):
                         }])
                         upd = (pd.concat([incs_db, n], ignore_index=True)
                                if not incs_db.empty else n)
-                        save_db(upd, "incidentes.csv")
+                        inv("incidentes.csv")
                         _notif("🔧 Avaria", f"{u_}: {eq_} em {o_}")
                         inv(); st.success("✅"); st.rerun()
                     else:
