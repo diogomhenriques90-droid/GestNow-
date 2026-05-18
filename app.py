@@ -17,7 +17,7 @@ except ImportError:
     HAS_OPTION_MENU = False
 
 st.set_page_config(
-    page_title="GESTNOW v3 - Instrumentação Industrial",
+    page_title="GESTNOW v3 - Instrumentação Industrial [DEV]",
     page_icon=ICONS["app"],
     layout="wide",
     initial_sidebar_state="collapsed",
