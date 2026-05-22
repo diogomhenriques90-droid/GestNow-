@@ -448,6 +448,210 @@ def render_admin_rh(*args):
                 st.success("✅ Campos bloqueados atualizados.")
                 st.rerun()
 
+        # ── Alterar Função e Password ─────────────────────────────
+        st.markdown("---")
+        st.markdown("#### ⚙️ Alterar Função / Password")
+
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            tipos_opcoes = ["Técnico", "Chefe de Equipa", "Admin",
+                            "Gestor", "Secretariado"]
+            tipo_atual   = row.get("Tipo", "Técnico")
+            idx_tipo     = tipos_opcoes.index(tipo_atual)                            if tipo_atual in tipos_opcoes else 0
+            novo_tipo = st.selectbox("👤 Função (Tipo)",
+                tipos_opcoes, index=idx_tipo, key="rh_novo_tipo")
+
+        with col_f2:
+            cargos_opcoes = ["Técnico", "Instrumentista", "Eletricista",
+                             "Mecânico", "Chefe de Equipa", "Encarregado",
+                             "Engenheiro", "QA/QC", "Admin", "Outro"]
+            cargo_atual   = row.get("Cargo", "")
+            idx_cargo     = cargos_opcoes.index(cargo_atual)                             if cargo_atual in cargos_opcoes else 0
+            novo_cargo = st.selectbox("🏷️ Cargo",
+                cargos_opcoes, index=idx_cargo, key="rh_novo_cargo")
+
+        if st.button("💾 Guardar Função/Cargo",
+                     key="btn_guardar_funcao", type="primary"):
+            u_fn = _load_users_fresh()
+            mk_fn = u_fn["Nome"] == nome_sel
+            if mk_fn.any():
+                u_fn.loc[mk_fn, "Tipo"]  = novo_tipo
+                u_fn.loc[mk_fn, "Cargo"] = novo_cargo
+                save_db(u_fn, "usuarios.csv")
+                inv("usuarios.csv")
+                log_audit(usuario=st.session_state.get("user","admin"),
+                          acao="ALTERAR_FUNCAO",
+                          tabela="usuarios.csv",
+                          registro_id=nome_sel,
+                          detalhes=f"Tipo={novo_tipo}, Cargo={novo_cargo}")
+                st.success(f"✅ Função actualizada: {novo_tipo} / {novo_cargo}")
+                st.rerun()
+
+        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+
+        with st.expander("🔐 Redefinir Password"):
+            nova_pwd_admin = st.text_input(
+                "Nova Password *", type="password", key="rh_nova_pwd_admin",
+                placeholder="Mínimo 4 caracteres")
+            conf_pwd_admin = st.text_input(
+                "Confirmar Password *", type="password", key="rh_conf_pwd_admin")
+            if st.button("🔐 Redefinir Password", key="btn_redef_pwd",
+                         type="primary"):
+                if not nova_pwd_admin.strip():
+                    st.error("⚠️ Introduz uma nova password.")
+                elif len(nova_pwd_admin.strip()) < 4:
+                    st.error("⚠️ Mínimo 4 caracteres.")
+                elif nova_pwd_admin != conf_pwd_admin:
+                    st.error("⚠️ As passwords não coincidem.")
+                else:
+                    u_pw = _load_users_fresh()
+                    mk_pw = u_pw["Nome"] == nome_sel
+                    if mk_pw.any():
+                        u_pw.loc[mk_pw, "Password"] = hp(nova_pwd_admin.strip())
+                        save_db(u_pw, "usuarios.csv")
+                        inv("usuarios.csv")
+                        log_audit(usuario=st.session_state.get("user","admin"),
+                                  acao="REDEFINIR_PASSWORD",
+                                  tabela="usuarios.csv",
+                                  registro_id=nome_sel,
+                                  detalhes="Password redefinida pelo Admin")
+                        st.success(f"✅ Password de {nome_sel} redefinida.")
+                        st.rerun()
+
+        # ── Remover ou Lista Negra ────────────────────────────────
+        st.markdown("---")
+        st.markdown("#### 🚫 Remover Colaborador")
+
+        st.markdown(
+            "<div style='background:rgba(239,68,68,0.08);border-radius:10px;"
+            "padding:12px 16px;border-left:3px solid #EF4444;margin-bottom:12px;'>"
+            "<p style='color:#FCA5A5;font-size:0.82rem;margin:0;'>"
+            "⚠️ <b>Atenção:</b> Estas acções são permanentes ou têm impacto "
+            "no acesso do colaborador à plataforma.</p></div>",
+            unsafe_allow_html=True
+        )
+
+        col_rm1, col_rm2 = st.columns(2)
+
+        with col_rm1:
+            st.markdown(
+                "<p style='color:#F1F5F9;font-weight:700;margin:0 0 6px;'>"
+                "🗑️ Remover Permanentemente</p>"
+                "<p style='color:#64748B;font-size:0.78rem;'>"
+                "Apaga o colaborador de forma definitiva. "
+                "Registos de horas são mantidos.</p>",
+                unsafe_allow_html=True)
+            confirmar_rm = st.text_input(
+                f"Escreve '{nome_sel}' para confirmar",
+                key="rh_confirm_rm", placeholder="Nome completo")
+            if st.button("🗑️ Remover Definitivamente",
+                         key="btn_remover_def"):
+                if confirmar_rm.strip() != nome_sel:
+                    st.error("⚠️ Nome não coincide. Operação cancelada.")
+                else:
+                    u_rm = _load_users_fresh()
+                    u_rm = u_rm[u_rm["Nome"] != nome_sel]
+                    save_db(u_rm, "usuarios.csv")
+                    inv("usuarios.csv")
+                    log_audit(usuario=st.session_state.get("user","admin"),
+                              acao="REMOVER_COLABORADOR",
+                              tabela="usuarios.csv",
+                              registro_id=nome_sel,
+                              detalhes="Removido permanentemente pelo Admin")
+                    st.success(f"✅ {nome_sel} removido da plataforma.")
+                    st.session_state.pop("rh_colaborador_sel", None)
+                    st.rerun()
+
+        with col_rm2:
+            st.markdown(
+                "<p style='color:#F1F5F9;font-weight:700;margin:0 0 6px;'>"
+                "⛔ Adicionar à Lista Negra</p>"
+                "<p style='color:#64748B;font-size:0.78rem;'>"
+                "Bloqueia o acesso mas mantém o registo. "
+                "Fica vísivel na Lista Negra com observações.</p>",
+                unsafe_allow_html=True)
+            obs_ln = st.text_area(
+                "Motivo / Observações *",
+                key="rh_obs_ln", height=68,
+                placeholder="Ex: Abandono de posto, comportamento inadequado...")
+            if st.button("⛔ Enviar para Lista Negra",
+                         key="btn_lista_negra"):
+                if not obs_ln.strip():
+                    st.error("⚠️ Indica o motivo.")
+                else:
+                    # 1. Bloquear utilizador (Tipo → Bloqueado)
+                    u_ln = _load_users_fresh()
+                    mk_ln = u_ln["Nome"] == nome_sel
+                    if mk_ln.any():
+                        u_ln.loc[mk_ln, "Tipo"]          = "Bloqueado"
+                        u_ln.loc[mk_ln, "Lista_Negra"]   = "Sim"
+                        u_ln.loc[mk_ln, "Lista_Negra_Data"] =                             datetime.now().strftime("%d/%m/%Y %H:%M")
+                        u_ln.loc[mk_ln, "Lista_Negra_Obs"] = obs_ln.strip()
+                        u_ln.loc[mk_ln, "Lista_Negra_Por"] =                             st.session_state.get("user", "admin")
+                        save_db(u_ln, "usuarios.csv")
+                        inv("usuarios.csv")
+                        log_audit(
+                            usuario=st.session_state.get("user","admin"),
+                            acao="LISTA_NEGRA",
+                            tabela="usuarios.csv",
+                            registro_id=nome_sel,
+                            detalhes=f"Lista negra: {obs_ln[:100]}")
+                        st.success(f"⛔ {nome_sel} adicionado à lista negra.")
+                        st.rerun()
+
+        # ── Ver Lista Negra ───────────────────────────────────────
+        st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+        u_all_ln = _load_users_fresh()
+        ln_users = u_all_ln[
+            u_all_ln.get("Lista_Negra", pd.Series(["Não"]*len(u_all_ln))) == "Sim"
+        ] if not u_all_ln.empty and "Lista_Negra" in u_all_ln.columns else pd.DataFrame()
+
+        if not ln_users.empty:
+            with st.expander(f"📋 Lista Negra ({len(ln_users)} colaborador(es))",
+                             expanded=False):
+                for _, ln_row in ln_users.iterrows():
+                    ln_nome = ln_row.get("Nome","")
+                    ln_data = ln_row.get("Lista_Negra_Data","")
+                    ln_por  = ln_row.get("Lista_Negra_Por","")
+                    ln_obs  = ln_row.get("Lista_Negra_Obs","")
+                    st.markdown(
+                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"padding:12px 16px;margin-bottom:8px;"
+                        f"border-left:4px solid #EF4444;'>"
+                        f"<div style='display:flex;justify-content:space-between;"
+                        f"align-items:flex-start;'>"
+                        f"<div>"
+                        f"<p style='color:#F1F5F9;font-weight:700;margin:0;'>"
+                        f"⛔ {ln_nome}</p>"
+                        f"<p style='color:#64748B;font-size:0.75rem;margin:2px 0;'>"
+                        f"Adicionado por {ln_por} em {ln_data}</p>"
+                        f"<p style='color:#94A3B8;font-size:0.8rem;margin:4px 0 0;'>"
+                        f"{ln_obs}</p>"
+                        f"</div></div></div>",
+                        unsafe_allow_html=True
+                    )
+                    # Opção de reactivar
+                    if st.button(f"🔓 Reactivar {ln_nome}",
+                                 key=f"btn_reactivar_{ln_nome}"):
+                        u_ra = _load_users_fresh()
+                        mk_ra = u_ra["Nome"] == ln_nome
+                        if mk_ra.any():
+                            u_ra.loc[mk_ra, "Tipo"]        = "Técnico"
+                            u_ra.loc[mk_ra, "Lista_Negra"] = "Não"
+                            u_ra.loc[mk_ra, "Lista_Negra_Data"] = ""
+                            u_ra.loc[mk_ra, "Lista_Negra_Obs"]  = ""
+                            u_ra.loc[mk_ra, "Lista_Negra_Por"]  = ""
+                            save_db(u_ra, "usuarios.csv")
+                            inv("usuarios.csv")
+                            log_audit(
+                                usuario=st.session_state.get("user","admin"),
+                                acao="REACTIVAR_COLABORADOR",
+                                tabela="usuarios.csv",
+                                registro_id=ln_nome,
+                                detalhes="Reactivado da lista negra")
+                            st.success(f"✅ {ln_nome} reactivado.")
+                            st.rerun()
+
     # ════════════════════════════════════════════════════════════════
     # TAB 3 — CONTRATOS
     # ════════════════════════════════════════════════════════════════
