@@ -235,10 +235,103 @@ def load_db(fn, cols, silent=False):
             return pd.DataFrame(columns=[c.strip() for c in cols])
     return pd.DataFrame(columns=[c.strip() for c in cols])
 
+# ── Ficheiros críticos — protegidos contra perda de dados ───────────────────
+_CRITICAL_FILES = {"registos.csv", "usuarios.csv", "folhas_ponto.csv"}
+
+
 def save_db(df, fn):
+    """
+    Guarda DataFrame no GCS de forma SEGURA.
+    Para ficheiros críticos: verifica perda de registos e cria backup diário.
+    """
+    # ── Segurança para ficheiros críticos ────────────────────────────────────
+    if fn in _CRITICAL_FILES:
+        try:
+            buf_atual = _gcs_read(fn)
+            if buf_atual:
+                df_atual = pd.read_csv(buf_atual, dtype=str,
+                                       on_bad_lines='skip', encoding='utf-8-sig')
+                n_atual = len(df_atual)
+                n_novo  = len(df)
+
+                # Backup diário automático (1 por dia)
+                _criar_backup_diario(fn, df_atual)
+
+                # Bloquear se perda > 10% dos registos
+                if n_atual > 5 and n_novo < int(n_atual * 0.90):
+                    logger.error(
+                        f"🚨 BLOQUEADO save_db({fn}): {n_novo} registos "
+                        f"vs {n_atual} existentes — perda de "
+                        f"{n_atual - n_novo} registos (>10%). Operação cancelada."
+                    )
+                    return False
+        except Exception as e:
+            logger.warning(f"Verificação segurança {fn}: {e}")
+
+    # ── Guardar no GCS ────────────────────────────────────────────────────────
     buf = io.StringIO()
     df.to_csv(buf, index=False, encoding='utf-8-sig')
     return _gcs_write(fn, buf.getvalue().encode('utf-8-sig'))
+
+
+def _criar_backup_diario(fn, df_atual):
+    """Backup automático diário em backups/YYYY-MM-DD/ficheiro.csv"""
+    try:
+        today  = datetime.now().strftime("%Y-%m-%d")
+        client = _gcs_client()
+        if client:
+            bucket = client.bucket(GCS_BUCKET)
+            blob   = bucket.blob(f"data/backups/{today}/{fn}")
+            if not blob.exists():
+                buf = io.StringIO()
+                df_atual.to_csv(buf, index=False, encoding='utf-8-sig')
+                blob.upload_from_string(
+                    buf.getvalue().encode('utf-8-sig'), content_type="text/csv")
+                logger.info(f"✅ Backup diário: backups/{today}/{fn} ({len(df_atual)} registos)")
+    except Exception as e:
+        logger.warning(f"Backup diário falhou {fn}: {e}")
+
+
+def list_backups(fn="registos.csv"):
+    """Lista backups disponíveis. Retorna [{date, path, size_kb}]"""
+    backups = []
+    try:
+        client = _gcs_client()
+        if client:
+            bucket = client.bucket(GCS_BUCKET)
+            for blob in bucket.list_blobs(prefix="data/backups/"):
+                if blob.name.endswith(fn):
+                    parts = blob.name.split('/')
+                    if len(parts) >= 4:
+                        backups.append({
+                            "date":    parts[2],
+                            "path":    blob.name,
+                            "size_kb": (blob.size or 0) // 1024
+                        })
+            backups.sort(key=lambda x: x["date"], reverse=True)
+    except Exception as e:
+        logger.warning(f"list_backups: {e}")
+    return backups
+
+
+def restore_backup(backup_path):
+    """Restaura ficheiro a partir de backup. Retorna True se OK."""
+    try:
+        client = _gcs_client()
+        if client:
+            bucket = client.bucket(GCS_BUCKET)
+            blob_s = bucket.blob(backup_path)
+            if blob_s.exists():
+                fn_dest   = backup_path.split('/')[-1]
+                blob_dest = bucket.blob(f"data/{fn_dest}")
+                blob_dest.upload_from_string(
+                    blob_s.download_as_bytes(), content_type="text/csv")
+                load_db.clear()
+                logger.info(f"✅ Restaurado: {backup_path} → data/{fn_dest}")
+                return True
+    except Exception as e:
+        logger.error(f"restore_backup: {e}")
+    return False
 
 # ─────────────────────────────────────────────────────────────────────────────
 # FIX 1 — _load_users_cached com cache TTL=60s
