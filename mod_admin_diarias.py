@@ -686,7 +686,7 @@ def render_admin_diarias(*args):
                                           f"· € {total_geral:.2f}"),
                                 ip=""
                             )
-                            inv()
+                            inv("diarias_pagamentos.csv")
                             st.success(
                                 f"✅ {len(df_calc)} colaboradores marcados "
                                 f"como pagos — € {total_geral:.2f}"
@@ -779,7 +779,7 @@ def render_admin_diarias(*args):
                         pd.DataFrame(novas_config),
                         "diarias_config.csv"
                     )
-                    inv()
+                    inv("diarias_config.csv")
                     st.success("✅ Configuração guardada!")
                     st.rerun()
 
@@ -860,7 +860,7 @@ def render_admin_diarias(*args):
                               f"{data_falta.strftime('%d/%m/%Y')}"),
                     ip=""
                 )
-                inv()
+                inv("diarias_faltas.csv")
                 st.success(
                     f"✅ Falta registada: {tec_falta} — "
                     f"{data_falta.strftime('%d/%m/%Y')}"
@@ -899,7 +899,7 @@ def render_admin_diarias(*args):
                             diarias_faltas['ID'] != f.get('ID', '')
                         ]
                         save_db(df_up, "diarias_faltas.csv")
-                        inv()
+                        inv("diarias_faltas.csv")
                         st.rerun()
 
     # ════════════════════════════════════════════════════════════════

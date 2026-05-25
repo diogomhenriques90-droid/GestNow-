@@ -1402,7 +1402,7 @@ def render_fat_reporting(obras_db, registos_db,
                             [regras_db, nova_r], ignore_index=True
                         ) if not regras_db.empty else nova_r
                         save_db(upd_r, "regras_negocio.csv")
-                        inv()
+                        inv("regras_negocio.csv")
                         st.success("✅ Regra guardada!")
                         st.rerun()
 

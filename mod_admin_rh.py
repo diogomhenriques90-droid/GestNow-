@@ -255,7 +255,7 @@ def render_admin_rh(*args):
                         ) if not users_live.empty else nova_df
 
                         save_db(updated, "usuarios.csv")
-                        inv()
+                        inv("usuarios.csv")
                         log_audit(usuario=admin_nome,
                                   acao="CRIAR_COLABORADOR",
                                   tabela="usuarios.csv",
@@ -266,7 +266,7 @@ def render_admin_rh(*args):
 
                         st.success(f"✅ Colaborador **{novo_nome.strip()}** criado com sucesso!")
                         st.session_state['show_criar_colab'] = False
-                        inv()
+                        inv("usuarios.csv")
                         st.rerun()
 
         # ── Tabela de colaboradores ───────────────────────────────
@@ -444,7 +444,7 @@ def render_admin_rh(*args):
             if mask.any():
                 u_fresh.loc[mask, 'Campos_Bloqueados'] = json.dumps(novos_bl)
                 save_db(u_fresh, "usuarios.csv")
-                inv()
+                inv("usuarios.csv")
                 st.success("✅ Campos bloqueados atualizados.")
                 st.rerun()
 
@@ -789,7 +789,7 @@ def render_admin_rh(*args):
                                     u_ct.loc[mask, 'Contrato_Local_Obra']   = ct_local
                                     u_ct.loc[mask, 'Contrato_Cliente_Obra'] = ct_cliente
                                     save_db(u_ct, "usuarios.csv")
-                                    inv()
+                                    inv("usuarios.csv")
                                     log_audit(
                                         usuario=admin_nome,
                                         acao="GERAR_CONTRATO",
@@ -839,7 +839,7 @@ def render_admin_rh(*args):
                         if mask.any():
                             u_re.loc[mask, 'Contrato_b64'] = novo_b64
                             save_db(u_re, "usuarios.csv")
-                            inv()
+                            inv("usuarios.csv")
                             st.success("✅ Contrato atualizado com a versão editada!")
                             st.rerun()
 
@@ -865,7 +865,7 @@ def render_admin_rh(*args):
                             tipo="info",
                             acao_url="/perfil?tab=contrato"
                         )
-                        inv()
+                        inv("usuarios.csv")
                         st.success("✅ Colaborador notificado!")
                         st.rerun()
             with col_env2:
@@ -880,7 +880,7 @@ def render_admin_rh(*args):
                                       'Contrato_Enviado_Data']:
                             u_ct2.loc[mask, campo] = ''
                         save_db(u_ct2, "usuarios.csv")
-                        inv()
+                        inv("usuarios.csv")
                         st.rerun()
 
         # ── PASSO 3: Aguarda assinatura do colaborador ────────────
@@ -919,7 +919,7 @@ def render_admin_rh(*args):
                         u_ct3.loc[mask, 'Contrato_Validado_Data']  = \
                             datetime.now().strftime("%d/%m/%Y %H:%M")
                         save_db(u_ct3, "usuarios.csv")
-                        inv()
+                        inv("usuarios.csv")
                         criar_notificacao(
                             destinatario=nome_ct_sel,
                             titulo="✅ Contrato Validado",
@@ -957,7 +957,7 @@ def render_admin_rh(*args):
                             tipo="error",
                             acao_url="/perfil?tab=contrato"
                         )
-                        inv()
+                        inv("usuarios.csv")
                         st.warning("Colaborador notificado para nova assinatura.")
                         st.rerun()
 

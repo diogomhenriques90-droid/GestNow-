@@ -218,22 +218,28 @@ def _fill_contrato_template(substituicoes: dict):
 # GESTÃO DE DADOS
 # =============================================================================
 @st.cache_data(ttl=300, show_spinner=False)
-def load_db(fn, cols, silent=False):
-    """Carrega CSV do GCS. silent=True suprime warnings."""
+def _cached_load_db(fn, cols_tuple, silent=False, _v=0):
+    """Backend cacheado — não chamar directamente, usar load_db()."""
     buf = _gcs_read(fn)
     if buf:
         try:
             df = pd.read_csv(buf, dtype=str, on_bad_lines='skip', encoding='utf-8-sig')
             df.columns = df.columns.str.strip()
-            for c in cols:
+            for c in cols_tuple:
                 if c.strip() not in df.columns:
                     df[c.strip()] = ""
-            return df[[c.strip() for c in cols]].fillna("")
+            return df[[c.strip() for c in cols_tuple]].fillna("")
         except Exception as e:
             if not silent:
                 logger.warning(f"⚠️ Fallback CSV local para {fn}: {e}")
-            return pd.DataFrame(columns=[c.strip() for c in cols])
-    return pd.DataFrame(columns=[c.strip() for c in cols])
+            return pd.DataFrame(columns=[c.strip() for c in cols_tuple])
+    return pd.DataFrame(columns=[c.strip() for c in cols_tuple])
+
+
+def load_db(fn, cols, silent=False):
+    """Carrega CSV do GCS com invalidação selectiva automática por ficheiro."""
+    v = st.session_state.get('_fv', {}).get(fn, 0)
+    return _cached_load_db(fn, tuple(cols), silent=silent, _v=v)
 
 # ── Ficheiros críticos — protegidos contra perda de dados ───────────────────
 _CRITICAL_FILES = {"registos.csv", "usuarios.csv", "folhas_ponto.csv"}
@@ -326,7 +332,7 @@ def restore_backup(backup_path):
                 blob_dest = bucket.blob(f"data/{fn_dest}")
                 blob_dest.upload_from_string(
                     blob_s.download_as_bytes(), content_type="text/csv")
-                load_db.clear()
+                inv(fn_dest)
                 logger.info(f"✅ Restaurado: {backup_path} → data/{fn_dest}")
                 return True
     except Exception as e:
@@ -359,27 +365,26 @@ def _load_users_cached():
     return pd.DataFrame()
 
 # ─────────────────────────────────────────────────────────────────────────────
-# FIX 2 — inv() selectivo
-# Antes: st.cache_data.clear() → limpa TUDO (24 CSVs) em cada save
-# Agora: inv("ficheiro.csv") → só invalida load_db
-#         inv("usuarios.csv") → invalida load_db + users cache
-#         inv()               → limpa tudo (usar só quando estritamente necessário)
+# FIX 2 — inv() verdadeiramente selectivo via versão por ficheiro
+# inv("ficheiro.csv") → incrementa versão só desse ficheiro em session_state
+#                       → _cached_load_db recebe _v diferente → cache miss apenas para esse ficheiro
+# inv()               → nuclear (st.cache_data.clear()) — só para reset/admin global
 # ─────────────────────────────────────────────────────────────────────────────
 def inv(ficheiro=None):
     """
     Invalida cache de dados de forma selectiva.
 
     inv()                → limpa TUDO (operações raras: reset, admin global)
-    inv("registos.csv")  → só load_db (operação normal de save)
-    inv("usuarios.csv")  → load_db + _load_users_cached
+    inv("registos.csv")  → invalida só registos.csv (os outros CSVs ficam cacheados)
+    inv("usuarios.csv")  → invalida usuarios.csv + _load_users_cached
     """
     if ficheiro is None:
-        # Nuclear — só usar em casos excepcionais
+        # Nuclear — limpa toda a cache do Streamlit
         st.cache_data.clear()
     else:
-        # Selectivo — invalida só os CSVs genéricos
-        load_db.clear()
-        # Se for o ficheiro de utilizadores, limpa também a cache específica
+        # Selectivo — incrementa versão só do ficheiro alterado
+        fv = st.session_state.setdefault('_fv', {})
+        fv[ficheiro] = fv.get(ficheiro, 0) + 1
         if ficheiro == "usuarios.csv":
             _load_users_cached.clear()
 
@@ -753,8 +758,7 @@ def log_audit(usuario, acao, tabela, registro_id, detalhes="", ip=""):
         }])
         logs = pd.concat([logs, novo], ignore_index=True)
         save_db(logs, "logs_audit.csv")
-        # Só invalida logs_audit, não users nem registos
-        load_db.clear()
+        inv("logs_audit.csv")
         return True
     except Exception as e:
         print(f"Erro ao criar log: {e}")
@@ -820,7 +824,7 @@ def criar_notificacao(destinatario, titulo, mensagem, tipo="info", acao_url=""):
         }])
         notifs = pd.concat([notifs, nova], ignore_index=True)
         save_db(notifs, "notificacoes.csv")
-        load_db.clear()  # selectivo — só load_db
+        inv("notificacoes.csv")
         return True
     except Exception as e:
         print(f"Erro ao criar notificação: {e}")
@@ -849,7 +853,7 @@ def marcar_notificacao_lida(notif_id):
         if not notifs.empty:
             notifs.loc[notifs['ID'] == notif_id, 'Lida'] = "Sim"
             save_db(notifs, "notificacoes.csv")
-            load_db.clear()
+            inv("notificacoes.csv")
             return True
         return False
     except:
@@ -1005,7 +1009,7 @@ def sync_data_when_online():
                 st.success(f"✅ {resultados['sucessos']} ações sincronizadas!")
             if resultados["falhas"] > 0:
                 st.error(f"❌ {resultados['falhas']} ações falharam.")
-            load_db.clear()
+            _cached_load_db.clear()
 
 # =============================================================================
 # QR CODE

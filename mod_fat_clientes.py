@@ -860,7 +860,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         ),
                         ip=""
                     )
-                    inv()
+                    inv("faturas_clientes.csv")
 
                     st.success(
                         f"✅ {num_final} emitida! "
@@ -1113,7 +1113,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                                 faturas_cli['ID'] == fat_id, 'Paga_Em'
                             ] = datetime.now().strftime("%d/%m/%Y %H:%M")
                         save_db(faturas_cli, "faturas_clientes.csv")
-                        inv()
+                        inv("faturas_clientes.csv")
                         st.rerun()
 
                 with col_fb:
@@ -1197,7 +1197,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             [clientes_db, novo_c], ignore_index=True
                         ) if not clientes_db.empty else novo_c
                         save_db(updated_c, "clientes_financeiro.csv")
-                        inv()
+                        inv("clientes_financeiro.csv")
                         st.success(
                             f"✅ Cliente {cli_nome} guardado!"
                         )
@@ -1423,7 +1423,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         [contratos_db, novo_ct], ignore_index=True
                     ) if not contratos_db.empty else novo_ct
                     save_db(upd_ct, "contratos_financeiro.csv")
-                    inv()
+                    inv("contratos_financeiro.csv")
                     st.success("✅ Contrato guardado!")
                     st.rerun()
 
@@ -1606,7 +1606,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             ),
                             ip=""
                         )
-                        inv()
+                        inv("faturas_clientes.csv")
                         st.success(
                             f"✅ {num_nc} emitida — "
                             f"€{nc_valor:.2f} creditados ao cliente!"

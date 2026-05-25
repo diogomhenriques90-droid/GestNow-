@@ -113,7 +113,7 @@ def render_planeamento():
                             [pacotes_db, novo_p], ignore_index=True
                         ) if not pacotes_db.empty else novo_p
                         save_db(updated_p, "planeamento_pacotes.csv")
-                        inv()
+                        inv("planeamento_pacotes.csv")
                         st.success(f"✅ Pacote criado: {desc_p[:30]}")
                         st.rerun()
 
@@ -183,7 +183,7 @@ def render_planeamento():
                         pacotes_db.loc[pacotes_db['ID'] == pac_id, 'Horas_Reais'] = novas_h
                         pacotes_db.loc[pacotes_db['ID'] == pac_id, 'Status']      = novo_st
                         save_db(pacotes_db, "planeamento_pacotes.csv")
-                        inv()
+                        inv("planeamento_pacotes.csv")
                         st.success("✅ Atualizado!")
                         st.rerun()
 
@@ -227,7 +227,7 @@ def render_planeamento():
                             [milestones_db, novo_m], ignore_index=True
                         ) if not milestones_db.empty else novo_m
                         save_db(updated_m, "planeamento_milestones.csv")
-                        inv()
+                        inv("planeamento_milestones.csv")
                         st.success(f"✅ Milestone criado!")
                         st.rerun()
 
@@ -276,7 +276,7 @@ def render_planeamento():
                                 milestones_db['ID'] == ms_id, 'Status'
                             ] = novo_ms_st
                             save_db(milestones_db, "planeamento_milestones.csv")
-                            inv()
+                            inv("planeamento_milestones.csv")
                             st.rerun()
 
     # ════════════════════════════════════════════════════════════════
@@ -361,7 +361,7 @@ def render_planeamento():
                             [desenhos_db, novo_d], ignore_index=True
                         ) if not desenhos_db.empty else novo_d
                         save_db(updated_d, "planeamento_desenhos.csv")
-                        inv()
+                        inv("planeamento_desenhos.csv")
                         st.success(
                             f"✅ Desenho carregado: {ficheiro_d.name}"
                         )

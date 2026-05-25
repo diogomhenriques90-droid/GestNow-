@@ -92,7 +92,7 @@ def render_admin(*args):
                           key="marcar_todas_lidas"):
                 for _, notif in notifs_df.iterrows():
                     marcar_notificacao_lida(notif['ID'])
-                inv()
+                inv("notificacoes.csv")
                 st.rerun()
         else:
             st.info("✅ Sem notificações pendentes.")

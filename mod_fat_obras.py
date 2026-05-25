@@ -1389,7 +1389,7 @@ def render_fat_obras(obras_db, registos_db,
                             [orc_db, novo_df], ignore_index=True
                         ) if not orc_db.empty else novo_df
                         save_db(upd, "obras_orcamento.csv")
-                    inv()
+                    inv("obras_orcamento.csv")
                     st.success("✅ Orçamento guardado!")
                     st.rerun()
 
@@ -1523,7 +1523,7 @@ def render_fat_obras(obras_db, registos_db,
                             [wip_db, novo_wip], ignore_index=True
                         ) if not wip_db.empty else novo_wip
                         save_db(upd_wip, "obras_wip.csv")
-                        inv()
+                        inv("obras_wip.csv")
                         st.success(
                             f"✅ WIP registado! €{wip_val:,.2f}"
                         )
@@ -1635,7 +1635,7 @@ def render_fat_obras(obras_db, registos_db,
                                 wip_db['ID'] == wid, 'Estado'
                             ] = novo_est_wip
                             save_db(wip_db, "obras_wip.csv")
-                            inv(); st.rerun()
+                            inv("obras_wip.csv"); st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB — TIMELINE FINANCEIRA

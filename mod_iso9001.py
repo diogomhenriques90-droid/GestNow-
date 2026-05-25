@@ -751,7 +751,7 @@ def render_iso9001(*_):
                             detalhes=f"{o_obj[:50]} | Meta:{o_meta}",
                             ip=""
                         )
-                        inv(); st.success("✅ Objetivo criado!"); st.rerun()
+                        inv("iso_objetivos.csv"); st.success("✅ Objetivo criado!"); st.rerun()
 
         with col_ol:
             st.markdown("#### 📊 Objetivos em Curso")
@@ -849,7 +849,7 @@ def render_iso9001(*_):
                                     obj_db['ID']==oid,'Status'
                                 ] = 'Atingido'
                             save_db(obj_db,"iso_objetivos.csv")
-                            inv(); st.rerun()
+                            inv("iso_objetivos.csv"); st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB 2 — GESTÃO DE RISCOS (Cláusula 6.1)
@@ -957,7 +957,7 @@ def render_iso9001(*_):
                             [riscos_db, novo_r], ignore_index=True
                         ) if not riscos_db.empty else novo_r
                         save_db(upd_r,"iso_riscos.csv")
-                        inv()
+                        inv("iso_riscos.csv")
                         st.success(
                             f"✅ {r_tipo} registado! Score: {score_calc}"
                         )
@@ -1077,7 +1077,7 @@ def render_iso9001(*_):
                                     riscos_db['ID']==rid,'Residual'
                                 ] = residual
                                 save_db(riscos_db,"iso_riscos.csv")
-                                inv(); st.rerun()
+                                inv("iso_riscos.csv"); st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB 3 — PARTES INTERESSADAS (Cláusula 4.2)
@@ -1158,7 +1158,7 @@ def render_iso9001(*_):
                             [partes_db, nova_p], ignore_index=True
                         ) if not partes_db.empty else nova_p
                         save_db(upd_p,"iso_partes_interessadas.csv")
-                        inv()
+                        inv("iso_partes_interessadas.csv")
                         st.success(f"✅ {p_nome} registado!")
                         st.rerun()
 
@@ -1372,7 +1372,7 @@ def render_iso9001(*_):
                         ),
                         ip=""
                     )
-                    inv()
+                    inv("iso_auditorias.csv")
                     st.success("✅ Auditoria registada!")
                     st.rerun()
 
@@ -1921,7 +1921,7 @@ def render_iso9001(*_):
                         ),
                         ip=""
                     )
-                    inv()
+                    inv("iso_fornecedores_aval.csv")
                     st.success(
                         f"✅ {fa_forn} avaliado! "
                         f"Score: {score_tot}/100 — {class_forn}"

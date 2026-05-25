@@ -975,7 +975,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                                      f"€{c_saldo}",
                             ip=""
                         )
-                        inv()
+                        inv("contas_bancarias.csv")
                         st.success(f"✅ Conta {c_nome} guardada!")
                         st.rerun()
 
@@ -1053,7 +1053,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                             ] = [novo_sal,
                                  hoje.strftime("%d/%m/%Y")]
                             save_db(contas_db, "contas_bancarias.csv")
-                            inv(); st.rerun()
+                            inv("contas_bancarias.csv"); st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB — RECONCILIAÇÃO BANCÁRIA
@@ -1151,7 +1151,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                                 ignore_index=True
                             ) if not movimentos_db.empty else df_novos
                             save_db(upd_mv, "movimentos_bancarios.csv")
-                            inv()
+                            inv("movimentos_bancarios.csv")
                             st.success(
                                 f"✅ {len(novos_mv)} movimentos importados!"
                             )
@@ -1216,7 +1216,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                             ignore_index=True
                         ) if not movimentos_db.empty else novo_mv
                         save_db(upd_mv2, "movimentos_bancarios.csv")
-                        inv()
+                        inv("movimentos_bancarios.csv")
                         st.success("✅ Movimento registado!")
                         st.rerun()
 
@@ -1301,7 +1301,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                                     movimentos_db,
                                     "movimentos_bancarios.csv"
                                 )
-                                inv(); st.rerun()
+                                inv("movimentos_bancarios.csv"); st.rerun()
 
                 # Export
                 csv_mv = movimentos_db.drop(
@@ -1385,7 +1385,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                             [fm_db, novo_fm], ignore_index=True
                         ) if not fm_db.empty else novo_fm
                         save_db(upd_fm, "fundo_maneio.csv")
-                        inv()
+                        inv("fundo_maneio.csv")
                         st.success(
                             f"✅ Adiantamento €{fm_adiant:.2f} "
                             f"para {fm_resp}!"
@@ -1457,7 +1457,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                                 'Gasto'
                             ] = gasto_atual + fm_gasto_val
                             save_db(fm_db, "fundo_maneio.csv")
-                            inv()
+                            inv("fundo_maneio.csv")
                             st.success(
                                 f"✅ Gasto €{fm_gasto_val:.2f} "
                                 f"registado com comprovativo!"
@@ -1528,7 +1528,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                                     'Estado'
                                 ] = 'Acertado'
                                 save_db(fm_db, "fundo_maneio.csv")
-                                inv()
+                                inv("fundo_maneio.csv")
                                 st.success("✅ Fundo acertado!")
                                 st.rerun()
                         with col_fmb:
