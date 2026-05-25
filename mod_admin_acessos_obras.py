@@ -733,7 +733,7 @@ def render_acessos_obras(users, obras_db, *_):
                             tipo="info",
                             acao_url="/"
                         )
-                        inv(); st.rerun()
+                        inv("acessos_obras.csv"); st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB — CONCEDER ACESSO
@@ -852,7 +852,7 @@ def render_acessos_obras(users, obras_db, *_):
                                 tipo="success",
                                 acao_url="/"
                             )
-                            inv()
+                            inv("acessos_obras.csv")
                             st.success(
                                 f"✅ Acesso concedido a {na_colab} "
                                 f"para {na_obra}!"
@@ -1056,7 +1056,7 @@ def render_acessos_obras(users, obras_db, *_):
                             ),
                             ip=""
                         )
-                        inv()
+                        inv("acessos_documentos.csv")
                         st.success(
                             f"✅ {da_tipo} registado para {da_colab}!"
                         )
@@ -1549,7 +1549,7 @@ def render_acessos_obras(users, obras_db, *_):
                         [req_db, novo_rq], ignore_index=True
                     ) if not req_db.empty else novo_rq
                     save_db(upd_rq,"acessos_requisitos_obras.csv")
-                    inv()
+                    inv("acessos_requisitos_obras.csv")
                     st.success(
                         f"✅ Requisitos de {rq_obra} guardados! "
                         f"{len(docs_sel)} documentos obrigatórios."

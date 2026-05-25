@@ -68,7 +68,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                             [obras_db, nova], ignore_index=True
                         ) if not obras_db.empty else nova
                         save_db(obras_db, "obras_lista.csv")
-                        inv()
+                        inv("obras_lista.csv")
                         st.success(f"✅ Obra '{nome}' criada!")
                         st.rerun()
 
@@ -166,7 +166,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                         ] = 'Não'
                                         save_db(inst_acessos_db, "inst_acessos.csv")
 
-                                    inv()
+                                    inv("obras_historico.csv"); inv("obras_lista.csv"); inv("inst_acessos.csv")
                                     st.session_state.pop(
                                         f'confirmar_fechar_{ob_nome}', None
                                     )
@@ -258,7 +258,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                     [inst_acessos_db, nova_aloc], ignore_index=True
                 ) if not inst_acessos_db.empty else nova_aloc
                 save_db(inst_acessos_db, "inst_acessos.csv")
-                inv()
+                inv("inst_acessos.csv")
                 st.success(f"✅ {tec_aloc} alocado à obra {obra_aloc}!")
                 st.rerun()
 
@@ -329,7 +329,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     colab_idx, 'Obra'
                                 ] = nova_obra_mv
                                 save_db(inst_acessos_db, "inst_acessos.csv")
-                                inv()
+                                inv("inst_acessos.csv")
                                 st.session_state.pop(
                                     f'acao_colab_{colab_idx}', None
                                 )
@@ -352,7 +352,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     colab_idx, 'Ativo'
                                 ] = 'Não'
                                 save_db(inst_acessos_db, "inst_acessos.csv")
-                                inv()
+                                inv("inst_acessos.csv")
                                 st.session_state.pop(
                                     f'acao_colab_{colab_idx}', None
                                 )
@@ -413,6 +413,6 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 ]
                 save_db(obras_db,        "obras_lista.csv")
                 save_db(obras_historico, "obras_historico.csv")
-                inv()
+                inv("obras_lista.csv"); inv("obras_historico.csv")
                 st.success(f"✅ Obra '{obra_reativar}' reativada!")
                 st.rerun()

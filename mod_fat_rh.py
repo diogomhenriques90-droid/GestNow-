@@ -926,7 +926,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                             detalhes=f"Salário: €{rh_sal}",
                             ip=""
                         )
-                        inv()
+                        inv("colaboradores_rh.csv")
                         st.success(msg)
                         st.rerun()
 
@@ -1426,7 +1426,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                             [ferias_db, nova_fer], ignore_index=True
                         ) if not ferias_db.empty else nova_fer
                         save_db(upd_fer, "ferias_db.csv")
-                        inv()
+                        inv("ferias_db.csv")
                         st.success(
                             f"✅ Férias marcadas para {f_colab}! "
                             f"{du2} dia(s)"
@@ -1633,7 +1633,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                         [provisoes_db, df_prov_n], ignore_index=True
                     ) if not provisoes_db.empty else df_prov_n
                     save_db(upd_prov, "provisoes_db.csv")
-                    inv()
+                    inv("provisoes_db.csv")
                     st.success(
                         f"✅ Provisões de "
                         f"{meses_pt[mes_atual-1]} registadas!"

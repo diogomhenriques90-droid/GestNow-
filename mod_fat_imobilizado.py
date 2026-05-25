@@ -767,7 +767,7 @@ def render_fat_imobilizado(*_):
                             ),
                             ip=""
                         )
-                        inv()
+                        inv("imobilizado_db.csv")
                         st.success(
                             f"✅ {i_desc} registado! "
                             f"Amort. anual: "
@@ -1065,7 +1065,7 @@ def render_fat_imobilizado(*_):
                             [seguros_db, novo_s], ignore_index=True
                         ) if not seguros_db.empty else novo_s
                         save_db(upd_s, "seguros_db.csv")
-                        inv()
+                        inv("seguros_db.csv")
                         st.success("✅ Seguro registado!")
                         st.rerun()
 
@@ -1220,7 +1220,7 @@ def render_fat_imobilizado(*_):
                             [caucoes_db, nova_ca], ignore_index=True
                         ) if not caucoes_db.empty else nova_ca
                         save_db(upd_ca, "caucoes_db.csv")
-                        inv()
+                        inv("caucoes_db.csv")
                         st.success(
                             f"✅ Caução €{ca_val:,.2f} "
                             f"registada para {ca_obra}!"
@@ -1331,7 +1331,7 @@ def render_fat_imobilizado(*_):
                                 save_db(
                                     caucoes_db, "caucoes_db.csv"
                                 )
-                                inv()
+                                inv("caucoes_db.csv")
                                 st.success(
                                     f"✅ Caução €{val_c:,.2f} "
                                     f"libertada!"
@@ -1435,7 +1435,7 @@ def render_fat_imobilizado(*_):
                             ),
                             ip=""
                         )
-                        inv()
+                        inv("alvaras_db.csv")
                         st.success("✅ Alvará registado!")
                         st.rerun()
 
@@ -1548,7 +1548,7 @@ def render_fat_imobilizado(*_):
                                 'Estado'
                             ] = novo_est_al
                             save_db(alvaras_db, "alvaras_db.csv")
-                            inv(); st.rerun()
+                            inv("alvaras_db.csv"); st.rerun()
 
                 # Export
                 csv_al = alvaras_db[[

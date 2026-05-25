@@ -1334,7 +1334,7 @@ def render_exportacao_contabilidade(*_):
                     [hist_exp, novo_hist], ignore_index=True
                 ) if not hist_exp.empty else novo_hist
                 save_db(upd_h,"historico_exports_cont.csv")
-                inv()
+                inv("historico_exports_cont.csv")
 
         # Recarregar histórico
         hist_exp2 = _load("historico_exports_cont.csv",[

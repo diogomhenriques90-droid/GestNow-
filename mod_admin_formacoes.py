@@ -767,7 +767,7 @@ def render_formacoes(users, obras_db, *_):
                         tipo="success",
                         acao_url="/"
                     )
-                    inv()
+                    inv("formacoes.csv")
                     st.success(
                         f"✅ Formação registada! "
                         f"{nf_colab} · {nome_final} · "
@@ -1043,7 +1043,7 @@ def render_formacoes(users, obras_db, *_):
                         [plano_db, novo_p], ignore_index=True
                     ) if not plano_db.empty else novo_p
                     save_db(upd_p,"formacoes_plano.csv")
-                    inv()
+                    inv("formacoes_plano.csv")
                     st.success("✅ Adicionado ao plano!")
                     st.rerun()
 
@@ -1160,7 +1160,7 @@ def render_formacoes(users, obras_db, *_):
                                     'Estado'
                                 ] = novo_est_p
                                 save_db(plano_db,"formacoes_plano.csv")
-                                inv(); st.rerun()
+                                inv("formacoes_plano.csv"); st.rerun()
 
                 # PDF do plano
                 st.markdown("---")
@@ -1367,7 +1367,7 @@ def render_formacoes(users, obras_db, *_):
                                     tipo="success",
                                     acao_url="/"
                                 )
-                                inv(); st.rerun()
+                                inv("formacoes.csv"); st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB — CATÁLOGO
@@ -1408,7 +1408,7 @@ def render_formacoes(users, obras_db, *_):
                         pd.DataFrame(rows_cat),
                         "formacoes_catalogo.csv"
                     )
-                    inv()
+                    inv("formacoes_catalogo.csv")
                     st.success(
                         f"✅ Catálogo inicializado com "
                         f"{len(rows_cat)} formações!"
@@ -1453,7 +1453,7 @@ def render_formacoes(users, obras_db, *_):
                             [cat_db, novo_c], ignore_index=True
                         ) if not cat_db.empty else novo_c
                         save_db(upd_c,"formacoes_catalogo.csv")
-                        inv()
+                        inv("formacoes_catalogo.csv")
                         st.success(f"✅ {c_nome} adicionado!")
                         st.rerun()
 

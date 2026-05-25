@@ -631,7 +631,7 @@ def render_fat_frota(*_):
                             ),
                             ip=""
                         )
-                        inv()
+                        inv("renting_contratos.csv")
                         st.success(
                             f"✅ Contrato {r_mat.upper()} guardado!"
                         )
@@ -751,7 +751,7 @@ def render_fat_frota(*_):
                                 'Estado'
                             ] = novo_estado_r
                             save_db(renting_db, "renting_contratos.csv")
-                            inv(); st.rerun()
+                            inv("renting_contratos.csv"); st.rerun()
                     with col_ra3:
                         if row.get('Obra_Alocada',''):
                             st.markdown(
@@ -872,7 +872,7 @@ def render_fat_frota(*_):
                             [comb_db, novo_cb], ignore_index=True
                         ) if not comb_db.empty else novo_cb
                         save_db(upd_cb, "frota_combustivel.csv")
-                        inv()
+                        inv("frota_combustivel.csv")
                         st.success(
                             f"✅ {cb_lit}L em {cb_mat} — "
                             f"€{cb_val:.2f}"
@@ -1280,7 +1280,7 @@ def render_fat_frota(*_):
                             [seguros_db, novo_s], ignore_index=True
                         ) if not seguros_db.empty else novo_s
                         save_db(upd_s, "seguros_db.csv")
-                        inv()
+                        inv("seguros_db.csv")
                         st.success("✅ Seguro registado!")
                         st.rerun()
 

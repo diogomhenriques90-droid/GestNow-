@@ -1228,7 +1228,7 @@ def render_fat_fundos(*_):
                                     upd_cand,
                                     "fundos_candidaturas.csv"
                                 )
-                                inv()
+                                inv("fundos_candidaturas.csv")
                                 st.success(
                                     f"✅ Adicionado a candidaturas!"
                                 )
@@ -1623,7 +1623,7 @@ def render_fat_fundos(*_):
                         st.session_state.pop(
                             'fundo_candidatar', None
                         )
-                        inv()
+                        inv("fundos_candidaturas.csv")
                         st.success(
                             f"✅ Candidatura criada! "
                             f"Apoio est.: €{apoio_est:,.0f}"
@@ -1748,7 +1748,7 @@ def render_fat_fundos(*_):
                                 cand_db,
                                 "fundos_candidaturas.csv"
                             )
-                            inv(); st.rerun()
+                            inv("fundos_candidaturas.csv"); st.rerun()
 
                         # Gerar PDF
                         if st.button(

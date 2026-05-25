@@ -246,7 +246,7 @@ def render_compras(*_):
                                     tipo="success",
                                     acao_url="/tecnico"
                                 )
-                                inv()
+                                inv("compras.csv")
                                 st.success("✅ Aprovado!")
                                 st.rerun()
 
@@ -288,7 +288,7 @@ def render_compras(*_):
                                     tipo="error",
                                     acao_url="/tecnico"
                                 )
-                                inv()
+                                inv("compras.csv")
                                 st.error("❌ Rejeitado.")
                                 st.rerun()
 
@@ -418,7 +418,7 @@ def render_compras(*_):
                         ),
                         ip=""
                     )
-                    inv()
+                    inv("compras.csv")
                     st.success(
                         f"✅ Compra registada! "
                         f"Total: €{nc_total:,.2f}"
@@ -570,7 +570,7 @@ def render_compras(*_):
                             [forn_db, novo_f], ignore_index=True
                         ) if not forn_db.empty else novo_f
                         save_db(upd_f, "fornecedores_compras.csv")
-                        inv()
+                        inv("fornecedores_compras.csv")
                         st.success(f"✅ {f_nome} adicionado!")
                         st.rerun()
 

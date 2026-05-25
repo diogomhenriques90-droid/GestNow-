@@ -422,7 +422,7 @@ def _render_dormidas(obras_db, users):
                         [dormidas_db, nova_d], ignore_index=True
                     ) if not dormidas_db.empty else nova_d
                     save_db(upd,"dormidas.csv")
-                    inv()
+                    inv("dormidas.csv")
                     st.success(
                         f"✅ Reserva guardada! "
                         f"{n_noites} noite(s) · €{total_d:.2f}"
@@ -499,7 +499,7 @@ def _render_dormidas(obras_db, users):
                             dormidas_db['ID']==did,'Estado'
                         ] = novo_est_d
                         save_db(dormidas_db,"dormidas.csv")
-                        inv(); st.rerun()
+                        inv("dormidas.csv"); st.rerun()
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -921,7 +921,7 @@ def _render_bilhetes(obras_db, users):
                         tipo="success",
                         acao_url="/"
                     )
-                    inv()
+                    inv("bilhetes_viagem.csv")
                     st.success(
                         f"✅ Bilhete guardado! "
                         f"{g_colab} · "
@@ -1111,7 +1111,7 @@ def _render_bilhetes(obras_db, users):
                         ),
                         tipo="success", acao_url="/"
                     )
-                    inv()
+                    inv("bilhetes_viagem.csv")
                     st.success(
                         f"✅ Bilhete guardado! "
                         f"{m_colab} · {m_origem}→{m_destino} · "
@@ -1262,7 +1262,7 @@ def _render_bilhetes(obras_db, users):
                             bilhetes_db['ID']==bid,'Estado'
                         ] = novo_est_b
                         save_db(bilhetes_db,"bilhetes_viagem.csv")
-                        inv(); st.rerun()
+                        inv("bilhetes_viagem.csv"); st.rerun()
 
             # Exportar
             st.markdown("---")
@@ -1416,7 +1416,7 @@ def _render_bilhetes(obras_db, users):
                                         tipo="success",
                                         acao_url="/"
                                     )
-                                    inv(); st.rerun()
+                                    inv("bilhetes_viagem.csv"); st.rerun()
 
             with tab_proc_r:
                 proc_r = reemb[

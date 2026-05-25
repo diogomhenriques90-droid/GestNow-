@@ -233,7 +233,7 @@ def render_qualidade(*_):
                                     detalhes=f"Estado: {novo_stat_nc}",
                                     ip=""
                                 )
-                                inv(); st.rerun()
+                                inv("nao_conformidades.csv"); st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # NOVA NC
@@ -342,7 +342,7 @@ def render_qualidade(*_):
                             tipo="error",
                             acao_url="/"
                         )
-                    inv()
+                    inv("nao_conformidades.csv")
                     st.success("✅ Não conformidade registada!")
                     st.rerun()
 
@@ -404,7 +404,7 @@ def render_qualidade(*_):
                         [insp_db, nova_i], ignore_index=True
                     ) if not insp_db.empty else nova_i
                     save_db(upd_i,"inspecoes_qualidade.csv")
-                    inv()
+                    inv("inspecoes_qualidade.csv")
                     st.success("✅ Inspeção registada!")
                     st.rerun()
 
@@ -512,7 +512,7 @@ def render_qualidade(*_):
                             [docs_sgq, novo_d], ignore_index=True
                         ) if not docs_sgq.empty else novo_d
                         save_db(upd_d,"documentos_sgq.csv")
-                        inv()
+                        inv("documentos_sgq.csv")
                         st.success(
                             f"✅ {d_cod} — {d_tit} adicionado!"
                         )

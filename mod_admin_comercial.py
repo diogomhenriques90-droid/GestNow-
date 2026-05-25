@@ -635,7 +635,7 @@ def render_comercial(*_):
                                   "comercial_oportunidades.csv",
                                   nova_op['ID'].iloc[0],
                                   f"{op_nome} | {op_cliente} | \u20AC{op_valor:,.0f}", "")
-                        inv()
+                        inv("comercial_oportunidades.csv")
                         st.success(f"✅ Oportunidade criada!")
                         st.rerun()
 
@@ -723,7 +723,7 @@ def render_comercial(*_):
                             new_sid = STAGE_IDS[STAGE_NOMES.index(novo_stage)]
                             oport_db.loc[oport_db['ID'] == op_id, 'Stage'] = new_sid
                             save_db(oport_db, "comercial_oportunidades.csv")
-                            inv(); st.rerun()
+                            inv("comercial_oportunidades.csv"); st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB — VISITAS
@@ -824,7 +824,7 @@ def render_comercial(*_):
                             [visitas_db, nova_v], ignore_index=True
                         ) if not visitas_db.empty else nova_v
                         save_db(upd_v, "comercial_visitas.csv")
-                        inv()
+                        inv("comercial_visitas.csv")
                         st.success(
                             f"✅ Visita agendada para "
                             f"{v_data.strftime('%d/%m/%Y')} "
@@ -931,7 +931,7 @@ def render_comercial(*_):
                                 visitas_db['ID'] == vid, 'Estado'
                             ] = novo_est_v
                             save_db(visitas_db, "comercial_visitas.csv")
-                            inv(); st.rerun()
+                            inv("comercial_visitas.csv"); st.rerun()
 
                     # Resultado da visita (se realizada)
                     if est_v == 'Realizada':
@@ -964,7 +964,7 @@ def render_comercial(*_):
                                     visitas_db['ID'] == vid, 'Proxima_Acao'
                                 ] = prox_acao
                                 save_db(visitas_db, "comercial_visitas.csv")
-                                inv()
+                                inv("comercial_visitas.csv")
                                 st.success("✅ Resultado guardado!")
                                 st.rerun()
 
@@ -1052,7 +1052,7 @@ def render_comercial(*_):
                                   "comercial_clientes.csv",
                                   novo_c['ID'].iloc[0],
                                   f"{cc_nome} | {cc_origem}", "")
-                        inv()
+                        inv("comercial_clientes.csv")
                         st.success(f"✅ Cliente {cc_nome} angariado!")
                         st.rerun()
 

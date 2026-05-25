@@ -188,7 +188,7 @@ def render_orcamentacao(*_):
                         ):
                             orc_db.loc[orc_db['ID']==oid,'Status'] = novo_stat
                             save_db(orc_db,"orcamentos.csv")
-                            inv(); st.rerun()
+                            inv("orcamentos.csv"); st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # NOVO ORÇAMENTO
@@ -407,7 +407,7 @@ def render_orcamentacao(*_):
                             ip=""
                         )
                         st.session_state['orc_linhas_temp'] = []
-                        inv()
+                        inv("orcamentos.csv"); inv("orcamentos_linhas.csv")
                         st.success(
                             f"✅ Orçamento criado! "
                             f"Total: €{total_com:,.2f}"

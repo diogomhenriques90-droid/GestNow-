@@ -123,7 +123,7 @@ def render_frota():
                             [frota_db, nova_v], ignore_index=True
                         ) if not frota_db.empty else nova_v
                         save_db(updated_v, "frota_viaturas.csv")
-                        inv()
+                        inv("frota_viaturas.csv")
                         st.success(
                             f"✅ Viatura {matricula.upper()} registada!"
                         )
@@ -174,7 +174,7 @@ def render_frota():
                                 frota_db['ID'] == vid, 'Status'
                             ] = novo_status_v
                             save_db(frota_db, "frota_viaturas.csv")
-                            inv(); st.rerun()
+                            inv("frota_viaturas.csv"); st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB COMBUSTÍVEL
@@ -251,7 +251,7 @@ def render_frota():
                             [comb_db, novo_c], ignore_index=True
                         ) if not comb_db.empty else novo_c
                         save_db(updated_c, "frota_combustivel.csv")
-                        inv()
+                        inv("frota_combustivel.csv")
                         st.success(
                             f"✅ {litros_c}L registados em {mat_c}!"
                         )
@@ -334,7 +334,7 @@ def render_frota():
                             [avarfrota_db, nova_av], ignore_index=True
                         ) if not avarfrota_db.empty else nova_av
                         save_db(updated_av, "frota_avarias.csv")
-                        inv()
+                        inv("frota_avarias.csv")
                         st.success(f"✅ Avaria registada em {mat_av}!")
                         st.rerun()
 
@@ -389,4 +389,4 @@ def render_frota():
                                 avarfrota_db['ID'] == avid, 'Status'
                             ] = novo_av_st
                             save_db(avarfrota_db, "frota_avarias.csv")
-                            inv(); st.rerun()
+                            inv("frota_avarias.csv"); st.rerun()

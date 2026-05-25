@@ -608,7 +608,7 @@ def render_fat_fornecedores(obras_db, *_):
                             detalhes=f"{f_nome} | NIF {f_nif}",
                             ip=""
                         )
-                        inv()
+                        inv("fornecedores.csv")
                         st.success(f"✅ {f_nome} guardado!")
                         st.rerun()
 
@@ -742,7 +742,7 @@ def render_fat_fornecedores(obras_db, *_):
                                     tipo="warning",
                                     acao_url="/admin"
                                 )
-                                inv()
+                                inv("iban_historico.csv"); inv("fornecedores.csv")
                                 st.warning(
                                     f"⚠️ IBAN alterado! "
                                     f"Aguarda 30 dias antes de pagar."
@@ -959,7 +959,7 @@ def render_fat_fornecedores(obras_db, *_):
                             ),
                             ip=""
                         )
-                        inv()
+                        inv("faturas_fornecedores.csv")
                         st.session_state.pop('ocr_forn_dados', None)
                         st.session_state.pop('ocr_forn_pdf', None)
                         st.success(
@@ -1090,7 +1090,7 @@ def render_fat_fornecedores(obras_db, *_):
                                     'Aprovado_Por'
                                 ] = user_nome
                             save_db(fat_forn, "faturas_fornecedores.csv")
-                            inv(); st.rerun()
+                            inv("faturas_fornecedores.csv"); st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB — SUBEMPREITEIROS

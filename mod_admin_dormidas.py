@@ -124,7 +124,7 @@ def render_dormidas():
                             [dormidas_db, nova_d], ignore_index=True
                         ) if not dormidas_db.empty else nova_d
                         save_db(updated_d, "dormidas.csv")
-                        inv()
+                        inv("dormidas.csv")
                         st.success(
                             f"✅ Dormida registada! "
                             f"{noites} noite(s) em {hotel} — € {total:.2f}"
