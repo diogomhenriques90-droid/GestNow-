@@ -68,6 +68,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 GCS_BUCKET = os.environ.get("GCS_BUCKET", "gestnow-dados")
 
+@st.cache_resource
 def _gcs_client():
     try:
         return gcs.Client()
