@@ -1090,6 +1090,5 @@ def render_admin_diarias(*args):
                         "morada": emp_morada.strip(),
                     }
                     _save_config_empresa(nova_cfg)
-                    inv()
                     st.success("✅ Configuração guardada!")
                     st.rerun()

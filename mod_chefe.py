@@ -54,19 +54,23 @@ def _gerar_html_folha(obra, periodo_str, regs_df, responsavel,
     total_h = 0.0
     tec_map: dict = {}   # tec → list de rows
     if not regs_df.empty:
-        for _, r in regs_df.iterrows():
-            h = pd.to_numeric(r.get('Horas_Total', 0), errors='coerce') or 0
-            total_h += h
-            tec = str(r.get('Técnico', '—'))
-            if tec not in tec_map:
-                tec_map[tec] = []
-            tec_map[tec].append({
-                'data':   str(r.get('Data',   '—')),
-                'frente': str(r.get('Frente', '—')),
-                'turno':  str(r.get('Turnos', '—')),
-                'horas':  h,
-                'relat':  str(r.get('Relatorio', ''))[:80],
-            })
+        df_h = regs_df.copy()
+        for col in ['Data', 'Frente', 'Turnos', 'Relatorio', 'Técnico']:
+            if col not in df_h.columns:
+                df_h[col] = '—'
+        df_h['Horas_Total'] = pd.to_numeric(df_h['Horas_Total'], errors='coerce').fillna(0)
+        total_h = float(df_h['Horas_Total'].sum())
+        for tec, grp in df_h.groupby('Técnico', sort=False):
+            tec_map[str(tec)] = [
+                {
+                    'data':   str(r.get('Data',      '—') or '—'),
+                    'frente': str(r.get('Frente',    '—') or '—'),
+                    'turno':  str(r.get('Turnos',    '—') or '—'),
+                    'horas':  r.get('Horas_Total',   0),
+                    'relat':  str(r.get('Relatorio', '') or '')[:80],
+                }
+                for r in grp.to_dict('records')
+            ]
 
     # ── Linhas da tabela agrupadas por técnico ─────────────────────────────
     rows_html = ""
@@ -338,6 +342,7 @@ def _gerar_html_folha(obra, periodo_str, regs_df, responsavel,
 # =============================================================================
 # RENDER PRINCIPAL
 # =============================================================================
+@st.fragment
 def render_chefe(*args):
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
