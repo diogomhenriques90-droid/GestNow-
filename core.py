@@ -112,6 +112,43 @@ def _gcs_write(fn, content_bytes):
 # GCS BINÁRIO, BACKUP E CONTRATO
 # =============================================================================
 
+def _gcs_append_row(fn: str, row: dict) -> bool:
+    """
+    Appends one CSV row to a GCS file via server-side Compose — zero GCS reads.
+    Writes a tiny delta blob, then merges it into the main file.
+    Falls back to load_db→save_db on error.
+    """
+    client = _gcs_client()
+    if client is None:
+        return False
+    try:
+        bucket    = client.bucket(GCS_BUCKET)
+        main_blob = bucket.blob(f"data/{fn}")
+        row_csv   = pd.DataFrame([row]).to_csv(index=False, header=False)
+        if not main_blob.exists():
+            header = ",".join(str(k) for k in row.keys())
+            main_blob.upload_from_string(
+                f"{header}\n{row_csv}".encode('utf-8-sig'), content_type="text/csv")
+            return True
+        delta = bucket.blob(f"data/_d_{uuid.uuid4().hex[:8]}_{fn}")
+        delta.upload_from_string(row_csv.encode('utf-8'), content_type="text/csv")
+        try:
+            main_blob.compose([main_blob, delta])
+        finally:
+            try:    delta.delete()
+            except: pass
+        return True
+    except Exception as e:
+        logger.warning(f"_gcs_append_row fallback {fn}: {e}")
+        try:
+            df = load_db(fn, list(row.keys()))
+            save_db(pd.concat([df, pd.DataFrame([row])], ignore_index=True), fn)
+            return True
+        except Exception as e2:
+            logger.error(f"_gcs_append_row fallback falhou {fn}: {e2}")
+            return False
+
+
 def _gcs_write_binary(data: bytes, filename: str) -> bool:
     try:
         client = _gcs_client()
@@ -745,27 +782,15 @@ def inject_global_css():
 # =============================================================================
 def log_audit(usuario, acao, tabela, registro_id, detalhes="", ip=""):
     try:
-        try:
-            logs = load_db("logs_audit.csv", [
-                "ID","Data","Hora","Usuario","Acao","Tabela","Registro_ID","Detalhes","IP"
-            ])
-        except:
-            logs = pd.DataFrame(columns=[
-                "ID","Data","Hora","Usuario","Acao","Tabela","Registro_ID","Detalhes","IP"
-            ])
-        novo = pd.DataFrame([{
+        return _gcs_append_row("logs_audit.csv", {
             "ID":          str(uuid.uuid4())[:8].upper(),
             "Data":        datetime.now().strftime("%d/%m/%Y"),
             "Hora":        datetime.now().strftime("%H:%M:%S"),
             "Usuario":     usuario, "Acao": acao, "Tabela": tabela,
             "Registro_ID": str(registro_id), "Detalhes": detalhes, "IP": ip
-        }])
-        logs = pd.concat([logs, novo], ignore_index=True)
-        save_db(logs, "logs_audit.csv")
-        inv("logs_audit.csv")
-        return True
+        })
     except Exception as e:
-        print(f"Erro ao criar log: {e}")
+        logger.warning(f"log_audit erro: {e}")
         return False
 
 def get_audit_logs(filtro_usuario=None, filtro_data=None, limite=100):
@@ -810,28 +835,18 @@ def render_signature_pad(label, key_prefix):
 # =============================================================================
 def criar_notificacao(destinatario, titulo, mensagem, tipo="info", acao_url=""):
     try:
-        try:
-            notifs = load_db("notificacoes.csv", [
-                "ID","Data","Hora","Destinatario","Titulo","Mensagem","Tipo","Lida","Acao_URL"
-            ])
-        except:
-            notifs = pd.DataFrame(columns=[
-                "ID","Data","Hora","Destinatario","Titulo","Mensagem","Tipo","Lida","Acao_URL"
-            ])
-        nova = pd.DataFrame([{
+        _gcs_append_row("notificacoes.csv", {
             "ID":           str(uuid.uuid4())[:8].upper(),
             "Data":         datetime.now().strftime("%d/%m/%Y"),
             "Hora":         datetime.now().strftime("%H:%M:%S"),
             "Destinatario": destinatario, "Titulo": titulo,
             "Mensagem":     mensagem, "Tipo": tipo,
             "Lida":         "Não", "Acao_URL": acao_url
-        }])
-        notifs = pd.concat([notifs, nova], ignore_index=True)
-        save_db(notifs, "notificacoes.csv")
+        })
         inv("notificacoes.csv")
         return True
     except Exception as e:
-        print(f"Erro ao criar notificação: {e}")
+        logger.warning(f"criar_notificacao erro: {e}")
         return False
 
 def get_notificacoes(destinatario, apenas_nao_lidas=True, limite=50):
