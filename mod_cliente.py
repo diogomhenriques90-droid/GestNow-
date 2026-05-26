@@ -11,6 +11,7 @@ from core import (
     gerar_qr_code_data, parse_qr_code_data, render_qr_code_image
 )
 
+@st.fragment
 def render_cliente_portal():
     st.markdown("""
     <style>

@@ -54,6 +54,7 @@ def _regs_com_data(registos_db: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+@st.fragment
 def render_secretariado(*args):
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,

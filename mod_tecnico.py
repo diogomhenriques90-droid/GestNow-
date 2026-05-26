@@ -38,6 +38,7 @@ def _load_users_fresh():
     return _load_users_cached()
 
 
+@st.fragment
 def render_tecnico(*args):
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,

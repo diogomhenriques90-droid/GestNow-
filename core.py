@@ -15,15 +15,9 @@ import pandas as pd
 import os, re, secrets, io, base64, bcrypt, logging, uuid, hashlib, json
 from datetime import datetime, timedelta, date
 from google.cloud import storage as gcs
-from PIL import Image
 import plotly.express as px
 from streamlit_folium import folium_static
 import folium
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm
 
 # =============================================================================
 # DESIGN SYSTEM
@@ -593,6 +587,7 @@ def sl(s):
 
 def process_and_compress_image(image_file, max_size=(1280, 1280), quality=85):
     try:
+        from PIL import Image
         img = Image.open(image_file)
         if img.mode in ("RGBA", "P"):
             img = img.convert("RGB")
@@ -606,6 +601,7 @@ def process_and_compress_image(image_file, max_size=(1280, 1280), quality=85):
 
 def canvas_to_b64(image_data):
     try:
+        from PIL import Image
         img = Image.fromarray(image_data.astype("uint8"), "RGBA")
         buf = io.BytesIO()
         img.save(buf, format="PNG")

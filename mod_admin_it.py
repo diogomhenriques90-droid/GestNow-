@@ -567,7 +567,6 @@ def render_it():
                         st.session_state['backup_erros']      = erros_bkp
 
                         _registar_backup(admin_nome)
-                        inv()
 
                     except Exception as ex:
                         st.error(f"❌ Erro ao criar backup: {ex}")
