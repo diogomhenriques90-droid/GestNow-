@@ -61,33 +61,164 @@ def _tab_secretariado():
 
 
 @st.fragment
-def _tab_producao():
+def _subtab_prod_obras():
     d = _unpack()
+    from mod_admin_obras import render_obras
+    render_obras(d["obras_db"], d["frentes_db"], d["users"], d["inst_acessos_db"])
+
+@st.fragment
+def _subtab_prod_frota():
+    from mod_admin_frota import render_frota
+    render_frota()
+
+@st.fragment
+def _subtab_prod_deslocacoes():
+    d = _unpack()
+    from mod_admin_deslocacoes import render_deslocacoes
+    render_deslocacoes(d["obras_db"], d["users"])
+
+@st.fragment
+def _subtab_prod_planeamento():
+    from mod_admin_planeamento import render_planeamento
+    render_planeamento()
+
+@st.fragment
+def _subtab_prod_acessos():
+    d = _unpack()
+    from mod_admin_acessos_obras import render_acessos_obras
+    render_acessos_obras(d["users"], d["obras_db"])
+
+
+@st.fragment
+def _tab_producao():
     st.markdown("## 🏭 Produção")
     prod_tabs = st.tabs([
         "🏗️ Obras", "🚗 Frota", "🗺️ Deslocações", "📋 Planeamento", "🔐 Acessos"
     ])
-    with prod_tabs[0]:
-        from mod_admin_obras import render_obras
-        render_obras(d["obras_db"], d["frentes_db"],
-                     d["users"], d["inst_acessos_db"])
-    with prod_tabs[1]:
-        from mod_admin_frota import render_frota
-        render_frota()
-    with prod_tabs[2]:
-        from mod_admin_deslocacoes import render_deslocacoes
-        render_deslocacoes(d["obras_db"], d["users"])
-    with prod_tabs[3]:
-        from mod_admin_planeamento import render_planeamento
-        render_planeamento()
-    with prod_tabs[4]:
-        from mod_admin_acessos_obras import render_acessos_obras
-        render_acessos_obras(d["users"], d["obras_db"])
+    with prod_tabs[0]: _subtab_prod_obras()
+    with prod_tabs[1]: _subtab_prod_frota()
+    with prod_tabs[2]: _subtab_prod_deslocacoes()
+    with prod_tabs[3]: _subtab_prod_planeamento()
+    with prod_tabs[4]: _subtab_prod_acessos()
+
+
+@st.fragment
+def _subtab_fat_dashboard():
+    d = _unpack()
+    from mod_fat_dashboard import render_fat_dashboard
+    render_fat_dashboard(d["obras_db"], d["registos_db"], d["faturas_db"], d["diarias_pagamentos_db"])
+
+@st.fragment
+def _subtab_fat_clientes():
+    d = _unpack()
+    from mod_fat_clientes import render_fat_clientes
+    render_fat_clientes(d["obras_db"], d["registos_db"])
+
+@st.fragment
+def _subtab_fat_fornecedores():
+    d = _unpack()
+    from mod_fat_fornecedores import render_fat_fornecedores
+    render_fat_fornecedores(d["obras_db"])
+
+@st.fragment
+def _subtab_fat_rh():
+    d = _unpack()
+    from mod_fat_rh import render_fat_rh
+    render_fat_rh(d["obras_db"], d["registos_db"])
+
+@st.fragment
+def _subtab_fat_frota():
+    from mod_fat_frota import render_fat_frota
+    render_fat_frota()
+
+@st.fragment
+def _subtab_fat_obras():
+    d = _unpack()
+    from mod_fat_obras import render_fat_obras
+    render_fat_obras(d["obras_db"], d["registos_db"], d["faturas_db"], d["diarias_pagamentos_db"])
+
+@st.fragment
+def _subtab_fat_tesouraria():
+    d = _unpack()
+    from mod_fat_tesouraria import render_fat_tesouraria
+    render_fat_tesouraria(d["obras_db"], d["registos_db"], d["faturas_db"], d["diarias_pagamentos_db"])
+
+@st.fragment
+def _subtab_fat_crise():
+    d = _unpack()
+    from mod_fat_crise import render_fat_crise
+    render_fat_crise(d["obras_db"], d["registos_db"], d["faturas_db"], d["diarias_pagamentos_db"])
+
+@st.fragment
+def _subtab_fat_fundos():
+    from mod_fat_fundos import render_fat_fundos
+    render_fat_fundos()
+
+@st.fragment
+def _subtab_fat_imobilizado():
+    from mod_fat_imobilizado import render_fat_imobilizado
+    render_fat_imobilizado()
+
+@st.fragment
+def _subtab_fat_fiscal():
+    d = _unpack()
+    from mod_fat_fiscal import render_fat_fiscal
+    render_fat_fiscal(d["obras_db"], d["registos_db"], d["faturas_db"], d["diarias_pagamentos_db"])
+
+@st.fragment
+def _subtab_fat_auditoria():
+    d = _unpack()
+    from mod_fat_auditoria import render_fat_auditoria
+    render_fat_auditoria(d["obras_db"], d["registos_db"], d["faturas_db"], d["diarias_pagamentos_db"])
+
+@st.fragment
+def _subtab_fat_reporting():
+    d = _unpack()
+    from mod_fat_reporting import render_fat_reporting
+    render_fat_reporting(d["obras_db"], d["registos_db"], d["faturas_db"], d["diarias_pagamentos_db"])
+
+@st.fragment
+def _subtab_fat_custos():
+    d = _unpack()
+    _render_custos_por_obra(d["obras_db"], d["registos_db"], d["req_mat_db"], d["req_fer_db"], d["req_epi_db"], d["incs_db"])
+
+@st.fragment
+def _subtab_fat_diarias():
+    d = _unpack()
+    from mod_admin_diarias import render_admin_diarias
+    render_admin_diarias(
+        d["users"], d["obras_db"], d["frentes_db"], d["registos_db"],
+        d["faturas_db"], d["docs_db"], d["incs_db"], d["sw_db"],
+        d["obs_db"], d["equip_db"], d["diags_db"], d["diags_u_db"],
+        d["folhas_db"], d["comuns_db"], d["comuns_u_db"],
+        d["req_fer_db"], d["req_mat_db"], d["req_epi_db"], d["avals_db"],
+        d["inst_acessos_db"], d["diarias_config_db"],
+        d["diarias_faltas_db"], d["diarias_pagamentos_db"]
+    )
+
+@st.fragment
+def _subtab_fat_folhas():
+    d = _unpack()
+    _render_folhas_ponto_fat(d["folhas_db"], d["folhas_ocr_db"], d["obras_db"])
+
+@st.fragment
+def _subtab_fat_horas():
+    d = _unpack()
+    _render_horas_faturacao(d["registos_db"])
+
+@st.fragment
+def _subtab_fat_emissao():
+    d = _unpack()
+    _render_emissao_mensal(d["obras_db"], d["registos_db"], d["faturas_db"], d["diarias_pagamentos_db"])
+
+@st.fragment
+def _subtab_fat_exportacao():
+    from mod_exportacao_contabilidade import render_exportacao_contabilidade
+    render_exportacao_contabilidade()
 
 
 @st.fragment
 def _tab_faturacao():
-    d = _unpack()
     st.markdown("## 💰 Faturação")
     fat_tabs = st.tabs([
         "📊 Dashboard CFO", "🧾 Clientes & Faturação", "📥 Fornecedores",
@@ -97,80 +228,25 @@ def _tab_faturacao():
         "📊 Custos por Obra", "💶 Diárias", "📄 Folhas de Ponto",
         "⏱️ Horas Faturação", "📤 Emissão Mensal", "📤 Export Contabilidade",
     ])
-    with fat_tabs[0]:
-        from mod_fat_dashboard import render_fat_dashboard
-        render_fat_dashboard(d["obras_db"], d["registos_db"],
-                             d["faturas_db"], d["diarias_pagamentos_db"])
-    with fat_tabs[1]:
-        from mod_fat_clientes import render_fat_clientes
-        render_fat_clientes(d["obras_db"], d["registos_db"])
-    with fat_tabs[2]:
-        from mod_fat_fornecedores import render_fat_fornecedores
-        render_fat_fornecedores(d["obras_db"])
-    with fat_tabs[3]:
-        from mod_fat_rh import render_fat_rh
-        render_fat_rh(d["obras_db"], d["registos_db"])
-    with fat_tabs[4]:
-        from mod_fat_frota import render_fat_frota
-        render_fat_frota()
-    with fat_tabs[5]:
-        from mod_fat_obras import render_fat_obras
-        render_fat_obras(d["obras_db"], d["registos_db"],
-                         d["faturas_db"], d["diarias_pagamentos_db"])
-    with fat_tabs[6]:
-        from mod_fat_tesouraria import render_fat_tesouraria
-        render_fat_tesouraria(d["obras_db"], d["registos_db"],
-                              d["faturas_db"], d["diarias_pagamentos_db"])
-    with fat_tabs[7]:
-        from mod_fat_crise import render_fat_crise
-        render_fat_crise(d["obras_db"], d["registos_db"],
-                         d["faturas_db"], d["diarias_pagamentos_db"])
-    with fat_tabs[8]:
-        from mod_fat_fundos import render_fat_fundos
-        render_fat_fundos()
-    with fat_tabs[9]:
-        from mod_fat_imobilizado import render_fat_imobilizado
-        render_fat_imobilizado()
-    with fat_tabs[10]:
-        from mod_fat_fiscal import render_fat_fiscal
-        render_fat_fiscal(d["obras_db"], d["registos_db"],
-                          d["faturas_db"], d["diarias_pagamentos_db"])
-    with fat_tabs[11]:
-        from mod_fat_auditoria import render_fat_auditoria
-        render_fat_auditoria(d["obras_db"], d["registos_db"],
-                             d["faturas_db"], d["diarias_pagamentos_db"])
-    with fat_tabs[12]:
-        from mod_fat_reporting import render_fat_reporting
-        render_fat_reporting(d["obras_db"], d["registos_db"],
-                             d["faturas_db"], d["diarias_pagamentos_db"])
-    with fat_tabs[13]:
-        _render_custos_por_obra(
-            d["obras_db"], d["registos_db"], d["req_mat_db"],
-            d["req_fer_db"], d["req_epi_db"], d["incs_db"]
-        )
-    with fat_tabs[14]:
-        from mod_admin_diarias import render_admin_diarias
-        render_admin_diarias(
-            d["users"], d["obras_db"], d["frentes_db"], d["registos_db"],
-            d["faturas_db"], d["docs_db"], d["incs_db"], d["sw_db"],
-            d["obs_db"], d["equip_db"], d["diags_db"], d["diags_u_db"],
-            d["folhas_db"], d["comuns_db"], d["comuns_u_db"],
-            d["req_fer_db"], d["req_mat_db"], d["req_epi_db"], d["avals_db"],
-            d["inst_acessos_db"], d["diarias_config_db"],
-            d["diarias_faltas_db"], d["diarias_pagamentos_db"]
-        )
-    with fat_tabs[15]:
-        _render_folhas_ponto_fat(d["folhas_db"], d["folhas_ocr_db"], d["obras_db"])
-    with fat_tabs[16]:
-        _render_horas_faturacao(d["registos_db"])
-    with fat_tabs[17]:
-        _render_emissao_mensal(
-            d["obras_db"], d["registos_db"], d["faturas_db"],
-            d["diarias_pagamentos_db"]
-        )
-    with fat_tabs[18]:
-        from mod_exportacao_contabilidade import render_exportacao_contabilidade
-        render_exportacao_contabilidade()
+    with fat_tabs[0]:  _subtab_fat_dashboard()
+    with fat_tabs[1]:  _subtab_fat_clientes()
+    with fat_tabs[2]:  _subtab_fat_fornecedores()
+    with fat_tabs[3]:  _subtab_fat_rh()
+    with fat_tabs[4]:  _subtab_fat_frota()
+    with fat_tabs[5]:  _subtab_fat_obras()
+    with fat_tabs[6]:  _subtab_fat_tesouraria()
+    with fat_tabs[7]:  _subtab_fat_crise()
+    with fat_tabs[8]:  _subtab_fat_fundos()
+    with fat_tabs[9]:  _subtab_fat_imobilizado()
+    with fat_tabs[10]: _subtab_fat_fiscal()
+    with fat_tabs[11]: _subtab_fat_auditoria()
+    with fat_tabs[12]: _subtab_fat_reporting()
+    with fat_tabs[13]: _subtab_fat_custos()
+    with fat_tabs[14]: _subtab_fat_diarias()
+    with fat_tabs[15]: _subtab_fat_folhas()
+    with fat_tabs[16]: _subtab_fat_horas()
+    with fat_tabs[17]: _subtab_fat_emissao()
+    with fat_tabs[18]: _subtab_fat_exportacao()
 
 
 @st.fragment
@@ -313,6 +389,58 @@ def _tab_hse():
 # =============================================================================
 # RENDER ADMIN — hub principal (header + métricas + chamada dos fragmentos)
 # =============================================================================
+@st.fragment
+def _fragment_notificacoes():
+    from core import (get_notificacoes, marcar_notificacao_lida,
+                      contar_notificacoes_nao_lidas)
+    user_atual  = st.session_state.user
+    n_nao_lidas = contar_notificacoes_nao_lidas(user_atual)
+    col_n1, col_n2 = st.columns([10, 1])
+    with col_n2:
+        if n_nao_lidas > 0:
+            st.markdown(
+                f"<div style='text-align:right;'>"
+                f"<span style='font-size:1.5rem;'>🔔</span>"
+                f"<span style='background:#EF4444;color:white;border-radius:50%;"
+                f"padding:2px 8px;font-size:0.8rem;margin-left:-10px;'>"
+                f"{n_nao_lidas}</span></div>",
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                "<div style='text-align:right;'>"
+                "<span style='font-size:1.5rem;opacity:0.5;'>🔔</span></div>",
+                unsafe_allow_html=True
+            )
+    with st.expander("🔔 Ver Notificações", expanded=n_nao_lidas > 0):
+        notifs_df = get_notificacoes(user_atual, apenas_nao_lidas=True, limite=20)
+        if not notifs_df.empty:
+            for _, notif in notifs_df.iterrows():
+                cor = {"info":"#3B82F6","warning":"#F59E0B",
+                       "error":"#EF4444","success":"#10B981"}.get(
+                    notif.get('Tipo','info'),"#6B7280"
+                )
+                st.markdown(
+                    f"<div style='background:{cor}22;border-left:4px solid {cor};"
+                    f"padding:15px;border-radius:8px;margin-bottom:10px;'>"
+                    f"<strong style='color:{cor};'>{notif.get('Titulo','')}</strong>"
+                    f"<p style='margin:5px 0 0 0;color:#94A3B8;'>"
+                    f"{notif.get('Mensagem','')}</p>"
+                    f"<small style='color:#6B7280;'>"
+                    f"{notif.get('Data','')} {notif.get('Hora','')}</small>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+            if st.button("✅ Marcar Todas como Lidas",
+                          key="marcar_todas_lidas"):
+                for _, notif in notifs_df.iterrows():
+                    marcar_notificacao_lida(notif['ID'])
+                inv("notificacoes.csv")
+                st.rerun()
+        else:
+            st.info("✅ Sem notificações pendentes.")
+
+
 def render_admin(*args):
     """Hub Principal do Admin — 10 tabs com @st.fragment."""
 
@@ -355,56 +483,7 @@ def render_admin(*args):
     """, unsafe_allow_html=True)
 
     # ── Notificações ──────────────────────────────────────────────
-    from core import (get_notificacoes, marcar_notificacao_lida,
-                      contar_notificacoes_nao_lidas)
-    user_atual  = st.session_state.user
-    n_nao_lidas = contar_notificacoes_nao_lidas(user_atual)
-
-    col_n1, col_n2 = st.columns([10, 1])
-    with col_n2:
-        if n_nao_lidas > 0:
-            st.markdown(
-                f"<div style='text-align:right;'>"
-                f"<span style='font-size:1.5rem;'>🔔</span>"
-                f"<span style='background:#EF4444;color:white;border-radius:50%;"
-                f"padding:2px 8px;font-size:0.8rem;margin-left:-10px;'>"
-                f"{n_nao_lidas}</span></div>",
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                "<div style='text-align:right;'>"
-                "<span style='font-size:1.5rem;opacity:0.5;'>🔔</span></div>",
-                unsafe_allow_html=True
-            )
-
-    with st.expander("🔔 Ver Notificações", expanded=n_nao_lidas > 0):
-        notifs_df = get_notificacoes(user_atual, apenas_nao_lidas=True, limite=20)
-        if not notifs_df.empty:
-            for _, notif in notifs_df.iterrows():
-                cor = {"info":"#3B82F6","warning":"#F59E0B",
-                       "error":"#EF4444","success":"#10B981"}.get(
-                    notif.get('Tipo','info'),"#6B7280"
-                )
-                st.markdown(
-                    f"<div style='background:{cor}22;border-left:4px solid {cor};"
-                    f"padding:15px;border-radius:8px;margin-bottom:10px;'>"
-                    f"<strong style='color:{cor};'>{notif.get('Titulo','')}</strong>"
-                    f"<p style='margin:5px 0 0 0;color:#94A3B8;'>"
-                    f"{notif.get('Mensagem','')}</p>"
-                    f"<small style='color:#6B7280;'>"
-                    f"{notif.get('Data','')} {notif.get('Hora','')}</small>"
-                    f"</div>",
-                    unsafe_allow_html=True
-                )
-            if st.button("✅ Marcar Todas como Lidas",
-                          key="marcar_todas_lidas"):
-                for _, notif in notifs_df.iterrows():
-                    marcar_notificacao_lida(notif['ID'])
-                inv("notificacoes.csv")
-                st.rerun()
-        else:
-            st.info("✅ Sem notificações pendentes.")
+    _fragment_notificacoes()
 
     st.divider()
 
@@ -502,26 +581,12 @@ def _render_custos_por_obra(
     except:
         pass
 
-    # Combustível frota
-    comb_total = 0
-    try:
-        comb_db = load_db("frota_combustivel.csv", [
-            "Valor"
-        ], silent=True)
-        if not comb_db.empty:
-            comb_total = pd.to_numeric(
-                comb_db['Valor'], errors='coerce'
-            ).fillna(0).sum()
-    except:
-        pass
+    c1, c2, c3 = st.columns(3)
+    with c1: st.metric("⏱️ Horas",     fh(horas_obra))
+    with c2: st.metric("📦 Materiais", f"€ {mat_total:.2f}")
+    with c3: st.metric("🏨 Dormidas",  f"€ {dorm_total:.2f}")
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("⏱️ Horas",      fh(horas_obra))
-    with c2: st.metric("📦 Materiais",  f"€ {mat_total:.2f}")
-    with c3: st.metric("🏨 Dormidas",   f"€ {dorm_total:.2f}")
-    with c4: st.metric("⛽ Combustível", f"€ {comb_total:.2f}")
-
-    total_custos = mat_total + dorm_total + comb_total
+    total_custos = mat_total + dorm_total
     st.metric("💰 Total Custos (sem horas)", f"€ {total_custos:.2f}")
 
 
@@ -607,6 +672,22 @@ def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
             st.info(f"📋 Sem folhas OCR para {obra_fp}.")
     else:
         st.info("📋 Sem folhas OCR disponíveis.")
+
+
+def _render_horas_faturacao(registos_db):
+    st.markdown("### ⏱️ Horas por Obra (Faturação)")
+    if registos_db.empty:
+        st.info("📋 Sem registos.")
+        return
+    regs = registos_db[registos_db['Status'] == '3'].copy()
+    if regs.empty:
+        st.info("📋 Sem registos com status faturado.")
+        return
+    regs['Horas_Total'] = pd.to_numeric(regs['Horas_Total'], errors='coerce').fillna(0)
+    resumo = regs.groupby('Obra')['Horas_Total'].sum().reset_index()
+    resumo.columns = ['Obra', 'Horas Totais']
+    resumo['Horas Totais'] = resumo['Horas Totais'].apply(fh)
+    st.dataframe(resumo.sort_values('Obra'), use_container_width=True, hide_index=True)
 
 
 def _render_emissao_mensal(
