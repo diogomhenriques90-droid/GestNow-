@@ -54,18 +54,7 @@ if page == "criar_admin":
     render_criar_admin()
     st.stop()
 
-# =============================================================================
-# FIX 1 — _load_users_fresh usa agora _load_users_cached do core (TTL=60s)
-# Em vez de fazer leitura directa ao GCS em cada chamada,
-# reutiliza o resultado em cache durante 60 segundos.
-# Quando é necessário forçar leitura fresca (após save),
-# chama-se _load_users_cached.clear() via inv("usuarios.csv").
-# =============================================================================
 def _load_users_fresh():
-    """
-    Wrapper que usa a versão cached do core.
-    Para forçar re-leitura: inv("usuarios.csv")
-    """
     return _load_users_cached()
 
 
@@ -265,10 +254,8 @@ def _render_validacao_obrigatoria(user_nome):
                                     mensagem=f"{user_nome} validou todos os documentos.",
                                     tipo="success", acao_url="/admin?tab=rh")
                                 st.success("✅ Todos os documentos confirmados!")
-                                time.sleep(1)
                             else:
                                 st.success(f"✅ '{pdf_nome}' confirmado! ({novos_val}/{total_pdfs})")
-                                time.sleep(0.5)
                             st.rerun()
                     else:
                         st.success("✅")
@@ -317,7 +304,6 @@ def _render_validacao_obrigatoria(user_nome):
                         tipo="success", acao_url="/admin?tab=rh")
                     st.success("✅ Preço hora aceite!")
                     st.balloons()
-                    time.sleep(1.5)
                     st.rerun()
         with col_rec:
             if st.button("❌ RECUSAR", key="app_recusar_preco",
@@ -337,7 +323,6 @@ def _render_validacao_obrigatoria(user_nome):
                         mensagem=f"{user_nome} RECUSOU €{preco_hora_valor}/hora.",
                         tipo="error", acao_url="/admin?tab=rh")
                     st.warning("❌ Preço recusado. Admin notificado.")
-                    time.sleep(1.5)
                     st.rerun()
         st.stop()
 
@@ -489,7 +474,6 @@ def _render_validacao_obrigatoria(user_nome):
                         tipo="success", acao_url="/admin?tab=rh")
                     st.success("✅ Perfil guardado! Bem-vindo(a) ao GESTNOW!")
                     st.balloons()
-                    time.sleep(2)
                     st.rerun()
         st.stop()
 
@@ -544,7 +528,6 @@ def _render_validacao_obrigatoria(user_nome):
                         tipo="info", acao_url="/admin?tab=rh")
                     st.success("✅ Integração completa! Bem-vindo(a) ao GESTNOW!")
                     st.balloons()
-                    time.sleep(2)
                     st.rerun()
         else:
             st.info("👆 Seleciona o ficheiro para continuar.")
@@ -839,7 +822,6 @@ else:
                                               ip="")
                                     inv("usuarios.csv")  # FIX 2 — selectivo
                                     st.success("✅ Assinatura submetida! O RH será notificado.")
-                                    time.sleep(1.5)
                                     st.rerun()
                         st.stop()
         except Exception as _e_ct:
@@ -877,7 +859,6 @@ else:
                              use_container_width=True):
                     _registar_backup(user_nome)
                     st.success("✅ Backup confirmado!")
-                    time.sleep(0.8)
                     st.rerun()
 
         if f"{ICONS['admin']} Admin" in menu:

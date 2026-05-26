@@ -396,7 +396,7 @@ def restore_backup(backup_path):
 @st.cache_data(ttl=1800, show_spinner=False)
 def _load_users_cached():
     """
-    Lê usuarios.csv do GCS com cache de 60 segundos.
+    Lê usuarios.csv do GCS com cache de 30 minutos (1800s).
     Usar em todo o código em vez de _gcs_read("usuarios.csv") directo.
     Para forçar leitura fresca: _load_users_cached.clear()
     """
@@ -1028,15 +1028,19 @@ def render_offline_banner():
     """, unsafe_allow_html=True)
 
 def sync_data_when_online():
-    if "offline_action_queue" in st.session_state:
-        pendentes = [i for i in st.session_state["offline_action_queue"] if i["estado"]=="pendente"]
-        if pendentes and check_connection_status():
-            resultados = execute_offline_queue()
-            if resultados["sucessos"] > 0:
-                st.success(f"✅ {resultados['sucessos']} ações sincronizadas!")
-            if resultados["falhas"] > 0:
-                st.error(f"❌ {resultados['falhas']} ações falharam.")
-            _cached_load_db.clear()
+    if "offline_action_queue" not in st.session_state:
+        return
+    pendentes = [i for i in st.session_state["offline_action_queue"] if i["estado"] == "pendente"]
+    if not pendentes:
+        return
+    if not check_connection_status():
+        return
+    resultados = execute_offline_queue()
+    if resultados["sucessos"] > 0:
+        st.success(f"✅ {resultados['sucessos']} ações sincronizadas!")
+        _cached_load_db.clear()
+    if resultados["falhas"] > 0:
+        st.error(f"❌ {resultados['falhas']} ações falharam.")
 
 # =============================================================================
 # QR CODE

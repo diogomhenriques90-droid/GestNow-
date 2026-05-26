@@ -3,8 +3,318 @@ import pandas as pd
 from core import load_all, inv, ICONS, fh, save_db
 from datetime import datetime
 
+# =============================================================================
+# HELPERS — descompactar load_all() de forma uniforme
+# =============================================================================
+_ALL_COLS = [
+    "users","obras_db","frentes_db","registos_db","faturas_db","docs_db",
+    "incs_db","sw_db","obs_db","equip_db","diags_db","diags_u_db","folhas_db",
+    "comuns_db","comuns_u_db","req_fer_db","req_mat_db","req_epi_db","avals_db",
+    "inst_acessos_db","diarias_config_db","diarias_faltas_db",
+    "diarias_pagamentos_db","folhas_ocr_db"
+]
+
+def _unpack():
+    """Chama load_all() (cached) e devolve dict com os DataFrames."""
+    vals = load_all()
+    return dict(zip(_ALL_COLS, vals))
+
+# =============================================================================
+# FRAGMENTOS — cada tab é um @st.fragment independente.
+# Um clique dentro do tab RH só rerun o fragmento RH; os outros 9 não correm.
+# =============================================================================
+
+@st.fragment
+def _tab_armazem():
+    d = _unpack()
+    from mod_armazem import render_armazem
+    render_armazem(d["req_fer_db"], d["req_mat_db"],
+                   d["req_epi_db"],  d["incs_db"])
+
+
+@st.fragment
+def _tab_rh():
+    d = _unpack()
+    from mod_admin_rh import render_admin_rh
+    render_admin_rh(
+        d["users"], d["obras_db"], d["frentes_db"], d["registos_db"],
+        d["faturas_db"], d["docs_db"], d["incs_db"], d["sw_db"], d["obs_db"],
+        d["equip_db"], d["diags_db"], d["diags_u_db"], d["folhas_db"],
+        d["comuns_db"], d["comuns_u_db"], d["req_fer_db"], d["req_mat_db"],
+        d["req_epi_db"], d["avals_db"], d["inst_acessos_db"]
+    )
+
+
+@st.fragment
+def _tab_secretariado():
+    d = _unpack()
+    from mod_secretariado import render_secretariado
+    render_secretariado(
+        d["users"], d["obras_db"], d["frentes_db"], d["registos_db"],
+        d["faturas_db"], d["docs_db"], d["incs_db"], d["sw_db"], d["obs_db"],
+        d["equip_db"], d["diags_db"], d["diags_u_db"], d["folhas_db"],
+        d["comuns_db"], d["comuns_u_db"], d["req_fer_db"], d["req_mat_db"],
+        d["req_epi_db"], d["avals_db"], d["inst_acessos_db"],
+        d["diarias_config_db"], d["diarias_faltas_db"],
+        d["diarias_pagamentos_db"]
+    )
+
+
+@st.fragment
+def _tab_producao():
+    d = _unpack()
+    st.markdown("## 🏭 Produção")
+    prod_tabs = st.tabs([
+        "🏗️ Obras", "🚗 Frota", "🗺️ Deslocações", "📋 Planeamento", "🔐 Acessos"
+    ])
+    with prod_tabs[0]:
+        from mod_admin_obras import render_obras
+        render_obras(d["obras_db"], d["frentes_db"],
+                     d["users"], d["inst_acessos_db"])
+    with prod_tabs[1]:
+        from mod_admin_frota import render_frota
+        render_frota()
+    with prod_tabs[2]:
+        from mod_admin_deslocacoes import render_deslocacoes
+        render_deslocacoes(d["obras_db"], d["users"])
+    with prod_tabs[3]:
+        from mod_admin_planeamento import render_planeamento
+        render_planeamento()
+    with prod_tabs[4]:
+        from mod_admin_acessos_obras import render_acessos_obras
+        render_acessos_obras(d["users"], d["obras_db"])
+
+
+@st.fragment
+def _tab_faturacao():
+    d = _unpack()
+    st.markdown("## 💰 Faturação")
+    fat_tabs = st.tabs([
+        "📊 Dashboard CFO", "🧾 Clientes & Faturação", "📥 Fornecedores",
+        "👥 RH Financeiro", "🚗 Frota & Renting", "📈 Performance Obras",
+        "💵 Tesouraria", "🆘 Simulador Crise", "🇪🇺 Fundos Europeus",
+        "🏭 Imobilizado", "🧾 Fiscal", "📋 Auditoria Anual", "📊 Reporting",
+        "📊 Custos por Obra", "💶 Diárias", "📄 Folhas de Ponto",
+        "⏱️ Horas Faturação", "📤 Emissão Mensal", "📤 Export Contabilidade",
+    ])
+    with fat_tabs[0]:
+        from mod_fat_dashboard import render_fat_dashboard
+        render_fat_dashboard(d["obras_db"], d["registos_db"],
+                             d["faturas_db"], d["diarias_pagamentos_db"])
+    with fat_tabs[1]:
+        from mod_fat_clientes import render_fat_clientes
+        render_fat_clientes(d["obras_db"], d["registos_db"])
+    with fat_tabs[2]:
+        from mod_fat_fornecedores import render_fat_fornecedores
+        render_fat_fornecedores(d["obras_db"])
+    with fat_tabs[3]:
+        from mod_fat_rh import render_fat_rh
+        render_fat_rh(d["obras_db"], d["registos_db"])
+    with fat_tabs[4]:
+        from mod_fat_frota import render_fat_frota
+        render_fat_frota()
+    with fat_tabs[5]:
+        from mod_fat_obras import render_fat_obras
+        render_fat_obras(d["obras_db"], d["registos_db"],
+                         d["faturas_db"], d["diarias_pagamentos_db"])
+    with fat_tabs[6]:
+        from mod_fat_tesouraria import render_fat_tesouraria
+        render_fat_tesouraria(d["obras_db"], d["registos_db"],
+                              d["faturas_db"], d["diarias_pagamentos_db"])
+    with fat_tabs[7]:
+        from mod_fat_crise import render_fat_crise
+        render_fat_crise(d["obras_db"], d["registos_db"],
+                         d["faturas_db"], d["diarias_pagamentos_db"])
+    with fat_tabs[8]:
+        from mod_fat_fundos import render_fat_fundos
+        render_fat_fundos()
+    with fat_tabs[9]:
+        from mod_fat_imobilizado import render_fat_imobilizado
+        render_fat_imobilizado()
+    with fat_tabs[10]:
+        from mod_fat_fiscal import render_fat_fiscal
+        render_fat_fiscal(d["obras_db"], d["registos_db"],
+                          d["faturas_db"], d["diarias_pagamentos_db"])
+    with fat_tabs[11]:
+        from mod_fat_auditoria import render_fat_auditoria
+        render_fat_auditoria(d["obras_db"], d["registos_db"],
+                             d["faturas_db"], d["diarias_pagamentos_db"])
+    with fat_tabs[12]:
+        from mod_fat_reporting import render_fat_reporting
+        render_fat_reporting(d["obras_db"], d["registos_db"],
+                             d["faturas_db"], d["diarias_pagamentos_db"])
+    with fat_tabs[13]:
+        _render_custos_por_obra(
+            d["obras_db"], d["registos_db"], d["req_mat_db"],
+            d["req_fer_db"], d["req_epi_db"], d["incs_db"]
+        )
+    with fat_tabs[14]:
+        from mod_admin_diarias import render_admin_diarias
+        render_admin_diarias(
+            d["users"], d["obras_db"], d["frentes_db"], d["registos_db"],
+            d["faturas_db"], d["docs_db"], d["incs_db"], d["sw_db"],
+            d["obs_db"], d["equip_db"], d["diags_db"], d["diags_u_db"],
+            d["folhas_db"], d["comuns_db"], d["comuns_u_db"],
+            d["req_fer_db"], d["req_mat_db"], d["req_epi_db"], d["avals_db"],
+            d["inst_acessos_db"], d["diarias_config_db"],
+            d["diarias_faltas_db"], d["diarias_pagamentos_db"]
+        )
+    with fat_tabs[15]:
+        _render_folhas_ponto_fat(d["folhas_db"], d["folhas_ocr_db"], d["obras_db"])
+    with fat_tabs[16]:
+        _render_horas_faturacao(d["registos_db"])
+    with fat_tabs[17]:
+        _render_emissao_mensal(
+            d["obras_db"], d["registos_db"], d["faturas_db"],
+            d["diarias_pagamentos_db"]
+        )
+    with fat_tabs[18]:
+        from mod_exportacao_contabilidade import render_exportacao_contabilidade
+        render_exportacao_contabilidade()
+
+
+@st.fragment
+def _tab_orcamentacao():
+    from mod_admin_orcamentacao import render_orcamentacao
+    render_orcamentacao()
+
+
+@st.fragment
+def _tab_comercial():
+    from mod_admin_comercial import render_comercial
+    render_comercial()
+
+
+@st.fragment
+def _tab_qualidade():
+    d = _unpack()
+    st.markdown("## 🎯 Qualidade & Auditoria")
+    qual_tabs = st.tabs([
+        "🎯 Qualidade Operacional", "🏆 ISO 9001:2015", "📋 Logs Audit"
+    ])
+    with qual_tabs[0]:
+        from mod_admin_qualidade import render_qualidade
+        render_qualidade()
+    with qual_tabs[1]:
+        from mod_iso9001 import render_iso9001
+        render_iso9001()
+    with qual_tabs[2]:
+        st.markdown("### 📋 Logs de Auditoria")
+        from core import get_audit_logs
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1:
+            filtro_user = st.selectbox(
+                "Utilizador",
+                ["Todos"] + d["users"]["Nome"].tolist(),
+                key="log_filt_user"
+            )
+        with col_f2:
+            apenas_clientes = st.checkbox(
+                "👥 Apenas Clientes", key="log_filt_clientes"
+            )
+        with col_f3:
+            limite = st.number_input(
+                "Limite", min_value=10, max_value=1000,
+                value=100, key="log_limite"
+            )
+        usuario_f = None if filtro_user == "Todos" else filtro_user
+        logs_df   = get_audit_logs(filtro_usuario=usuario_f, limite=limite)
+        if apenas_clientes and not logs_df.empty:
+            logs_df = logs_df[
+                logs_df["Usuario"].str.contains("CLIENTE:", na=False)
+            ]
+        if not logs_df.empty:
+            st.metric("Total Ações", len(logs_df))
+            cols_show = [c for c in [
+                "Data","Hora","Usuario","Acao","Tabela","Registro_ID","Detalhes"
+            ] if c in logs_df.columns]
+            st.dataframe(logs_df[cols_show], use_container_width=True, hide_index=True)
+            csv_logs = logs_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "📥 Exportar Logs", csv_logs,
+                f"audit_logs_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                "text/csv", use_container_width=True
+            )
+        else:
+            st.info("📋 Sem registos de auditoria.")
+
+
+@st.fragment
+def _tab_it():
+    st.markdown("## 💻 IT & Sistemas")
+    it_tabs = st.tabs(["💻 IT & Infraestrutura", "📧 Config Email"])
+    with it_tabs[0]:
+        from mod_admin_it import render_it
+        render_it()
+    with it_tabs[1]:
+        st.markdown("### 📧 Configuração de Email SMTP")
+        st.info("""
+        **Para configurar emails:**
+        1. Vai ao Google Cloud Console → Secret Manager
+        2. Adiciona: SMTP_SERVER, SMTP_PORT, SMTP_USER,
+           SMTP_PASSWORD, SMTP_FROM_NAME
+        3. Reinicia o Cloud Run
+        """)
+        from core import get_smtp_config, testar_smtp
+        config = get_smtp_config()
+        if config:
+            st.success("✅ SMTP Configurado!")
+            st.markdown(
+                f"<div style='background:rgba(16,185,129,0.1);"
+                f"border:2px solid #10B981;border-radius:10px;padding:20px;'>"
+                f"<p><b>Server:</b> {config['server']}</p>"
+                f"<p><b>Porta:</b> {config['port']}</p>"
+                f"<p><b>User:</b> {config['user']}</p>"
+                f"</div>", unsafe_allow_html=True
+            )
+            st.divider()
+            email_teste = st.text_input(
+                "Email para teste", placeholder="exemplo@email.com",
+                key="smtp_test_email"
+            )
+            if st.button("📧 Enviar Email de Teste",
+                         use_container_width=True, type="primary"):
+                if email_teste:
+                    with st.spinner("A enviar..."):
+                        if testar_smtp(email_teste):
+                            st.success(f"✅ Email enviado para {email_teste}!")
+                        else:
+                            st.error("❌ Falha. Verifica a configuração.")
+                else:
+                    st.warning("⚠️ Insere um email.")
+        else:
+            st.warning("⚠️ SMTP não configurado.")
+
+
+@st.fragment
+def _tab_hse():
+    d = _unpack()
+    st.markdown("### 🛡️ Segurança e HSE")
+    tab_inc, tab_sw = st.tabs(["⚠️ Incidentes", "🚶 Safety Walks"])
+    with tab_inc:
+        incs_db = d["incs_db"]
+        if not incs_db.empty:
+            hse = (incs_db[incs_db["Tipo"] != "Avaria"]
+                   if "Tipo" in incs_db.columns else incs_db)
+            cols_hse = [c for c in [
+                "ID","Data","Utilizador","Obra","Descricao","Gravidade","Status"
+            ] if c in hse.columns]
+            st.dataframe(hse[cols_hse], use_container_width=True, hide_index=True)
+        else:
+            st.info("📋 Sem incidentes.")
+    with tab_sw:
+        sw_db = d["sw_db"]
+        if not sw_db.empty:
+            st.dataframe(sw_db, use_container_width=True, hide_index=True)
+        else:
+            st.info("📋 Sem safety walks.")
+
+
+# =============================================================================
+# RENDER ADMIN — hub principal (header + métricas + chamada dos fragmentos)
+# =============================================================================
 def render_admin(*args):
-    """Hub Principal do Admin — 10 tabs reorganizados"""
+    """Hub Principal do Admin — 10 tabs com @st.fragment."""
 
     st.markdown("""
     <style>
@@ -24,11 +334,10 @@ def render_admin(*args):
      diarias_config_db, diarias_faltas_db, diarias_pagamentos_db,
      folhas_ocr_db) = args
 
-    from core import (render_connection_indicator, render_offline_banner,
-                      sync_data_when_online)
+    from core import render_connection_indicator, render_offline_banner
     render_connection_indicator()
     render_offline_banner()
-    sync_data_when_online()
+    # sync_data_when_online removido — chamada nuclear desnecessária no render
 
     # ── Header ────────────────────────────────────────────────────
     st.markdown(f"""
@@ -116,453 +425,22 @@ def render_admin(*args):
 
     st.divider()
 
-    # ── 10 Tabs principais ────────────────────────────────────────
+    # ── 10 Tabs — cada um é um @st.fragment independente ─────────────
     tabs = st.tabs([
-        "📦 Armazém",
-        "👥 RH",
-        "🗂️ Secretariado",
-        "🏭 Produção",
-        "💰 Faturação",
-        "📊 Orçamentação",
-        "💼 Comercial",
-        "🎯 Qualidade",
-        "💻 IT",
-        "🛡️ HSE",
+        "📦 Armazém", "👥 RH", "🗂️ Secretariado", "🏭 Produção",
+        "💰 Faturação", "📊 Orçamentação", "💼 Comercial",
+        "🎯 Qualidade", "💻 IT", "🛡️ HSE",
     ])
-
-    # ════════════════════════════════════════════════════════════════
-    # TAB 0 — ARMAZÉM
-    # EPIs, Ferramentas, Materiais, Validação Compras
-    # ════════════════════════════════════════════════════════════════
-    with tabs[0]:
-        from mod_armazem import render_armazem
-        render_armazem(req_fer_db, req_mat_db, req_epi_db, incs_db)
-
-    # ════════════════════════════════════════════════════════════════
-    # TAB 1 — RH
-    # ════════════════════════════════════════════════════════════════
-    with tabs[1]:
-        from mod_admin_rh import render_admin_rh as render_rh
-        render_rh(users, obras_db, frentes_db, registos_db, faturas_db,
-                  docs_db, incs_db, sw_db, obs_db, equip_db, diags_db,
-                  diags_u_db, folhas_db, comuns_db, comuns_u_db,
-                  req_fer_db, req_mat_db, req_epi_db, avals_db,
-                  inst_acessos_db)
-
-    # ════════════════════════════════════════════════════════════════
-    # TAB 2 — SECRETARIADO
-    # 1ª/2ª validação horas, gasóleo, avarias carrinhas, histórico
-    # ════════════════════════════════════════════════════════════════
-    with tabs[2]:
-        from mod_secretariado import render_secretariado
-        render_secretariado(
-            users, obras_db, frentes_db, registos_db, faturas_db,
-            docs_db, incs_db, sw_db, obs_db, equip_db, diags_db,
-            diags_u_db, folhas_db, comuns_db, comuns_u_db,
-            req_fer_db, req_mat_db, req_epi_db, avals_db,
-            inst_acessos_db, diarias_config_db, diarias_faltas_db,
-            diarias_pagamentos_db
-        )
-        
-    # ════════════════════════════════════════════════════════════════
-    # TAB 3 — PRODUÇÃO
-    # Obras, Frota, Deslocações, Planeamento, Acessos
-    # ════════════════════════════════════════════════════════════════
-    with tabs[3]:
-        st.markdown("## 🏭 Produção")
-        prod_tabs = st.tabs([
-            "🏗️ Obras",
-            "🚗 Frota",
-            "🗺️ Deslocações",      # ← era "🏨 Dormidas"
-            "📋 Planeamento",
-            "🔐 Acessos",
-        ])
-        with prod_tabs[0]:
-            from mod_admin_obras import render_obras
-            render_obras(obras_db, frentes_db, users, inst_acessos_db)
-        with prod_tabs[1]:
-            from mod_admin_frota import render_frota
-            render_frota()
-        with prod_tabs[2]:
-            from mod_admin_deslocacoes import render_deslocacoes
-            render_deslocacoes(obras_db, users)
-        with prod_tabs[3]:
-            from mod_admin_planeamento import render_planeamento
-            render_planeamento()
-        with prod_tabs[4]:
-            from mod_admin_acessos_obras import render_acessos_obras
-            render_acessos_obras(users, obras_db)
-
-    # ════════════════════════════════════════════════════════════════
-    # TAB 4 — FATURAÇÃO
-    # Custos por obra, frota, dormidas, folhas ponto,
-    # faturação horas, diárias, emissão mensal
-    # ════════════════════════════════════════════════════════════════
-    with tabs[4]:
-        st.markdown("## 💰 Faturação")
-        fat_tabs = st.tabs([
-            # ── 13 módulos novos ──────────────────────────
-            "📊 Dashboard CFO",
-            "🧾 Clientes & Faturação",
-            "📥 Fornecedores",
-            "👥 RH Financeiro",
-            "🚗 Frota & Renting",
-            "📈 Performance Obras",
-            "💵 Tesouraria",
-            "🆘 Simulador Crise",
-            "🇪🇺 Fundos Europeus",
-            "🏭 Imobilizado",
-            "🧾 Fiscal",
-            "📋 Auditoria Anual",
-            "📊 Reporting",
-            # ── módulos existentes a manter ───────────────
-            "📊 Custos por Obra",
-            "💶 Diárias",
-            "📄 Folhas de Ponto",
-            "⏱️ Horas Faturação",
-            "📤 Emissão Mensal",
-            "📤 Export Contabilidade",
-        ])
-
-        # ── 13 módulos novos ──────────────────────────────
-        with fat_tabs[0]:
-            from mod_fat_dashboard import render_fat_dashboard
-            render_fat_dashboard(obras_db, registos_db,
-                                 faturas_db, diarias_pagamentos_db)
-
-        with fat_tabs[1]:
-            from mod_fat_clientes import render_fat_clientes
-            render_fat_clientes(obras_db, registos_db)
-
-        with fat_tabs[2]:
-            from mod_fat_fornecedores import render_fat_fornecedores
-            render_fat_fornecedores(obras_db)
-
-        with fat_tabs[3]:
-            from mod_fat_rh import render_fat_rh
-            render_fat_rh(obras_db, registos_db)
-
-        with fat_tabs[4]:
-            from mod_fat_frota import render_fat_frota
-            render_fat_frota()
-
-        with fat_tabs[5]:
-            from mod_fat_obras import render_fat_obras
-            render_fat_obras(obras_db, registos_db,
-                             faturas_db, diarias_pagamentos_db)
-
-        with fat_tabs[6]:
-            from mod_fat_tesouraria import render_fat_tesouraria
-            render_fat_tesouraria(obras_db, registos_db,
-                                  faturas_db, diarias_pagamentos_db)
-
-        with fat_tabs[7]:
-            from mod_fat_crise import render_fat_crise
-            render_fat_crise(obras_db, registos_db,
-                             faturas_db, diarias_pagamentos_db)
-
-        with fat_tabs[8]:
-            from mod_fat_fundos import render_fat_fundos
-            render_fat_fundos()
-
-        with fat_tabs[9]:
-            from mod_fat_imobilizado import render_fat_imobilizado
-            render_fat_imobilizado()
-
-        with fat_tabs[10]:
-            from mod_fat_fiscal import render_fat_fiscal
-            render_fat_fiscal(obras_db, registos_db,
-                              faturas_db, diarias_pagamentos_db)
-
-        with fat_tabs[11]:
-            from mod_fat_auditoria import render_fat_auditoria
-            render_fat_auditoria(obras_db, registos_db,
-                                 faturas_db, diarias_pagamentos_db)
-
-        with fat_tabs[12]:
-            from mod_fat_reporting import render_fat_reporting
-            render_fat_reporting(obras_db, registos_db,
-                                 faturas_db, diarias_pagamentos_db)
-
-
-        with fat_tabs[13]:
-            _render_custos_por_obra(
-                obras_db, registos_db, req_mat_db,
-                req_fer_db, req_epi_db, incs_db
-            )
-
-        with fat_tabs[14]:
-            from mod_admin_diarias import render_admin_diarias
-            render_admin_diarias(
-                users, obras_db, frentes_db, registos_db, faturas_db,
-                docs_db, incs_db, sw_db, obs_db, equip_db, diags_db,
-                diags_u_db, folhas_db, comuns_db, comuns_u_db,
-                req_fer_db, req_mat_db, req_epi_db, avals_db,
-                inst_acessos_db, diarias_config_db, diarias_faltas_db,
-                diarias_pagamentos_db
-            )
-
-        with fat_tabs[15]:
-            _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db)
-
-        with fat_tabs[16]:
-            # Faturação de horas — vem do secretariado tab faturação
-            import pandas as pd
-            st.markdown("### ⏱️ Horas para Faturação ao Cliente")
-            if registos_db.empty:
-                st.info("📋 Sem registos.")
-            else:
-                from core import load_db as _ld
-                regs = registos_db.copy()
-                regs['Horas_Total'] = pd.to_numeric(
-                    regs['Horas_Total'], errors='coerce'
-                ).fillna(0)
-                azuis = regs[regs['Status'] == '2']
-                if azuis.empty:
-                    st.info("📋 Sem horas com status 🔵 faturação.")
-                else:
-                    obras_fat = sorted(
-                        azuis['Obra'].dropna().unique().tolist()
-                    )
-                    obra_sel_fat = st.selectbox(
-                        "Obra", obras_fat, key="fat_h_obra"
-                    )
-                    azuis_obra = azuis[azuis['Obra'] == obra_sel_fat]
-                    total_h_fat = azuis_obra['Horas_Total'].sum()
-
-                    c1, c2 = st.columns(2)
-                    with c1: st.metric("Registos", len(azuis_obra))
-                    with c2: st.metric("Total Horas", fh(total_h_fat))
-
-                    resumo = azuis_obra.groupby('Técnico').agg(
-                        Horas=('Horas_Total','sum'),
-                        Dias=('Data','nunique')
-                    ).reset_index()
-                    st.dataframe(
-                        resumo, use_container_width=True, hide_index=True
-                    )
-
-                    # Preço hora por técnico
-                    from core import load_db as _ld2
-                    try:
-                        users_full = _ld2("usuarios.csv", ["Nome","PrecoHora"],
-                                          silent=True)
-                    except:
-                        users_full = pd.DataFrame(
-                            columns=["Nome","PrecoHora"]
-                        )
-
-                    st.markdown("---")
-                    st.markdown("#### 💰 Valor a Faturar")
-                    total_faturar = 0
-                    for _, tr in resumo.iterrows():
-                        tec_nome = tr['Técnico']
-                        h_tec    = tr['Horas']
-                        preco_h  = 15.0
-                        if not users_full.empty and \
-                           tec_nome in users_full['Nome'].values:
-                            try:
-                                preco_h = float(
-                                    users_full[
-                                        users_full['Nome'] == tec_nome
-                                    ]['PrecoHora'].values[0]
-                                )
-                            except:
-                                pass
-                        subtotal = round(h_tec * preco_h, 2)
-                        total_faturar += subtotal
-                        st.markdown(
-                            f"<div style='background:#1E293B;"
-                            f"border-radius:8px;padding:10px;"
-                            f"margin-bottom:4px;'>"
-                            f"<b style='color:#F1F5F9;'>{tec_nome}</b>"
-                            f"<span style='float:right;color:#10B981;"
-                            f"font-weight:700;'>€ {subtotal:.2f}</span><br>"
-                            f"<small style='color:#64748B;'>"
-                            f"{fh(h_tec)} × €{preco_h}/h</small>"
-                            f"</div>",
-                            unsafe_allow_html=True
-                        )
-                    st.metric("💰 Total a Faturar", f"€ {total_faturar:.2f}")
-
-        with fat_tabs[17]:
-            _render_emissao_mensal(
-                obras_db, registos_db, faturas_db,
-                diarias_pagamentos_db
-            )
-            
-        with fat_tabs[18]:
-            from mod_exportacao_contabilidade import render_exportacao_contabilidade
-            render_exportacao_contabilidade()
-
-    # ════════════════════════════════════════════════════════════════
-    # TAB 5 — ORÇAMENTAÇÃO
-    # ════════════════════════════════════════════════════════════════
-    with tabs[5]:
-        from mod_admin_orcamentacao import render_orcamentacao
-        render_orcamentacao()
-
-    # ════════════════════════════════════════════════════════════════
-    # TAB 6 — COMERCIAL
-    # ════════════════════════════════════════════════════════════════
-    with tabs[6]:
-        from mod_admin_comercial import render_comercial
-        render_comercial()
-
-    # ════════════════════════════════════════════════════════════════
-    # TAB 7 — QUALIDADE + ISO 9001 + LOGS AUDIT
-    # ════════════════════════════════════════════════════════════════
-    with tabs[7]:
-        st.markdown("## 🎯 Qualidade & Auditoria")
-        qual_tabs = st.tabs([
-            "🎯 Qualidade Operacional",
-            "🏆 ISO 9001:2015",
-            "📋 Logs Audit"
-        ])
-
-        with qual_tabs[0]:
-            from mod_admin_qualidade import render_qualidade
-            render_qualidade()
-
-        with qual_tabs[1]:
-            from mod_iso9001 import render_iso9001
-            render_iso9001()
-
-        with qual_tabs[2]:
-            st.markdown("### 📋 Logs de Auditoria")
-            from core import get_audit_logs
-            col_f1, col_f2, col_f3 = st.columns(3)
-            with col_f1:
-                filtro_user = st.selectbox(
-                    "Utilizador",
-                    ["Todos"] + users['Nome'].tolist(),
-                    key="log_filt_user"
-                )
-            with col_f2:
-                apenas_clientes = st.checkbox(
-                    "👥 Apenas Clientes", key="log_filt_clientes"
-                )
-            with col_f3:
-                limite = st.number_input(
-                    "Limite", min_value=10, max_value=1000,
-                    value=100, key="log_limite"
-                )
-            usuario_f = None if filtro_user == "Todos" else filtro_user
-            logs_df   = get_audit_logs(
-                filtro_usuario=usuario_f, limite=limite
-            )
-            if apenas_clientes and not logs_df.empty:
-                logs_df = logs_df[
-                    logs_df['Usuario'].str.contains("CLIENTE:", na=False)
-                ]
-            if not logs_df.empty:
-                st.metric("Total Ações", len(logs_df))
-                cols_show = [c for c in [
-                    'Data','Hora','Usuario','Acao',
-                    'Tabela','Registro_ID','Detalhes'
-                ] if c in logs_df.columns]
-                st.dataframe(
-                    logs_df[cols_show],
-                    use_container_width=True, hide_index=True
-                )
-                csv_logs = logs_df.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    "📥 Exportar Logs",
-                    csv_logs,
-                    f"audit_logs_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-                    "text/csv", use_container_width=True
-                )
-            else:
-                st.info("📋 Sem registos de auditoria.")
-
-    # ════════════════════════════════════════════════════════════════
-    # TAB 8 — IT + CONFIG EMAIL + BACKUP + INFRAESTRUTURA
-    # ════════════════════════════════════════════════════════════════
-    with tabs[8]:
-        st.markdown("## 💻 IT & Sistemas")
-        it_tabs = st.tabs([
-            "💻 IT & Infraestrutura",
-            "📧 Config Email",
-        ])
-
-        with it_tabs[0]:
-            from mod_admin_it import render_it
-            render_it()
-
-        with it_tabs[1]:
-            st.markdown("### 📧 Configuração de Email SMTP")
-            st.info("""
-            **Para configurar emails:**
-            1. Vai ao Google Cloud Console → Secret Manager
-            2. Adiciona: SMTP_SERVER, SMTP_PORT, SMTP_USER,
-               SMTP_PASSWORD, SMTP_FROM_NAME
-            3. Reinicia o Cloud Run
-            """)
-            from core import get_smtp_config, testar_smtp
-            config = get_smtp_config()
-            if config:
-                st.success("✅ SMTP Configurado!")
-                st.markdown(
-                    f"<div style='background:rgba(16,185,129,0.1);"
-                    f"border:2px solid #10B981;border-radius:10px;"
-                    f"padding:20px;'>"
-                    f"<p><b>Server:</b> {config['server']}</p>"
-                    f"<p><b>Porta:</b> {config['port']}</p>"
-                    f"<p><b>User:</b> {config['user']}</p>"
-                    f"</div>",
-                    unsafe_allow_html=True
-                )
-                st.divider()
-                email_teste = st.text_input(
-                    "Email para teste",
-                    placeholder="exemplo@email.com",
-                    key="smtp_test_email"
-                )
-                if st.button(
-                    "📧 Enviar Email de Teste",
-                    use_container_width=True, type="primary"
-                ):
-                    if email_teste:
-                        with st.spinner("A enviar..."):
-                            if testar_smtp(email_teste):
-                                st.success(f"✅ Email enviado para {email_teste}!")
-                            else:
-                                st.error("❌ Falha. Verifica a configuração.")
-                    else:
-                        st.warning("⚠️ Insere um email.")
-            else:
-                st.warning("⚠️ SMTP não configurado.")
-
-    # ════════════════════════════════════════════════════════════════
-    # TAB 9 — HSE
-    # ════════════════════════════════════════════════════════════════
-    with tabs[9]:
-        st.markdown("### 🛡️ Segurança e HSE")
-        tab_inc, tab_sw = st.tabs(["⚠️ Incidentes", "🚶 Safety Walks"])
-
-        with tab_inc:
-            if not incs_db.empty:
-                hse = incs_db[
-                    incs_db.get('Tipo','') != 'Avaria'
-                ] if 'Tipo' in incs_db.columns else incs_db
-                cols_hse = [c for c in [
-                    'ID','Data','Utilizador','Obra',
-                    'Descricao','Gravidade','Status'
-                ] if c in hse.columns]
-                st.dataframe(
-                    hse[cols_hse],
-                    use_container_width=True, hide_index=True
-                )
-            else:
-                st.info("📋 Sem incidentes.")
-
-        with tab_sw:
-            if not sw_db.empty:
-                st.dataframe(
-                    sw_db, use_container_width=True, hide_index=True
-                )
-            else:
-                st.info("📋 Sem safety walks.")
+    with tabs[0]: _tab_armazem()
+    with tabs[1]: _tab_rh()
+    with tabs[2]: _tab_secretariado()
+    with tabs[3]: _tab_producao()
+    with tabs[4]: _tab_faturacao()
+    with tabs[5]: _tab_orcamentacao()
+    with tabs[6]: _tab_comercial()
+    with tabs[7]: _tab_qualidade()
+    with tabs[8]: _tab_it()
+    with tabs[9]: _tab_hse()
 
 
 # =============================================================================
