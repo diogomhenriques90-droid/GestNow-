@@ -280,7 +280,10 @@ def _cached_load_db(fn, cols_tuple, silent=False, _v=0):
 def load_db(fn, cols, silent=False):
     """Carrega CSV do GCS com invalidação selectiva automática por ficheiro."""
     v = st.session_state.get('_fv', {}).get(fn, 0)
-    return _cached_load_db(fn, tuple(cols), silent=silent, _v=v)
+    df = _cached_load_db(fn, tuple(cols), silent=silent, _v=v)
+    if fn in _CRITICAL_FILES and not df.empty:
+        st.session_state.setdefault('_snap', {})[fn] = df
+    return df
 
 # ── Ficheiros críticos — protegidos contra perda de dados ───────────────────
 _CRITICAL_FILES = {"registos.csv", "usuarios.csv", "folhas_ponto.csv"}
@@ -290,21 +293,23 @@ def save_db(df, fn):
     """
     Guarda DataFrame no GCS de forma SEGURA.
     Para ficheiros críticos: verifica perda de registos e cria backup diário.
+    Usa snapshot em session_state para evitar leitura GCS antes de cada escrita.
     """
     # ── Segurança para ficheiros críticos ────────────────────────────────────
     if fn in _CRITICAL_FILES:
         try:
-            buf_atual = _gcs_read(fn)
-            if buf_atual:
-                df_atual = pd.read_csv(buf_atual, dtype=str,
-                                       on_bad_lines='skip', encoding='utf-8-sig')
+            snap = st.session_state.get('_snap', {}).get(fn)
+            if snap is not None:
+                df_atual = snap
+            else:
+                buf_atual = _gcs_read(fn)
+                df_atual  = pd.read_csv(buf_atual, dtype=str,
+                                        on_bad_lines='skip', encoding='utf-8-sig') \
+                            if buf_atual else pd.DataFrame()
+            if not df_atual.empty:
                 n_atual = len(df_atual)
                 n_novo  = len(df)
-
-                # Backup diário automático (1 por dia)
                 _criar_backup_diario(fn, df_atual)
-
-                # Bloquear se perda > 10% dos registos
                 if n_atual > 5 and n_novo < int(n_atual * 0.90):
                     logger.error(
                         f"🚨 BLOQUEADO save_db({fn}): {n_novo} registos "
@@ -318,7 +323,10 @@ def save_db(df, fn):
     # ── Guardar no GCS ────────────────────────────────────────────────────────
     buf = io.StringIO()
     df.to_csv(buf, index=False, encoding='utf-8-sig')
-    return _gcs_write(fn, buf.getvalue().encode('utf-8-sig'))
+    result = _gcs_write(fn, buf.getvalue().encode('utf-8-sig'))
+    if result and fn in _CRITICAL_FILES:
+        st.session_state.setdefault('_snap', {})[fn] = df
+    return result
 
 
 def _criar_backup_diario(fn, df_atual):
