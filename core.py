@@ -332,7 +332,10 @@ def save_db(df, fn):
 def _criar_backup_diario(fn, df_atual):
     """Backup automático diário em backups/YYYY-MM-DD/ficheiro.csv"""
     try:
-        today  = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%Y-%m-%d")
+        cache_key = f"_backup_done_{today}_{fn}"
+        if st.session_state.get(cache_key):
+            return
         client = _gcs_client()
         if client:
             bucket = client.bucket(GCS_BUCKET)
@@ -343,6 +346,7 @@ def _criar_backup_diario(fn, df_atual):
                 blob.upload_from_string(
                     buf.getvalue().encode('utf-8-sig'), content_type="text/csv")
                 logger.info(f"✅ Backup diário: backups/{today}/{fn} ({len(df_atual)} registos)")
+            st.session_state[cache_key] = True
     except Exception as e:
         logger.warning(f"Backup diário falhou {fn}: {e}")
 
