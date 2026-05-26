@@ -2,10 +2,13 @@
 GESTNOW v3 - core.py
 Funções base, utilitários, segurança, UI components, notificações, offline, QR Code, SMTP
 
-PERFORMANCE FIXES v3.1:
-  1. inv() selectivo — só limpa o necessário, não nuke toda a cache
-  2. _load_users_cached() com @st.cache_data(ttl=60) — evita 4+ leituras GCS/rerun
-  3. check_connection_status() com @st.cache_data(ttl=30) — evita chamada GCS desnecessária
+PERFORMANCE FIXES v3.3:
+  1. inv() selectivo — versioning via _fv em session_state, só limpa o necessário
+  2. _cached_load_db() recebe _v → cache miss só no ficheiro alterado
+  3. _load_users_cached() com @st.cache_data(ttl=1800) — evita 4+ leituras GCS/rerun
+  4. check_connection_status() com @st.cache_data(ttl=30) — evita chamada GCS desnecessária
+  5. _gcs_client() com @st.cache_resource — cliente GCS criado uma vez por instância
+  6. _cached_load_db() TTL aumentado 300s→3600s (inv() garante frescura nas escritas)
 """
 import streamlit as st
 import pandas as pd
@@ -218,7 +221,7 @@ def _fill_contrato_template(substituicoes: dict):
 # =============================================================================
 # GESTÃO DE DADOS
 # =============================================================================
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _cached_load_db(fn, cols_tuple, silent=False, _v=0):
     """Backend cacheado — não chamar directamente, usar load_db()."""
     buf = _gcs_read(fn)
@@ -345,7 +348,7 @@ def restore_backup(backup_path):
 # Substitui todas as chamadas directas ao GCS para ler usuarios.csv.
 # Evita 4+ leituras de rede por rerun.
 # ─────────────────────────────────────────────────────────────────────────────
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=1800, show_spinner=False)
 def _load_users_cached():
     """
     Lê usuarios.csv do GCS com cache de 60 segundos.

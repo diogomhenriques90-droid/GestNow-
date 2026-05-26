@@ -31,6 +31,7 @@ steps:
       - '3600'
       - '--set-env-vars'
       - 'GCS_BUCKET=gestnow-dados'
+      - '--cpu-boost'
 
 options:
   logging: CLOUD_LOGGING_ONLY
