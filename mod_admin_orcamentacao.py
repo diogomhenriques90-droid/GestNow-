@@ -1,4 +1,4 @@
-# mod_admin_orcamentacao.py
+﻿# mod_admin_orcamentacao.py
 """
 GESTNOW v3 — mod_admin_orcamentacao.py
 Orçamentação de Obras — criação, versões, comparativo real vs orçado
@@ -520,7 +520,7 @@ def render_orcamentacao(*_):
                     margin=dict(t=40,b=20,l=10,r=10),
                     showlegend=False
                 )
-                st.plotly_chart(fig_w, use_container_width=True)
+                st.plotly_chart(fig_w)
 
                 if desvio > 0:
                     st.error(

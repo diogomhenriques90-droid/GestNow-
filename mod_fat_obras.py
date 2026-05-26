@@ -1,4 +1,4 @@
-"""
+﻿"""
 GESTNOW v3 — mod_fat_obras.py
 Passo 6 — Performance por Obra (P&L, Orçamento vs Real, WIP, Score)
 """
@@ -1651,7 +1651,7 @@ def render_fat_obras(obras_db, registos_db,
             faturas_cli, diarias_pag_db, obra_tl
         )
         if fig_tl:
-            st.plotly_chart(fig_tl, use_container_width=True, key="timeline_fin" )
+            st.plotly_chart(fig_tl, key="timeline_fin" )
         else:
             st.info(
                 f"📋 Sem eventos financeiros registados "

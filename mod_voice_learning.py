@@ -1,4 +1,4 @@
-"""
+﻿"""
 GESTNOW v3 — mod_voice_learning.py
 Módulo de Aprendizagem Contínua para IA com Voz
 Regista interações, analisa padrões e melhora o modelo
@@ -311,7 +311,7 @@ def render_voice_learning_dashboard():
                 font_color=COLORS["text_primary"],
                 height=350
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
         else:
             st.info("ℹ️ Ainda sem dados suficientes")
 
@@ -330,7 +330,7 @@ def render_voice_learning_dashboard():
                 font_color=COLORS["text_primary"],
                 height=350
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
         else:
             st.info("ℹ️ Ainda sem dados suficientes")
 

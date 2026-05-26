@@ -1,4 +1,4 @@
-"""
+﻿"""
 GESTNOW v3 — mod_fat_fiscal.py
 Passo 11 — Fiscal & Compliance
 """
@@ -1489,4 +1489,4 @@ def render_fat_fiscal(obras_db, registos_db,
                 showlegend=False
             )
             # FIX: key único
-            st.plotly_chart(fig_ss, use_container_width=True, key="ss_proj")
+            st.plotly_chart(fig_ss, key="ss_proj")

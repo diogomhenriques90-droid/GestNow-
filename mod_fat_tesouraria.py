@@ -1,4 +1,4 @@
-"""
+﻿"""
 GESTNOW v3 — mod_fat_tesouraria.py
 Passo 7 — Tesouraria & Cash Flow
 """
@@ -1330,7 +1330,7 @@ def render_fat_tesouraria(obras_db, registos_db,
         # Gráfico
         fig_fm = _grafico_fundo_maneio(fm_db)
         if fig_fm:
-            st.plotly_chart(fig_fm, use_container_width=True)
+            st.plotly_chart(fig_fm)
 
         col_fm1, col_fm2 = st.columns([1, 2])
 

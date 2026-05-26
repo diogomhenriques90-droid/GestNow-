@@ -1,4 +1,4 @@
-"""
+﻿"""
 GESTNOW v3 — mod_fat_clientes.py
 Passo 2 — Clientes & Faturação
 """
@@ -1017,10 +1017,10 @@ def render_fat_clientes(obras_db, registos_db, *_):
             # Funil
             col_fun, col_aging_g = st.columns(2)
             with col_fun:
-                st.plotly_chart(_grafico_aging_detalhado(faturas_cli), use_container_width=True, key="aging_lista")
+                st.plotly_chart(_grafico_aging_detalhado(faturas_cli), key="aging_lista")
                 
             with col_aging_g:
-                st.plotly_chart(_grafico_aging_detalhado(faturas_cli), use_container_width=True, key="aging_tab")   
+                st.plotly_chart(_grafico_aging_detalhado(faturas_cli), key="aging_tab")   
                 
 
             st.markdown("---")
@@ -1251,7 +1251,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             f"📈 Timeline — {cli.get('Nome','')}",
                             expanded=False
                         ):
-                            st.plotly_chart(fig_tl, use_container_width=True, key=f"tl_{cli.get('Nome','')}")
+                            st.plotly_chart(fig_tl, key=f"tl_{cli.get('Nome','')}")
 
     # ════════════════════════════════════════════════════════════════
     # TAB — AGING

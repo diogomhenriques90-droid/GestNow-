@@ -1,4 +1,4 @@
-"""
+﻿"""
 GESTNOW v3 — mod_fat_dashboard.py
 Dashboard Executivo CFO — Passo 1 do Módulo Faturação
 """
@@ -1166,7 +1166,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
     with col_sc:
         fig_sc = _grafico_scatter_obras(obras_db, registos_db)
         if fig_sc:
-            st.plotly_chart(fig_sc, use_container_width=True)
+            st.plotly_chart(fig_sc)
 
     # ── Mapa de calor anual ───────────────────────────────────────
     st.plotly_chart(

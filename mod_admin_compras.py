@@ -1,4 +1,4 @@
-# mod_admin_compras.py
+﻿# mod_admin_compras.py
 """
 GESTNOW v3 — mod_admin_compras.py
 Gestão de Compras — pedidos, fornecedores, aprovações, histórico
@@ -510,7 +510,7 @@ def render_compras(*_):
                             legend={'font':{'color':'#94A3B8'}},
                             margin=dict(t=40,b=10,l=10,r=10)
                         )
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig)
             else:
                 st.info("📋 Sem compras com este filtro.")
 
@@ -629,4 +629,4 @@ def render_compras(*_):
                             margin=dict(t=40,b=20,l=10,r=60),
                             showlegend=False
                         )
-                        st.plotly_chart(fig_f, use_container_width=True)
+                        st.plotly_chart(fig_f)

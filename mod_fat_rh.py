@@ -1,4 +1,4 @@
-"""
+﻿"""
 GESTNOW v3 — mod_fat_rh.py
 Passo 4 — RH Financeiro
 """
@@ -1061,7 +1061,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                             )
 
                         # Waterfall
-                        st.plotly_chart(_grafico_custo_real_breakdown(colab.get('Nome',''), c_real), use_container_width=True, key=f"custo_{colab.get('Nome','')}") 
+                        st.plotly_chart(_grafico_custo_real_breakdown(colab.get('Nome',''), c_real), key=f"custo_{colab.get('Nome','')}") 
 
     # ════════════════════════════════════════════════════════════════
     # TAB — MAPA DE REMUNERAÇÕES

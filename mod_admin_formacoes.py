@@ -1,4 +1,4 @@
-"""
+﻿"""
 GESTNOW v3 — mod_admin_formacoes.py
 Gestão de Formações dos Colaboradores
 ISO 9001:2015 Cláusula 7.2 — Competência
@@ -1258,7 +1258,7 @@ def render_formacoes(users, obras_db, *_):
                         legend={'font':{'color':'#94A3B8'}},
                         margin=dict(t=40,b=10,l=10,r=10)
                     )
-                    st.plotly_chart(fig_cat, use_container_width=True)
+                    st.plotly_chart(fig_cat)
 
             with col_cg2:
                 # Top colaboradores por custo
@@ -1290,7 +1290,7 @@ def render_formacoes(users, obras_db, *_):
                         margin=dict(t=40,b=20,l=10,r=60),
                         showlegend=False
                     )
-                    st.plotly_chart(fig_col, use_container_width=True)
+                    st.plotly_chart(fig_col)
 
             # Reembolsos pendentes
             st.markdown("---")

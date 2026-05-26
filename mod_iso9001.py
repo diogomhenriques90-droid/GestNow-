@@ -1,4 +1,4 @@
-"""
+﻿"""
 GESTNOW v3 — mod_iso9001.py
 Sistema de Gestão da Qualidade — ISO 9001:2015
 6 módulos: Objetivos, Riscos, Partes Interessadas,
@@ -967,7 +967,7 @@ def render_iso9001(*_):
             # Matriz de calor
             fig_mat = _grafico_matriz_riscos(riscos_db)
             if fig_mat:
-                st.plotly_chart(fig_mat, use_container_width=True)
+                st.plotly_chart(fig_mat)
             else:
                 st.info("📋 Sem riscos para mostrar na matriz.")
 
@@ -1230,7 +1230,7 @@ def render_iso9001(*_):
                     },
                     margin=dict(t=50,b=40,l=80,r=20)
                 )
-                st.plotly_chart(fig_pi, use_container_width=True)
+                st.plotly_chart(fig_pi)
 
                 # Tabela
                 cols_pi = [c for c in [
@@ -1436,7 +1436,7 @@ def render_iso9001(*_):
                                 )
 
                     fig_rad = _grafico_radar_clausulas(clausulas_radar)
-                    st.plotly_chart(fig_rad, use_container_width=True)
+                    st.plotly_chart(fig_rad)
 
                     # Lista
                     for _, aud_r in adb2.sort_values(
@@ -1933,7 +1933,7 @@ def render_iso9001(*_):
 
             fig_forn = _grafico_fornecedores_score(forn_aval_db)
             if fig_forn:
-                st.plotly_chart(fig_forn, use_container_width=True)
+                st.plotly_chart(fig_forn)
 
             if forn_aval_db.empty:
                 st.info("📋 Sem avaliações registadas.")

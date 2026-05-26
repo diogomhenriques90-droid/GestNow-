@@ -1,4 +1,4 @@
-# mod_admin_qualidade.py
+﻿# mod_admin_qualidade.py
 """
 GESTNOW v3 — mod_admin_qualidade.py
 Gestão da Qualidade — não conformidades, ações corretivas,
@@ -610,7 +610,7 @@ def render_qualidade(*_):
                     margin=dict(t=40,b=20,l=10,r=10),
                     showlegend=False
                 )
-                st.plotly_chart(fig_g, use_container_width=True)
+                st.plotly_chart(fig_g)
 
             # NC por estado
             col_k1, col_k2 = st.columns(2)

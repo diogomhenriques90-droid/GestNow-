@@ -1,4 +1,4 @@
-"""
+﻿"""
 GESTNOW v3 — mod_admin_deslocacoes.py
 Gestão de Deslocações — Dormidas + Bilhetes (Avião/Comboio/Autocarro)
 com pesquisa IA via Anthropic API + web_search
@@ -1636,7 +1636,7 @@ def _render_resumo_viagem(obras_db, users):
                    'tickprefix':'€'},
             margin=dict(t=40,b=20,l=10,r=10)
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
 
     # Exportar
     csv_res = df_res.to_csv(index=False, encoding='utf-8-sig')

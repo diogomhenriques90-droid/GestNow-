@@ -1,4 +1,4 @@
-"""
+﻿"""
 GESTNOW v3 — mod_admin_acessos_obras.py
 Gestão de Acessos de Colaboradores a Obras
 Controlo de documentos, autorizações, alertas e crachás
@@ -565,11 +565,11 @@ def render_acessos_obras(users, obras_db, *_):
             import plotly.graph_objects as go
             fig_e = _grafico_estado_acessos(acessos_db)
             if fig_e:
-                st.plotly_chart(fig_e, use_container_width=True)
+                st.plotly_chart(fig_e)
         with col_g2:
             fig_d = _grafico_docs_em_falta(docs_db, acessos_db)
             if fig_d:
-                st.plotly_chart(fig_d, use_container_width=True)
+                st.plotly_chart(fig_d)
 
         st.markdown("---")
 
