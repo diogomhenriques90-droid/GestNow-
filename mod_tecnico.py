@@ -34,9 +34,6 @@ _DIAS_LETRA = ['D','S','T','Q','Q','S','S']
 _HORAS_30   = [f"{h:02d}:{m:02d}" for h in range(0, 24) for m in (0, 30)]
 
 
-def _load_users_fresh():
-    return _load_users_cached()
-
 
 @st.fragment
 def render_tecnico(*args):
@@ -54,7 +51,7 @@ def render_tecnico(*args):
                 cargo_user in ['Chefe de Equipa', 'Encarregado'])
 
     try:
-        users_fresh = _load_users_fresh()
+        users_fresh = _load_users_cached()
         user_match  = users_fresh[users_fresh['Nome'] == user_nome]
         user_data   = user_match.iloc[0]  if not user_match.empty else None
         user_idx    = user_match.index[0] if not user_match.empty else None
@@ -1531,7 +1528,7 @@ def render_tecnico(*args):
                     use_container_width=True,
                     type="primary"
                 ):
-                    ul = _load_users_fresh()
+                    ul = _load_users_cached()
                     if not ul.empty:
                         m = ul['Nome'] == user_nome
                         if m.any():
@@ -1642,7 +1639,7 @@ def render_tecnico(*args):
                         f_b64 = base64.b64encode(
                             ficheiro_assin.read()
                         ).decode()
-                        u_ct  = _load_users_fresh()
+                        u_ct  = _load_users_cached()
                         mask  = u_ct['Nome'] == user_nome
                         if mask.any():
                             u_ct.loc[mask, 'Contrato_Assinado']        = 'Sim'

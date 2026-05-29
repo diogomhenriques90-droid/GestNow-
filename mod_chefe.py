@@ -35,9 +35,6 @@ _DIAS_LETRA = ['D','S','T','Q','Q','S','S']
 _HORAS_30   = [f"{h:02d}:{m:02d}" for h in range(0, 24) for m in (0, 30)]
 
 
-def _load_users_fresh():
-    return _load_users_cached()
-
 
 # =============================================================================
 # FOLHA DE PONTO — gerador HTML para download / preview
@@ -1094,7 +1091,7 @@ def render_chefe(*args):
 
         foto_b64 = ""
         try:
-            u_data  = _load_users_fresh()
+            u_data  = _load_users_cached()
             u_match = u_data[u_data['Nome'] == user_nome]
             if not u_match.empty:
                 foto_b64 = str(u_match.iloc[0].get('Foto', ''))
