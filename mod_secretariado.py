@@ -67,7 +67,12 @@ def render_secretariado(*args):
 
     regs = _regs_com_data(registos_db) if not registos_db.empty else pd.DataFrame()
 
-    _n_1val = len(regs[regs['Status'] == '0']) if not regs.empty else 0
+    # Obras com chefe activo — apenas estas passam pelo Chefe antes do Secretariado
+    obras_com_chefe = set(inst_acessos_db['Obra'].dropna()) \
+                      if not inst_acessos_db.empty else set()
+
+    _n_1val = len(regs[(regs['Status'] == '0') & (~regs['Obra'].isin(obras_com_chefe))]) \
+              if not regs.empty else 0
     _n_2val = len(regs[regs['Status'] == '1']) if not regs.empty else 0
 
     tab_1val, tab_2val, tab_fat, tab_gasoleos, tab_avarias, tab_hist = st.tabs([
@@ -92,7 +97,9 @@ def render_secretariado(*args):
         if registos_db.empty:
             st.info("📋 Sem registos.")
         else:
-            pendentes = regs[regs['Status'] == '0'].copy()
+            pendentes = regs[
+                (regs['Status'] == '0') & (~regs['Obra'].isin(obras_com_chefe))
+            ].copy()
 
             if pendentes.empty:
                 st.success("✅ Sem horas pendentes de 1ª validação.")
