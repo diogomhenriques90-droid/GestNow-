@@ -519,9 +519,11 @@ def render_chefe(*args):
         ]['Obra'].tolist()
 
     regs_equipa = pd.DataFrame()
-    if not registos_db.empty:
-        regs_equipa = (registos_db[registos_db['Obra'].isin(obras_chefe)]
-                       if obras_chefe else registos_db.copy())
+    if not registos_db.empty and obras_chefe:
+        regs_equipa = registos_db[
+            (registos_db['Obra'].isin(obras_chefe)) &
+            (registos_db['Técnico'] != user_nome)
+        ].copy()
 
     pendentes = len(regs_equipa[regs_equipa['Status'] == '0']) \
                 if not regs_equipa.empty else 0

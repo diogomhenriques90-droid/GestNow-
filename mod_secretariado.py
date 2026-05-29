@@ -88,7 +88,21 @@ def render_secretariado(*args):
             st.info("📋 Sem registos.")
         else:
             regs = _regs_com_data(registos_db)
-            pendentes = regs[regs['Status'] == '0'].copy()
+            # Obras com chefe: o técnico já validou — secretariado não deve ver
+            _nomes_chefes = set()
+            if not users.empty and 'Tipo' in users.columns and 'Nome' in users.columns:
+                _nomes_chefes = set(
+                    users[users['Tipo'].isin(['Chefe de Equipa', 'Gestor'])]['Nome'].dropna()
+                )
+            _obras_com_chefe = set()
+            if _nomes_chefes and not inst_acessos_db.empty and 'Utilizador' in inst_acessos_db.columns:
+                _obras_com_chefe = set(
+                    inst_acessos_db[inst_acessos_db['Utilizador'].isin(_nomes_chefes)]['Obra'].dropna()
+                )
+            pendentes = regs[
+                (regs['Status'] == '0') &
+                (~regs['Obra'].isin(_obras_com_chefe))
+            ].copy()
 
             if pendentes.empty:
                 st.success("✅ Sem horas pendentes de 1ª validação.")
