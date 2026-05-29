@@ -65,9 +65,25 @@ def render_secretariado(*args):
 
     st.markdown("# 🗂️ Secretariado")
 
+    regs = _regs_com_data(registos_db) if not registos_db.empty else pd.DataFrame()
+
+    # Obras com chefe — computado aqui para tab labels + Tab 1 filter
+    _nomes_chefes = set()
+    if not users.empty and 'Tipo' in users.columns and 'Nome' in users.columns:
+        _nomes_chefes = set(
+            users[users['Tipo'].isin(['Chefe de Equipa', 'Gestor'])]['Nome'].dropna()
+        )
+    _obras_com_chefe = set()
+    if _nomes_chefes and not inst_acessos_db.empty and 'Utilizador' in inst_acessos_db.columns:
+        _obras_com_chefe = set(
+            inst_acessos_db[inst_acessos_db['Utilizador'].isin(_nomes_chefes)]['Obra'].dropna()
+        )
+    _n_1val = len(regs[(regs['Status'] == '0') & (~regs['Obra'].isin(_obras_com_chefe))]) if not regs.empty else 0
+    _n_2val = len(regs[regs['Status'] == '1']) if not regs.empty else 0
+
     tab_1val, tab_2val, tab_fat, tab_gasoleos, tab_avarias, tab_hist = st.tabs([
-        "🟢 1ª Validação",
-        "🔵 2ª Validação (Faturação)",
+        f"🟢 1ª Val.{f' ({_n_1val})' if _n_1val else ''}",
+        f"🔵 2ª Val.{f' ({_n_2val})' if _n_2val else ''}",
         "📄 Faturação & Folhas",
         "⛽ Gasóleo",
         "🔧 Avarias Frota",
@@ -87,18 +103,6 @@ def render_secretariado(*args):
         if registos_db.empty:
             st.info("📋 Sem registos.")
         else:
-            regs = _regs_com_data(registos_db)
-            # Obras com chefe: o técnico já validou — secretariado não deve ver
-            _nomes_chefes = set()
-            if not users.empty and 'Tipo' in users.columns and 'Nome' in users.columns:
-                _nomes_chefes = set(
-                    users[users['Tipo'].isin(['Chefe de Equipa', 'Gestor'])]['Nome'].dropna()
-                )
-            _obras_com_chefe = set()
-            if _nomes_chefes and not inst_acessos_db.empty and 'Utilizador' in inst_acessos_db.columns:
-                _obras_com_chefe = set(
-                    inst_acessos_db[inst_acessos_db['Utilizador'].isin(_nomes_chefes)]['Obra'].dropna()
-                )
             pendentes = regs[
                 (regs['Status'] == '0') &
                 (~regs['Obra'].isin(_obras_com_chefe))
@@ -213,7 +217,6 @@ def render_secretariado(*args):
         if registos_db.empty:
             st.info("📋 Sem registos.")
         else:
-            regs = _regs_com_data(registos_db)
             verdes = regs[regs['Status'] == '1'].copy()
 
             if verdes.empty:
@@ -308,7 +311,6 @@ def render_secretariado(*args):
         if registos_db.empty:
             st.info("📋 Sem registos.")
         else:
-            regs = _regs_com_data(registos_db)
             azuis = regs[regs['Status'] == '2'].copy()
 
             if azuis.empty:
@@ -757,8 +759,6 @@ def render_secretariado(*args):
         if registos_db.empty:
             st.info("📋 Sem registos.")
         else:
-            regs = _regs_com_data(registos_db)
-
             col_h1, col_h2, col_h3 = st.columns(3)
             with col_h1:
                 anos = sorted(set(
@@ -815,8 +815,10 @@ def render_secretariado(*args):
                 with col_m1: st.metric("📋 Registos", len(hist_all))
                 with col_m2: st.metric("⏱️ Total", fh(total_h_hist))
 
-                cols_show = [c for c in ['Data','Técnico','Obra','Horas_Total','Estado']
-                             if c in hist_all.columns]
+                cols_show = [c for c in [
+                    'Data','Técnico','Obra','Horas_Total','Estado',
+                    'Validado1_Por','Validado1_Data','Rejeitado_Por','Rejeitado_Data'
+                ] if c in hist_all.columns]
                 st.dataframe(
                     hist_all[cols_show].sort_values('Data', ascending=False),
                     use_container_width=True, hide_index=True
