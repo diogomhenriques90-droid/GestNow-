@@ -557,7 +557,7 @@ def _render_custos_por_obra(
     mat_total = 0
     try:
         compras_db = load_db("compras.csv", [
-            "Obra","Total","Status"
+            "Obra","Total"
         ], silent=True)
         if not compras_db.empty:
             mc = compras_db[compras_db['Obra'] == obra_c]
