@@ -516,11 +516,9 @@ def render_chefe(*args):
         ]['Obra'].tolist()
 
     regs_equipa = pd.DataFrame()
-    if not registos_db.empty and obras_chefe:
-        regs_equipa = registos_db[
-            (registos_db['Obra'].isin(obras_chefe)) &
-            (registos_db['Técnico'] != user_nome)
-        ].copy()
+    if not registos_db.empty:
+        regs_equipa = (registos_db[registos_db['Obra'].isin(obras_chefe)]
+                       if obras_chefe else registos_db.copy())
 
     pendentes = len(regs_equipa[regs_equipa['Status'] == '0']) \
                 if not regs_equipa.empty else 0
@@ -650,12 +648,10 @@ def render_chefe(*args):
                 with col_vm:
                     if st.button("🟢 Validar Todos", key="ch_val_todos",
                                  type="primary", use_container_width=True):
-                        _hoje_str = datetime.now().strftime('%d/%m/%Y')
                         for tec in df_pend['Técnico'].unique():
-                            _mask = (registos_db['Técnico'] == tec) & (registos_db['Status'] == '0')
-                            registos_db.loc[_mask, 'Status'] = '1'
-                            registos_db.loc[_mask, 'Validado1_Por'] = user_nome
-                            registos_db.loc[_mask, 'Validado1_Data'] = _hoje_str
+                            registos_db.loc[
+                                (registos_db['Técnico'] == tec) &
+                                (registos_db['Status']  == '0'), 'Status'] = '1'
                             criar_notificacao(destinatario=tec,
                                 titulo="🟢 Horas Validadas",
                                 mensagem=f"As tuas horas foram validadas por {user_nome}.",
@@ -668,12 +664,10 @@ def render_chefe(*args):
                 with col_rm:
                     if st.button("❌ Rejeitar Todos", key="ch_rej_todos",
                                  use_container_width=True):
-                        _hoje_str = datetime.now().strftime('%d/%m/%Y')
                         for tec in df_pend['Técnico'].unique():
-                            _mask = (registos_db['Técnico'] == tec) & (registos_db['Status'] == '0')
-                            registos_db.loc[_mask, 'Status'] = '-1'
-                            registos_db.loc[_mask, 'Rejeitado_Por'] = user_nome
-                            registos_db.loc[_mask, 'Rejeitado_Data'] = _hoje_str
+                            registos_db.loc[
+                                (registos_db['Técnico'] == tec) &
+                                (registos_db['Status']  == '0'), 'Status'] = '-1'
                             criar_notificacao(destinatario=tec,
                                 titulo="❌ Horas Rejeitadas",
                                 mensagem=f"As tuas horas foram rejeitadas. Contacta {user_nome}.",
@@ -722,11 +716,9 @@ def render_chefe(*args):
                         if st.button(f"🟢 Validar todos de {tecnico.split()[0]}",
                                      key=f"apr_{tecnico}", use_container_width=True,
                                      type="primary"):
-                            _hoje_str = datetime.now().strftime('%d/%m/%Y')
-                            _mask = (registos_db['Técnico'] == tecnico) & (registos_db['Status'] == '0')
-                            registos_db.loc[_mask, 'Status'] = '1'
-                            registos_db.loc[_mask, 'Validado1_Por'] = user_nome
-                            registos_db.loc[_mask, 'Validado1_Data'] = _hoje_str
+                            registos_db.loc[
+                                (registos_db['Técnico'] == tecnico) &
+                                (registos_db['Status']  == '0'), 'Status'] = '1'
                             save_db(registos_db, "registos.csv")
                             criar_notificacao(destinatario=tecnico,
                                 titulo="🟢 Horas Validadas",
@@ -738,11 +730,9 @@ def render_chefe(*args):
                     with col_rt:
                         if st.button(f"❌ Rejeitar todos de {tecnico.split()[0]}",
                                      key=f"rej_{tecnico}", use_container_width=True):
-                            _hoje_str = datetime.now().strftime('%d/%m/%Y')
-                            _mask = (registos_db['Técnico'] == tecnico) & (registos_db['Status'] == '0')
-                            registos_db.loc[_mask, 'Status'] = '-1'
-                            registos_db.loc[_mask, 'Rejeitado_Por'] = user_nome
-                            registos_db.loc[_mask, 'Rejeitado_Data'] = _hoje_str
+                            registos_db.loc[
+                                (registos_db['Técnico'] == tecnico) &
+                                (registos_db['Status']  == '0'), 'Status'] = '-1'
                             save_db(registos_db, "registos.csv")
                             criar_notificacao(destinatario=tecnico,
                                 titulo="❌ Horas Rejeitadas",
@@ -775,11 +765,8 @@ def render_chefe(*args):
                         with col_v:
                             if st.button("✅", key=f"val_ind_{reg_id}",
                                          use_container_width=True, help="Validar"):
-                                _hoje_str = datetime.now().strftime('%d/%m/%Y')
-                                _mask = registos_db['ID'] == reg_id
-                                registos_db.loc[_mask, 'Status'] = '1'
-                                registos_db.loc[_mask, 'Validado1_Por'] = user_nome
-                                registos_db.loc[_mask, 'Validado1_Data'] = _hoje_str
+                                registos_db.loc[
+                                    registos_db['ID'] == reg_id, 'Status'] = '1'
                                 save_db(registos_db, "registos.csv")
                                 criar_notificacao(destinatario=tecnico,
                                     titulo="🟢 Horas Validadas",
@@ -791,11 +778,8 @@ def render_chefe(*args):
                         with col_r:
                             if st.button("❌", key=f"rej_ind_{reg_id}",
                                          use_container_width=True, help="Rejeitar"):
-                                _hoje_str = datetime.now().strftime('%d/%m/%Y')
-                                _mask = registos_db['ID'] == reg_id
-                                registos_db.loc[_mask, 'Status'] = '-1'
-                                registos_db.loc[_mask, 'Rejeitado_Por'] = user_nome
-                                registos_db.loc[_mask, 'Rejeitado_Data'] = _hoje_str
+                                registos_db.loc[
+                                    registos_db['ID'] == reg_id, 'Status'] = '-1'
                                 save_db(registos_db, "registos.csv")
                                 criar_notificacao(destinatario=tecnico,
                                     titulo="❌ Horas Rejeitadas",

@@ -67,23 +67,12 @@ def render_secretariado(*args):
 
     regs = _regs_com_data(registos_db) if not registos_db.empty else pd.DataFrame()
 
-    # Obras com chefe — computado aqui para tab labels + Tab 1 filter
-    _nomes_chefes = set()
-    if not users.empty and 'Tipo' in users.columns and 'Nome' in users.columns:
-        _nomes_chefes = set(
-            users[users['Tipo'].isin(['Chefe de Equipa', 'Gestor'])]['Nome'].dropna()
-        )
-    _obras_com_chefe = set()
-    if _nomes_chefes and not inst_acessos_db.empty and 'Utilizador' in inst_acessos_db.columns:
-        _obras_com_chefe = set(
-            inst_acessos_db[inst_acessos_db['Utilizador'].isin(_nomes_chefes)]['Obra'].dropna()
-        )
-    _n_1val = len(regs[(regs['Status'] == '0') & (~regs['Obra'].isin(_obras_com_chefe))]) if not regs.empty else 0
+    _n_1val = len(regs[regs['Status'] == '0']) if not regs.empty else 0
     _n_2val = len(regs[regs['Status'] == '1']) if not regs.empty else 0
 
     tab_1val, tab_2val, tab_fat, tab_gasoleos, tab_avarias, tab_hist = st.tabs([
-        f"🟢 1ª Val.{f' ({_n_1val})' if _n_1val else ''}",
-        f"🔵 2ª Val.{f' ({_n_2val})' if _n_2val else ''}",
+        f"🟢 1ª Validação{f' ({_n_1val})' if _n_1val else ''}",
+        f"🔵 2ª Validação{f' ({_n_2val})' if _n_2val else ''}",
         "📄 Faturação & Folhas",
         "⛽ Gasóleo",
         "🔧 Avarias Frota",
@@ -103,10 +92,7 @@ def render_secretariado(*args):
         if registos_db.empty:
             st.info("📋 Sem registos.")
         else:
-            pendentes = regs[
-                (regs['Status'] == '0') &
-                (~regs['Obra'].isin(_obras_com_chefe))
-            ].copy()
+            pendentes = regs[regs['Status'] == '0'].copy()
 
             if pendentes.empty:
                 st.success("✅ Sem horas pendentes de 1ª validação.")
@@ -815,10 +801,8 @@ def render_secretariado(*args):
                 with col_m1: st.metric("📋 Registos", len(hist_all))
                 with col_m2: st.metric("⏱️ Total", fh(total_h_hist))
 
-                cols_show = [c for c in [
-                    'Data','Técnico','Obra','Horas_Total','Estado',
-                    'Validado1_Por','Validado1_Data','Rejeitado_Por','Rejeitado_Data'
-                ] if c in hist_all.columns]
+                cols_show = [c for c in ['Data','Técnico','Obra','Horas_Total','Estado']
+                             if c in hist_all.columns]
                 st.dataframe(
                     hist_all[cols_show].sort_values('Data', ascending=False),
                     use_container_width=True, hide_index=True

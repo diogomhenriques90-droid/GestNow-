@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## AVISO CRÍTICO — Repositórios Separados
+
+**Este repositório é o GestNow (app de ADMINISTRAÇÃO).**
+**O repositório `cps-ponto` (app de REGISTO DE PONTO dos técnicos) é completamente separado.**
+
+Ambos têm ficheiros com o mesmo nome (`mod_chefe.py`, `mod_secretariado.py`, `mod_tecnico.py`, etc.) mas com implementações DIFERENTES e lógicas de negócio DIFERENTES.
+
+**Antes de qualquer PR ou alteração de lógica de negócio, verificar sempre:**
+1. Estou no repositório correcto? (`git remote -v` ou verificar o nome do directório)
+2. A alteração que estou a fazer é para o GestNow ou para o cps-ponto?
+3. Uma alteração de lógica de negócio num repo NÃO se aplica automaticamente ao outro.
+
+Incidente de referência (2026-05-29): PRs #9 e #10 foram aplicados ao GestNow por engano — eram destinados ao cps-ponto. Resultou em lógica de validação incorrecta e mudanças de schema desnecessárias que tiveram de ser revertidas.
+
 ## Running the App
 
 ```powershell
