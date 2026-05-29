@@ -18,6 +18,43 @@ def _safe_date_str(val):
     except:
         return 'N/A'
 
+@st.cache_data(ttl=300)
+def _load_instrumentos_cache(obra_keys_tuple):
+    """Agrega dados de instrumentação de todas as obras activas. TTL=5min."""
+    dados_progresso = []
+    total_inst = 0
+    total_inst_ok = 0
+    total_cal = 0
+    instalacoes = []
+    for o_key, obra_nome in obra_keys_tuple:
+        try:
+            inst = load_db(f"inst_{o_key}_index.csv",
+                           ["Tag", "Status", "Descricao"], silent=True)
+            if not inst.empty:
+                total   = len(inst)
+                inst_ok = len(inst[inst['Status'].isin(['3', '4'])])
+                calib   = len(inst[inst['Status'] == '2'])
+                prog    = (inst_ok / total * 100) if total > 0 else 0
+                total_inst    += total
+                total_inst_ok += inst_ok
+                total_cal     += calib
+                dados_progresso.append({
+                    "Obra":          obra_nome,
+                    "Total":         total,
+                    "Instalados":    inst_ok,
+                    "Progresso (%)": round(prog, 1)
+                })
+                for _, ir in inst[inst['Status'].isin(['3', '4'])].tail(2).iterrows():
+                    instalacoes.append({
+                        "Tag":  ir.get('Tag', 'N/A'),
+                        "Obra": obra_nome,
+                        "Desc": ir.get('Descricao', 'N/A')
+                    })
+        except:
+            pass
+    return dados_progresso, total_inst, total_inst_ok, total_cal, instalacoes
+
+
 def render_dashboard(*args):
     """Dashboard Avançado com KPIs e Analytics"""
 
@@ -81,34 +118,22 @@ def render_dashboard(*args):
         total_horas     = registos_db['Horas_Total'].sum()
         horas_validadas = registos_db[registos_db['Status'] == '1']['Horas_Total'].sum()
 
-    # Instrumentos
+    # Instrumentos — carregados via cache TTL=5min para evitar N leituras GCS por render
+    dados_progresso         = []
     total_instrumentos      = 0
     instrumentos_instalados = 0
     calibrados_count        = 0
-    dados_progresso         = []
+    instalacoes             = []
 
     if not obras_db.empty:
-        for _, obra in obras_db.iterrows():
-            if obra.get('Ativa', '') == 'Ativa':
-                o_key = obra['Obra'].replace(' ', '_').replace('/', '_')
-                try:
-                    inst = load_db(f"inst_{o_key}_index.csv", ["Status"], silent=True)
-                    if not inst.empty:
-                        total   = len(inst)
-                        inst_ok = len(inst[inst['Status'].isin(['3', '4'])])
-                        calib   = len(inst[inst['Status'] == '2'])
-                        prog    = (inst_ok / total * 100) if total > 0 else 0
-                        total_instrumentos      += total
-                        instrumentos_instalados += inst_ok
-                        calibrados_count        += calib
-                        dados_progresso.append({
-                            "Obra":          obra['Obra'],
-                            "Total":         total,
-                            "Instalados":    inst_ok,
-                            "Progresso (%)": round(prog, 1)
-                        })
-                except:
-                    pass
+        _obra_keys = tuple(
+            (obra['Obra'].replace(' ', '_').replace('/', '_'), obra['Obra'])
+            for _, obra in obras_db.iterrows()
+            if obra.get('Ativa', '') == 'Ativa'
+        )
+        (dados_progresso, total_instrumentos,
+         instrumentos_instalados, calibrados_count, instalacoes) = \
+            _load_instrumentos_cache(_obra_keys)
 
     progresso_geral = (instrumentos_instalados / total_instrumentos * 100) if total_instrumentos > 0 else 0
     produtividade   = (horas_validadas / total_horas * 100) if total_horas > 0 else 0
@@ -295,24 +320,6 @@ def render_dashboard(*args):
 
     with col_a2:
         st.markdown("#### 🔧 Últimas Instalações")
-        instalacoes = []
-        if not obras_db.empty:
-            for _, obra in obras_db.iterrows():
-                o_key = obra['Obra'].replace(' ', '_').replace('/', '_')
-                try:
-                    inst = load_db(f"inst_{o_key}_index.csv",
-                                   ["Tag", "Status", "Descricao"], silent=True)
-                    if not inst.empty:
-                        inst_ok = inst[inst['Status'].isin(['3', '4'])].tail(2)
-                        for _, ir in inst_ok.iterrows():
-                            instalacoes.append({
-                                "Tag":  ir.get('Tag', 'N/A'),
-                                "Obra": obra['Obra'],
-                                "Desc": ir.get('Descricao', 'N/A')
-                            })
-                except:
-                    pass
-
         if instalacoes:
             for i in instalacoes[-5:]:
                 st.markdown(f"""
@@ -329,5 +336,6 @@ def render_dashboard(*args):
     st.divider()
     if st.button("🔄 Atualizar Dados", use_container_width=True,
                  type="secondary", key="dash_refresh"):
+        _load_instrumentos_cache.clear()
         inv()
         st.rerun()
