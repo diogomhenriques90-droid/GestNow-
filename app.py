@@ -54,28 +54,9 @@ if page == "criar_admin":
     render_criar_admin()
     st.stop()
 
-def _load_users_fresh():
-    return _load_users_cached()
-
-
-def _verificar_validacoes_pendentes(user_nome):
-    try:
-        users = _load_users_fresh()
-        if users.empty: return False, False, False, False
-        match = users[users['Nome'] == user_nome]
-        if match.empty: return False, False, False, False
-        row = match.iloc[0]
-        pdfs_pend   = row.get('PDFs_Validados',  'Não') != 'Sim'
-        preco_pend  = row.get('PrecoHoraStatus', '')    == ''
-        perfil_val  = str(row.get('Perfil_Completo', '')).strip()
-        perfil_pend = perfil_val != 'Sim'
-        iban_pend   = str(row.get('IBAN_Comprovativo_b64', '')).strip() == ''
-        return pdfs_pend, preco_pend, perfil_pend, iban_pend
-    except:
-        return False, False, False, False
 
 def _render_validacao_obrigatoria(user_nome):
-    users_live = _load_users_fresh()
+    users_live = _load_users_cached()
     if users_live.empty: return False
     match = users_live[users_live['Nome'] == user_nome]
     if match.empty: return False
@@ -716,14 +697,11 @@ else:
 
     # ── BLOQUEIO CENTRALIZADO — só Técnicos e Chefes ──────────────────
     if tipo not in ['Admin', 'Cliente']:
-        pdfs_pend, preco_pend, perfil_pend, iban_pend = _verificar_validacoes_pendentes(user_nome)
-        if pdfs_pend or preco_pend or perfil_pend or iban_pend:
-            _render_validacao_obrigatoria(user_nome)
-            st.stop()
+        _render_validacao_obrigatoria(user_nome)
 
         # ── Bloqueio contrato pendente de assinatura ───────────────
         try:
-            u_ct_check = _load_users_fresh()
+            u_ct_check = _load_users_cached()
             if not u_ct_check.empty:
                 m_ct = u_ct_check[u_ct_check['Nome'] == user_nome]
                 if not m_ct.empty:
