@@ -265,13 +265,14 @@ def _cached_load_db(fn, cols_tuple, silent=False, _v=0):
         try:
             df = pd.read_csv(buf, dtype=str, on_bad_lines='skip', encoding='utf-8-sig')
             df.columns = df.columns.str.strip()
+            # Garante que as colunas obrigatórias existem; preserva todas as outras
             for c in cols_tuple:
                 if c.strip() not in df.columns:
                     df[c.strip()] = ""
-            return df[[c.strip() for c in cols_tuple]].fillna("")
+            return df.fillna("")
         except Exception as e:
             if not silent:
-                logger.warning(f"⚠️ Fallback CSV local para {fn}: {e}")
+                logger.warning(f"⚠️ Erro ao ler {fn}: {e}")
             return pd.DataFrame(columns=[c.strip() for c in cols_tuple])
     return pd.DataFrame(columns=[c.strip() for c in cols_tuple])
 
