@@ -294,7 +294,7 @@ _PERM_COLS = [
     "mod_faturacao", "mod_orcamentacao", "mod_comercial", "mod_qualidade",
     "mod_it", "mod_hse",
 ]
-_SUPER_ADMIN = "Diogo Henriques"
+_SUPER_ADMINS = {"Diogo Henriques", "Admin"}
 
 
 def tem_permissao(utilizador: str, modulo: str) -> bool:
@@ -302,7 +302,7 @@ def tem_permissao(utilizador: str, modulo: str) -> bool:
     Super-admin ('Diogo Henriques') tem sempre True.
     Utilizador não encontrado no CSV → False.
     """
-    if utilizador == _SUPER_ADMIN:
+    if utilizador in _SUPER_ADMINS:
         return True
     df = load_db("permissoes_admin.csv", _PERM_COLS, silent=True)
     if df.empty:
