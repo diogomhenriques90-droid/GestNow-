@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from core import load_all, inv, ICONS, fh, save_db
+from core import load_all, inv, ICONS, fh, save_db, tem_permissao, _PERM_COLS
 from datetime import datetime
 
 # =============================================================================
@@ -24,8 +24,14 @@ def _unpack():
 # Um clique dentro do tab RH só rerun o fragmento RH; os outros 9 não correm.
 # =============================================================================
 
+def _sem_permissao(modulo_label):
+    st.error(f"🚫 Sem permissão para aceder ao módulo **{modulo_label}**.")
+
+
 @st.fragment
 def _tab_armazem():
+    if not tem_permissao(st.session_state.get('user',''), 'mod_armazem'):
+        _sem_permissao("Armazém"); return
     d = _unpack()
     from mod_armazem import render_armazem
     render_armazem(d["req_fer_db"], d["req_mat_db"],
@@ -34,6 +40,8 @@ def _tab_armazem():
 
 @st.fragment
 def _tab_rh():
+    if not tem_permissao(st.session_state.get('user',''), 'mod_rh'):
+        _sem_permissao("RH"); return
     d = _unpack()
     from mod_admin_rh import render_admin_rh
     render_admin_rh(
@@ -47,6 +55,8 @@ def _tab_rh():
 
 @st.fragment
 def _tab_secretariado():
+    if not tem_permissao(st.session_state.get('user',''), 'mod_secretariado'):
+        _sem_permissao("Secretariado"); return
     d = _unpack()
     from mod_secretariado import render_secretariado
     render_secretariado(
@@ -91,6 +101,8 @@ def _subtab_prod_acessos():
 
 @st.fragment
 def _tab_producao():
+    if not tem_permissao(st.session_state.get('user',''), 'mod_producao'):
+        _sem_permissao("Produção"); return
     st.markdown("## 🏭 Produção")
     prod_tabs = st.tabs([
         "🏗️ Obras", "🚗 Frota", "🗺️ Deslocações", "📋 Planeamento", "🔐 Acessos"
@@ -219,6 +231,8 @@ def _subtab_fat_exportacao():
 
 @st.fragment
 def _tab_faturacao():
+    if not tem_permissao(st.session_state.get('user',''), 'mod_faturacao'):
+        _sem_permissao("Faturação"); return
     st.markdown("## 💰 Faturação")
     fat_tabs = st.tabs([
         "📊 Dashboard CFO", "🧾 Clientes & Faturação", "📥 Fornecedores",
@@ -251,18 +265,24 @@ def _tab_faturacao():
 
 @st.fragment
 def _tab_orcamentacao():
+    if not tem_permissao(st.session_state.get('user',''), 'mod_orcamentacao'):
+        _sem_permissao("Orçamentação"); return
     from mod_admin_orcamentacao import render_orcamentacao
     render_orcamentacao()
 
 
 @st.fragment
 def _tab_comercial():
+    if not tem_permissao(st.session_state.get('user',''), 'mod_comercial'):
+        _sem_permissao("Comercial"); return
     from mod_admin_comercial import render_comercial
     render_comercial()
 
 
 @st.fragment
 def _tab_qualidade():
+    if not tem_permissao(st.session_state.get('user',''), 'mod_qualidade'):
+        _sem_permissao("Qualidade"); return
     d = _unpack()
     st.markdown("## 🎯 Qualidade & Auditoria")
     qual_tabs = st.tabs([
@@ -317,6 +337,8 @@ def _tab_qualidade():
 
 @st.fragment
 def _tab_it():
+    if not tem_permissao(st.session_state.get('user',''), 'mod_it'):
+        _sem_permissao("IT"); return
     st.markdown("## 💻 IT & Sistemas")
     it_tabs = st.tabs(["💻 IT & Infraestrutura", "📧 Config Email"])
     with it_tabs[0]:
@@ -364,6 +386,8 @@ def _tab_it():
 
 @st.fragment
 def _tab_hse():
+    if not tem_permissao(st.session_state.get('user',''), 'mod_hse'):
+        _sem_permissao("HSE"); return
     d = _unpack()
     st.markdown("### 🛡️ Segurança e HSE")
     tab_inc, tab_sw = st.tabs(["⚠️ Incidentes", "🚶 Safety Walks"])
@@ -384,6 +408,84 @@ def _tab_hse():
             st.dataframe(sw_db, use_container_width=True, hide_index=True)
         else:
             st.info("📋 Sem safety walks.")
+
+
+# =============================================================================
+# TAB PERMISSÕES — apenas visível para Diogo Henriques
+# =============================================================================
+_MODULOS_LABELS = [
+    ("mod_armazem",     "📦 Armazém"),
+    ("mod_rh",          "👥 RH"),
+    ("mod_secretariado","🗂️ Secretariado"),
+    ("mod_producao",    "🏭 Produção"),
+    ("mod_faturacao",   "💰 Faturação"),
+    ("mod_orcamentacao","📊 Orçamentação"),
+    ("mod_comercial",   "💼 Comercial"),
+    ("mod_qualidade",   "🎯 Qualidade"),
+    ("mod_it",          "💻 IT"),
+    ("mod_hse",         "🛡️ HSE"),
+]
+
+@st.fragment
+def _tab_permissoes():
+    from core import load_db, save_db, inv, _load_users_cached, _PERM_COLS
+    st.markdown("## 🔐 Gestão de Permissões de Módulos")
+    st.info("Apenas **Diogo Henriques** tem acesso a esta secção. "
+            "Configura quais os módulos acessíveis a cada Admin.")
+
+    # Utilizadores Admin (excluindo super-admin)
+    users = _load_users_cached()
+    admins = []
+    if not users.empty and 'Tipo' in users.columns:
+        admins = [n for n in users[users['Tipo'] == 'Admin']['Nome'].tolist()
+                  if n != "Diogo Henriques"]
+
+    if not admins:
+        st.warning("⚠️ Sem utilizadores com tipo Admin para gerir.")
+        return
+
+    # Permissões actuais
+    perm_df = load_db("permissoes_admin.csv", _PERM_COLS, silent=True)
+    perm_dict = {}
+    if not perm_df.empty:
+        for _, row in perm_df.iterrows():
+            u = str(row.get('utilizador', ''))
+            if u:
+                perm_dict[u] = {k: str(row.get(k, 'False')).strip().lower() == 'true'
+                                for k, _ in _MODULOS_LABELS}
+
+    st.markdown("---")
+    # Cabeçalho da tabela
+    hdr = st.columns([3] + [1] * 10)
+    hdr[0].markdown("**Utilizador**")
+    for i, (_, lbl) in enumerate(_MODULOS_LABELS):
+        icon = lbl.split()[0]
+        hdr[i + 1].markdown(f"<div style='text-align:center;font-size:0.75rem;'>{icon}</div>",
+                             unsafe_allow_html=True)
+
+    novos: dict = {}
+    for admin in admins:
+        atual = perm_dict.get(admin, {k: False for k, _ in _MODULOS_LABELS})
+        cols = st.columns([3] + [1] * 10)
+        cols[0].markdown(f"👤 {admin}")
+        novos[admin] = {}
+        for i, (mod_key, lbl) in enumerate(_MODULOS_LABELS):
+            novos[admin][mod_key] = cols[i + 1].checkbox(
+                "", value=atual.get(mod_key, False),
+                key=f"perm_{admin}_{mod_key}",
+                label_visibility="collapsed"
+            )
+
+    st.markdown("---")
+    if st.button("💾 Guardar Permissões", type="primary",
+                 use_container_width=True, key="btn_guardar_perms"):
+        rows = [{"utilizador": u, **{k: str(v) for k, v in perms.items()}}
+                for u, perms in novos.items()]
+        df_novo = pd.DataFrame(rows, columns=_PERM_COLS)
+        save_db(df_novo, "permissoes_admin.csv")
+        inv("permissoes_admin.csv")
+        st.success("✅ Permissões guardadas!")
+        st.rerun()
 
 
 # =============================================================================
@@ -504,12 +606,16 @@ def render_admin(*args):
 
     st.divider()
 
-    # ── 10 Tabs — cada um é um @st.fragment independente ─────────────
-    tabs = st.tabs([
+    # ── Tabs — 10 módulos + tab Permissões (só Diogo Henriques) ──────
+    _e_super = (st.session_state.get('user','') == "Diogo Henriques")
+    _tab_labels = [
         "📦 Armazém", "👥 RH", "🗂️ Secretariado", "🏭 Produção",
         "💰 Faturação", "📊 Orçamentação", "💼 Comercial",
         "🎯 Qualidade", "💻 IT", "🛡️ HSE",
-    ])
+    ]
+    if _e_super:
+        _tab_labels.append("🔐 Permissões")
+    tabs = st.tabs(_tab_labels)
     with tabs[0]: _tab_armazem()
     with tabs[1]: _tab_rh()
     with tabs[2]: _tab_secretariado()
@@ -520,6 +626,8 @@ def render_admin(*args):
     with tabs[7]: _tab_qualidade()
     with tabs[8]: _tab_it()
     with tabs[9]: _tab_hse()
+    if _e_super:
+        with tabs[10]: _tab_permissoes()
 
 
 # =============================================================================
