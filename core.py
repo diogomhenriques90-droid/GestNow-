@@ -12,7 +12,7 @@ PERFORMANCE FIXES v3.3:
 """
 import streamlit as st
 import pandas as pd
-import os, re, secrets, io, base64, bcrypt, logging, uuid, hashlib, json
+import os, re, secrets, io, base64, bcrypt, logging, uuid, hashlib, json, time
 from datetime import datetime, timedelta, date
 from google.cloud import storage as gcs
 import plotly.express as px
@@ -429,9 +429,10 @@ def inv(ficheiro=None):
         # Nuclear — limpa toda a cache do Streamlit
         st.cache_data.clear()
     else:
-        # Selectivo — incrementa versão só do ficheiro alterado
-        fv = st.session_state.setdefault('_fv', {})
-        fv[ficheiro] = fv.get(ficheiro, 0) + 1
+        # Timestamp ms como _v — chave única por evento, sem colisão entre sessões
+        fv = dict(st.session_state.get('_fv', {}))
+        fv[ficheiro] = int(time.time() * 1000)
+        st.session_state['_fv'] = fv
         if ficheiro == "usuarios.csv":
             _load_users_cached.clear()
 

@@ -68,11 +68,12 @@ def render_tecnico(*args):
     for k, v in [
         ('data_consulta',      hoje),
         ('semana_offset',      0),
-        ('show_reg_form',      False),
         ('periodos_trabalho',  [{"entrada": "08:00", "saida": "17:00"}]),
     ]:
         if k not in st.session_state:
             st.session_state[k] = v
+    # Registo de horas desactivado no GestNow — usar CPS Ponto
+    st.session_state['show_reg_form'] = False
 
     # ── CSS global ────────────────────────────────────────────────
     st.markdown("""
@@ -376,12 +377,17 @@ def render_tecnico(*args):
             with col_fab:
                 if st.button("＋", key="fab_btn", type="primary",
                              use_container_width=True):
-                    st.session_state.show_reg_form    = True
-                    st.session_state.periodos_trabalho = [{"entrada": "08:00",
-                                                           "saida":   "17:00"}]
+                    st.session_state['_pt_redirect_msg'] = True
                     st.rerun()
 
             st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+
+            if st.session_state.pop('_pt_redirect_msg', False):
+                st.info("📱 O registo de horas é feito na **CPS Ponto**.")
+                st.link_button(
+                    "🔗 Abrir CPS Ponto",
+                    "https://cps-ponto-773461449136.europe-west1.run.app",
+                    use_container_width=True, type="primary")
 
             # Carregar registos do dia
             regs_dia = pd.DataFrame()
