@@ -288,6 +288,31 @@ def load_db(fn, cols, silent=False):
 # ── Ficheiros críticos — protegidos contra perda de dados ───────────────────
 _CRITICAL_FILES = {"registos.csv", "usuarios.csv", "folhas_ponto.csv", "contratos.csv"}
 
+# ── Colunas de permissoes_admin.csv ─────────────────────────────────────────
+_PERM_COLS = [
+    "utilizador", "mod_armazem", "mod_rh", "mod_secretariado", "mod_producao",
+    "mod_faturacao", "mod_orcamentacao", "mod_comercial", "mod_qualidade",
+    "mod_it", "mod_hse",
+]
+_SUPER_ADMIN = "Diogo Henriques"
+
+
+def tem_permissao(utilizador: str, modulo: str) -> bool:
+    """Verifica se utilizador tem permissão para o módulo.
+    Super-admin ('Diogo Henriques') tem sempre True.
+    Utilizador não encontrado no CSV → False.
+    """
+    if utilizador == _SUPER_ADMIN:
+        return True
+    df = load_db("permissoes_admin.csv", _PERM_COLS, silent=True)
+    if df.empty:
+        return False
+    row = df[df["utilizador"] == utilizador]
+    if row.empty:
+        return False
+    val = str(row.iloc[0].get(modulo, "False")).strip().lower()
+    return val in ("true", "1", "yes")
+
 
 def save_db(df, fn):
     """
