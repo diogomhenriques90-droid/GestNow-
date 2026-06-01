@@ -198,12 +198,13 @@ def _gerar_recibo_vencimento(colaborador: dict,
     liq_calc = _liquido(sal_base, ec, dep)
     custo_c  = _custo_real(sal_base)
 
-    # Horas do mês nos registos
+    # Horas do mês nos registos — apenas validados (Status 1,2,3,4)
     horas_mes = 0.0
     diarias_m = 0.0
     if not registos_db.empty and 'Técnico' in registos_db.columns:
         regs_c = registos_db[
-            registos_db['Técnico'] == colaborador.get('Nome','')
+            (registos_db['Técnico'] == colaborador.get('Nome','')) &
+            (registos_db['Status'].astype(str).isin(['1','2','3','4']))
         ].copy()
         regs_c['Data_d'] = pd.to_datetime(
             regs_c['Data'], dayfirst=True, errors='coerce'
@@ -1103,12 +1104,13 @@ def render_fat_rh(obras_db, registos_db, *_):
                 lq   = _liquido(sal, ec, dep)
                 sub_alim = 22 * SUB_ALIM_DIA
 
-                # Horas do mês (para calcular sub. alimentação real)
+                # Dias trabalhados no mês — apenas registos validados (Status 1,2,3,4)
                 horas_m = 0
                 if not registos_db.empty and \
                    'Técnico' in registos_db.columns:
                     regs_c = registos_db[
-                        registos_db['Técnico'] == colab.get('Nome','')
+                        (registos_db['Técnico'] == colab.get('Nome','')) &
+                        (registos_db['Status'].astype(str).isin(['1','2','3','4']))
                     ].copy()
                     regs_c['Data_d'] = pd.to_datetime(
                         regs_c['Data'], dayfirst=True, errors='coerce'
