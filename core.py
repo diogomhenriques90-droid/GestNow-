@@ -88,15 +88,18 @@ def _gcs_read(fn):
 def _gcs_write(fn, content_bytes):
     try:
         client = _gcs_client()
-        if client:
-            bucket = client.bucket(GCS_BUCKET)
-            blob   = bucket.blob(f"data/{fn}")
-            blob.metadata = {
-                "last_updated": datetime.now().isoformat(),
-                "app_version":  "GESTNOW-v3.0"
-            }
-            blob.upload_from_string(content_bytes, content_type="text/csv")
-            return True
+        if not client:
+            logger.error(f"❌ _gcs_write({fn}): cliente GCS não inicializado (credenciais em falta?)")
+            st.toast("⚠️ Sem ligação ao GCS — dados não guardados", icon="⚙️")
+            return False
+        bucket = client.bucket(GCS_BUCKET)
+        blob   = bucket.blob(f"data/{fn}")
+        blob.metadata = {
+            "last_updated": datetime.now().isoformat(),
+            "app_version":  "GESTNOW-v3.0"
+        }
+        blob.upload_from_string(content_bytes, content_type="text/csv")
+        return True
     except Exception as e:
         logger.error(f"❌ Erro crítico GCS write {fn}: {e}")
         st.toast("⚠️ Erro ao guardar dados", icon="⚙️")
@@ -146,11 +149,13 @@ def _gcs_append_row(fn: str, row: dict) -> bool:
 def _gcs_write_binary(data: bytes, filename: str) -> bool:
     try:
         client = _gcs_client()
-        if client:
-            bucket = client.bucket(GCS_BUCKET)
-            blob   = bucket.blob(f"data/{filename}")
-            blob.upload_from_string(data)
-            return True
+        if not client:
+            logger.error(f"❌ _gcs_write_binary({filename}): cliente GCS não inicializado")
+            return False
+        bucket = client.bucket(GCS_BUCKET)
+        blob   = bucket.blob(f"data/{filename}")
+        blob.upload_from_string(data)
+        return True
     except Exception as e:
         logger.error(f"❌ Erro GCS write binary {filename}: {e}")
     return False
