@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from core import load_all, inv, ICONS, fh, save_db, tem_permissao, _PERM_COLS
+from core import load_all, inv, ICONS, fh, save_db, tem_permissao, _PERM_COLS, _SUPER_ADMINS
 from datetime import datetime
 
 # =============================================================================
@@ -411,7 +411,7 @@ def _tab_hse():
 
 
 # =============================================================================
-# TAB PERMISSÕES — apenas visível para Diogo Henriques
+# TAB PERMISSÕES — apenas visível para super-admins (_SUPER_ADMINS)
 # =============================================================================
 _MODULOS_LABELS = [
     ("mod_armazem",     "📦 Armazém"),
@@ -430,7 +430,7 @@ _MODULOS_LABELS = [
 def _tab_permissoes():
     from core import load_db, save_db, inv, _load_users_cached, _PERM_COLS
     st.markdown("## 🔐 Gestão de Permissões de Módulos")
-    st.info("Apenas **Diogo Henriques** tem acesso a esta secção. "
+    st.info("Apenas super-admins têm acesso a esta secção. "
             "Configura quais os módulos acessíveis a cada Admin.")
 
     # Utilizadores Admin (excluindo super-admin)
@@ -438,7 +438,7 @@ def _tab_permissoes():
     admins = []
     if not users.empty and 'Tipo' in users.columns:
         admins = [n for n in users[users['Tipo'] == 'Admin']['Nome'].tolist()
-                  if n != "Diogo Henriques"]
+                  if n not in _SUPER_ADMINS]
 
     if not admins:
         st.warning("⚠️ Sem utilizadores com tipo Admin para gerir.")
@@ -607,7 +607,7 @@ def render_admin(*args):
     st.divider()
 
     # ── Tabs — 10 módulos + tab Permissões (só Diogo Henriques) ──────
-    _e_super = (st.session_state.get('user','') == "Diogo Henriques")
+    _e_super = st.session_state.get('user','') in _SUPER_ADMINS
     _tab_labels = [
         "📦 Armazém", "👥 RH", "🗂️ Secretariado", "🏭 Produção",
         "💰 Faturação", "📊 Orçamentação", "💼 Comercial",
