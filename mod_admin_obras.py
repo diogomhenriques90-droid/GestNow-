@@ -69,6 +69,8 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                         ) if not obras_db.empty else nova
                         save_db(obras_db, "obras_lista.csv")
                         inv("obras_lista.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.success(f"✅ Obra '{nome}' criada!")
                         st.rerun()
 
