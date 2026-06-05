@@ -589,6 +589,12 @@ if st.session_state.get('user'):
             st.session_state.menu_selected = menu_item
 
         st.divider()
+        if st.button("🔄 Atualizar Dados", use_container_width=True,
+                     type="secondary", key="sidebar_refresh_btn"):
+            from core import _cached_load_all
+            _cached_load_all.clear()
+            inv()
+            st.rerun()
         if st.button(f"{ICONS['logout']} {t('logout')}", use_container_width=True,
                      type="secondary", key="sidebar_logout_btn"):
             st.session_state.clear()
