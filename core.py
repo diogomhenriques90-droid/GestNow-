@@ -286,7 +286,7 @@ def load_db(fn, cols, silent=False):
     return df
 
 # ── Ficheiros críticos — protegidos contra perda de dados ───────────────────
-_CRITICAL_FILES = {"registos.csv", "usuarios.csv", "folhas_ponto.csv", "contratos.csv"}
+_CRITICAL_FILES = {"registos.csv", "usuarios.csv", "folhas_ponto.csv", "contratos.csv", "obras_lista.csv"}
 
 # ── Colunas de permissoes_admin.csv ─────────────────────────────────────────
 _PERM_COLS = [
