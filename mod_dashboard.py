@@ -18,7 +18,7 @@ def _safe_date_str(val):
     except:
         return 'N/A'
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _load_instrumentos_cache(obra_keys_tuple):
     """Agrega dados de instrumentação de todas as obras activas. TTL=5min."""
     dados_progresso = []

@@ -468,7 +468,19 @@ def inv(ficheiro=None):
             _load_users_cached.clear()
 
 
-def load_all():
+_LOAD_ALL_FILES = (
+    "usuarios.csv", "obras_lista.csv", "frentes_lista.csv", "registos.csv",
+    "faturas.csv", "documentos.csv", "incidentes.csv", "safety_walks.csv",
+    "obs_seguranca.csv", "equipamentos.csv", "dialogos.csv", "dialogos_users.csv",
+    "folhas_ponto.csv", "comunicados.csv", "comunicados_lidos.csv",
+    "req_ferramentas.csv", "req_materiais.csv", "req_epis.csv",
+    "avaliacoes.csv", "inst_acessos.csv", "diarias_config.csv",
+    "diarias_faltas.csv", "diarias_pagamentos.csv", "folhas_ocr.csv",
+)
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _cached_load_all(_versions):
+    """Backend cacheado de load_all. _versions força cache miss quando qualquer ficheiro muda."""
     users = load_db("usuarios.csv", [
         "Nome", "Password", "Tipo", "Email", "Telefone", "Cargo",
         "NIF", "NISS", "CC", "CC_Validade", "DataNasc", "Nacionalidade",
@@ -592,6 +604,11 @@ def load_all():
             diags, diags_u, folhas, comuns, comuns_u, req_fer, req_mat, req_epi,
             avals, inst_acessos, diarias_config, diarias_faltas, diarias_pagamentos,
             folhas_ocr)
+
+
+def load_all():
+    fv = st.session_state.get('_fv', {})
+    return _cached_load_all(tuple(fv.get(fn, 0) for fn in _LOAD_ALL_FILES))
 
 # =============================================================================
 # UTILITÁRIOS

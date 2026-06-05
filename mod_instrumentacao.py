@@ -87,6 +87,12 @@ def _save_inst(insts_df, obra_key, tabela_tipo="index"):
             result = save_db(insts_df[cols].fillna(""), filename)
             if result:
                 st.success("✅ Dados guardados!")
+                if tabela_tipo == "index":
+                    try:
+                        from mod_dashboard import _load_instrumentos_cache
+                        _load_instrumentos_cache.clear()
+                    except Exception:
+                        pass
             return result
         else:
             save_to_local_cache(filename, insts_df[cols])
