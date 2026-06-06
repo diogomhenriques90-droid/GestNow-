@@ -421,8 +421,16 @@ def render_comercial(*_):
     oport_db   = _load("comercial_oportunidades.csv", [
         "ID", "Nome", "Cliente", "Setor", "Comercial",
         "Stage", "Valor_Est", "Prob_Fecho", "Data_Criacao",
-        "Data_Fecho_Est", "Origem", "Notas", "Obra_Associada"
+        "Data_Fecho_Est", "Origem", "Notas", "Obra_Associada",
+        "Contacto_Origem",
     ])
+    _ct_db     = _load("com_contactos.csv", [
+        "ID", "Data", "Canal", "Cliente_Nome",
+        "Contacto_Nome", "Oportunidade_ID",
+    ])
+    ct_sem_op  = _ct_db[
+        _ct_db["Oportunidade_ID"].isna() | (_ct_db["Oportunidade_ID"] == "")
+    ].copy() if not _ct_db.empty else pd.DataFrame()
     visitas_db = _load("comercial_visitas.csv", [
         "ID", "Cliente", "Contacto", "Comercial", "Data",
         "Hora", "Tipo", "Local", "Oportunidade_ID",
@@ -603,6 +611,17 @@ def render_comercial(*_):
                 )
                 op_notas = st.text_area("Notas", key="op_notas")
 
+                ct_opts = ["— Nenhum —"] + [
+                    f"{r['ID']} — {r['Cliente_Nome']} | "
+                    f"{r['Contacto_Nome']} ({r['Canal']}, {r['Data']})"
+                    for _, r in ct_sem_op.iterrows()
+                ] if not ct_sem_op.empty else ["— Nenhum —"]
+                op_contacto = st.selectbox(
+                    "🔗 Contacto de Origem (ISO)",
+                    ct_opts, key="op_contacto_orig",
+                    help="Contactos ainda sem oportunidade ligada"
+                )
+
                 if st.form_submit_button(
                     "💾 Guardar Oportunidade",
                     use_container_width=True, type="primary"
@@ -610,32 +629,49 @@ def render_comercial(*_):
                     if not op_nome.strip() or not op_cliente.strip():
                         st.error("❌ Nome e cliente obrigatórios.")
                     else:
-                        stage_id = STAGE_IDS[STAGE_NOMES.index(op_stage)]
+                        stage_id   = STAGE_IDS[STAGE_NOMES.index(op_stage)]
                         stage_info = _get_stage(stage_id)
+                        op_id_novo = str(uuid.uuid4())[:8].upper()
+                        ct_orig_id = (
+                            op_contacto.split(" — ")[0].strip()
+                            if op_contacto != "— Nenhum —" else ""
+                        )
                         nova_op = pd.DataFrame([{
-                            "ID":             str(uuid.uuid4())[:8].upper(),
-                            "Nome":           op_nome.strip(),
-                            "Cliente":        op_cliente.strip(),
-                            "Setor":          op_setor,
-                            "Comercial":      op_comercial.strip(),
-                            "Stage":          stage_id,
-                            "Valor_Est":      op_valor,
-                            "Prob_Fecho":     stage_info['prob'],
-                            "Data_Criacao":   _hoje_str(),
-                            "Data_Fecho_Est": op_fecho.strip(),
-                            "Origem":         op_origem,
-                            "Notas":          op_notas.strip(),
-                            "Obra_Associada": ""
+                            "ID":               op_id_novo,
+                            "Nome":             op_nome.strip(),
+                            "Cliente":          op_cliente.strip(),
+                            "Setor":            op_setor,
+                            "Comercial":        op_comercial.strip(),
+                            "Stage":            stage_id,
+                            "Valor_Est":        op_valor,
+                            "Prob_Fecho":       stage_info['prob'],
+                            "Data_Criacao":     _hoje_str(),
+                            "Data_Fecho_Est":   op_fecho.strip(),
+                            "Origem":           op_origem,
+                            "Notas":            op_notas.strip(),
+                            "Obra_Associada":   "",
+                            "Contacto_Origem":  ct_orig_id,
                         }])
                         upd_op = pd.concat(
                             [oport_db, nova_op], ignore_index=True
                         ) if not oport_db.empty else nova_op
                         save_db(upd_op, "comercial_oportunidades.csv")
+                        inv("comercial_oportunidades.csv")
+
+                        # Ligação bidirecional: marcar Oportunidade_ID no contacto
+                        if ct_orig_id and not _ct_db.empty:
+                            _ct_db.loc[
+                                _ct_db["ID"] == ct_orig_id, "Oportunidade_ID"
+                            ] = op_id_novo
+                            save_db(_ct_db, "com_contactos.csv")
+                            inv("com_contactos.csv")
+
                         log_audit(user_nome, "CRIAR_OPORTUNIDADE",
                                   "comercial_oportunidades.csv",
-                                  nova_op['ID'].iloc[0],
-                                  f"{op_nome} | {op_cliente} | \u20AC{op_valor:,.0f}", "")
-                        inv("comercial_oportunidades.csv")
+                                  op_id_novo,
+                                  f"{op_nome} | {op_cliente} | €{op_valor:,.0f}"
+                                  + (f" | Contacto: {ct_orig_id}" if ct_orig_id else ""),
+                                  "")
                         st.success(f"✅ Oportunidade criada!")
                         st.rerun()
 

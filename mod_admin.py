@@ -280,6 +280,14 @@ def _tab_comercial():
 
 
 @st.fragment
+def _tab_contactos_iso():
+    if not tem_permissao(st.session_state.get('user',''), 'mod_contactos_iso'):
+        _sem_permissao("Contactos ISO"); return
+    from mod_contactos_iso import render_contactos_iso
+    render_contactos_iso()
+
+
+@st.fragment
 def _tab_qualidade():
     if not tem_permissao(st.session_state.get('user',''), 'mod_qualidade'):
         _sem_permissao("Qualidade"); return
@@ -419,9 +427,10 @@ _MODULOS_LABELS = [
     ("mod_secretariado","🗂️ Secretariado"),
     ("mod_producao",    "🏭 Produção"),
     ("mod_faturacao",   "💰 Faturação"),
-    ("mod_orcamentacao","📊 Orçamentação"),
-    ("mod_comercial",   "💼 Comercial"),
-    ("mod_qualidade",   "🎯 Qualidade"),
+    ("mod_orcamentacao",   "📊 Orçamentação"),
+    ("mod_comercial",      "💼 Comercial"),
+    ("mod_contactos_iso",  "🔗 Contactos ISO"),
+    ("mod_qualidade",      "🎯 Qualidade"),
     ("mod_it",          "💻 IT"),
     ("mod_hse",         "🛡️ HSE"),
 ]
@@ -606,28 +615,29 @@ def render_admin(*args):
 
     st.divider()
 
-    # ── Tabs — 10 módulos + tab Permissões (só Diogo Henriques) ──────
+    # ── Tabs — 11 módulos + tab Permissões (só Diogo Henriques) ──────
     _e_super = st.session_state.get('user','') in _SUPER_ADMINS
     _tab_labels = [
         "📦 Armazém", "👥 RH", "🗂️ Secretariado", "🏭 Produção",
         "💰 Faturação", "📊 Orçamentação", "💼 Comercial",
-        "🎯 Qualidade", "💻 IT", "🛡️ HSE",
+        "🔗 Contactos ISO", "🎯 Qualidade", "💻 IT", "🛡️ HSE",
     ]
     if _e_super:
         _tab_labels.append("🔐 Permissões")
     tabs = st.tabs(_tab_labels)
-    with tabs[0]: _tab_armazem()
-    with tabs[1]: _tab_rh()
-    with tabs[2]: _tab_secretariado()
-    with tabs[3]: _tab_producao()
-    with tabs[4]: _tab_faturacao()
-    with tabs[5]: _tab_orcamentacao()
-    with tabs[6]: _tab_comercial()
-    with tabs[7]: _tab_qualidade()
-    with tabs[8]: _tab_it()
-    with tabs[9]: _tab_hse()
+    with tabs[0]:  _tab_armazem()
+    with tabs[1]:  _tab_rh()
+    with tabs[2]:  _tab_secretariado()
+    with tabs[3]:  _tab_producao()
+    with tabs[4]:  _tab_faturacao()
+    with tabs[5]:  _tab_orcamentacao()
+    with tabs[6]:  _tab_comercial()
+    with tabs[7]:  _tab_contactos_iso()
+    with tabs[8]:  _tab_qualidade()
+    with tabs[9]:  _tab_it()
+    with tabs[10]: _tab_hse()
     if _e_super:
-        with tabs[10]: _tab_permissoes()
+        with tabs[11]: _tab_permissoes()
 
 
 # =============================================================================

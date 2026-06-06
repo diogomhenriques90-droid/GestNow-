@@ -291,8 +291,8 @@ _CRITICAL_FILES = {"registos.csv", "usuarios.csv", "folhas_ponto.csv", "contrato
 # ── Colunas de permissoes_admin.csv ─────────────────────────────────────────
 _PERM_COLS = [
     "utilizador", "mod_armazem", "mod_rh", "mod_secretariado", "mod_producao",
-    "mod_faturacao", "mod_orcamentacao", "mod_comercial", "mod_qualidade",
-    "mod_it", "mod_hse",
+    "mod_faturacao", "mod_orcamentacao", "mod_comercial", "mod_contactos_iso",
+    "mod_qualidade", "mod_it", "mod_hse",
 ]
 _SUPER_ADMINS = {"Diogo Henriques", "Admin"}
 
