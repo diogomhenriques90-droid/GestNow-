@@ -791,6 +791,8 @@ def render_tecnico(*args):
                                                             "saida":   "17:00"}]
                     st.session_state.data_consulta    = data_sel
                     inv("registos.csv")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
                     st.rerun()
 
     # ════════════════════════════════════════════════════════════════
@@ -1001,6 +1003,8 @@ def render_tecnico(*args):
                             acao_url="/admin?tab=validacoes"
                         )
                         inv("registos.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.rerun()
                 with col_masa3:
                     if st.button(
@@ -1028,6 +1032,8 @@ def render_tecnico(*args):
                             ip=""
                         )
                         inv("registos.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.rerun()
 
                 st.markdown(
@@ -1146,6 +1152,8 @@ def render_tecnico(*args):
                                     acao_url="/"
                                 )
                                 inv("registos.csv")
+                                from core import _cached_load_all
+                                _cached_load_all.clear()
                                 st.rerun()
                         with col_rr:
                             if st.button(
@@ -1183,6 +1191,8 @@ def render_tecnico(*args):
                                     acao_url="/"
                                 )
                                 inv("registos.csv")
+                                from core import _cached_load_all
+                                _cached_load_all.clear()
                                 st.rerun()
 
                     st.markdown(
@@ -1274,6 +1284,8 @@ def render_tecnico(*args):
                             save_db(upd, "folhas_ponto.csv")
                             st.success(f"✅ Folha #{selo} gerada — {ts}")
                             inv("folhas_ponto.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                         else:
                             st.warning("⚠️ Indica o nome do responsável.")
                 else:
@@ -1320,6 +1332,8 @@ def render_tecnico(*args):
                            if not incs_db.empty else ni)
                     save_db(upd, "incidentes.csv")
                     inv("incidentes.csv")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
                     st.success("✅ Alerta HSE enviado!")
                     st.rerun()
                 else:
@@ -1583,6 +1597,8 @@ def render_tecnico(*args):
                                 ip=""
                             )
                             inv("usuarios.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                             st.success("✅ Perfil atualizado!")
                             st.rerun()
 
@@ -1671,6 +1687,8 @@ def render_tecnico(*args):
                                 ip=""
                             )
                             inv("usuarios.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                             st.success(
                                 "✅ Assinatura submetida! O RH será notificado."
                             )
@@ -1802,7 +1820,10 @@ def render_tecnico(*args):
                                if not req_fer_db.empty else n)
                         save_db(upd, "req_ferramentas.csv")
                         _notif("🔧 Ferramenta", f"{user_nome}: {d_[:40]}")
-                        inv("req_ferramentas.csv"); st.success("✅"); st.rerun()
+                        inv("req_ferramentas.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        st.success("✅"); st.rerun()
                     else:
                         st.warning("⚠️ Descreve a ferramenta.")
 
@@ -1842,7 +1863,10 @@ def render_tecnico(*args):
                            if not req_epi_db.empty else n)
                     save_db(upd, "req_epis.csv")
                     _notif("🦺 EPI", f"{user_nome}: {q_}x {i_}")
-                    inv("req_epis.csv"); st.success("✅"); st.rerun()
+                    inv("req_epis.csv")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
+                    st.success("✅"); st.rerun()
 
         with s3:
             with st.form("fm"):
@@ -1883,7 +1907,10 @@ def render_tecnico(*args):
                             "📦 Material",
                             f"{user_nome}: {q_}{u_} de {d_[:30]}"
                         )
-                        inv("req_materiais.csv"); st.success("✅"); st.rerun()
+                        inv("req_materiais.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        st.success("✅"); st.rerun()
                     else:
                         st.warning("⚠️ Descreve o material.")
 
@@ -1932,7 +1959,10 @@ def render_tecnico(*args):
                                if not req_mat_db.empty else n)
                         save_db(upd, "req_materiais.csv")
                         _notif("⛽ Gasóleo", f"{user_nome}: {l_}L")
-                        inv("req_materiais.csv"); st.success("✅"); st.rerun()
+                        inv("req_materiais.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        st.success("✅"); st.rerun()
                     else:
                         st.warning("⚠️ Faz upload do recibo e indica os litros.")
 

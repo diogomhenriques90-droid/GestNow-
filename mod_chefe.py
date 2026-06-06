@@ -601,6 +601,8 @@ def render_chefe(*args):
                           if not comuns_db.empty else novo
                     save_db(upd, "comunicados.csv")
                     inv("comunicados.csv")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
                     st.success("✅ Comunicado enviado!")
                     st.session_state['_menu_locked'] = True
                     st.rerun()
@@ -658,6 +660,8 @@ def render_chefe(*args):
                                 tipo="success", acao_url="/")
                         save_db(registos_db, "registos.csv")
                         inv("registos.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.success("✅ Todos validados!")
                         st.session_state['_menu_locked'] = True
                         st.rerun()
@@ -674,6 +678,8 @@ def render_chefe(*args):
                                 tipo="error", acao_url="/")
                         save_db(registos_db, "registos.csv")
                         inv("registos.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.error("❌ Todos rejeitados.")
                         st.session_state['_menu_locked'] = True
                         st.rerun()
@@ -725,6 +731,8 @@ def render_chefe(*args):
                                 mensagem=f"As tuas horas foram validadas por {user_nome}.",
                                 tipo="success", acao_url="/")
                             inv("registos.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                             st.session_state['_menu_locked'] = True
                             st.rerun()
                     with col_rt:
@@ -739,6 +747,8 @@ def render_chefe(*args):
                                 mensagem=f"As tuas horas foram rejeitadas. Contacta {user_nome}.",
                                 tipo="error", acao_url="/")
                             inv("registos.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                             st.session_state['_menu_locked'] = True
                             st.rerun()
 
@@ -773,6 +783,8 @@ def render_chefe(*args):
                                     mensagem=f"{fh(horas_r)} em {obra_r} validadas.",
                                     tipo="success", acao_url="/")
                                 inv("registos.csv")
+                                from core import _cached_load_all
+                                _cached_load_all.clear()
                                 st.session_state['_menu_locked'] = True
                                 st.rerun()
                         with col_r:
@@ -786,6 +798,8 @@ def render_chefe(*args):
                                     mensagem=f"{fh(horas_r)} rejeitadas.",
                                     tipo="error", acao_url="/")
                                 inv("registos.csv")
+                                from core import _cached_load_all
+                                _cached_load_all.clear()
                                 st.session_state['_menu_locked'] = True
                                 st.rerun()
 
@@ -1420,6 +1434,8 @@ def render_chefe(*args):
                     st.session_state.periodos_trabalho_ch = [{"entrada":"08:00","saida":"17:00"}]
                     st.session_state.data_consulta_ch    = data_sel
                     inv("registos.csv")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
                     st.session_state['_menu_locked'] = True
                     st.rerun()
 
@@ -1735,6 +1751,8 @@ def render_chefe(*args):
                         st.session_state.fp_folha_id = folha_id
                         st.session_state.fp_step     = 'concluida'
                         inv("folhas_ponto.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.session_state['_menu_locked'] = True
                         st.rerun()
 
@@ -1806,6 +1824,8 @@ def render_chefe(*args):
                         st.session_state.fp_folha_id = folha_id
                         st.session_state.fp_step     = 'concluida'
                         inv("folhas_ponto.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.session_state['_menu_locked'] = True
                         st.rerun()
 
@@ -1896,6 +1916,8 @@ def render_chefe(*args):
                               if not incs_db.empty else ni
                         save_db(upd, "incidentes.csv")
                         inv("incidentes.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.success("✅ Alerta HSE submetido!")
                         st.session_state['_menu_locked'] = True
                         st.rerun()

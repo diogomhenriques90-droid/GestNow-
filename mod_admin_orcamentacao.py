@@ -634,6 +634,8 @@ def _modal_criar_obra(orc, oid, orc_db):
                                 ignore_index=True) if not obras_db.empty else nova_obra
                 save_db(upd, "obras_lista.csv")
                 inv("obras_lista.csv")
+                from core import _cached_load_all
+                _cached_load_all.clear()
                 # Ligar orçamento à obra
                 orc_db.loc[orc_db['ID'] == oid, 'Status'] = 'Adjudicado'
                 save_db(orc_db, "orcamentos.csv")

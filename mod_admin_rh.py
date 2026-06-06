@@ -256,6 +256,8 @@ def render_admin_rh(*args):
 
                         save_db(updated, "usuarios.csv")
                         inv("usuarios.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         log_audit(usuario=admin_nome,
                                   acao="CRIAR_COLABORADOR",
                                   tabela="usuarios.csv",
@@ -445,6 +447,8 @@ def render_admin_rh(*args):
                 u_fresh.loc[mask, 'Campos_Bloqueados'] = json.dumps(novos_bl)
                 save_db(u_fresh, "usuarios.csv")
                 inv("usuarios.csv")
+                from core import _cached_load_all
+                _cached_load_all.clear()
                 st.success("✅ Campos bloqueados atualizados.")
                 st.rerun()
 
@@ -479,6 +483,8 @@ def render_admin_rh(*args):
                 u_fn.loc[mk_fn, "Cargo"] = novo_cargo
                 save_db(u_fn, "usuarios.csv")
                 inv("usuarios.csv")
+                from core import _cached_load_all
+                _cached_load_all.clear()
                 log_audit(usuario=st.session_state.get("user","admin"),
                           acao="ALTERAR_FUNCAO",
                           tabela="usuarios.csv",
@@ -510,6 +516,8 @@ def render_admin_rh(*args):
                         u_pw.loc[mk_pw, "Password"] = hp(nova_pwd_admin.strip())
                         save_db(u_pw, "usuarios.csv")
                         inv("usuarios.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         log_audit(usuario=st.session_state.get("user","admin"),
                                   acao="REDEFINIR_PASSWORD",
                                   tabela="usuarios.csv",
@@ -553,6 +561,8 @@ def render_admin_rh(*args):
                     u_rm = u_rm[u_rm["Nome"] != nome_sel]
                     save_db(u_rm, "usuarios.csv")
                     inv("usuarios.csv")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
                     log_audit(usuario=st.session_state.get("user","admin"),
                               acao="REMOVER_COLABORADOR",
                               tabela="usuarios.csv",
@@ -590,6 +600,8 @@ def render_admin_rh(*args):
                         u_ln.loc[mk_ln, "Lista_Negra_Por"] =                             st.session_state.get("user", "admin")
                         save_db(u_ln, "usuarios.csv")
                         inv("usuarios.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         log_audit(
                             usuario=st.session_state.get("user","admin"),
                             acao="LISTA_NEGRA",
@@ -643,6 +655,8 @@ def render_admin_rh(*args):
                             u_ra.loc[mk_ra, "Lista_Negra_Por"]  = ""
                             save_db(u_ra, "usuarios.csv")
                             inv("usuarios.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                             log_audit(
                                 usuario=st.session_state.get("user","admin"),
                                 acao="REACTIVAR_COLABORADOR",
@@ -790,6 +804,8 @@ def render_admin_rh(*args):
                                     u_ct.loc[mask, 'Contrato_Cliente_Obra'] = ct_cliente
                                     save_db(u_ct, "usuarios.csv")
                                     inv("usuarios.csv")
+                                    from core import _cached_load_all
+                                    _cached_load_all.clear()
                                     log_audit(
                                         usuario=admin_nome,
                                         acao="GERAR_CONTRATO",
@@ -840,6 +856,8 @@ def render_admin_rh(*args):
                             u_re.loc[mask, 'Contrato_b64'] = novo_b64
                             save_db(u_re, "usuarios.csv")
                             inv("usuarios.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                             st.success("✅ Contrato atualizado com a versão editada!")
                             st.rerun()
 
@@ -866,6 +884,8 @@ def render_admin_rh(*args):
                             acao_url="/perfil?tab=contrato"
                         )
                         inv("usuarios.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.success("✅ Colaborador notificado!")
                         st.rerun()
             with col_env2:
@@ -881,6 +901,8 @@ def render_admin_rh(*args):
                             u_ct2.loc[mask, campo] = ''
                         save_db(u_ct2, "usuarios.csv")
                         inv("usuarios.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.rerun()
 
         # ── PASSO 3: Aguarda assinatura do colaborador ────────────
@@ -920,6 +942,8 @@ def render_admin_rh(*args):
                             datetime.now().strftime("%d/%m/%Y %H:%M")
                         save_db(u_ct3, "usuarios.csv")
                         inv("usuarios.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         criar_notificacao(
                             destinatario=nome_ct_sel,
                             titulo="✅ Contrato Validado",
@@ -958,6 +982,8 @@ def render_admin_rh(*args):
                             acao_url="/perfil?tab=contrato"
                         )
                         inv("usuarios.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.warning("Colaborador notificado para nova assinatura.")
                         st.rerun()
 

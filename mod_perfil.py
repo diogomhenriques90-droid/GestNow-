@@ -190,6 +190,8 @@ def render_perfil(*args):
                 log_audit(usuario=user_nome, acao="EDITAR_PERFIL", tabela="usuarios.csv",
                           registro_id=user_nome, detalhes="Perfil atualizado via mod_perfil", ip="")
                 inv("usuarios.csv")
+                from core import _cached_load_all
+                _cached_load_all.clear()
                 st.success("✅ Perfil atualizado com sucesso!")
                 st.rerun()
 
@@ -215,6 +217,8 @@ def render_perfil(*args):
                         log_audit(usuario=user_nome, acao="ALTERAR_PASSWORD", tabela="usuarios.csv",
                                   registro_id=user_nome, detalhes="Password alterada pelo utilizador", ip="")
                         inv("usuarios.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.success("✅ Password alterada com sucesso!")
                     else:
                         st.error("❌ Password atual incorreta.")
@@ -235,6 +239,8 @@ def render_perfil(*args):
                     log_audit(usuario=user_nome, acao="ALTERAR_PIN", tabela="usuarios.csv",
                               registro_id=user_nome, detalhes="PIN alterado pelo utilizador", ip="")
                     inv("usuarios.csv")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
                     st.success("✅ PIN alterado com sucesso!")
 
     # ── TAB 2: HISTÓRICO DE HORAS ────────────────────────────────────

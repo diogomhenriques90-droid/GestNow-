@@ -687,6 +687,8 @@ def render_admin_diarias(*args):
                                 ip=""
                             )
                             inv("diarias_pagamentos.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                             st.success(
                                 f"✅ {len(df_calc)} colaboradores marcados "
                                 f"como pagos — € {total_geral:.2f}"
@@ -780,6 +782,8 @@ def render_admin_diarias(*args):
                         "diarias_config.csv"
                     )
                     inv("diarias_config.csv")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
                     st.success("✅ Configuração guardada!")
                     st.rerun()
 
@@ -861,6 +865,8 @@ def render_admin_diarias(*args):
                     ip=""
                 )
                 inv("diarias_faltas.csv")
+                from core import _cached_load_all
+                _cached_load_all.clear()
                 st.success(
                     f"✅ Falta registada: {tec_falta} — "
                     f"{data_falta.strftime('%d/%m/%Y')}"
@@ -900,6 +906,8 @@ def render_admin_diarias(*args):
                         ]
                         save_db(df_up, "diarias_faltas.csv")
                         inv("diarias_faltas.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.rerun()
 
     # ════════════════════════════════════════════════════════════════
