@@ -84,7 +84,10 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                      f"Será enviado para {obra}.",
             tipo="success", acao_url="/tecnico"
         )
-        inv(csv); st.success("✅ Aprovado!"); st.rerun()
+        inv(csv)
+        from core import _cached_load_all
+        _cached_load_all.clear()
+        st.success("✅ Aprovado!"); st.rerun()
 
     def _rejeitar(df, csv, ped_id, tec, item_desc):
         df.loc[df['ID'] == ped_id, 'Status']         = 'Rejeitado'
@@ -99,7 +102,10 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
             mensagem=f"O teu pedido de {item_desc} foi rejeitado.",
             tipo="error", acao_url="/tecnico"
         )
-        inv(csv); st.error("❌ Rejeitado."); st.rerun()
+        inv(csv)
+        from core import _cached_load_all
+        _cached_load_all.clear()
+        st.error("❌ Rejeitado."); st.rerun()
 
     def _marcar_enviado(df, csv, ped_id, tec, item_desc, obra):
         df.loc[df['ID'] == ped_id, 'Status']        = 'Enviado'
@@ -115,7 +121,10 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                      f"Confirma a receção na app.",
             tipo="info", acao_url="/tecnico"
         )
-        inv(csv); st.info("📬 Marcado como enviado!"); st.rerun()
+        inv(csv)
+        from core import _cached_load_all
+        _cached_load_all.clear()
+        st.info("📬 Marcado como enviado!"); st.rerun()
 
     # ═══ TAB EPIs ════════════════════════════════════════════════
     with tab_epis:
@@ -702,6 +711,8 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                                     break
 
                             inv(csv_ref)
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                             st.success(
                                 f"✅ Receção confirmada: {desc}"
                             )

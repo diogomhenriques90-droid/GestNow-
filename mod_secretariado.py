@@ -138,6 +138,8 @@ def render_secretariado(*args):
                                   registro_id=f"batch_{len(ids)}",
                                   detalhes=f"1ª validação de {len(ids)} registos", ip="")
                         inv("registos.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.success(f"✅ {len(ids)} registos validados!")
                         st.rerun()
                 with col_vr:
@@ -153,6 +155,8 @@ def render_secretariado(*args):
                                 mensagem=f"{r['Horas_Total']}h em {r['Obra']} rejeitadas.",
                                 tipo="error", acao_url="/")
                         inv("registos.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.error(f"❌ {len(ids)} registos rejeitados.")
                         st.rerun()
 
@@ -185,7 +189,10 @@ def render_secretariado(*args):
                                 titulo="🟢 Horas Validadas",
                                 mensagem=f"{fh(row.get('Horas_Total',0))} em {row.get('Obra','')} validadas.",
                                 tipo="success", acao_url="/")
-                            inv("registos.csv"); st.rerun()
+                            inv("registos.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
+                            st.rerun()
                     with col_r:
                         if st.button("❌", key=f"s1_rej_{reg_id}_{idx1}",
                                       use_container_width=True, help="Rejeitar"):
@@ -195,7 +202,10 @@ def render_secretariado(*args):
                                 titulo="❌ Horas Rejeitadas",
                                 mensagem=f"{fh(row.get('Horas_Total',0))} em {row.get('Obra','')} rejeitadas.",
                                 tipo="error", acao_url="/")
-                            inv("registos.csv"); st.rerun()
+                            inv("registos.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
+                            st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB 2 — 2ª VALIDAÇÃO
@@ -247,6 +257,8 @@ def render_secretariado(*args):
                                   registro_id=f"batch_{len(ids2)}",
                                   detalhes=f"2ª validação de {len(ids2)} registos — {fh(total_h)}", ip="")
                         inv("registos.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.success(f"✅ {len(ids2)} registos enviados para faturação!")
                         st.rerun()
                 with col_vr2:
@@ -257,6 +269,8 @@ def render_secretariado(*args):
                         registos_db.loc[ids2, 'Status'] = '0'
                         save_db(registos_db, "registos.csv")
                         inv("registos.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.warning("⚠️ Registos devolvidos para pendente.")
                         st.rerun()
 
@@ -286,14 +300,20 @@ def render_secretariado(*args):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Validado2_Por']  = user_nome
                             registos_db.loc[registos_db['ID'] == reg_id, 'Validado2_Data'] = datetime.now().strftime('%d/%m/%Y %H:%M')
                             save_db(registos_db, "registos.csv")
-                            inv("registos.csv"); st.rerun()
+                            inv("registos.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
+                            st.rerun()
                     with col_d:
                         if st.button("🟠", key=f"s2_dev_{reg_id}_{idx2}",
                                       use_container_width=True,
                                       help="Devolver"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status'] = '0'
                             save_db(registos_db, "registos.csv")
-                            inv("registos.csv"); st.rerun()
+                            inv("registos.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
+                            st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB 3 — FATURAÇÃO & FOLHAS DE PONTO
@@ -620,7 +640,10 @@ def render_secretariado(*args):
                                         mensagem=f"{ped.get('Litros')}L validados!",
                                         tipo="success", acao_url="/tecnico"
                                     )
-                                    inv("req_materiais.csv"); st.success("✅"); st.rerun()
+                                    inv("req_materiais.csv")
+                                    from core import _cached_load_all
+                                    _cached_load_all.clear()
+                                    st.success("✅"); st.rerun()
                             with cr:
                                 if st.button("❌ Rejeitar", key=f"sec_rej_gas_{ped_id}",
                                               use_container_width=True, type="secondary"):
@@ -628,7 +651,10 @@ def render_secretariado(*args):
                                     req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
                                     req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Validado_Por']   = user_nome
                                     save_db(req_mat_db, "req_materiais.csv")
-                                    inv("req_materiais.csv"); st.error("❌"); st.rerun()
+                                    inv("req_materiais.csv")
+                                    from core import _cached_load_all
+                                    _cached_load_all.clear()
+                                    st.error("❌"); st.rerun()
                 else:
                     st.success("✅ Sem gasóleos pendentes!")
             else:
@@ -715,7 +741,10 @@ def render_secretariado(*args):
                                         mensagem=f"A tua reparação de {ped.get('Equipamento')} foi aprovada!",
                                         tipo="success", acao_url="/tecnico"
                                     )
-                                    inv("incidentes.csv"); st.success("✅"); st.rerun()
+                                    inv("incidentes.csv")
+                                    from core import _cached_load_all
+                                    _cached_load_all.clear()
+                                    st.success("✅"); st.rerun()
                             with cr:
                                 if st.button("❌ Rejeitar", key=f"sec_rej_av_{ped_id}",
                                               use_container_width=True, type="secondary"):
@@ -723,7 +752,10 @@ def render_secretariado(*args):
                                     incs_db.loc[incs_db.index == idx, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
                                     incs_db.loc[incs_db.index == idx, 'Validado_Por']   = user_nome
                                     save_db(incs_db, "incidentes.csv")
-                                    inv("incidentes.csv"); st.error("❌"); st.rerun()
+                                    inv("incidentes.csv")
+                                    from core import _cached_load_all
+                                    _cached_load_all.clear()
+                                    st.error("❌"); st.rerun()
                 else:
                     st.success("✅ Sem avarias pendentes!")
             else:
