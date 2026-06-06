@@ -61,8 +61,9 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                             "Codigo":     cod.strip(),
                             "TipoObra":   tipo,
                             "Local":      local.strip(),
-                            "Ativa":      "Ativa",
-                            "DataInicio": datetime.now().strftime("%d/%m/%Y")
+                            "Ativa":        "Ativa",
+                            "DataInicio":   datetime.now().strftime("%d/%m/%Y"),
+                            "Orcamento_ID": "",
                         }])
                         obras_db = pd.concat(
                             [obras_db, nova], ignore_index=True

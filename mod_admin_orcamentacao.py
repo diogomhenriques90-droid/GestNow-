@@ -620,14 +620,15 @@ def _modal_criar_obra(orc, oid, orc_db):
             else:
                 obras_db = _load("obras_lista.csv",
                                  ["Obra", "Cliente", "Ativa", "Tipo",
-                                  "Localizacao", "Codigo"])
+                                  "Localizacao", "Codigo", "Orcamento_ID"])
                 nova_obra = pd.DataFrame([{
-                    "Obra":        obra_nome,
-                    "Cliente":     obra_cliente,
-                    "Ativa":       "Ativa",
-                    "Tipo":        obra_tipo,
-                    "Localizacao": obra_local,
-                    "Codigo":      obra_codigo,
+                    "Obra":          obra_nome,
+                    "Cliente":       obra_cliente,
+                    "Ativa":         "Ativa",
+                    "Tipo":          obra_tipo,
+                    "Localizacao":   obra_local,
+                    "Codigo":        obra_codigo,
+                    "Orcamento_ID":  oid,
                 }])
                 upd = pd.concat([obras_db, nova_obra],
                                 ignore_index=True) if not obras_db.empty else nova_obra
