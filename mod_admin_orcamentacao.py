@@ -898,29 +898,29 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
         with st.form("form_linha_manual"):
             col_m1, col_m2, col_m3 = st.columns(3)
             with col_m1:
-                m_desc = st.text_input("Descrição *", key="m_desc")
+                m_desc = st.text_input("Descrição *", key="manual_desc")
                 m_cat  = st.selectbox(
                     "Categoria",
                     ["Mão de Obra", "Materiais", "Equipamentos",
                      "Deslocações", "Subempreitada", "Comissionamento", "Outro"],
-                    key="m_cat"
+                    key="manual_cat"
                 )
             with col_m2:
                 m_qtd  = st.number_input("Quantidade", min_value=0.0,
-                                         value=1.0, step=0.5, key="m_qtd")
+                                         value=1.0, step=0.5, key="manual_qtd")
                 m_uni  = st.selectbox(
                     "Unidade",
                     ["h", "un", "m", "m²", "m³", "kg", "L", "vg", "mês", "dia"],
-                    key="m_uni"
+                    key="manual_uni"
                 )
                 m_mins = st.number_input(
                     "Minutos/unidade (opcional)", min_value=0.0,
-                    value=0.0, step=1.0, key="m_mins"
+                    value=0.0, step=1.0, key="manual_mins"
                 )
             with col_m3:
                 m_preco = st.number_input("Preço Unit. (€)", min_value=0.0,
-                                          step=1.0, key="m_preco")
-                m_notas = st.text_input("Notas", key="m_notas")
+                                          step=1.0, key="manual_preco")
+                m_notas = st.text_input("Notas", key="manual_notas")
 
             if st.form_submit_button("➕ Adicionar"):
                 if m_desc.strip():
