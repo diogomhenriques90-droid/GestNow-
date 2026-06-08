@@ -1545,7 +1545,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     min_value=0.0, step=100.0, key="nc_valor"
                 )
                 nc_desc = st.text_area(
-                    "Descrição *", key="nc_desc",
+                    "Descrição *", key="nc_credito_desc",
                     placeholder="Descreve o motivo detalhado..."
                 )
 
