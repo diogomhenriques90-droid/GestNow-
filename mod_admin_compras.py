@@ -314,7 +314,7 @@ def render_compras(*_):
                 )
                 nc_desc = st.text_area(
                     "Descrição *",
-                    key="nc_desc",
+                    key="nc_compra_desc",
                     placeholder="Ex: Cabo XLR 10m × 5 un."
                 )
                 nc_forn = st.text_input(
