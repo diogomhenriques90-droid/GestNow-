@@ -1373,19 +1373,19 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                         "Categoria",
                         ["Instrumentação", "Cablagem", "Comissionamento",
                          "Civil", "Mecânica", "Inspecção", "Outro"],
-                        key="c_cat"
+                        key="cat_c_cat"
                     )
-                    c_desc = st.text_input("Descrição *", key="c_desc")
+                    c_desc = st.text_input("Descrição *", key="cat_c_desc")
                     c_uni  = st.selectbox(
                         "Unidade",
                         ["un", "h", "m", "m²", "m³", "loop", "vg", "dia"],
-                        key="c_uni"
+                        key="cat_c_uni"
                     )
                 with cc2:
                     c_mins  = st.number_input("Minutos/unidade *",
-                                               min_value=0.0, step=1.0, key="c_mins")
+                                               min_value=0.0, step=1.0, key="cat_c_mins")
                     c_preco = st.number_input("Preço sugerido (€/un)",
-                                               min_value=0.0, step=0.5, key="c_preco")
+                                               min_value=0.0, step=0.5, key="cat_c_preco")
 
                 if st.form_submit_button("💾 Guardar"):
                     if c_desc.strip() and c_mins > 0:
@@ -1453,22 +1453,22 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
         st.markdown("#### 💶 Tabela de Tarifas de Mão de Obra")
         st.caption("Valores hora e diária por categoria e zona geográfica.")
 
-        if st.button("➕ Nova Tarifa", key="tar_novo_btn"):
+        if st.button("➕ Nova Tarifa", key="cat_tar_novo_btn"):
             st.session_state['tar_novo_open'] = True
 
         if st.session_state.get('tar_novo_open', False):
             with st.form("form_tarifa"):
                 t1, t2 = st.columns(2)
                 with t1:
-                    t_cat  = st.text_input("Categoria (ex: Instrumentista)", key="t_cat")
-                    t_zona = st.text_input("Zona (ex: Portugal, Espanha)", key="t_zona")
+                    t_cat  = st.text_input("Categoria (ex: Instrumentista)", key="cat_t_cat")
+                    t_zona = st.text_input("Zona (ex: Portugal, Espanha)", key="cat_t_zona")
                 with t2:
                     t_vh   = st.number_input("Valor/hora (€)", min_value=0.0,
-                                              step=0.5, key="t_vh")
+                                              step=0.5, key="cat_t_vh")
                     t_hd   = st.number_input("Horas/dia", min_value=1,
-                                              value=8, key="t_hd")
+                                              value=8, key="cat_t_hd")
                     t_diaria = st.number_input("Diária (€)", min_value=0.0,
-                                                step=1.0, key="t_diaria")
+                                                step=1.0, key="cat_t_diaria")
 
                 if st.form_submit_button("💾 Guardar"):
                     if t_cat.strip() and t_zona.strip():
@@ -1509,13 +1509,13 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                     r_tipo = st.selectbox(
                         "Tipo",
                         ["dormida", "carrinha_2", "carrinha_5", "carrinha_9", "outro"],
-                        key="r_tipo"
+                        key="cat_r_tipo"
                     )
-                    r_desc = st.text_input("Descrição", key="r_desc")
+                    r_desc = st.text_input("Descrição", key="cat_r_desc")
                 with r2:
                     r_val  = st.number_input("Valor/dia ou noite (€)",
-                                              min_value=0.0, step=1.0, key="r_val")
-                    r_fonte = st.text_input("Fonte (opcional)", key="r_fonte")
+                                              min_value=0.0, step=1.0, key="cat_r_val")
+                    r_fonte = st.text_input("Fonte (opcional)", key="cat_r_fonte")
 
                 if st.form_submit_button("💾 Guardar"):
                     novo_r = pd.DataFrame([{
