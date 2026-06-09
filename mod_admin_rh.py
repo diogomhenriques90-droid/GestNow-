@@ -1228,29 +1228,6 @@ def render_admin_rh(*args):
             "Colaboradores sem match são criados automaticamente."
         )
 
-        # ── Resultado da última importação ────────────────────────
-        if 'eticadata_result' in st.session_state:
-            _res = st.session_state['eticadata_result']
-            st.success(
-                f"✅ Importação concluída! "
-                f"**{_res['n_act']}** actualizados, "
-                f"**{_res['n_new']}** novos criados, "
-                f"**{_res['n_campos']}** campos preenchidos."
-            )
-            if _res.get('novos'):
-                st.markdown("#### 🆕 Passwords geradas — guardar agora!")
-                st.warning(
-                    "⚠️ Estas passwords só são mostradas uma vez. "
-                    "Comunica-as aos colaboradores antes de fechar."
-                )
-                for _nc in _res['novos']:
-                    st.markdown(f"- **{_nc['Nome']}** → `{_nc['Password']}`")
-            if st.button("✓ Já guardei — fechar relatório",
-                         key="btn_dismiss_result"):
-                del st.session_state['eticadata_result']
-                st.rerun()
-            st.markdown("---")
-
         # ── Tabelas de conversão de valores Eticadata ─────────────
         _E_SEXO = {"0": "Masculino", "1": "Feminino"}
         _E_EST_CIVIL = {
@@ -1349,9 +1326,10 @@ def render_admin_rh(*args):
             return rh, u_if_empty, u_always, chefe
 
         # ── Upload → guardar imediatamente em session_state ────────
+        _eti_ukey = f"eti_uploader_{st.session_state.get('eti_upload_key', 0)}"
         _eti_file = st.file_uploader(
             "Selecionar CSV do Eticadata (sep=;, UTF-8 BOM)",
-            type=["csv"], key="eti_uploader"
+            type=["csv"], key=_eti_ukey
         )
         if _eti_file is not None:
             try:
@@ -1367,7 +1345,27 @@ def render_admin_rh(*args):
             except Exception as _e:
                 st.error(f"❌ Erro ao ler o ficheiro: {_e}")
 
-        if 'eticadata_df' not in st.session_state:
+        if 'eticadata_result' in st.session_state:
+            _res = st.session_state['eticadata_result']
+            st.success(
+                f"✅ Importação concluída! "
+                f"**{_res['n_act']}** actualizados, "
+                f"**{_res['n_new']}** novos criados, "
+                f"**{_res['n_campos']}** campos preenchidos."
+            )
+            if _res.get('novos'):
+                st.markdown("#### 🆕 Passwords geradas — guardar agora!")
+                st.warning(
+                    "⚠️ Estas passwords só são mostradas uma vez. "
+                    "Comunica-as aos colaboradores antes de fechar."
+                )
+                for _nc in _res['novos']:
+                    st.markdown(f"- **{_nc['Nome']}** → `{_nc['Password']}`")
+            if st.button("✓ Já guardei — fechar relatório",
+                         key="btn_dismiss_result"):
+                del st.session_state['eticadata_result']
+                st.rerun()
+        elif 'eticadata_df' not in st.session_state:
             st.info("Faz upload do CSV para começar.")
         else:
             _eti_df = st.session_state['eticadata_df']
@@ -1379,6 +1377,7 @@ def render_admin_rh(*args):
             with _ecol_btn:
                 if st.button("🗑️ Limpar", key="eti_limpar"):
                     del st.session_state['eticadata_df']
+                    st.session_state['eti_upload_key'] = st.session_state.get('eti_upload_key', 0) + 1
                     st.rerun()
 
             with st.expander("👁️ CSV original (primeiras 5 linhas)"):
@@ -1601,6 +1600,9 @@ def render_admin_rh(*args):
                             'n_campos': _n_campos, 'novos': _novos_criados,
                         }
                         del st.session_state['eticadata_df']
+                        # incrementar chave força o file_uploader a renderizar
+                        # sem ficheiro no próximo rerun — evita recriar eticadata_df
+                        st.session_state['eti_upload_key'] = st.session_state.get('eti_upload_key', 0) + 1
                         st.rerun()
 
     # ════════════════════════════════════════════════════════════════
