@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import uuid, base64, json
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from io import BytesIO
 
 from core import (
@@ -46,6 +46,207 @@ CAMPOS_PERFIL = [
                          "Contrato_Validado_Data"]),
 ]
 
+# ── Constantes legais/fiscais para colaboradores_rh.csv ──────────────
+ESTADO_CIVIL_OPTS    = ["Solteiro(a)","Casado(a)","União de Facto",
+                        "Divorciado(a)","Viúvo(a)","Separado(a)"]
+GENERO_OPTS          = ["Masculino","Feminino","Outro","Não especificado"]
+MODALIDADE_HORARIO_OPTS = ["Tempo Inteiro","Tempo Parcial","Isenção de Horário",
+                            "Trabalho por Turnos","Teletrabalho","Misto"]
+TIPO_CONTRATO_OPTS   = ["A Termo Certo","A Termo Incerto","Sem Termo",
+                        "Prestação de Serviços","Estágio Profissional","Outro"]
+NIVEL_HABILITACOES_OPTS = [
+    "Sem escolaridade","1º Ciclo (4ª classe)","2º Ciclo (6º ano)",
+    "3º Ciclo (9º ano)","Ensino Secundário (12º ano)","Bacharelato",
+    "Licenciatura","Mestrado","Doutoramento","Outro",
+]
+SITUACAO_PROFISSIONAL_OPTS = [
+    "Quadro Permanente","Contrato a Termo Certo","Contrato a Termo Incerto",
+    "Prestador de Serviços","Estagiário","Outro",
+]
+FORMA_PAGAMENTO_OPTS = ["Transferência Bancária","Numerário","Cheque","Outro"]
+IRCT_OPTS            = ["IRCT 25989 – CCT Empresas Electrotécnicas",
+                        "IRCT 5/2015 – CCT Metalúrgico","Outro","Não aplicável"]
+
+CATEGORIAS_CCT_25989 = {
+    "02069": "AJUDANTES DE FOGUEIRO",
+    "02070": "ANALISTA DE INFORMÁTICA ASSISTENTE",
+    "02996": "ANALISTA DE INFORMÁTICA ESTAGIÁRIO",
+    "02071": "ANALISTA DE INFORMÁTICA PRINCIPAL",
+    "02072": "ANALISTA DE INFORMÁTICA PROFISSIONAL",
+    "11285": "ASSISTENTE ADMINISTRATIVO DE 1.ª",
+    "11286": "ASSISTENTE ADMINISTRATIVO DE 2.ª",
+    "11287": "ASSISTENTE ADMINISTRATIVO DE 3.ª",
+    "43991": "ASSISTENTE ADMINISTRATIVO ESTAGIÁRIO ATÉ 2 ANOS",
+    "23130": "ASSISTENTE ADMINISTRATIVO ESTAGIÁRIO DO 2.º ANO",
+    "03236": "AUXILIAR DE ENFERMAGEM",
+    "00159": "CHEFE DE EQUIPA",
+    "00081": "CHEFE DE SECÇÃO",
+    "00080": "CHEFE DE SERVIÇOS",
+    "00411": "CHEFE DE VENDAS",
+    "30112": "CHEFE DE VIGILÂNCIA",
+    "01427": "CONTABILISTA",
+    "00527": "CONTÍNUO",
+    "02176": "COORDENADOR DE OPERADORES ESPECIALIZADOS",
+    "00532": "COZINHEIRO",
+    "38497": "EMPREGADO DE REFEITÓRIO/CAFETARIA",
+    "00412": "EMPREGADO DE SERVIÇOS EXTERNOS",
+    "00023": "ENCARREGADO",
+    "02097": "ENCARREGADO DE LIMPEZA",
+    "02098": "ENCARREGADO DE REFEITÓRIO OU CANTINA",
+    "00184": "ENCARREGADO GERAL",
+    "00542": "ENFERMEIRO",
+    "44140": "ENGENHEIRO I-A / ESPECIALISTA I-A",
+    "44141": "ENGENHEIRO I-B / ESPECIALISTA I-B",
+    "44142": "ENGENHEIRO II / ESPECIALISTA II",
+    "44143": "ENGENHEIRO III / ESPECIALISTA III",
+    "44310": "ENGENHEIRO IV / ESPECIALISTA IV",
+    "44145": "ENGENHEIRO V / ESPECIALISTA V",
+    "44146": "ENGENHEIRO VI / ESPECIALISTA VI",
+    "02021": "ESTAGIÁRIO RECEPCIONISTA",
+    "02103": "EXPOSITOR DECORADOR",
+    "02108": "GUARDA OU VIGILANTE",
+    "00328": "INSPECTOR DE VENDAS",
+    "00478": "MOTORISTA DE LIGEIROS",
+    "00479": "MOTORISTA DE PESADOS",
+    "35679": "OPERADOR DE INFORMÁTICA PRINCIPAL",
+    "35678": "OPERADOR DE INFORMÁTICA PROFISSIONAL",
+    "02150": "OPERADOR ESPECIALIZADO DE 1.ª",
+    "02151": "OPERADOR ESPECIALIZADO DE 2.ª",
+    "02152": "OPERADOR ESPECIALIZADO DE 3.ª",
+    "43990": "OPERADOR ESPECIALIZADO SÉNIOR",
+    "38498": "OPERADOR INFORMÁTICO ESTAGIÁRIO",
+    "00490": "PORTEIRO",
+    "02155": "PROFISSIONAL QUALIFICADO OFICIAL",
+    "31323": "PROFISSIONAL QUALIFICADO PRATICANTE ATÉ 2 ANOS",
+    "02158": "PROFISSIONAL QUALIFICADO PRÉ-OFICIAL 1.º E 2.º ANOS",
+    "03106": "PROGRAMADOR DE INFORMÁTICA ASSISTENTE",
+    "35680": "PROGRAMADOR DE INFORMÁTICA PRINCIPAL",
+    "03108": "PROGRAMADOR DE INFORMÁTICA PROFISSIONAL",
+    "38499": "PROGRAMADOR INFORMÁTICO ESTAGIÁRIO",
+    "02163": "PROJECTISTA",
+    "00387": "PROMOTOR DE VENDAS",
+    "00388": "PROSPECTOR DE VENDAS",
+    "02032": "RECEPCIONISTA DE 1.ª",
+    "02033": "RECEPCIONISTA DE 2.ª",
+    "95989": "RESIDUAL (inclui o ignorado)",
+    "25963": "SECRETÁRIO(A)",
+    "00044": "SERVENTE",
+    "35677": "SUPERVISOR DE LOGÍSTICA",
+    "11288": "TÉCNICO ADMINISTRATIVO",
+    "02182": "TÉCNICO DE SERVIÇO SOCIAL",
+    "43989": "TÉCNICO OPERACIONAL 1 E 2 ANOS",
+    "43988": "TÉCNICO OPERACIONAL 3 E 4 ANOS",
+    "43987": "TÉCNICO OPERACIONAL 5 E 6 ANOS",
+    "43986": "TÉCNICO OPERACIONAL MAIS DE 6 ANOS",
+    "43992": "TÉCNICO OPERACIONAL PRATICANTE ATÉ 2 ANOS",
+    "40876": "TÉCNICO OPERACIONAL PRINCIPAL",
+    "00503": "VENDEDOR",
+}
+
+PROFISSOES_CPP_CPS = {
+    "74121": "Electricista de instalações",
+    "74122": "Electricista de manutenção",
+    "74123": "Electricista de redes e subestações",
+    "74124": "Electromecânico",
+    "74131": "Técnico de instalações eléctricas industriais",
+    "74141": "Técnico de instrumentação e controlo",
+    "74142": "Técnico de automação industrial",
+    "74143": "Técnico de telecomunicações industriais",
+    "21411": "Engenheiro Electrotécnico",
+    "21412": "Engenheiro de Automação",
+    "21413": "Engenheiro de Instrumentação",
+    "31211": "Técnico de electrónica",
+    "31221": "Técnico de electromecânica",
+    "33411": "Técnico Administrativo",
+    "43110": "Escriturário",
+    "72111": "Serralheiro mecânico",
+    "72121": "Soldador",
+    "91110": "Indiferenciado / Servente",
+}
+
+# Colunas completas do colaboradores_rh.csv
+COLS_RH = [
+    "ID","Nome","NIF","NISS","Tipo","Cargo",
+    "Salario_Base","Data_Inicio","Estado_Civil","N_Dependentes",
+    "Banco_IBAN","Contrato","Ativo",
+    "Genero","DataNasc","Naturalidade","Nacionalidade","Pais_Residencia",
+    "CC","CC_Validade","Passaporte","Passaporte_Validade",
+    "IRS_Escalao","IRS_Percentagem","Titular_Unico","Taxa_Retencao_IRS",
+    "Isencao_IRS","Artigo_IRS",
+    "Tipo_Contrato","Modalidade_Horario","Horas_Semana",
+    "Contrato_Inicio","Contrato_Fim","Contrato_Indeterminado",
+    "Periodo_Experimental","Periodo_Experimental_Fim",
+    "Local_Trabalho","Funcao_Contratual",
+    "Subsidio_Alimentacao","Subsidio_Ferias","Subsidio_Natal",
+    "Premio_Producao","Outros_Complementos","Forma_Pagamento",
+    "IBAN_Validado","SWIFT_BIC",
+    "Nivel_Habilitacoes","Situacao_Profissional","Profissao_CPP",
+    "Categoria_CCT","IRCT_Aplicavel","Vinculo_Empresa",
+    "Reducao_Horario","Data_Ultima_Promocao","Antiguidade_Anos",
+    "Nivel_Remuneratorio","Grau_Deficiencia","Deficiencia_Tipo",
+    "Seg_Social_Cartao","Cartao_Prof_Num","Cartao_Prof_Validade",
+    "Alvara_Num","Alvara_Validade",
+]
+
+# Mapeamento Eticadata → COLS_RH (nome coluna Eticadata: nome campo GestNow)
+ETICADATA_MAP = {
+    "Nome": "Nome",
+    "NIF": "NIF",
+    "N.º Segurança Social": "NISS",
+    "Nº Segurança Social": "NISS",
+    "BI/CC": "CC",
+    "N.º Cartão Cidadão": "CC",
+    "Validade CC": "CC_Validade",
+    "Validade BI/CC": "CC_Validade",
+    "Data Nascimento": "DataNasc",
+    "Data Nasc.": "DataNasc",
+    "Sexo": "Genero",
+    "Estado Civil": "Estado_Civil",
+    "Nº Dependentes": "N_Dependentes",
+    "N.º Dependentes": "N_Dependentes",
+    "IBAN": "Banco_IBAN",
+    "Categoria": "Categoria_CCT",
+    "Remuneração Base": "Salario_Base",
+    "Salário Base": "Salario_Base",
+    "Rem. Base": "Salario_Base",
+    "Data Admissão": "Contrato_Inicio",
+    "Data Início": "Contrato_Inicio",
+    "Data Cessação": "Contrato_Fim",
+    "Data Fim": "Contrato_Fim",
+    "Tipo Contrato": "Tipo_Contrato",
+    "Habilitações": "Nivel_Habilitacoes",
+    "Profissão CPP": "Profissao_CPP",
+    "CPP": "Profissao_CPP",
+    "Local Trabalho": "Local_Trabalho",
+    "Função": "Funcao_Contratual",
+}
+
+# Mapas de conversão de valores Eticadata → GestNow
+_ETICA_GENERO   = {"M": "Masculino", "F": "Feminino",
+                   "1": "Masculino", "2": "Feminino"}
+_ETICA_EST_CIVIL = {
+    "1": "Solteiro(a)", "2": "Casado(a)", "3": "Divorciado(a)",
+    "4": "Viúvo(a)",    "5": "União de Facto", "6": "Separado(a)",
+}
+_ETICA_HABILITACOES = {
+    "1": "Sem escolaridade",
+    "2": "1º Ciclo (4ª classe)",
+    "3": "2º Ciclo (6º ano)",
+    "4": "3º Ciclo (9º ano)",
+    "5": "Ensino Secundário (12º ano)",
+    "6": "Bacharelato",
+    "7": "Licenciatura",
+    "8": "Mestrado",
+    "9": "Doutoramento",
+}
+_ETICA_TIPO_CONTRATO = {
+    "1": "Sem Termo",
+    "2": "A Termo Certo",
+    "3": "A Termo Incerto",
+    "4": "Prestação de Serviços",
+    "5": "Estágio Profissional",
+}
+
 def _load_users_fresh():
     import time
     for t in range(3):
@@ -63,6 +264,47 @@ def _load_users_fresh():
             if t == 2: return pd.DataFrame()
             time.sleep(0.3)
     return pd.DataFrame()
+
+
+def _load_rh_fresh() -> pd.DataFrame:
+    """Lê colaboradores_rh.csv directamente do GCS, sem cache."""
+    import time
+    for attempt in range(3):
+        try:
+            buf = _gcs_read("colaboradores_rh.csv")
+            if buf:
+                df = pd.read_csv(buf, dtype=str, on_bad_lines='skip',
+                                 encoding='utf-8-sig')
+                df.columns = df.columns.str.strip()
+                for col in df.select_dtypes(include='object').columns:
+                    df[col] = df[col].str.strip()
+                for c in COLS_RH:
+                    if c not in df.columns:
+                        df[c] = ""
+                return df.fillna("")
+            time.sleep(0.3)
+        except Exception:
+            if attempt == 2:
+                return pd.DataFrame(columns=COLS_RH)
+            time.sleep(0.3)
+    return pd.DataFrame(columns=COLS_RH)
+
+
+def _sync_rh_csv(nome: str, updates: dict):
+    """Aplica `updates` ao registo de `nome` em colaboradores_rh.csv.
+    Cria linha nova se o colaborador ainda não existir."""
+    rh = _load_rh_fresh()
+    mask = (rh['Nome'] == nome) if 'Nome' in rh.columns and not rh.empty else pd.Series([], dtype=bool)
+    if mask.any():
+        for k, v in updates.items():
+            rh.loc[mask, k] = v
+    else:
+        novo = {c: "" for c in COLS_RH}
+        novo['Nome'] = nome
+        novo.update(updates)
+        rh = pd.concat([rh, pd.DataFrame([novo])], ignore_index=True)
+    save_db(rh, "colaboradores_rh.csv")
+    inv("colaboradores_rh.csv")
 
 
 def _exportar_excel_colaborador(user_row: pd.Series) -> bytes:
@@ -121,9 +363,79 @@ def render_admin_rh(*args):
 
     st.markdown("# 👥 Recursos Humanos")
 
-    tab_lista, tab_gestao, tab_contrato, tab_template, tab_formacoes = st.tabs([     
+    # ── Painel de alertas de validade ─────────────────────────────────
+    _today = date.today()
+    _rh_alert = _load_rh_fresh()
+
+    _VALIDADE_COLS = [
+        ("CC_Validade",          "CC"),
+        ("Passaporte_Validade",  "Passaporte"),
+        ("Cartao_Prof_Validade", "Carta Prof."),
+        ("Alvara_Validade",      "Alvará"),
+    ]
+    _CAMPOS_OBG = ["NIF","NISS","CC","CC_Validade","Banco_IBAN","Tipo_Contrato"]
+
+    _n_exp, _n_prox, _n_ct, _n_inc = 0, 0, 0, 0
+    _det_exp, _det_prox, _det_ct, _det_inc = [], [], [], []
+
+    def _parse_date(s):
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except Exception:
+                pass
+        return None
+
+    if not _rh_alert.empty:
+        for _, _r in _rh_alert.iterrows():
+            _nm = _r.get('Nome', '')
+            for _col, _lbl in _VALIDADE_COLS:
+                _v = _parse_date(_r.get(_col, ''))
+                if _v:
+                    if _v < _today:
+                        _n_exp += 1
+                        _det_exp.append(f"{_nm} — {_lbl} expirado em {_r.get(_col,'')}")
+                    elif _v <= _today + timedelta(days=60):
+                        _n_prox += 1
+                        _det_prox.append(f"{_nm} — {_lbl} expira em {_r.get(_col,'')}")
+            _fim = _parse_date(_r.get('Contrato_Fim', ''))
+            if _fim and _r.get('Contrato_Indeterminado', '') != 'Sim':
+                _days = (_fim - _today).days
+                if _days <= 90:
+                    _n_ct += 1
+                    _det_ct.append(f"{_nm} — contrato termina em {_r.get('Contrato_Fim','')} ({_days}d)")
+            _falta = [c for c in _CAMPOS_OBG if not _r.get(c, '')]
+            if _falta:
+                _n_inc += 1
+                _det_inc.append(f"{_nm} — em falta: {', '.join(_falta)}")
+
+    if _n_exp + _n_prox + _n_ct + _n_inc > 0:
+        _ca1, _ca2, _ca3, _ca4 = st.columns(4)
+        _ca1.metric("🔴 Expirados",   _n_exp)
+        _ca2.metric("🟡 A expirar",   _n_prox)
+        _ca3.metric("🟠 Contratos",   _n_ct)
+        _ca4.metric("⚪ Incompletos", _n_inc)
+        with st.expander("📋 Ver detalhes dos alertas"):
+            if _det_exp:
+                st.markdown("**🔴 Documentos Expirados**")
+                for _d in _det_exp: st.markdown(f"- {_d}")
+            if _det_prox:
+                st.markdown("**🟡 A Expirar nos próximos 60 dias**")
+                for _d in _det_prox: st.markdown(f"- {_d}")
+            if _det_ct:
+                st.markdown("**🟠 Contratos a Terminar (≤ 90 dias)**")
+                for _d in _det_ct: st.markdown(f"- {_d}")
+            if _det_inc:
+                st.markdown("**⚪ Fichas Incompletas**")
+                for _d in _det_inc: st.markdown(f"- {_d}")
+        st.markdown("---")
+
+    (tab_lista, tab_gestao, tab_dados_legais, tab_eticadata,
+     tab_contrato, tab_template, tab_formacoes) = st.tabs([
         "👥 Colaboradores",
         "📋 Gestão Individual",
+        "📋 Dados Legais",
+        "📥 Importar Eticadata",
         "📄 Contratos",
         "⚙️ Templates & Config",
         "🎓 Formações",
@@ -667,7 +979,402 @@ def render_admin_rh(*args):
                             st.rerun()
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 3 — CONTRATOS
+    # TAB 3 — DADOS LEGAIS
+    # ════════════════════════════════════════════════════════════════
+    with tab_dados_legais:
+        st.markdown("### 📋 Dados Legais e Fiscais")
+
+        _u_dl = _load_users_fresh()
+        if _u_dl.empty:
+            st.info("Sem colaboradores.")
+        else:
+            _nomes_dl = _u_dl['Nome'].tolist()
+            _sel_dl_def = st.session_state.get('rh_colaborador_sel', _nomes_dl[0])
+            _idx_dl = _nomes_dl.index(_sel_dl_def) if _sel_dl_def in _nomes_dl else 0
+            _nome_dl = st.selectbox("Colaborador", _nomes_dl,
+                                    index=_idx_dl, key="dl_colab_sel")
+            st.session_state['rh_colaborador_sel'] = _nome_dl
+
+            _rh_dl = _load_rh_fresh()
+            _mask_dl = (_rh_dl['Nome'] == _nome_dl) if not _rh_dl.empty else pd.Series([], dtype=bool)
+            _row_dl  = _rh_dl[_mask_dl].iloc[0] if _mask_dl.any() else pd.Series(dtype=str)
+
+            def _v(campo, default=""):
+                return _row_dl.get(campo, default) if not _row_dl.empty else default
+
+            def _opt_idx(opts, val):
+                return opts.index(val) if val in opts else 0
+
+            # ── 1. Identificação Legal ────────────────────────────
+            with st.expander("🪪 Identificação Legal", expanded=True):
+                with st.form("dl_form_ident"):
+                    _c1, _c2, _c3 = st.columns(3)
+                    with _c1:
+                        _genero   = st.selectbox("Género", GENERO_OPTS,
+                            index=_opt_idx(GENERO_OPTS, _v("Genero")), key="dl_genero")
+                        _datanasc = st.text_input("Data Nascimento (DD/MM/AAAA)",
+                            value=_v("DataNasc"), key="dl_datanasc")
+                        _nat  = st.text_input("Naturalidade", value=_v("Naturalidade"), key="dl_nat")
+                    with _c2:
+                        _nac  = st.text_input("Nacionalidade", value=_v("Nacionalidade"), key="dl_nac")
+                        _pais = st.text_input("País Residência", value=_v("Pais_Residencia"), key="dl_pais")
+                        _nif  = st.text_input("NIF", value=_v("NIF"), key="dl_nif")
+                    with _c3:
+                        _niss = st.text_input("NISS", value=_v("NISS"), key="dl_niss")
+                        _cc   = st.text_input("Nº Cartão Cidadão", value=_v("CC"), key="dl_cc")
+                        _ccval= st.text_input("Validade CC (DD/MM/AAAA)",
+                            value=_v("CC_Validade"), key="dl_ccval")
+                    _c4, _c5 = st.columns(2)
+                    with _c4:
+                        _pass_num = st.text_input("Passaporte", value=_v("Passaporte"), key="dl_pass")
+                        _pass_val = st.text_input("Validade Passaporte (DD/MM/AAAA)",
+                            value=_v("Passaporte_Validade"), key="dl_passval")
+                    with _c5:
+                        _est_civil = st.selectbox("Estado Civil", ESTADO_CIVIL_OPTS,
+                            index=_opt_idx(ESTADO_CIVIL_OPTS, _v("Estado_Civil")), key="dl_estcivil")
+                        _n_dep = st.text_input("Nº Dependentes", value=_v("N_Dependentes"), key="dl_ndep")
+                    if st.form_submit_button("💾 Guardar Identificação",
+                                             use_container_width=True, type="primary"):
+                        _sync_rh_csv(_nome_dl, {
+                            "Genero": _genero, "DataNasc": _datanasc,
+                            "Naturalidade": _nat, "Nacionalidade": _nac,
+                            "Pais_Residencia": _pais, "NIF": _nif, "NISS": _niss,
+                            "CC": _cc, "CC_Validade": _ccval,
+                            "Passaporte": _pass_num, "Passaporte_Validade": _pass_val,
+                            "Estado_Civil": _est_civil, "N_Dependentes": _n_dep,
+                        })
+                        st.success("✅ Identificação guardada.")
+                        st.rerun()
+
+            # ── 2. Dados Fiscais ──────────────────────────────────
+            with st.expander("🏦 Dados Fiscais"):
+                with st.form("dl_form_fiscal"):
+                    _c1, _c2 = st.columns(2)
+                    with _c1:
+                        _irs_esc  = st.text_input("Escalão IRS", value=_v("IRS_Escalao"), key="dl_irs_esc")
+                        _irs_pct  = st.text_input("Taxa IRS (%)", value=_v("IRS_Percentagem"), key="dl_irs_pct")
+                        _tit_unico= st.selectbox("Titular Único", ["","Sim","Não"],
+                            index=["","Sim","Não"].index(_v("Titular_Unico"))
+                                  if _v("Titular_Unico") in ["","Sim","Não"] else 0,
+                            key="dl_tit_unico")
+                    with _c2:
+                        _taxa_ret = st.text_input("Taxa Retenção (%)", value=_v("Taxa_Retencao_IRS"), key="dl_taxa_ret")
+                        _isencao  = st.selectbox("Isenção IRS", ["","Sim","Não"],
+                            index=["","Sim","Não"].index(_v("Isencao_IRS"))
+                                  if _v("Isencao_IRS") in ["","Sim","Não"] else 0,
+                            key="dl_isencao")
+                        _artigo_irs = st.text_input("Artigo IRS", value=_v("Artigo_IRS"), key="dl_artigo")
+                    if st.form_submit_button("💾 Guardar Dados Fiscais",
+                                             use_container_width=True, type="primary"):
+                        _sync_rh_csv(_nome_dl, {
+                            "IRS_Escalao": _irs_esc, "IRS_Percentagem": _irs_pct,
+                            "Titular_Unico": _tit_unico, "Taxa_Retencao_IRS": _taxa_ret,
+                            "Isencao_IRS": _isencao, "Artigo_IRS": _artigo_irs,
+                        })
+                        st.success("✅ Dados fiscais guardados.")
+                        st.rerun()
+
+            # ── 3. Dados Contratuais ──────────────────────────────
+            with st.expander("📄 Dados Contratuais"):
+                with st.form("dl_form_contrato"):
+                    _c1, _c2, _c3 = st.columns(3)
+                    with _c1:
+                        _tp_ct = st.selectbox("Tipo Contrato", TIPO_CONTRATO_OPTS,
+                            index=_opt_idx(TIPO_CONTRATO_OPTS, _v("Tipo_Contrato")), key="dl_tpct")
+                        _mod_hr = st.selectbox("Modalidade Horário", MODALIDADE_HORARIO_OPTS,
+                            index=_opt_idx(MODALIDADE_HORARIO_OPTS, _v("Modalidade_Horario")), key="dl_modhr")
+                        _hrs_sem = st.text_input("Horas/Semana", value=_v("Horas_Semana"), key="dl_hrsem")
+                    with _c2:
+                        _ct_ini  = st.text_input("Data Início Contrato (DD/MM/AAAA)",
+                            value=_v("Contrato_Inicio"), key="dl_ctini")
+                        _ct_fim  = st.text_input("Data Fim Contrato (DD/MM/AAAA)",
+                            value=_v("Contrato_Fim"), key="dl_ctfim")
+                        _ct_ind  = st.selectbox("Contrato Indeterminado", ["","Sim","Não"],
+                            index=["","Sim","Não"].index(_v("Contrato_Indeterminado"))
+                                  if _v("Contrato_Indeterminado") in ["","Sim","Não"] else 0,
+                            key="dl_ctind")
+                    with _c3:
+                        _pe      = st.text_input("Período Experimental (meses)",
+                            value=_v("Periodo_Experimental"), key="dl_pe")
+                        _pe_fim  = st.text_input("Fim Período Exp. (DD/MM/AAAA)",
+                            value=_v("Periodo_Experimental_Fim"), key="dl_pefim")
+                        _local_t = st.text_input("Local de Trabalho",
+                            value=_v("Local_Trabalho"), key="dl_local")
+                    _func_ct = st.text_input("Função Contratual",
+                        value=_v("Funcao_Contratual"), key="dl_func")
+                    if st.form_submit_button("💾 Guardar Dados Contratuais",
+                                             use_container_width=True, type="primary"):
+                        _sync_rh_csv(_nome_dl, {
+                            "Tipo_Contrato": _tp_ct, "Modalidade_Horario": _mod_hr,
+                            "Horas_Semana": _hrs_sem, "Contrato_Inicio": _ct_ini,
+                            "Contrato_Fim": _ct_fim, "Contrato_Indeterminado": _ct_ind,
+                            "Periodo_Experimental": _pe, "Periodo_Experimental_Fim": _pe_fim,
+                            "Local_Trabalho": _local_t, "Funcao_Contratual": _func_ct,
+                        })
+                        st.success("✅ Dados contratuais guardados.")
+                        st.rerun()
+
+            # ── 4. Remuneração e Pagamento ────────────────────────
+            with st.expander("💰 Remuneração e Pagamento"):
+                with st.form("dl_form_rem"):
+                    _c1, _c2, _c3 = st.columns(3)
+                    with _c1:
+                        _sal_b  = st.text_input("Salário Base (€)",
+                            value=_v("Salario_Base"), key="dl_salb")
+                        _sub_al = st.text_input("Subsídio Alimentação (€)",
+                            value=_v("Subsidio_Alimentacao"), key="dl_subal")
+                        _sub_fe = st.text_input("Subsídio Férias (€)",
+                            value=_v("Subsidio_Ferias"), key="dl_subfe")
+                    with _c2:
+                        _sub_na = st.text_input("Subsídio Natal (€)",
+                            value=_v("Subsidio_Natal"), key="dl_subna")
+                        _prem   = st.text_input("Prémio Produção (€)",
+                            value=_v("Premio_Producao"), key="dl_prem")
+                        _outros = st.text_input("Outros Complementos",
+                            value=_v("Outros_Complementos"), key="dl_outros")
+                    with _c3:
+                        _forma_pag = st.selectbox("Forma Pagamento", FORMA_PAGAMENTO_OPTS,
+                            index=_opt_idx(FORMA_PAGAMENTO_OPTS, _v("Forma_Pagamento")), key="dl_fpag")
+                        _iban_val  = st.selectbox("IBAN Validado", ["","Sim","Não"],
+                            index=["","Sim","Não"].index(_v("IBAN_Validado"))
+                                  if _v("IBAN_Validado") in ["","Sim","Não"] else 0,
+                            key="dl_ibanval")
+                        _swift = st.text_input("SWIFT/BIC",
+                            value=_v("SWIFT_BIC"), key="dl_swift")
+                    if st.form_submit_button("💾 Guardar Remuneração",
+                                             use_container_width=True, type="primary"):
+                        _sync_rh_csv(_nome_dl, {
+                            "Salario_Base": _sal_b, "Subsidio_Alimentacao": _sub_al,
+                            "Subsidio_Ferias": _sub_fe, "Subsidio_Natal": _sub_na,
+                            "Premio_Producao": _prem, "Outros_Complementos": _outros,
+                            "Forma_Pagamento": _forma_pag, "IBAN_Validado": _iban_val,
+                            "SWIFT_BIC": _swift,
+                        })
+                        st.success("✅ Remuneração guardada.")
+                        st.rerun()
+
+            # ── 5. Profissional / Relatório Único ─────────────────
+            with st.expander("📊 Profissional & Relatório Único"):
+                with st.form("dl_form_prof"):
+                    _c1, _c2 = st.columns(2)
+                    with _c1:
+                        _nivel_hab = st.selectbox("Nível Habilitações", NIVEL_HABILITACOES_OPTS,
+                            index=_opt_idx(NIVEL_HABILITACOES_OPTS, _v("Nivel_Habilitacoes")), key="dl_nhab")
+                        _sit_prof  = st.selectbox("Situação Profissional", SITUACAO_PROFISSIONAL_OPTS,
+                            index=_opt_idx(SITUACAO_PROFISSIONAL_OPTS, _v("Situacao_Profissional")), key="dl_sitprof")
+                        _cpp_opts  = [""] + [f"{k} – {v}" for k,v in PROFISSOES_CPP_CPS.items()]
+                        _cpp_val   = _v("Profissao_CPP")
+                        _cpp_match = next((o for o in _cpp_opts if o.startswith(_cpp_val)), "")
+                        _cpp_idx   = _cpp_opts.index(_cpp_match) if _cpp_match in _cpp_opts else 0
+                        _profissao = st.selectbox("Profissão (CPP 2010)", _cpp_opts,
+                            index=_cpp_idx, key="dl_cpp")
+                        _cct_opts  = [""] + [f"{k} – {v}" for k,v in CATEGORIAS_CCT_25989.items()]
+                        _cct_val   = _v("Categoria_CCT")
+                        _cct_match = next((o for o in _cct_opts if o.startswith(_cct_val)), "")
+                        _cct_idx   = _cct_opts.index(_cct_match) if _cct_match in _cct_opts else 0
+                        _cat_cct   = st.selectbox("Categoria CCT", _cct_opts,
+                            index=_cct_idx, key="dl_catcct")
+                    with _c2:
+                        _irct = st.selectbox("IRCT Aplicável", IRCT_OPTS,
+                            index=_opt_idx(IRCT_OPTS, _v("IRCT_Aplicavel")), key="dl_irct")
+                        _vinculo = st.text_input("Vínculo Empresa",
+                            value=_v("Vinculo_Empresa"), key="dl_vinculo")
+                        _red_hr  = st.selectbox("Redução Horário", ["","Sim","Não"],
+                            index=["","Sim","Não"].index(_v("Reducao_Horario"))
+                                  if _v("Reducao_Horario") in ["","Sim","Não"] else 0,
+                            key="dl_redhr")
+                        _dt_prom = st.text_input("Data Última Promoção (DD/MM/AAAA)",
+                            value=_v("Data_Ultima_Promocao"), key="dl_dtprom")
+                        _ant_anos= st.text_input("Antiguidade (anos)",
+                            value=_v("Antiguidade_Anos"), key="dl_antanos")
+                        _n_rem   = st.text_input("Nível Remuneratório",
+                            value=_v("Nivel_Remuneratorio"), key="dl_nrem")
+                    _c3, _c4 = st.columns(2)
+                    with _c3:
+                        _grau_def = st.text_input("Grau Deficiência (%)",
+                            value=_v("Grau_Deficiencia"), key="dl_graudef")
+                        _def_tipo = st.text_input("Tipo Deficiência",
+                            value=_v("Deficiencia_Tipo"), key="dl_deftipo")
+                    with _c4:
+                        _cartao_prof_num = st.text_input("Nº Cartão Profissional",
+                            value=_v("Cartao_Prof_Num"), key="dl_cpnum")
+                        _cartao_prof_val = st.text_input("Validade Cartão Prof. (DD/MM/AAAA)",
+                            value=_v("Cartao_Prof_Validade"), key="dl_cpval")
+                    if st.form_submit_button("💾 Guardar Dados Profissionais",
+                                             use_container_width=True, type="primary"):
+                        _profissao_code = _profissao.split(" – ")[0] if " – " in _profissao else _profissao
+                        _cat_cct_code   = _cat_cct.split(" – ")[0]   if " – " in _cat_cct   else _cat_cct
+                        _sync_rh_csv(_nome_dl, {
+                            "Nivel_Habilitacoes": _nivel_hab, "Situacao_Profissional": _sit_prof,
+                            "Profissao_CPP": _profissao_code, "Categoria_CCT": _cat_cct_code,
+                            "IRCT_Aplicavel": _irct, "Vinculo_Empresa": _vinculo,
+                            "Reducao_Horario": _red_hr, "Data_Ultima_Promocao": _dt_prom,
+                            "Antiguidade_Anos": _ant_anos, "Nivel_Remuneratorio": _n_rem,
+                            "Grau_Deficiencia": _grau_def, "Deficiencia_Tipo": _def_tipo,
+                            "Cartao_Prof_Num": _cartao_prof_num, "Cartao_Prof_Validade": _cartao_prof_val,
+                        })
+                        st.success("✅ Dados profissionais guardados.")
+                        st.rerun()
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 4 — IMPORTAR ETICADATA
+    # ════════════════════════════════════════════════════════════════
+    with tab_eticadata:
+        st.markdown("### 📥 Importar Lista de Trabalhadores (Eticadata)")
+        st.info(
+            "Exporta do Eticadata o ficheiro **`Lista_Trabalhadores.csv`** "
+            "(separador `;`, codificação UTF-8 com BOM) e faz upload aqui. "
+            "Os dados são mapeados automaticamente para `colaboradores_rh.csv`."
+        )
+
+        _eti_file = st.file_uploader(
+            "Selecionar CSV do Eticadata",
+            type=["csv"],
+            key="eti_uploader"
+        )
+
+        if _eti_file:
+            try:
+                _eti_raw = pd.read_csv(
+                    _eti_file, sep=";", dtype=str,
+                    encoding="utf-8-sig", on_bad_lines='skip'
+                )
+                _eti_raw.columns = _eti_raw.columns.str.strip()
+                # Tratar NULL como string vazia
+                _eti_raw = _eti_raw.replace("NULL", "").fillna("")
+                for col in _eti_raw.select_dtypes(include='object').columns:
+                    _eti_raw[col] = _eti_raw[col].str.strip()
+
+                st.success(f"✅ Ficheiro lido: **{len(_eti_raw)}** registos, "
+                           f"**{len(_eti_raw.columns)}** colunas.")
+
+                with st.expander("👁️ Pré-visualização (primeiras 5 linhas)"):
+                    st.dataframe(_eti_raw.head(), use_container_width=True)
+
+                # Detectar mapeamento de colunas
+                _col_map = {}
+                for _src_col in _eti_raw.columns:
+                    if _src_col in ETICADATA_MAP:
+                        _col_map[_src_col] = ETICADATA_MAP[_src_col]
+
+                _unmapped = [c for c in _eti_raw.columns if c not in ETICADATA_MAP]
+
+                st.markdown("#### 🗺️ Mapeamento de Colunas")
+                _c1, _c2 = st.columns(2)
+                with _c1:
+                    st.markdown("**Colunas mapeadas automaticamente:**")
+                    for _s, _t in _col_map.items():
+                        st.markdown(f"- `{_s}` → `{_t}`")
+                with _c2:
+                    if _unmapped:
+                        st.markdown("**Colunas não mapeadas (ignoradas):**")
+                        for _u in _unmapped:
+                            st.markdown(f"- `{_u}`")
+
+                st.markdown("---")
+                st.markdown("#### 📋 Pré-visualização dos dados mapeados")
+
+                # Construir preview do que vai ser importado
+                _preview_rows = []
+                for _, _erow in _eti_raw.iterrows():
+                    _mapped = {}
+                    for _src, _dst in _col_map.items():
+                        _raw_val = _erow.get(_src, "")
+                        # Converter valores especiais
+                        if _dst == "Genero":
+                            _raw_val = _ETICA_GENERO.get(_raw_val, _raw_val)
+                        elif _dst == "Estado_Civil":
+                            _raw_val = _ETICA_EST_CIVIL.get(_raw_val, _raw_val)
+                        elif _dst == "Nivel_Habilitacoes":
+                            _raw_val = _ETICA_HABILITACOES.get(_raw_val, _raw_val)
+                        elif _dst == "Tipo_Contrato":
+                            _raw_val = _ETICA_TIPO_CONTRATO.get(_raw_val, _raw_val)
+                        _mapped[_dst] = _raw_val
+                    # Valor fixo
+                    _mapped["IRCT_Aplicavel"] = "IRCT 25989 – CCT Empresas Electrotécnicas"
+                    _preview_rows.append(_mapped)
+
+                _preview_df = pd.DataFrame(_preview_rows)
+
+                # Mostrar apenas colunas com conteúdo
+                _cols_com_dados = [c for c in _preview_df.columns
+                                   if _preview_df[c].str.strip().any()]
+                if _cols_com_dados:
+                    st.dataframe(_preview_df[_cols_com_dados].head(10),
+                                 use_container_width=True)
+
+                st.markdown("---")
+                _col_imp1, _col_imp2 = st.columns(2)
+                with _col_imp1:
+                    _modo_import = st.radio(
+                        "Modo de importação",
+                        ["Actualizar existentes (upsert)", "Só novos (skip se já existe)"],
+                        key="eti_modo"
+                    )
+                with _col_imp2:
+                    _coluna_chave = st.selectbox(
+                        "Coluna chave para identificar colaborador",
+                        ["Nome", "NIF", "NISS"],
+                        key="eti_chave"
+                    )
+
+                if st.button("🚀 Importar para colaboradores_rh.csv",
+                             key="btn_importar_eti", type="primary",
+                             use_container_width=True):
+                    _rh_atual = _load_rh_fresh()
+                    _importados = 0
+                    _ignorados  = 0
+                    _novos      = 0
+
+                    for _row_imp in _preview_rows:
+                        _chave_val = _row_imp.get(_coluna_chave, "")
+                        if not _chave_val:
+                            _ignorados += 1
+                            continue
+
+                        _mask_imp = (_rh_atual[_coluna_chave] == _chave_val
+                                     if _coluna_chave in _rh_atual.columns
+                                     else pd.Series([False] * len(_rh_atual)))
+
+                        if _mask_imp.any():
+                            if "Actualizar" in _modo_import:
+                                for _k, _vv in _row_imp.items():
+                                    if _vv:
+                                        _rh_atual.loc[_mask_imp, _k] = _vv
+                                _importados += 1
+                            else:
+                                _ignorados += 1
+                        else:
+                            _novo_rh = {c: "" for c in COLS_RH}
+                            _novo_rh.update(_row_imp)
+                            _rh_atual = pd.concat(
+                                [_rh_atual, pd.DataFrame([_novo_rh])],
+                                ignore_index=True
+                            )
+                            _novos += 1
+
+                    save_db(_rh_atual, "colaboradores_rh.csv")
+                    inv("colaboradores_rh.csv")
+                    log_audit(
+                        usuario=admin_nome,
+                        acao="IMPORTAR_ETICADATA",
+                        tabela="colaboradores_rh.csv",
+                        registro_id="batch",
+                        detalhes=f"Importados: {_importados+_novos}, Ignorados: {_ignorados}",
+                        ip=""
+                    )
+                    st.success(
+                        f"✅ Importação concluída! "
+                        f"**{_novos}** novos, **{_importados}** actualizados, "
+                        f"**{_ignorados}** ignorados."
+                    )
+                    st.rerun()
+
+            except Exception as _e:
+                st.error(f"❌ Erro ao processar o ficheiro: {_e}")
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 5 — CONTRATOS
     # ════════════════════════════════════════════════════════════════
     with tab_contrato:
         users_ct = _load_users_fresh()
@@ -1006,7 +1713,7 @@ def render_admin_rh(*args):
                     pass
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 4 — TEMPLATES & CONFIG
+    # TAB 6 — TEMPLATES & CONFIG
     # ════════════════════════════════════════════════════════════════
     with tab_template:
         st.markdown("### ⚙️ Template do Contrato")
@@ -1074,7 +1781,7 @@ def render_admin_rh(*args):
                 )
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 5 — FORMAÇÕES
+    # TAB 7 — FORMAÇÕES
     # ════════════════════════════════════════════════════════════════
     with tab_formacoes:
         from mod_admin_formacoes import render_formacoes
