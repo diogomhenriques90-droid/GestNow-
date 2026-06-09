@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import uuid, base64, json
+import uuid, base64, json, unicodedata, re
 from datetime import datetime, date, timedelta
 from io import BytesIO
 
@@ -1224,8 +1224,32 @@ def render_admin_rh(*args):
         st.info(
             "Exporta do Eticadata o ficheiro **`Lista_Trabalhadores.csv`** "
             "(separador `;`, codificação UTF-8 com BOM) e faz upload aqui. "
-            "O match é feito pelo Nome com `usuarios.csv`."
+            "O match é feito pelo Nome com `usuarios.csv`. "
+            "Colaboradores sem match são criados automaticamente."
         )
+
+        # ── Resultado da última importação ────────────────────────
+        if 'eticadata_result' in st.session_state:
+            _res = st.session_state['eticadata_result']
+            st.success(
+                f"✅ Importação concluída! "
+                f"**{_res['n_act']}** actualizados, "
+                f"**{_res['n_new']}** novos criados, "
+                f"**{_res['n_campos']}** campos preenchidos."
+            )
+            if _res.get('novos'):
+                st.markdown("#### 🆕 Passwords geradas — guardar agora!")
+                st.warning(
+                    "⚠️ Estas passwords só são mostradas uma vez. "
+                    "Comunica-as aos colaboradores antes de fechar."
+                )
+                for _nc in _res['novos']:
+                    st.markdown(f"- **{_nc['Nome']}** → `{_nc['Password']}`")
+            if st.button("✓ Já guardei — fechar relatório",
+                         key="btn_dismiss_result"):
+                del st.session_state['eticadata_result']
+                st.rerun()
+            st.markdown("---")
 
         # ── Tabelas de conversão de valores Eticadata ─────────────
         _E_SEXO = {"0": "Masculino", "1": "Feminino"}
@@ -1378,15 +1402,35 @@ def render_admin_rh(*args):
                 _nomes_exact = set(
                     _u_eti['Nome'].dropna().unique()
                 ) if not _u_eti.empty and 'Nome' in _u_eti.columns else set()
-                _nomes_norm = {
-                    n.strip().lower(): n for n in _nomes_exact
-                }
+
+                def _norm_nome(s):
+                    s = str(s).strip().lower()
+                    s = unicodedata.normalize('NFD', s)
+                    s = s.encode('ascii', 'ignore').decode('ascii')
+                    return re.sub(r'\s+', ' ', s)
+
+                _nomes_ci  = {n.strip().lower(): n for n in _nomes_exact}
+                _nomes_acc = {_norm_nome(n): n for n in _nomes_exact}
 
                 def _find_match_eti(nome_eti):
                     n = str(nome_eti).strip()
-                    if n in _nomes_exact:
+                    if n in _nomes_exact:                  # a. exacto
                         return n
-                    return _nomes_norm.get(n.lower(), None)
+                    ci = _nomes_ci.get(n.lower())
+                    if ci:                                 # b. case-insensitive
+                        return ci
+                    acc = _nomes_acc.get(_norm_nome(n))
+                    if acc:                                # c. sem acentos
+                        return acc
+                    # d. primeiro + último nome normalizados
+                    parts = _norm_nome(n).split()
+                    if len(parts) >= 2:
+                        fl = f"{parts[0]} {parts[-1]}"
+                        for gn in _nomes_exact:
+                            gp = _norm_nome(gn).split()
+                            if len(gp) >= 2 and f"{gp[0]} {gp[-1]}" == fl:
+                                return gn
+                    return None
 
                 # ── Preview com status de match ────────────────────
                 _prev_rows = []
@@ -1414,11 +1458,10 @@ def render_admin_rh(*args):
                 _mc2.metric("⚠️ Sem match", _n_nomatch)
 
                 st.markdown("#### 📋 Pré-visualização — todos os colaboradores")
-                st.dataframe(_prev_df, use_container_width=True,
-                             height=min(420, 55 + len(_prev_df) * 35))
+                st.dataframe(_prev_df, use_container_width=True, height=400)
 
                 if _n_nomatch > 0:
-                    with st.expander(f"⚠️ {_n_nomatch} sem match — ver nomes"):
+                    with st.expander(f"🆕 {_n_nomatch} sem match — serão criados como novos"):
                         for _sn in _prev_df[
                             _prev_df["Status"] == "⚠️ Sem match"
                         ]["Nome Eticadata"].tolist():
@@ -1426,78 +1469,116 @@ def render_admin_rh(*args):
 
                 st.markdown("---")
 
-                if _n_match == 0:
-                    st.warning("⚠️ Nenhum colaborador com match. "
-                               "Verifica se os nomes coincidem com o GestNow.")
+                _btn_label = (
+                    f"🚀 Importar: {_n_match} actualiz."
+                    + (f" + {_n_nomatch} novos" if _n_nomatch else "")
+                )
+                if _n_match == 0 and _n_nomatch == 0:
+                    st.warning("⚠️ Nenhum registo encontrado no CSV.")
                 else:
                     if st.button(
-                        f"🚀 Importar {_n_match} colaborador(es) com match",
+                        _btn_label,
                         key="btn_importar_eti", type="primary",
                         use_container_width=True
                     ):
                         _df_rh    = _load_rh_fresh()
                         _df_users = _load_users_fresh()
                         _n_act    = 0
+                        _n_new    = 0
                         _n_campos = 0
-                        _sem_match_nomes = []
+                        _novos_criados = []
 
                         for _, _er in _eti_df.iterrows():
                             _nem   = _er.get(_nome_col_eti, "")
                             _ng    = _find_match_eti(_nem)
-                            if not _ng:
-                                _sem_match_nomes.append(_nem)
-                                continue
-
                             _rh_v, _u_emp, _u_alw, _chefe = _etica_map_row(_er)
 
-                            # Actualizar colaboradores_rh.csv
-                            _mrh = (
-                                (_df_rh['Nome'] == _ng)
-                                if 'Nome' in _df_rh.columns and not _df_rh.empty
-                                else pd.Series([], dtype=bool)
-                            )
-                            if _mrh.any():
-                                for _k, _v in _rh_v.items():
-                                    if _v != "":
-                                        if _k not in _df_rh.columns:
-                                            _df_rh[_k] = ""
-                                        _df_rh.loc[_mrh, _k] = _v
-                                        _n_campos += 1
+                            if _ng:
+                                # Actualizar colaboradores_rh.csv
+                                _mrh = (
+                                    (_df_rh['Nome'] == _ng)
+                                    if 'Nome' in _df_rh.columns and not _df_rh.empty
+                                    else pd.Series([], dtype=bool)
+                                )
+                                if _mrh.any():
+                                    for _k, _vv in _rh_v.items():
+                                        if _vv != "":
+                                            if _k not in _df_rh.columns:
+                                                _df_rh[_k] = ""
+                                            _df_rh.loc[_mrh, _k] = _vv
+                                            _n_campos += 1
+                                else:
+                                    _novo_rh = {c: "" for c in COLS_RH}
+                                    _novo_rh['Nome'] = _ng
+                                    _novo_rh.update({k: v for k, v in _rh_v.items() if v})
+                                    _df_rh = pd.concat(
+                                        [_df_rh, pd.DataFrame([_novo_rh])],
+                                        ignore_index=True
+                                    )
+
+                                # Actualizar usuarios.csv
+                                _mu = (
+                                    (_df_users['Nome'] == _ng)
+                                    if not _df_users.empty and 'Nome' in _df_users.columns
+                                    else pd.Series([], dtype=bool)
+                                )
+                                if _mu.any():
+                                    for _k, _vv in _u_emp.items():
+                                        if _vv:
+                                            if _k not in _df_users.columns:
+                                                _df_users[_k] = ""
+                                            if not str(_df_users.loc[_mu, _k].iloc[0]).strip():
+                                                _df_users.loc[_mu, _k] = _vv
+                                                _n_campos += 1
+                                    for _k, _vv in _u_alw.items():
+                                        if _vv:
+                                            if _k not in _df_users.columns:
+                                                _df_users[_k] = ""
+                                            _df_users.loc[_mu, _k] = _vv
+                                            _n_campos += 1
+                                    if _chefe and 'Tipo' in _df_users.columns:
+                                        _tipo_cur = str(_df_users.loc[_mu, 'Tipo'].iloc[0]).strip()
+                                        if _tipo_cur not in ("Admin","Secretariado","Armazém","Cliente"):
+                                            _df_users.loc[_mu, 'Tipo'] = "Chefe de Equipa"
+                                _n_act += 1
+
                             else:
+                                # Criar novo colaborador
+                                _partes = str(_nem).strip().split()
+                                _primeiro = _partes[0].capitalize() if _partes else "User"
+                                _pwd_plain = f"{_primeiro}1234"
+                                _novo_id   = str(uuid.uuid4())[:8].upper()
+
+                                _novo_u = {
+                                    "ID":              _novo_id,
+                                    "Nome":            _nem,
+                                    "Tipo":            "Chefe de Equipa" if _chefe else "Técnico",
+                                    "Cargo":           "Técnico Instrumentação",
+                                    "Password":        hp(_pwd_plain),
+                                    "PDFs_Validados":  "Não",
+                                    "Perfil_Completo": "",
+                                    "Data_Criacao":    datetime.now().strftime("%d/%m/%Y %H:%M"),
+                                }
+                                for _k, _vv in _u_emp.items():
+                                    if _vv:
+                                        _novo_u[_k] = _vv
+                                for _k, _vv in _u_alw.items():
+                                    if _vv:
+                                        _novo_u[_k] = _vv
+                                _df_users = pd.concat(
+                                    [_df_users, pd.DataFrame([_novo_u])],
+                                    ignore_index=True
+                                )
+
                                 _novo_rh = {c: "" for c in COLS_RH}
-                                _novo_rh['Nome'] = _ng
+                                _novo_rh['Nome'] = _nem
                                 _novo_rh.update({k: v for k, v in _rh_v.items() if v})
                                 _df_rh = pd.concat(
                                     [_df_rh, pd.DataFrame([_novo_rh])],
                                     ignore_index=True
                                 )
-
-                            # Actualizar usuarios.csv
-                            _mu = (
-                                (_df_users['Nome'] == _ng)
-                                if not _df_users.empty and 'Nome' in _df_users.columns
-                                else pd.Series([], dtype=bool)
-                            )
-                            if _mu.any():
-                                for _k, _v in _u_emp.items():
-                                    if _v:
-                                        if _k not in _df_users.columns:
-                                            _df_users[_k] = ""
-                                        if not str(_df_users.loc[_mu, _k].iloc[0]).strip():
-                                            _df_users.loc[_mu, _k] = _v
-                                            _n_campos += 1
-                                for _k, _v in _u_alw.items():
-                                    if _v:
-                                        if _k not in _df_users.columns:
-                                            _df_users[_k] = ""
-                                        _df_users.loc[_mu, _k] = _v
-                                        _n_campos += 1
-                                if _chefe and 'Tipo' in _df_users.columns:
-                                    _tipo_cur = str(_df_users.loc[_mu, 'Tipo'].iloc[0]).strip()
-                                    if _tipo_cur not in ("Admin","Secretariado","Armazém","Cliente"):
-                                        _df_users.loc[_mu, 'Tipo'] = "Chefe de Equipa"
-
-                            _n_act += 1
+                                _novos_criados.append({"Nome": _nem, "Password": _pwd_plain})
+                                _n_new += 1
 
                         save_db(_df_rh, "colaboradores_rh.csv")
                         save_db(_df_users, "usuarios.csv")
@@ -1511,21 +1592,14 @@ def render_admin_rh(*args):
                             tabela="colaboradores_rh.csv+usuarios.csv",
                             registro_id="batch",
                             detalhes=(f"Actualizados: {_n_act}, "
-                                      f"Campos: {_n_campos}, "
-                                      f"Sem match: {len(_sem_match_nomes)}"),
+                                      f"Novos: {_n_new}, "
+                                      f"Campos: {_n_campos}"),
                             ip=""
                         )
-                        st.success(
-                            f"✅ Importação concluída! "
-                            f"**{_n_act}** colaboradores actualizados, "
-                            f"**{_n_campos}** campos preenchidos."
-                        )
-                        if _sem_match_nomes:
-                            st.warning(
-                                f"⚠️ **{len(_sem_match_nomes)}** sem match "
-                                f"(não importados):\n" +
-                                "\n".join(f"- {_sn}" for _sn in _sem_match_nomes)
-                            )
+                        st.session_state['eticadata_result'] = {
+                            'n_act': _n_act, 'n_new': _n_new,
+                            'n_campos': _n_campos, 'novos': _novos_criados,
+                        }
                         del st.session_state['eticadata_df']
                         st.rerun()
 
