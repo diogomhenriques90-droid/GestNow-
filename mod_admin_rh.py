@@ -1228,29 +1228,6 @@ def render_admin_rh(*args):
             "Colaboradores sem match são criados automaticamente."
         )
 
-        # ── Resultado da última importação ────────────────────────
-        if 'eticadata_result' in st.session_state:
-            _res = st.session_state['eticadata_result']
-            st.success(
-                f"✅ Importação concluída! "
-                f"**{_res['n_act']}** actualizados, "
-                f"**{_res['n_new']}** novos criados, "
-                f"**{_res['n_campos']}** campos preenchidos."
-            )
-            if _res.get('novos'):
-                st.markdown("#### 🆕 Passwords geradas — guardar agora!")
-                st.warning(
-                    "⚠️ Estas passwords só são mostradas uma vez. "
-                    "Comunica-as aos colaboradores antes de fechar."
-                )
-                for _nc in _res['novos']:
-                    st.markdown(f"- **{_nc['Nome']}** → `{_nc['Password']}`")
-            if st.button("✓ Já guardei — fechar relatório",
-                         key="btn_dismiss_result"):
-                del st.session_state['eticadata_result']
-                st.rerun()
-            st.markdown("---")
-
         # ── Tabelas de conversão de valores Eticadata ─────────────
         _E_SEXO = {"0": "Masculino", "1": "Feminino"}
         _E_EST_CIVIL = {
