@@ -1224,154 +1224,310 @@ def render_admin_rh(*args):
         st.info(
             "Exporta do Eticadata o ficheiro **`Lista_Trabalhadores.csv`** "
             "(separador `;`, codificação UTF-8 com BOM) e faz upload aqui. "
-            "Os dados são mapeados automaticamente para `colaboradores_rh.csv`."
+            "O match é feito pelo Nome com `usuarios.csv`."
         )
 
+        # ── Tabelas de conversão de valores Eticadata ─────────────
+        _E_SEXO = {"0": "Masculino", "1": "Feminino"}
+        _E_EST_CIVIL = {
+            "1": "Solteiro(a)", "2": "Casado(a)", "3": "Viúvo(a)",
+            "4": "Divorciado(a)", "5": "União de facto",
+            "6": "Separado(a) judicialmente",
+        }
+        _E_NAC = {
+            "0": "Português", "2": "Brasileiro",
+            "3": "Outro UE/EEE", "4": "Extracomunitário",
+        }
+        _E_NIVEL_QUAL = {
+            "0": "", "1": "Quadro superior", "2": "Quadro médio",
+            "3": "Encarregado contramestre mestre e chefe de equipa",
+            "4": "Profissional altamente qualificado",
+            "5": "Profissional qualificado",
+            "6": "Profissional semi-qualificado especializado",
+            "7": "Profissional não qualificado indiferenciado",
+            "8": "Estagiário praticante e aprendiz",
+        }
+        _E_DOC_TIPO = {
+            "CC": "Cartão de Cidadão", "PASS": "Passaporte",
+            "TRT": "Título de Residência Temporária",
+            "TRP": "Título de Residência Permanente",
+            "CRFCUNET": "Cartão Registo Cidadão UE/EEE",
+        }
+        _FIXED_RH = {
+            # Campos para Dados Legais (nomes canónicos GestNow)
+            "IRCT_Aplicavel":             "IRCT 25989 – CCT Empresas Electrotécnicas",
+            "Situacao_Profissional":      "Trabalhador por Conta de Outrem",
+            "Categoria_CCT":              "02155",
+            "Profissao_CPP":              "74124",
+            # Campos extra Eticadata (referência)
+            "IRCT_Codigo":                "25989",
+            "IRCT_Descricao":             "CCT - Empresas Electrotécnicas",
+            "IRCT_Aplicabilidade":        "04 - Acto de Gestão",
+            "Modo_Remuneracao":           "Mensal",
+            "Duracao_Tempo_Trabalho":     "1 - Adaptabilidade por regulamentação colectiva (RU:10)",
+            "Tipo_Horario":               "Normal Fixo",
+            "Pensionista":                "Não",
+            "Regime_Reforma":             "1 - Segurança Social",
+            "Organizacao_Tempo_Trabalho": "1 - Trabalho diurno",
+            "Categoria_Profissional_Cod": "02155",
+            "Categoria_Profissional_Desc":"PROFISSIONAL QUALIFICADO OFICIAL",
+            "Profissao_CPP_Cod":          "74124",
+            "Profissao_CPP_Desc":         "Electromecânico, electricista e outros instaladores de máquinas e equipamentos eléctricos",
+        }
+
+        def _etica_strip_date(s):
+            """Remove parte horária — '29/03/2023 00:00' → '29/03/2023'."""
+            s = str(s).strip()
+            return s.split(" ")[0] if " " in s else s
+
+        def _etica_map_row(er):
+            """Converte linha Eticadata em (rh_dict, users_if_empty_dict, users_always_dict, chefe_bool)."""
+            rh = {}
+            rh["Eticadata_ID"]           = er.get("intCodigo", "")
+            rh["Genero"]                 = _E_SEXO.get(er.get("bitSexo", ""), "")
+            rh["Estado_Civil"]           = _E_EST_CIVIL.get(er.get("intEstadoCivil", ""), "")
+            rh["Salario_Base"]           = er.get("fltVencActual", "")
+            rh["Data_Admissao"]          = _etica_strip_date(er.get("dtmAdmissao", ""))
+            # Nomes canónicos GestNow (coincidem com Dados Legais)
+            rh["Contrato_Inicio"]        = _etica_strip_date(er.get("dtmInicioContr", ""))
+            _fim_c                       = _etica_strip_date(er.get("dtmFimContr", ""))
+            rh["Contrato_Fim"]           = _fim_c
+            rh["Tipo_Contrato"]          = "Sem Termo" if not _fim_c else "A Termo Certo"
+            rh["Horas_Semana"]           = er.get("fltHorasSemanais", "")
+            rh["Subsidio_Alimentacao"]   = er.get("fltSubAlimentacao", "")
+            rh["Banco_Nome"]             = er.get("strAbrevBanco", "")
+            rh["Num_Utente"]             = er.get("strNumUtente", "")
+            rh["SWIFT_BIC"]              = er.get("strBic", "")
+            rh["Servico_Financas"]       = er.get("strCodRepFinancas", "")
+            rh["Naturalidade"]           = er.get("strNaturalidade", "")
+            rh["Banco_Empresa_Pagamento"]= er.get("strCodContaEmpresa", "")
+            rh["Nacionalidade"]          = _E_NAC.get(er.get("intCodNacionalidade", ""), "")
+            rh["Nivel_Qualificacao"]     = _E_NIVEL_QUAL.get(er.get("intNivelQualificacao", ""), "")
+            _tdoc                        = er.get("strTypDocId", "")
+            rh["Tipo_Doc_ID"]            = _E_DOC_TIPO.get(_tdoc, _tdoc)
+            rh.update(_FIXED_RH)
+
+            u_if_empty = {
+                "Email":        er.get("strEmail", ""),
+                "CC":           er.get("strNumBI", ""),
+                "CC_Validade":  _etica_strip_date(er.get("dtmValidadeBI", "")),
+                "NISS":         er.get("strNumSegSocial", ""),
+                "Morada":       er.get("strMorada1GRH", ""),
+                "Localidade":   er.get("strLocalidadeGRH", ""),
+                "Codigo_Postal":er.get("strCodPostalGRH", ""),
+                "Banco_IBAN":   er.get("strIban", ""),
+            }
+            u_always = {
+                "PrecoHora":  er.get("CA_Valor_Hora", ""),
+                "Local_Obra": er.get("CA_Obra", ""),
+            }
+            chefe = er.get("CA_ChefedeEquipa", "").strip() == "1"
+            return rh, u_if_empty, u_always, chefe
+
+        # ── Upload → guardar imediatamente em session_state ────────
         _eti_file = st.file_uploader(
-            "Selecionar CSV do Eticadata",
-            type=["csv"],
-            key="eti_uploader"
+            "Selecionar CSV do Eticadata (sep=;, UTF-8 BOM)",
+            type=["csv"], key="eti_uploader"
         )
-
-        if _eti_file:
+        if _eti_file is not None:
             try:
                 _eti_raw = pd.read_csv(
                     _eti_file, sep=";", dtype=str,
                     encoding="utf-8-sig", on_bad_lines='skip'
                 )
                 _eti_raw.columns = _eti_raw.columns.str.strip()
-                # Tratar NULL como string vazia
                 _eti_raw = _eti_raw.replace("NULL", "").fillna("")
-                for col in _eti_raw.select_dtypes(include='object').columns:
-                    _eti_raw[col] = _eti_raw[col].str.strip()
+                for _ec in _eti_raw.select_dtypes(include='object').columns:
+                    _eti_raw[_ec] = _eti_raw[_ec].str.strip()
+                st.session_state['eticadata_df'] = _eti_raw
+            except Exception as _e:
+                st.error(f"❌ Erro ao ler o ficheiro: {_e}")
 
-                st.success(f"✅ Ficheiro lido: **{len(_eti_raw)}** registos, "
-                           f"**{len(_eti_raw.columns)}** colunas.")
+        if 'eticadata_df' not in st.session_state:
+            st.info("Faz upload do CSV para começar.")
+        else:
+            _eti_df = st.session_state['eticadata_df']
 
-                with st.expander("👁️ Pré-visualização (primeiras 5 linhas)"):
-                    st.dataframe(_eti_raw.head(), use_container_width=True)
-
-                # Detectar mapeamento de colunas
-                _col_map = {}
-                for _src_col in _eti_raw.columns:
-                    if _src_col in ETICADATA_MAP:
-                        _col_map[_src_col] = ETICADATA_MAP[_src_col]
-
-                _unmapped = [c for c in _eti_raw.columns if c not in ETICADATA_MAP]
-
-                st.markdown("#### 🗺️ Mapeamento de Colunas")
-                _c1, _c2 = st.columns(2)
-                with _c1:
-                    st.markdown("**Colunas mapeadas automaticamente:**")
-                    for _s, _t in _col_map.items():
-                        st.markdown(f"- `{_s}` → `{_t}`")
-                with _c2:
-                    if _unmapped:
-                        st.markdown("**Colunas não mapeadas (ignoradas):**")
-                        for _u in _unmapped:
-                            st.markdown(f"- `{_u}`")
-
-                st.markdown("---")
-                st.markdown("#### 📋 Pré-visualização dos dados mapeados")
-
-                # Construir preview do que vai ser importado
-                _preview_rows = []
-                for _, _erow in _eti_raw.iterrows():
-                    _mapped = {}
-                    for _src, _dst in _col_map.items():
-                        _raw_val = _erow.get(_src, "")
-                        # Converter valores especiais
-                        if _dst == "Genero":
-                            _raw_val = _ETICA_GENERO.get(_raw_val, _raw_val)
-                        elif _dst == "Estado_Civil":
-                            _raw_val = _ETICA_EST_CIVIL.get(_raw_val, _raw_val)
-                        elif _dst == "Nivel_Habilitacoes":
-                            _raw_val = _ETICA_HABILITACOES.get(_raw_val, _raw_val)
-                        elif _dst == "Tipo_Contrato":
-                            _raw_val = _ETICA_TIPO_CONTRATO.get(_raw_val, _raw_val)
-                        _mapped[_dst] = _raw_val
-                    # Valor fixo
-                    _mapped["IRCT_Aplicavel"] = "IRCT 25989 – CCT Empresas Electrotécnicas"
-                    _preview_rows.append(_mapped)
-
-                _preview_df = pd.DataFrame(_preview_rows)
-
-                # Mostrar apenas colunas com conteúdo
-                _cols_com_dados = [c for c in _preview_df.columns
-                                   if _preview_df[c].str.strip().any()]
-                if _cols_com_dados:
-                    st.dataframe(_preview_df[_cols_com_dados].head(10),
-                                 use_container_width=True)
-
-                st.markdown("---")
-                _col_imp1, _col_imp2 = st.columns(2)
-                with _col_imp1:
-                    _modo_import = st.radio(
-                        "Modo de importação",
-                        ["Actualizar existentes (upsert)", "Só novos (skip se já existe)"],
-                        key="eti_modo"
-                    )
-                with _col_imp2:
-                    _coluna_chave = st.selectbox(
-                        "Coluna chave para identificar colaborador",
-                        ["Nome", "NIF", "NISS"],
-                        key="eti_chave"
-                    )
-
-                if st.button("🚀 Importar para colaboradores_rh.csv",
-                             key="btn_importar_eti", type="primary",
-                             use_container_width=True):
-                    _rh_atual = _load_rh_fresh()
-                    _importados = 0
-                    _ignorados  = 0
-                    _novos      = 0
-
-                    for _row_imp in _preview_rows:
-                        _chave_val = _row_imp.get(_coluna_chave, "")
-                        if not _chave_val:
-                            _ignorados += 1
-                            continue
-
-                        _mask_imp = (_rh_atual[_coluna_chave] == _chave_val
-                                     if _coluna_chave in _rh_atual.columns
-                                     else pd.Series([False] * len(_rh_atual)))
-
-                        if _mask_imp.any():
-                            if "Actualizar" in _modo_import:
-                                for _k, _vv in _row_imp.items():
-                                    if _vv:
-                                        _rh_atual.loc[_mask_imp, _k] = _vv
-                                _importados += 1
-                            else:
-                                _ignorados += 1
-                        else:
-                            _novo_rh = {c: "" for c in COLS_RH}
-                            _novo_rh.update(_row_imp)
-                            _rh_atual = pd.concat(
-                                [_rh_atual, pd.DataFrame([_novo_rh])],
-                                ignore_index=True
-                            )
-                            _novos += 1
-
-                    save_db(_rh_atual, "colaboradores_rh.csv")
-                    inv("colaboradores_rh.csv")
-                    log_audit(
-                        usuario=admin_nome,
-                        acao="IMPORTAR_ETICADATA",
-                        tabela="colaboradores_rh.csv",
-                        registro_id="batch",
-                        detalhes=f"Importados: {_importados+_novos}, Ignorados: {_ignorados}",
-                        ip=""
-                    )
-                    st.success(
-                        f"✅ Importação concluída! "
-                        f"**{_novos}** novos, **{_importados}** actualizados, "
-                        f"**{_ignorados}** ignorados."
-                    )
+            _ecol_h, _ecol_btn = st.columns([5, 1])
+            with _ecol_h:
+                st.success(f"✅ Ficheiro carregado: **{len(_eti_df)}** registos, "
+                           f"**{len(_eti_df.columns)}** colunas.")
+            with _ecol_btn:
+                if st.button("🗑️ Limpar", key="eti_limpar"):
+                    del st.session_state['eticadata_df']
                     st.rerun()
 
-            except Exception as _e:
-                st.error(f"❌ Erro ao processar o ficheiro: {_e}")
+            with st.expander("👁️ CSV original (primeiras 5 linhas)"):
+                st.dataframe(_eti_df.head(), use_container_width=True)
+
+            # ── Detectar coluna Nome no CSV ────────────────────────
+            _nome_col_eti = None
+            for _cn in ("Nome", "strNome", "NomeFuncionario", "nome", "NOME"):
+                if _cn in _eti_df.columns:
+                    _nome_col_eti = _cn
+                    break
+
+            if _nome_col_eti is None:
+                st.error(
+                    "❌ Coluna 'Nome' não encontrada no CSV. "
+                    f"Colunas disponíveis: `{'`, `'.join(_eti_df.columns.tolist())}`"
+                )
+            else:
+                # ── Match por Nome com usuarios.csv ───────────────
+                _u_eti = _load_users_fresh()
+                _nomes_exact = set(
+                    _u_eti['Nome'].dropna().unique()
+                ) if not _u_eti.empty and 'Nome' in _u_eti.columns else set()
+                _nomes_norm = {
+                    n.strip().lower(): n for n in _nomes_exact
+                }
+
+                def _find_match_eti(nome_eti):
+                    n = str(nome_eti).strip()
+                    if n in _nomes_exact:
+                        return n
+                    return _nomes_norm.get(n.lower(), None)
+
+                # ── Preview com status de match ────────────────────
+                _prev_rows = []
+                for _, _er in _eti_df.iterrows():
+                    _nem = _er.get(_nome_col_eti, "")
+                    _ng  = _find_match_eti(_nem)
+                    _rh_p, _, _, _ = _etica_map_row(_er)
+                    _prev_rows.append({
+                        "Status":         "✅ Match" if _ng else "⚠️ Sem match",
+                        "Nome Eticadata": _nem,
+                        "Nome GestNow":   _ng or "—",
+                        "Salário Base":   _rh_p.get("Salario_Base", ""),
+                        "Tipo Contrato":  _rh_p.get("Tipo_Contrato", ""),
+                        "Data Admissão":  _rh_p.get("Data_Admissao", ""),
+                        "Género":         _rh_p.get("Genero", ""),
+                        "Nacionalidade":  _rh_p.get("Nacionalidade", ""),
+                    })
+
+                _prev_df   = pd.DataFrame(_prev_rows)
+                _n_match   = int((_prev_df["Status"] == "✅ Match").sum())
+                _n_nomatch = int((_prev_df["Status"] == "⚠️ Sem match").sum())
+
+                _mc1, _mc2 = st.columns(2)
+                _mc1.metric("✅ Com match", _n_match)
+                _mc2.metric("⚠️ Sem match", _n_nomatch)
+
+                st.markdown("#### 📋 Pré-visualização — todos os colaboradores")
+                st.dataframe(_prev_df, use_container_width=True,
+                             height=min(420, 55 + len(_prev_df) * 35))
+
+                if _n_nomatch > 0:
+                    with st.expander(f"⚠️ {_n_nomatch} sem match — ver nomes"):
+                        for _sn in _prev_df[
+                            _prev_df["Status"] == "⚠️ Sem match"
+                        ]["Nome Eticadata"].tolist():
+                            st.markdown(f"- `{_sn}`")
+
+                st.markdown("---")
+
+                if _n_match == 0:
+                    st.warning("⚠️ Nenhum colaborador com match. "
+                               "Verifica se os nomes coincidem com o GestNow.")
+                else:
+                    if st.button(
+                        f"🚀 Importar {_n_match} colaborador(es) com match",
+                        key="btn_importar_eti", type="primary",
+                        use_container_width=True
+                    ):
+                        _df_rh    = _load_rh_fresh()
+                        _df_users = _load_users_fresh()
+                        _n_act    = 0
+                        _n_campos = 0
+                        _sem_match_nomes = []
+
+                        for _, _er in _eti_df.iterrows():
+                            _nem   = _er.get(_nome_col_eti, "")
+                            _ng    = _find_match_eti(_nem)
+                            if not _ng:
+                                _sem_match_nomes.append(_nem)
+                                continue
+
+                            _rh_v, _u_emp, _u_alw, _chefe = _etica_map_row(_er)
+
+                            # Actualizar colaboradores_rh.csv
+                            _mrh = (
+                                (_df_rh['Nome'] == _ng)
+                                if 'Nome' in _df_rh.columns and not _df_rh.empty
+                                else pd.Series([], dtype=bool)
+                            )
+                            if _mrh.any():
+                                for _k, _v in _rh_v.items():
+                                    if _v != "":
+                                        if _k not in _df_rh.columns:
+                                            _df_rh[_k] = ""
+                                        _df_rh.loc[_mrh, _k] = _v
+                                        _n_campos += 1
+                            else:
+                                _novo_rh = {c: "" for c in COLS_RH}
+                                _novo_rh['Nome'] = _ng
+                                _novo_rh.update({k: v for k, v in _rh_v.items() if v})
+                                _df_rh = pd.concat(
+                                    [_df_rh, pd.DataFrame([_novo_rh])],
+                                    ignore_index=True
+                                )
+
+                            # Actualizar usuarios.csv
+                            _mu = (
+                                (_df_users['Nome'] == _ng)
+                                if not _df_users.empty and 'Nome' in _df_users.columns
+                                else pd.Series([], dtype=bool)
+                            )
+                            if _mu.any():
+                                for _k, _v in _u_emp.items():
+                                    if _v:
+                                        if _k not in _df_users.columns:
+                                            _df_users[_k] = ""
+                                        if not str(_df_users.loc[_mu, _k].iloc[0]).strip():
+                                            _df_users.loc[_mu, _k] = _v
+                                            _n_campos += 1
+                                for _k, _v in _u_alw.items():
+                                    if _v:
+                                        if _k not in _df_users.columns:
+                                            _df_users[_k] = ""
+                                        _df_users.loc[_mu, _k] = _v
+                                        _n_campos += 1
+                                if _chefe and 'Tipo' in _df_users.columns:
+                                    _tipo_cur = str(_df_users.loc[_mu, 'Tipo'].iloc[0]).strip()
+                                    if _tipo_cur not in ("Admin","Secretariado","Armazém","Cliente"):
+                                        _df_users.loc[_mu, 'Tipo'] = "Chefe de Equipa"
+
+                            _n_act += 1
+
+                        save_db(_df_rh, "colaboradores_rh.csv")
+                        save_db(_df_users, "usuarios.csv")
+                        inv("colaboradores_rh.csv")
+                        inv("usuarios.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        log_audit(
+                            usuario=admin_nome,
+                            acao="IMPORTAR_ETICADATA",
+                            tabela="colaboradores_rh.csv+usuarios.csv",
+                            registro_id="batch",
+                            detalhes=(f"Actualizados: {_n_act}, "
+                                      f"Campos: {_n_campos}, "
+                                      f"Sem match: {len(_sem_match_nomes)}"),
+                            ip=""
+                        )
+                        st.success(
+                            f"✅ Importação concluída! "
+                            f"**{_n_act}** colaboradores actualizados, "
+                            f"**{_n_campos}** campos preenchidos."
+                        )
+                        if _sem_match_nomes:
+                            st.warning(
+                                f"⚠️ **{len(_sem_match_nomes)}** sem match "
+                                f"(não importados):\n" +
+                                "\n".join(f"- {_sn}" for _sn in _sem_match_nomes)
+                            )
+                        del st.session_state['eticadata_df']
+                        st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB 5 — CONTRATOS
