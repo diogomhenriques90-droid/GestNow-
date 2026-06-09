@@ -1228,29 +1228,6 @@ def render_admin_rh(*args):
             "Colaboradores sem match são criados automaticamente."
         )
 
-        # ── Resultado da última importação ────────────────────────
-        if 'eticadata_result' in st.session_state:
-            _res = st.session_state['eticadata_result']
-            st.success(
-                f"✅ Importação concluída! "
-                f"**{_res['n_act']}** actualizados, "
-                f"**{_res['n_new']}** novos criados, "
-                f"**{_res['n_campos']}** campos preenchidos."
-            )
-            if _res.get('novos'):
-                st.markdown("#### 🆕 Passwords geradas — guardar agora!")
-                st.warning(
-                    "⚠️ Estas passwords só são mostradas uma vez. "
-                    "Comunica-as aos colaboradores antes de fechar."
-                )
-                for _nc in _res['novos']:
-                    st.markdown(f"- **{_nc['Nome']}** → `{_nc['Password']}`")
-            if st.button("✓ Já guardei — fechar relatório",
-                         key="btn_dismiss_result"):
-                del st.session_state['eticadata_result']
-                st.rerun()
-            st.markdown("---")
-
         # ── Tabelas de conversão de valores Eticadata ─────────────
         _E_SEXO = {"0": "Masculino", "1": "Feminino"}
         _E_EST_CIVIL = {
@@ -1385,7 +1362,7 @@ def render_admin_rh(*args):
                 for _nc in _res['novos']:
                     st.markdown(f"- **{_nc['Nome']}** → `{_nc['Password']}`")
             if st.button("✓ Já guardei — fechar relatório",
-                         key="btn_dismiss_result"):
+                         key="imp_fechar_relatorio"):
                 del st.session_state['eticadata_result']
                 st.rerun()
         elif 'eticadata_df' not in st.session_state:
@@ -1398,7 +1375,7 @@ def render_admin_rh(*args):
                 st.success(f"✅ Ficheiro carregado: **{len(_eti_df)}** registos, "
                            f"**{len(_eti_df.columns)}** colunas.")
             with _ecol_btn:
-                if st.button("🗑️ Limpar", key="eti_limpar"):
+                if st.button("🗑️ Limpar", key="imp_limpar"):
                     del st.session_state['eticadata_df']
                     st.session_state['eti_upload_key'] = st.session_state.get('eti_upload_key', 0) + 1
                     st.rerun()
@@ -1500,7 +1477,7 @@ def render_admin_rh(*args):
                 else:
                     if st.button(
                         _btn_label,
-                        key="btn_importar_eti", type="primary",
+                        key="imp_importar", type="primary",
                         use_container_width=True
                     ):
                         _df_rh    = _load_rh_fresh()
