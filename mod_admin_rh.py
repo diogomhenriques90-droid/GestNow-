@@ -1362,7 +1362,7 @@ def render_admin_rh(*args):
                 for _nc in _res['novos']:
                     st.markdown(f"- **{_nc['Nome']}** → `{_nc['Password']}`")
             if st.button("✓ Já guardei — fechar relatório",
-                         key="btn_dismiss_result"):
+                         key="imp_fechar_relatorio"):
                 del st.session_state['eticadata_result']
                 st.rerun()
         elif 'eticadata_df' not in st.session_state:
@@ -1375,7 +1375,7 @@ def render_admin_rh(*args):
                 st.success(f"✅ Ficheiro carregado: **{len(_eti_df)}** registos, "
                            f"**{len(_eti_df.columns)}** colunas.")
             with _ecol_btn:
-                if st.button("🗑️ Limpar", key="eti_limpar"):
+                if st.button("🗑️ Limpar", key="imp_limpar"):
                     del st.session_state['eticadata_df']
                     st.session_state['eti_upload_key'] = st.session_state.get('eti_upload_key', 0) + 1
                     st.rerun()
@@ -1477,7 +1477,7 @@ def render_admin_rh(*args):
                 else:
                     if st.button(
                         _btn_label,
-                        key="btn_importar_eti", type="primary",
+                        key="imp_importar", type="primary",
                         use_container_width=True
                     ):
                         _df_rh    = _load_rh_fresh()
