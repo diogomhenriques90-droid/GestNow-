@@ -677,7 +677,24 @@ def render_fat_rh(obras_db, registos_db, *_):
     rh_db     = _load("colaboradores_rh.csv", [
         "ID","Nome","NIF","NISS","Tipo","Cargo","Salario_Base",
         "Data_Inicio","Estado_Civil","N_Dependentes",
-        "Banco_IBAN","Contrato","Ativo"
+        "Banco_IBAN","Contrato","Ativo",
+        "Genero","DataNasc","Naturalidade","Nacionalidade","Pais_Residencia",
+        "CC","CC_Validade","Passaporte","Passaporte_Validade",
+        "IRS_Escalao","IRS_Percentagem","Titular_Unico","Taxa_Retencao_IRS",
+        "Isencao_IRS","Artigo_IRS",
+        "Tipo_Contrato","Modalidade_Horario","Horas_Semana",
+        "Contrato_Inicio","Contrato_Fim","Contrato_Indeterminado",
+        "Periodo_Experimental","Periodo_Experimental_Fim",
+        "Local_Trabalho","Funcao_Contratual",
+        "Subsidio_Alimentacao","Subsidio_Ferias","Subsidio_Natal",
+        "Premio_Producao","Outros_Complementos","Forma_Pagamento",
+        "IBAN_Validado","SWIFT_BIC",
+        "Nivel_Habilitacoes","Situacao_Profissional","Profissao_CPP",
+        "Categoria_CCT","IRCT_Aplicavel","Vinculo_Empresa",
+        "Reducao_Horario","Data_Ultima_Promocao","Antiguidade_Anos",
+        "Nivel_Remuneratorio","Grau_Deficiencia","Deficiencia_Tipo",
+        "Seg_Social_Cartao","Cartao_Prof_Num","Cartao_Prof_Validade",
+        "Alvara_Num","Alvara_Validade",
     ])
     ferias_db = _load("ferias_db.csv", [
         "ID","Colaborador","Data_Inicio","Data_Fim",
