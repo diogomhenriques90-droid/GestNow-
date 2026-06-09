@@ -1254,10 +1254,15 @@ def render_admin_rh(*args):
             "CRFCUNET": "Cartão Registo Cidadão UE/EEE",
         }
         _FIXED_RH = {
+            # Campos para Dados Legais (nomes canónicos GestNow)
+            "IRCT_Aplicavel":             "IRCT 25989 – CCT Empresas Electrotécnicas",
+            "Situacao_Profissional":      "Trabalhador por Conta de Outrem",
+            "Categoria_CCT":              "02155",
+            "Profissao_CPP":              "74124",
+            # Campos extra Eticadata (referência)
             "IRCT_Codigo":                "25989",
             "IRCT_Descricao":             "CCT - Empresas Electrotécnicas",
             "IRCT_Aplicabilidade":        "04 - Acto de Gestão",
-            "Situacao_Profissional":      "Trabalhador por Conta de Outrem",
             "Modo_Remuneracao":           "Mensal",
             "Duracao_Tempo_Trabalho":     "1 - Adaptabilidade por regulamentação colectiva (RU:10)",
             "Tipo_Horario":               "Normal Fixo",
@@ -1283,15 +1288,16 @@ def render_admin_rh(*args):
             rh["Estado_Civil"]           = _E_EST_CIVIL.get(er.get("intEstadoCivil", ""), "")
             rh["Salario_Base"]           = er.get("fltVencActual", "")
             rh["Data_Admissao"]          = _etica_strip_date(er.get("dtmAdmissao", ""))
-            rh["Contrato_Data_Inicio"]   = _etica_strip_date(er.get("dtmInicioContr", ""))
+            # Nomes canónicos GestNow (coincidem com Dados Legais)
+            rh["Contrato_Inicio"]        = _etica_strip_date(er.get("dtmInicioContr", ""))
             _fim_c                       = _etica_strip_date(er.get("dtmFimContr", ""))
-            rh["Contrato_Data_Fim"]      = _fim_c
-            rh["Tipo_Contrato"]          = "10 - Sem Termo" if not _fim_c else "20 - Termo Certo"
-            rh["Horas_Semanais"]         = er.get("fltHorasSemanais", "")
-            rh["Sub_Alimentacao"]        = er.get("fltSubAlimentacao", "")
+            rh["Contrato_Fim"]           = _fim_c
+            rh["Tipo_Contrato"]          = "Sem Termo" if not _fim_c else "A Termo Certo"
+            rh["Horas_Semana"]           = er.get("fltHorasSemanais", "")
+            rh["Subsidio_Alimentacao"]   = er.get("fltSubAlimentacao", "")
             rh["Banco_Nome"]             = er.get("strAbrevBanco", "")
             rh["Num_Utente"]             = er.get("strNumUtente", "")
-            rh["SWIFT"]                  = er.get("strBic", "")
+            rh["SWIFT_BIC"]              = er.get("strBic", "")
             rh["Servico_Financas"]       = er.get("strCodRepFinancas", "")
             rh["Naturalidade"]           = er.get("strNaturalidade", "")
             rh["Banco_Empresa_Pagamento"]= er.get("strCodContaEmpresa", "")
