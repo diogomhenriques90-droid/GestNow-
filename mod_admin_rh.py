@@ -1547,9 +1547,16 @@ def render_admin_rh(*args):
                                         if _uv:
                                             _sync_fields[_fk] = _uv
 
-                                # Eticadata tem prioridade sobre usuarios.csv
-                                _rh_full = {**_sync_fields,
-                                            **{k: v for k, v in _rh_v.items() if v}}
+                                # Campos do Eticadata (sempre reescritos nesta
+                                # importação — nunca acumulam valores de
+                                # importações anteriores). Se o Eticadata vier
+                                # vazio para um campo partilhado, cai-se para
+                                # o valor de usuarios.csv.
+                                _etica_keys = set(_rh_v.keys())
+                                _rh_full = dict(_sync_fields)
+                                for _k in _etica_keys:
+                                    _vv = _rh_v.get(_k, "")
+                                    _rh_full[_k] = _vv if _vv else _sync_fields.get(_k, "")
 
                                 # Actualizar colaboradores_rh.csv
                                 _mrh = (
