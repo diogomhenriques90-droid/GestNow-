@@ -7,7 +7,7 @@ from io import BytesIO
 from core import (
     save_db, inv, load_db, log_audit, criar_notificacao,
     hp, _gcs_read, _gcs_write_binary, _gcs_read_binary,
-    _fill_contrato_template, ICONS
+    _fill_contrato_template, ICONS, logger
 )
 
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
@@ -1531,6 +1531,7 @@ def render_admin_rh(*args):
                     ):
                         _df_rh    = _load_rh_fresh()
                         _df_users = _load_users_fresh()
+                        logger.info(f"DEBUG A: _df_rh inicial = {len(_df_rh)} linhas")
                         _n_act    = 0
                         _n_new    = 0
                         _n_campos = 0
@@ -1654,6 +1655,9 @@ def render_admin_rh(*args):
                                 _novos_criados.append({"Nome": _nem, "Password": _pwd_plain})
                                 _n_new += 1
 
+                            logger.info(f"DEBUG B: apos {_nem} -> _df_rh = {len(_df_rh)} linhas")
+
+                        logger.info(f"DEBUG C: _df_rh FINAL antes save = {len(_df_rh)} linhas")
                         _ok_rh = save_db(_df_rh, "colaboradores_rh.csv")
                         if not _ok_rh:
                             st.error("❌ Erro ao guardar colaboradores_rh.csv — "
