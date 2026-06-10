@@ -1575,12 +1575,24 @@ def render_admin_rh(*args):
                                     _vv = _rh_v.get(_k, "")
                                     _rh_full[_k] = _vv if _vv else _sync_fields.get(_k, "")
 
-                                # Actualizar colaboradores_rh.csv
-                                _mrh = (
-                                    (_df_rh['Nome'] == _ng)
-                                    if 'Nome' in _df_rh.columns and not _df_rh.empty
-                                    else pd.Series([], dtype=bool)
-                                )
+                                # Actualizar colaboradores_rh.csv — match robusto:
+                                # 1º por Eticadata_ID (intCodigo, estável e único);
+                                # 2º fallback por Nome normalizado (sem acentos/maiúsc./espaços)
+                                _eti_id = str(_rh_v.get("Eticadata_ID", "")).strip()
+                                if _df_rh.empty:
+                                    _mrh = pd.Series([], dtype=bool)
+                                else:
+                                    _mrh = pd.Series(False, index=_df_rh.index)
+                                    if _eti_id and 'Eticadata_ID' in _df_rh.columns:
+                                        _mrh = (
+                                            _df_rh['Eticadata_ID'].astype(str).str.strip()
+                                            == _eti_id
+                                        )
+                                    if not _mrh.any() and 'Nome' in _df_rh.columns:
+                                        _mrh = (
+                                            _df_rh['Nome'].apply(_norm_nome)
+                                            == _norm_nome(_ng)
+                                        )
                                 if _mrh.any():
                                     for _k, _vv in _rh_full.items():
                                         if _k not in _df_rh.columns:
@@ -1658,6 +1670,22 @@ def render_admin_rh(*args):
                             logger.info(f"DEBUG B: apos {_nem} -> _df_rh = {len(_df_rh)} linhas")
 
                         logger.info(f"DEBUG C: _df_rh FINAL antes save = {len(_df_rh)} linhas")
+
+                        # Dedup defensivo — chave: Eticadata_ID se existir,
+                        # senão Nome normalizado (sem acentos/maiúsculas/espaços)
+                        if not _df_rh.empty:
+                            def _rh_dedup_key(row):
+                                _eid = str(row.get('Eticadata_ID', '')).strip()
+                                return f"ID:{_eid}" if _eid else f"NOME:{_norm_nome(row.get('Nome', ''))}"
+
+                            _df_rh['_dedup_key'] = _df_rh.apply(_rh_dedup_key, axis=1)
+                            _df_rh = (
+                                _df_rh.drop_duplicates(subset=['_dedup_key'], keep='last')
+                                .drop(columns=['_dedup_key'])
+                                .reset_index(drop=True)
+                            )
+                        logger.info(f"DEBUG D: _df_rh apos dedup = {len(_df_rh)} linhas")
+
                         _ok_rh = save_db(_df_rh, "colaboradores_rh.csv")
                         if not _ok_rh:
                             st.error("❌ Erro ao guardar colaboradores_rh.csv — "
