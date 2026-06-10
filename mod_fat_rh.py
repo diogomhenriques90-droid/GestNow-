@@ -68,7 +68,8 @@ def _custo_real(salario_base: float) -> dict:
         salario_base + sub_ferias_prov + sub_natal_prov +
         tsu_emp + seg_acid + fct + fgct, 2
     )
-    pct_sobre_base = round((total - salario_base) / salario_base * 100, 1)
+    pct_sobre_base = round((total - salario_base) / salario_base * 100, 1) \
+                     if salario_base > 0 else 0.0
 
     return {
         "salario_base":      salario_base,
@@ -1012,7 +1013,8 @@ def render_fat_rh(obras_db, registos_db, *_):
                                  "#F59E0B"),
                             ]
                             for label, val, cor in items_custo:
-                                pct = val/c_real['total']*100
+                                pct = (val/c_real['total']*100) \
+                                      if c_real['total'] > 0 else 0.0
                                 st.markdown(
                                     f"<div style='display:flex;"
                                     f"justify-content:space-between;"
