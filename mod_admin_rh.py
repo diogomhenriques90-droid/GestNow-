@@ -1000,11 +1000,14 @@ def render_admin_rh(*args):
             _mask_dl = (_rh_dl['Nome'] == _nome_dl) if not _rh_dl.empty else pd.Series([], dtype=bool)
             _row_dl  = _rh_dl[_mask_dl].iloc[0].copy() if _mask_dl.any() else pd.Series(dtype=str)
 
-            # Fallback: campos em branco em colaboradores_rh.csv são
-            # preenchidos a partir de usuarios.csv (perfil/onboarding).
+            # Sincronização automática: campos em branco em
+            # colaboradores_rh.csv são preenchidos a partir de
+            # usuarios.csv e gravados, para que fiquem sempre
+            # actualizados sem necessidade de re-importar.
             _mask_u_dl = (_u_dl['Nome'] == _nome_dl)
             if _mask_u_dl.any():
                 _u_row_dl = _u_dl[_mask_u_dl].iloc[0]
+                _sync_updates_dl = {}
                 for _fk in (
                     "NISS", "CC", "CC_Validade", "Email", "Morada",
                     "Localidade", "Codigo_Postal", "Banco_IBAN", "NIF",
@@ -1013,7 +1016,12 @@ def render_admin_rh(*args):
                     if not str(_row_dl.get(_fk, "")).strip():
                         _uv = str(_u_row_dl.get(_fk, "")).strip()
                         if _uv:
-                            _row_dl[_fk] = _uv
+                            _sync_updates_dl[_fk] = _uv
+                if _sync_updates_dl:
+                    _sync_rh_csv(_nome_dl, _sync_updates_dl)
+                    _rh_dl = _load_rh_fresh()
+                    _mask_dl = (_rh_dl['Nome'] == _nome_dl) if not _rh_dl.empty else pd.Series([], dtype=bool)
+                    _row_dl = _rh_dl[_mask_dl].iloc[0].copy() if _mask_dl.any() else pd.Series(dtype=str)
 
             def _v(campo, default=""):
                 return _row_dl.get(campo, default) if not _row_dl.empty else default
