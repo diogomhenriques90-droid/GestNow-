@@ -170,6 +170,7 @@ COLS_RH = [
     "Salario_Base","Data_Inicio","Estado_Civil","N_Dependentes",
     "Banco_IBAN","Contrato","Ativo",
     "Genero","DataNasc","Naturalidade","Nacionalidade","Pais_Residencia",
+    "Email","Morada","Localidade","Codigo_Postal",
     "CC","CC_Validade","Passaporte","Passaporte_Validade",
     "IRS_Escalao","IRS_Percentagem","Titular_Unico","Taxa_Retencao_IRS",
     "Isencao_IRS","Artigo_IRS",
@@ -997,7 +998,22 @@ def render_admin_rh(*args):
 
             _rh_dl = _load_rh_fresh()
             _mask_dl = (_rh_dl['Nome'] == _nome_dl) if not _rh_dl.empty else pd.Series([], dtype=bool)
-            _row_dl  = _rh_dl[_mask_dl].iloc[0] if _mask_dl.any() else pd.Series(dtype=str)
+            _row_dl  = _rh_dl[_mask_dl].iloc[0].copy() if _mask_dl.any() else pd.Series(dtype=str)
+
+            # Fallback: campos em branco em colaboradores_rh.csv são
+            # preenchidos a partir de usuarios.csv (perfil/onboarding).
+            _mask_u_dl = (_u_dl['Nome'] == _nome_dl)
+            if _mask_u_dl.any():
+                _u_row_dl = _u_dl[_mask_u_dl].iloc[0]
+                for _fk in (
+                    "NISS", "CC", "CC_Validade", "Email", "Morada",
+                    "Localidade", "Codigo_Postal", "Banco_IBAN", "NIF",
+                    "Estado_Civil", "Nacionalidade", "Genero",
+                ):
+                    if not str(_row_dl.get(_fk, "")).strip():
+                        _uv = str(_u_row_dl.get(_fk, "")).strip()
+                        if _uv:
+                            _row_dl[_fk] = _uv
 
             def _v(campo, default=""):
                 return _row_dl.get(campo, default) if not _row_dl.empty else default
@@ -1502,6 +1518,31 @@ def render_admin_rh(*args):
                             _rh_v, _u_emp, _u_alw, _chefe = _etica_map_row(_er)
 
                             if _ng:
+                                _mu = (
+                                    (_df_users['Nome'] == _ng)
+                                    if not _df_users.empty and 'Nome' in _df_users.columns
+                                    else pd.Series([], dtype=bool)
+                                )
+
+                                # Campos já existentes em usuarios.csv que devem
+                                # ficar também visíveis em colaboradores_rh.csv
+                                # (tab "Dados Legais")
+                                _sync_fields = {}
+                                if _mu.any():
+                                    _u_row = _df_users.loc[_mu].iloc[0]
+                                    for _fk in (
+                                        "NISS", "CC", "CC_Validade", "Email",
+                                        "Morada", "Localidade", "Codigo_Postal",
+                                        "Banco_IBAN", "NIF",
+                                    ):
+                                        _uv = str(_u_row.get(_fk, "")).strip()
+                                        if _uv:
+                                            _sync_fields[_fk] = _uv
+
+                                # Eticadata tem prioridade sobre usuarios.csv
+                                _rh_full = {**_sync_fields,
+                                            **{k: v for k, v in _rh_v.items() if v}}
+
                                 # Actualizar colaboradores_rh.csv
                                 _mrh = (
                                     (_df_rh['Nome'] == _ng)
@@ -1509,27 +1550,21 @@ def render_admin_rh(*args):
                                     else pd.Series([], dtype=bool)
                                 )
                                 if _mrh.any():
-                                    for _k, _vv in _rh_v.items():
-                                        if _vv != "":
-                                            if _k not in _df_rh.columns:
-                                                _df_rh[_k] = ""
-                                            _df_rh.loc[_mrh, _k] = _vv
-                                            _n_campos += 1
+                                    for _k, _vv in _rh_full.items():
+                                        if _k not in _df_rh.columns:
+                                            _df_rh[_k] = ""
+                                        _df_rh.loc[_mrh, _k] = _vv
+                                        _n_campos += 1
                                 else:
                                     _novo_rh = {c: "" for c in COLS_RH}
                                     _novo_rh['Nome'] = _ng
-                                    _novo_rh.update({k: v for k, v in _rh_v.items() if v})
+                                    _novo_rh.update(_rh_full)
                                     _df_rh = pd.concat(
                                         [_df_rh, pd.DataFrame([_novo_rh])],
                                         ignore_index=True
                                     )
 
                                 # Actualizar usuarios.csv
-                                _mu = (
-                                    (_df_users['Nome'] == _ng)
-                                    if not _df_users.empty and 'Nome' in _df_users.columns
-                                    else pd.Series([], dtype=bool)
-                                )
                                 if _mu.any():
                                     for _k, _vv in _u_emp.items():
                                         if _vv:
