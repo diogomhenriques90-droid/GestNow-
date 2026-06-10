@@ -291,9 +291,10 @@ def _load_rh_fresh() -> pd.DataFrame:
     return pd.DataFrame(columns=COLS_RH)
 
 
-def _sync_rh_csv(nome: str, updates: dict):
+def _sync_rh_csv(nome: str, updates: dict) -> bool:
     """Aplica `updates` ao registo de `nome` em colaboradores_rh.csv.
-    Cria linha nova se o colaborador ainda não existir."""
+    Cria linha nova se o colaborador ainda não existir.
+    Devolve True/False consoante o resultado de save_db."""
     rh = _load_rh_fresh()
     mask = (rh['Nome'] == nome) if 'Nome' in rh.columns and not rh.empty else pd.Series([], dtype=bool)
     if mask.any():
@@ -304,8 +305,10 @@ def _sync_rh_csv(nome: str, updates: dict):
         novo['Nome'] = nome
         novo.update(updates)
         rh = pd.concat([rh, pd.DataFrame([novo])], ignore_index=True)
-    save_db(rh, "colaboradores_rh.csv")
-    inv("colaboradores_rh.csv")
+    ok = save_db(rh, "colaboradores_rh.csv")
+    if ok:
+        inv("colaboradores_rh.csv")
+    return ok
 
 
 def _exportar_excel_colaborador(user_row: pd.Series) -> bytes:
@@ -1018,10 +1021,13 @@ def render_admin_rh(*args):
                         if _uv:
                             _sync_updates_dl[_fk] = _uv
                 if _sync_updates_dl:
-                    _sync_rh_csv(_nome_dl, _sync_updates_dl)
-                    _rh_dl = _load_rh_fresh()
-                    _mask_dl = (_rh_dl['Nome'] == _nome_dl) if not _rh_dl.empty else pd.Series([], dtype=bool)
-                    _row_dl = _rh_dl[_mask_dl].iloc[0].copy() if _mask_dl.any() else pd.Series(dtype=str)
+                    if _sync_rh_csv(_nome_dl, _sync_updates_dl):
+                        _rh_dl = _load_rh_fresh()
+                        _mask_dl = (_rh_dl['Nome'] == _nome_dl) if not _rh_dl.empty else pd.Series([], dtype=bool)
+                        _row_dl = _rh_dl[_mask_dl].iloc[0].copy() if _mask_dl.any() else pd.Series(dtype=str)
+                    else:
+                        st.error("❌ Erro ao sincronizar colaboradores_rh.csv — "
+                                 "verifica ligação ao GCS")
 
             def _v(campo, default=""):
                 return _row_dl.get(campo, default) if not _row_dl.empty else default
@@ -1059,16 +1065,18 @@ def render_admin_rh(*args):
                         _n_dep = st.text_input("Nº Dependentes", value=_v("N_Dependentes"), key="dl_ndep")
                     if st.form_submit_button("💾 Guardar Identificação",
                                              use_container_width=True, type="primary"):
-                        _sync_rh_csv(_nome_dl, {
+                        if _sync_rh_csv(_nome_dl, {
                             "Genero": _genero, "DataNasc": _datanasc,
                             "Naturalidade": _nat, "Nacionalidade": _nac,
                             "Pais_Residencia": _pais, "NIF": _nif, "NISS": _niss,
                             "CC": _cc, "CC_Validade": _ccval,
                             "Passaporte": _pass_num, "Passaporte_Validade": _pass_val,
                             "Estado_Civil": _est_civil, "N_Dependentes": _n_dep,
-                        })
-                        st.success("✅ Identificação guardada.")
-                        st.rerun()
+                        }):
+                            st.success("✅ Identificação guardada.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
             # ── 2. Dados Fiscais ──────────────────────────────────
             with st.expander("🏦 Dados Fiscais"):
@@ -1090,13 +1098,15 @@ def render_admin_rh(*args):
                         _artigo_irs = st.text_input("Artigo IRS", value=_v("Artigo_IRS"), key="dl_artigo")
                     if st.form_submit_button("💾 Guardar Dados Fiscais",
                                              use_container_width=True, type="primary"):
-                        _sync_rh_csv(_nome_dl, {
+                        if _sync_rh_csv(_nome_dl, {
                             "IRS_Escalao": _irs_esc, "IRS_Percentagem": _irs_pct,
                             "Titular_Unico": _tit_unico, "Taxa_Retencao_IRS": _taxa_ret,
                             "Isencao_IRS": _isencao, "Artigo_IRS": _artigo_irs,
-                        })
-                        st.success("✅ Dados fiscais guardados.")
-                        st.rerun()
+                        }):
+                            st.success("✅ Dados fiscais guardados.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
             # ── 3. Dados Contratuais ──────────────────────────────
             with st.expander("📄 Dados Contratuais"):
@@ -1128,15 +1138,17 @@ def render_admin_rh(*args):
                         value=_v("Funcao_Contratual"), key="dl_func")
                     if st.form_submit_button("💾 Guardar Dados Contratuais",
                                              use_container_width=True, type="primary"):
-                        _sync_rh_csv(_nome_dl, {
+                        if _sync_rh_csv(_nome_dl, {
                             "Tipo_Contrato": _tp_ct, "Modalidade_Horario": _mod_hr,
                             "Horas_Semana": _hrs_sem, "Contrato_Inicio": _ct_ini,
                             "Contrato_Fim": _ct_fim, "Contrato_Indeterminado": _ct_ind,
                             "Periodo_Experimental": _pe, "Periodo_Experimental_Fim": _pe_fim,
                             "Local_Trabalho": _local_t, "Funcao_Contratual": _func_ct,
-                        })
-                        st.success("✅ Dados contratuais guardados.")
-                        st.rerun()
+                        }):
+                            st.success("✅ Dados contratuais guardados.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
             # ── 4. Remuneração e Pagamento ────────────────────────
             with st.expander("💰 Remuneração e Pagamento"):
@@ -1167,15 +1179,17 @@ def render_admin_rh(*args):
                             value=_v("SWIFT_BIC"), key="dl_swift")
                     if st.form_submit_button("💾 Guardar Remuneração",
                                              use_container_width=True, type="primary"):
-                        _sync_rh_csv(_nome_dl, {
+                        if _sync_rh_csv(_nome_dl, {
                             "Salario_Base": _sal_b, "Subsidio_Alimentacao": _sub_al,
                             "Subsidio_Ferias": _sub_fe, "Subsidio_Natal": _sub_na,
                             "Premio_Producao": _prem, "Outros_Complementos": _outros,
                             "Forma_Pagamento": _forma_pag, "IBAN_Validado": _iban_val,
                             "SWIFT_BIC": _swift,
-                        })
-                        st.success("✅ Remuneração guardada.")
-                        st.rerun()
+                        }):
+                            st.success("✅ Remuneração guardada.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
             # ── 5. Profissional / Relatório Único ─────────────────
             with st.expander("📊 Profissional & Relatório Único"):
@@ -1228,7 +1242,7 @@ def render_admin_rh(*args):
                                              use_container_width=True, type="primary"):
                         _profissao_code = _profissao.split(" – ")[0] if " – " in _profissao else _profissao
                         _cat_cct_code   = _cat_cct.split(" – ")[0]   if " – " in _cat_cct   else _cat_cct
-                        _sync_rh_csv(_nome_dl, {
+                        if _sync_rh_csv(_nome_dl, {
                             "Nivel_Habilitacoes": _nivel_hab, "Situacao_Profissional": _sit_prof,
                             "Profissao_CPP": _profissao_code, "Categoria_CCT": _cat_cct_code,
                             "IRCT_Aplicavel": _irct, "Vinculo_Empresa": _vinculo,
@@ -1236,9 +1250,11 @@ def render_admin_rh(*args):
                             "Antiguidade_Anos": _ant_anos, "Nivel_Remuneratorio": _n_rem,
                             "Grau_Deficiencia": _grau_def, "Deficiencia_Tipo": _def_tipo,
                             "Cartao_Prof_Num": _cartao_prof_num, "Cartao_Prof_Validade": _cartao_prof_val,
-                        })
-                        st.success("✅ Dados profissionais guardados.")
-                        st.rerun()
+                        }):
+                            st.success("✅ Dados profissionais guardados.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
     # ════════════════════════════════════════════════════════════════
     # TAB 4 — IMPORTAR ETICADATA
