@@ -1306,6 +1306,15 @@ def render_admin_rh(*args):
             rh["Nivel_Qualificacao"]     = _E_NIVEL_QUAL.get(er.get("intNivelQualificacao", ""), "")
             _tdoc                        = er.get("strTypDocId", "")
             rh["Tipo_Doc_ID"]            = _E_DOC_TIPO.get(_tdoc, _tdoc)
+            # Campos partilhados com usuarios.csv — também gravados aqui para
+            # que fiquem visíveis na tab "Dados Legais" (lê de colaboradores_rh.csv)
+            rh["CC"]                     = er.get("strNumBI", "")
+            rh["CC_Validade"]            = _etica_strip_date(er.get("dtmValidadeBI", ""))
+            rh["NISS"]                   = er.get("strNumSegSocial", "")
+            rh["Email"]                  = er.get("strEmail", "")
+            rh["Morada"]                 = er.get("strMorada1GRH", "")
+            rh["Localidade"]             = er.get("strLocalidadeGRH", "")
+            rh["Codigo_Postal"]          = er.get("strCodPostalGRH", "")
             rh.update(_FIXED_RH)
 
             u_if_empty = {
