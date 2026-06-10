@@ -985,24 +985,6 @@ def render_admin_rh(*args):
     with tab_dados_legais:
         st.markdown("### 📋 Dados Legais e Fiscais")
 
-        with st.expander("🔧 DEBUG TEMPORÁRIO — Auditoria RH (remover depois)"):
-            _dbg_rh = _load_rh_fresh()
-            _dbg_us = _load_users_fresh()
-            st.write(f"**colaboradores_rh.csv** — {_dbg_rh.shape[0]} linhas, {_dbg_rh.shape[1]} colunas")
-            st.write("Colunas:", _dbg_rh.columns.tolist())
-            if 'Nome' in _dbg_rh.columns:
-                _dbg_mask_rh = _dbg_rh['Nome'].astype(str).str.contains(
-                    "Rui|Manuel|Magalh", case=False, na=False, regex=True)
-                st.write(f"Linhas com Rui/Manuel/Magalh ({int(_dbg_mask_rh.sum())}):")
-                st.dataframe(_dbg_rh[_dbg_mask_rh], use_container_width=True)
-
-            st.write(f"**usuarios.csv** — {_dbg_us.shape[0]} linhas, {_dbg_us.shape[1]} colunas")
-            if 'Nome' in _dbg_us.columns:
-                _dbg_mask_us = _dbg_us['Nome'].astype(str).str.contains(
-                    "Rui|Manuel|Magalh", case=False, na=False, regex=True)
-                st.write(f"Linhas com Rui/Manuel/Magalh ({int(_dbg_mask_us.sum())}):")
-                st.dataframe(_dbg_us[_dbg_mask_us], use_container_width=True)
-
         _u_dl = _load_users_fresh()
         if _u_dl.empty:
             st.info("Sem colaboradores.")
