@@ -1638,8 +1638,18 @@ def render_admin_rh(*args):
                                 _novos_criados.append({"Nome": _nem, "Password": _pwd_plain})
                                 _n_new += 1
 
-                        save_db(_df_rh, "colaboradores_rh.csv")
-                        save_db(_df_users, "usuarios.csv")
+                        _ok_rh = save_db(_df_rh, "colaboradores_rh.csv")
+                        if not _ok_rh:
+                            st.error("❌ Erro ao guardar colaboradores_rh.csv — "
+                                     "verifica ligação ao GCS")
+                            st.stop()
+
+                        _ok_users = save_db(_df_users, "usuarios.csv")
+                        if not _ok_users:
+                            st.error("❌ Erro ao guardar usuarios.csv — "
+                                     "verifica ligação ao GCS")
+                            st.stop()
+
                         inv("colaboradores_rh.csv")
                         inv("usuarios.csv")
                         from core import _cached_load_all
