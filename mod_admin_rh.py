@@ -470,8 +470,10 @@ COLS_RH = [
 ]
 
 # Campos que o importador Eticadata só preenche se estiverem vazios em
-# colaboradores_rh.csv — preserva correções manuais feitas pelo admin.
-CAMPOS_PROTEGIDOS_RH = ["Nacionalidade", "Estado_Civil", "Naturalidade"]
+# colaboradores_rh.csv — preserva correções manuais feitas pelo admin
+# (Nacionalidade/Estado_Civil/Naturalidade) e evita sobrepor o NIF já
+# partilhado com usuarios.csv.
+CAMPOS_PROTEGIDOS_RH = ["Nacionalidade", "Estado_Civil", "Naturalidade", "NIF"]
 
 # Mapeamento Eticadata → COLS_RH (nome coluna Eticadata: nome campo GestNow)
 ETICADATA_MAP = {
@@ -2065,6 +2067,14 @@ def render_admin_rh(*args):
             rh["Morada"]                 = er.get("strMorada1GRH", "")
             rh["Localidade"]             = er.get("strLocalidadeGRH", "")
             rh["Codigo_Postal"]          = er.get("strCodPostalGRH", "")
+            rh["N_Dependentes"]          = er.get("intNumDep", "")
+            rh["NIF"]                    = er.get("NIF", "")
+            _motivo_saida_raw            = str(er.get("intMotivoSaida", "")).strip()
+            try:
+                _motivo_saida_int = int(_motivo_saida_raw) if _motivo_saida_raw else 0
+            except ValueError:
+                _motivo_saida_int = 0
+            rh["Motivo_Saida"]           = str(_motivo_saida_int) if _motivo_saida_int > 0 else ""
             rh.update(_FIXED_RH)
 
             u_if_empty = {
@@ -2076,6 +2086,8 @@ def render_admin_rh(*args):
                 "Localidade":   er.get("strLocalidadeGRH", ""),
                 "Codigo_Postal":er.get("strCodPostalGRH", ""),
                 "Banco_IBAN":   er.get("strIban", ""),
+                "DataNasc":     er.get("Data nascimento", ""),
+                "NIF":          er.get("NIF", ""),
             }
             u_always = {
                 "PrecoHora":  er.get("CA_Valor_Hora", ""),
@@ -2129,6 +2141,21 @@ def render_admin_rh(*args):
         else:
             _eti_df = st.session_state['eticadata_df']
 
+            # ── Detectar coluna Nome no CSV ────────────────────────
+            _nome_col_eti = None
+            for _cn in ("Nome", "strNome", "NomeFuncionario", "nome", "NOME"):
+                if _cn in _eti_df.columns:
+                    _nome_col_eti = _cn
+                    break
+
+            # ── Remover linhas completamente vazias (lixo do Excel no
+            # fim do export) — não contam para preview nem relatório.
+            if _nome_col_eti is not None:
+                _eti_df = _eti_df.dropna(subset=[_nome_col_eti])
+                _eti_df = _eti_df[_eti_df[_nome_col_eti].astype(str).str.strip() != ""]
+                _eti_df = _eti_df.reset_index(drop=True)
+                st.session_state['eticadata_df'] = _eti_df
+
             _ecol_h, _ecol_btn = st.columns([5, 1])
             with _ecol_h:
                 st.success(f"✅ Ficheiro carregado: **{len(_eti_df)}** registos, "
@@ -2141,13 +2168,6 @@ def render_admin_rh(*args):
 
             with st.expander("👁️ CSV original (primeiras 5 linhas)"):
                 st.dataframe(_eti_df.head(), use_container_width=True)
-
-            # ── Detectar coluna Nome no CSV ────────────────────────
-            _nome_col_eti = None
-            for _cn in ("Nome", "strNome", "NomeFuncionario", "nome", "NOME"):
-                if _cn in _eti_df.columns:
-                    _nome_col_eti = _cn
-                    break
 
             if _nome_col_eti is None:
                 st.error(
