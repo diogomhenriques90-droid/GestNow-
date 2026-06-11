@@ -194,6 +194,10 @@ COLS_RH = [
     "Regime_Reforma","Organizacao_Tempo_Trabalho","IRCT_Codigo","IRCT_Descricao",
 ]
 
+# Campos que o importador Eticadata só preenche se estiverem vazios em
+# colaboradores_rh.csv — preserva correções manuais feitas pelo admin.
+CAMPOS_PROTEGIDOS_RH = ["Nacionalidade", "Estado_Civil", "Naturalidade"]
+
 # Mapeamento Eticadata → COLS_RH (nome coluna Eticadata: nome campo GestNow)
 ETICADATA_MAP = {
     "Nome": "Nome",
@@ -1665,6 +1669,10 @@ def render_admin_rh(*args):
                                     for _k, _vv in _rh_full.items():
                                         if _k not in _df_rh.columns:
                                             _df_rh[_k] = ""
+                                        if _k in CAMPOS_PROTEGIDOS_RH:
+                                            _atual_v = str(_df_rh.loc[_mrh, _k].iloc[0]).strip()
+                                            if _atual_v:
+                                                continue
                                         _df_rh.loc[_mrh, _k] = _vv
                                         _n_campos += 1
                                 else:
