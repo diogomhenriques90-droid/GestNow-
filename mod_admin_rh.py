@@ -1295,7 +1295,7 @@ def render_admin_rh(*args):
             if _mask_u_dl.any():
                 _u_row_dl = _u_dl[_mask_u_dl].iloc[0]
                 for _fk in ("NISS", "CC", "CC_Validade", "NIF", "Email",
-                            "Morada", "Nacionalidade", "Estado_Civil"):
+                            "Morada", "Nacionalidade", "Estado_Civil", "DataNasc"):
                     if not str(_row_dl.get(_fk, "")).strip():
                         _uv = str(_u_row_dl.get(_fk, "")).strip()
                         if _uv:
