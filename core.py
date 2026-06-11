@@ -184,6 +184,42 @@ def _gcs_read_binary(filename: str):
     return None
 
 
+def _gcs_write_bin(path: str, data: bytes, content_type: str = "application/octet-stream") -> bool:
+    """Escreve bytes num caminho arbitrário do bucket (ex: anexos de orçamentos).
+
+    Ao contrário de _gcs_write_binary, `path` é o caminho completo dentro do
+    bucket (incluindo o prefixo "data/") e permite definir o content_type.
+    """
+    try:
+        client = _gcs_client()
+        if not client:
+            logger.error(f"❌ _gcs_write_bin({path}): cliente GCS não inicializado")
+            st.toast("⚠️ Sem ligação ao GCS — ficheiro não guardado", icon="⚙️")
+            return False
+        bucket = client.bucket(GCS_BUCKET)
+        blob   = bucket.blob(path)
+        blob.upload_from_string(data, content_type=content_type)
+        return True
+    except Exception as e:
+        logger.error(f"❌ Erro GCS write bin {path}: {e}")
+        st.toast("⚠️ Erro ao guardar ficheiro", icon="⚙️")
+    return False
+
+
+def _gcs_read_bin(path: str):
+    """Lê bytes de um caminho arbitrário do bucket (ex: anexos de orçamentos)."""
+    try:
+        client = _gcs_client()
+        if client:
+            bucket = client.bucket(GCS_BUCKET)
+            blob   = bucket.blob(path)
+            if blob.exists():
+                return blob.download_as_bytes()
+    except Exception as e:
+        logger.error(f"❌ Erro GCS read bin {path}: {e}")
+    return None
+
+
 def _verificar_alerta_backup() -> tuple:
     try:
         buf = _gcs_read("backup_status.json")
@@ -485,6 +521,64 @@ def inv(ficheiro=None):
         st.session_state['_fv'] = fv
         if ficheiro == "usuarios.csv":
             _load_users_cached.clear()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLIENTES — fonte canónica única (clientes_financeiro.csv)
+# ─────────────────────────────────────────────────────────────────────────────
+NOVO_CLIENTE_OPT = "➕ Novo cliente..."
+
+_CLIENTES_FINANCEIRO_COLS = [
+    "ID", "Nome", "NIF", "Morada", "Email", "Telefone",
+    "Condicoes_Pagamento", "Limite_Credito", "Contacto_Fat", "Activo"
+]
+
+def get_clientes_opts():
+    """Lista ordenada de nomes de clientes activos (fonte: clientes_financeiro.csv)."""
+    df = load_db("clientes_financeiro.csv", _CLIENTES_FINANCEIRO_COLS, silent=True)
+    if df.empty or 'Nome' not in df.columns:
+        return []
+    if 'Activo' in df.columns:
+        inativos = df['Activo'].astype(str).str.strip().str.lower().isin(
+            ['não', 'nao', 'inativo', 'inactivo', '0', 'false']
+        )
+        df = df[~inativos]
+    return sorted({n.strip() for n in df['Nome'].astype(str) if n.strip()})
+
+
+def cliente_select(label, key, valor_atual=""):
+    """Selectbox de cliente com a fonte canónica + opção de registar um novo.
+
+    Devolve (nome_cliente, eh_novo). Valores antigos que não constem da fonte
+    canónica são acrescentados à lista em runtime para não perder dados.
+    """
+    opts = get_clientes_opts()
+    display = list(opts)
+    valor_atual = (valor_atual or "").strip()
+    if valor_atual and valor_atual not in display:
+        display.append(valor_atual)
+    display = display + [NOVO_CLIENTE_OPT]
+    idx = display.index(valor_atual) if valor_atual in display else 0
+    sel = st.selectbox(label, display, index=idx, key=key)
+    if sel == NOVO_CLIENTE_OPT:
+        novo = st.text_input("Nome do novo cliente *", key=f"{key}__novo")
+        return novo.strip(), True
+    return sel, False
+
+
+def registar_novo_cliente(nome):
+    """Adiciona um cliente novo a clientes_financeiro.csv (fonte canónica),
+    se ainda não existir lá."""
+    nome = (nome or "").strip()
+    if not nome:
+        return
+    df = load_db("clientes_financeiro.csv", _CLIENTES_FINANCEIRO_COLS, silent=True)
+    if not df.empty and nome in df['Nome'].astype(str).str.strip().values:
+        return
+    novo_row = pd.DataFrame([{"ID": uuid.uuid4().hex[:8].upper(), "Nome": nome, "Activo": "Sim"}])
+    upd = pd.concat([df, novo_row], ignore_index=True) if not df.empty else novo_row
+    save_db(upd, "clientes_financeiro.csv")
+    inv("clientes_financeiro.csv")
 
 
 _LOAD_ALL_FILES = (
