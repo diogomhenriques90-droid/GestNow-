@@ -660,11 +660,13 @@ def render_admin_rh(*args):
         ("Passaporte_Validade",  "Passaporte"),
         ("Cartao_Prof_Validade", "Carta Prof."),
         ("Alvara_Validade",      "Alvará"),
+        ("Carta_Conducao_Validade", "Carta de Condução"),
     ]
-    _CAMPOS_OBG = ["NIF","NISS","CC","CC_Validade","Banco_IBAN","Tipo_Contrato"]
+    _CAMPOS_OBG = ["NIF","NISS","CC","CC_Validade","Banco_IBAN","Tipo_Contrato",
+                   "Estado_Fiscal","Enquadramento_SS","Categoria_CCT"]
 
-    _n_exp, _n_prox, _n_ct, _n_inc = 0, 0, 0, 0
-    _det_exp, _det_prox, _det_ct, _det_inc = [], [], [], []
+    _n_exp, _n_prox, _n_ct, _n_inc, _n_reg = 0, 0, 0, 0, 0
+    _det_exp, _det_prox, _det_ct, _det_inc, _det_reg = [], [], [], [], []
 
     def _parse_date(s):
         for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
@@ -696,13 +698,17 @@ def render_admin_rh(*args):
             if _falta:
                 _n_inc += 1
                 _det_inc.append(f"{_nm} — em falta: {', '.join(_falta)}")
+            if _r.get('Regulamento_Assinado', '') != 'Sim':
+                _n_reg += 1
+                _det_reg.append(f"{_nm} — regulamento interno por assinar")
 
-    if _n_exp + _n_prox + _n_ct + _n_inc > 0:
-        _ca1, _ca2, _ca3, _ca4 = st.columns(4)
+    if _n_exp + _n_prox + _n_ct + _n_inc + _n_reg > 0:
+        _ca1, _ca2, _ca3, _ca4, _ca5 = st.columns(5)
         _ca1.metric("🔴 Expirados",   _n_exp)
         _ca2.metric("🟡 A expirar",   _n_prox)
         _ca3.metric("🟠 Contratos",   _n_ct)
         _ca4.metric("⚪ Incompletos", _n_inc)
+        _ca5.metric("⚪ Regulamento", _n_reg)
         with st.expander("📋 Ver detalhes dos alertas"):
             if _det_exp:
                 st.markdown("**🔴 Documentos Expirados**")
@@ -716,6 +722,9 @@ def render_admin_rh(*args):
             if _det_inc:
                 st.markdown("**⚪ Fichas Incompletas**")
                 for _d in _det_inc: st.markdown(f"- {_d}")
+            if _det_reg:
+                st.markdown("**⚪ Regulamento Interno por Assinar**")
+                for _d in _det_reg: st.markdown(f"- {_d}")
         st.markdown("---")
 
     (tab_lista, tab_gestao, tab_dados_legais, tab_eticadata,
