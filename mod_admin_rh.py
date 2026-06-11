@@ -187,6 +187,11 @@ COLS_RH = [
     "Nivel_Remuneratorio","Grau_Deficiencia","Deficiencia_Tipo",
     "Seg_Social_Cartao","Cartao_Prof_Num","Cartao_Prof_Validade",
     "Alvara_Num","Alvara_Validade",
+    # Campos dinâmicos do Eticadata (Parte 0c)
+    "Eticadata_ID","Data_Admissao","Tipo_Doc_ID","Nivel_Qualificacao",
+    "Tipo_Horario","Duracao_Tempo_Trabalho","Modo_Remuneracao","Pensionista",
+    "Banco_Nome","Banco_Empresa_Pagamento","Num_Utente","Servico_Financas",
+    "Regime_Reforma","Organizacao_Tempo_Trabalho","IRCT_Codigo","IRCT_Descricao",
 ]
 
 # Mapeamento Eticadata → COLS_RH (nome coluna Eticadata: nome campo GestNow)
@@ -1261,6 +1266,81 @@ def render_admin_rh(*args):
             "Colaboradores sem match são criados automaticamente."
         )
 
+        # ── Migração de schema (Parte 0) ──────────────────────────
+        if st.session_state.get('tipo') == 'Admin':
+            with st.expander("🔧 Migrar schema colaboradores_rh.csv"):
+                _DUPLICADOS_MIGRACAO = {
+                    "Categoria_Profissional_Cod":  "Categoria_CCT",
+                    "Categoria_Profissional_Desc": "Categoria_CCT",
+                    "Profissao_CPP_Cod":           "Profissao_CPP",
+                    "Profissao_CPP_Desc":          "Profissao_CPP",
+                    "IRCT_Aplicabilidade":         "IRCT_Aplicavel",
+                    "Habilitacoes":                "Nivel_Habilitacoes",
+                    "Habilitacoes_Cod":            "Nivel_Habilitacoes",
+                    "Habilitacoes_Desc":           "Nivel_Habilitacoes",
+                }
+                _df_mig = _load_rh_fresh()
+                _cols_dup_presentes = [c for c in _DUPLICADOS_MIGRACAO if c in _df_mig.columns]
+
+                if not _cols_dup_presentes:
+                    st.success("✅ Schema já migrado.")
+                else:
+                    st.warning(
+                        f"⚠️ Encontradas {len(_cols_dup_presentes)} coluna(s) "
+                        f"duplicada(s): {', '.join(_cols_dup_presentes)}"
+                    )
+                    _relatorio_mig = []
+                    for _dup, _canon in _DUPLICADOS_MIGRACAO.items():
+                        if _dup not in _df_mig.columns:
+                            continue
+                        _n_merge = 0
+                        for _idx in _df_mig.index:
+                            _val_dup   = str(_df_mig.at[_idx, _dup]).strip()
+                            _val_canon = str(_df_mig.at[_idx, _canon]).strip() \
+                                if _canon in _df_mig.columns else ""
+                            if _val_dup and not _val_canon:
+                                _n_merge += 1
+                        _relatorio_mig.append(
+                            f"- `{_dup}` → `{_canon}`: {_n_merge} valor(es) a migrar"
+                        )
+
+                    st.markdown("**Relatório de migração:**")
+                    for _l in _relatorio_mig:
+                        st.markdown(_l)
+
+                    if st.button("✅ Aplicar migração", key="btn_migrar_schema",
+                                  type="primary"):
+                        for _dup, _canon in _DUPLICADOS_MIGRACAO.items():
+                            if _dup not in _df_mig.columns:
+                                continue
+                            if _canon not in _df_mig.columns:
+                                _df_mig[_canon] = ""
+                            for _idx in _df_mig.index:
+                                _val_dup   = str(_df_mig.at[_idx, _dup]).strip()
+                                _val_canon = str(_df_mig.at[_idx, _canon]).strip()
+                                if _val_dup and not _val_canon:
+                                    _df_mig.at[_idx, _canon] = _val_dup
+                            _df_mig = _df_mig.drop(columns=[_dup])
+
+                        _ok_mig = save_db(_df_mig, "colaboradores_rh.csv",
+                                          permitir_reducao=True)
+                        if _ok_mig:
+                            inv("colaboradores_rh.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
+                            log_audit(
+                                usuario=admin_nome,
+                                acao="MIGRAR_SCHEMA_RH",
+                                tabela="colaboradores_rh.csv",
+                                registro_id="batch",
+                                detalhes=f"Colunas migradas: {', '.join(_cols_dup_presentes)}",
+                                ip=""
+                            )
+                            st.success("✅ Migração aplicada com sucesso.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
         # ── Tabelas de conversão de valores Eticadata ─────────────
         _E_SEXO = {"0": "Masculino", "1": "Feminino"}
         _E_EST_CIVIL = {
@@ -1296,17 +1376,12 @@ def render_admin_rh(*args):
             # Campos extra Eticadata (referência)
             "IRCT_Codigo":                "25989",
             "IRCT_Descricao":             "CCT - Empresas Electrotécnicas",
-            "IRCT_Aplicabilidade":        "04 - Acto de Gestão",
             "Modo_Remuneracao":           "Mensal",
             "Duracao_Tempo_Trabalho":     "1 - Adaptabilidade por regulamentação colectiva (RU:10)",
             "Tipo_Horario":               "Normal Fixo",
             "Pensionista":                "Não",
             "Regime_Reforma":             "1 - Segurança Social",
             "Organizacao_Tempo_Trabalho": "1 - Trabalho diurno",
-            "Categoria_Profissional_Cod": "02155",
-            "Categoria_Profissional_Desc":"PROFISSIONAL QUALIFICADO OFICIAL",
-            "Profissao_CPP_Cod":          "74124",
-            "Profissao_CPP_Desc":         "Electromecânico, electricista e outros instaladores de máquinas e equipamentos eléctricos",
         }
 
         def _etica_strip_date(s):
