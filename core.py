@@ -324,11 +324,15 @@ def tem_permissao(utilizador: str, modulo: str) -> bool:
     return val in ("true", "1", "yes")
 
 
-def save_db(df, fn):
+def save_db(df, fn, permitir_reducao=False):
     """
     Guarda DataFrame no GCS de forma SEGURA.
     Para ficheiros críticos: verifica perda de registos e cria backup diário.
     Usa snapshot em session_state para evitar leitura GCS antes de cada escrita.
+
+    permitir_reducao: quando True, salta a guarda dos 90% (mas mantém o backup
+    diário). Usar apenas quando o caller é autoritativo e já fez o seu próprio
+    dedup/validação (ex.: importadores).
     """
     # ── Segurança para ficheiros críticos ────────────────────────────────────
     if fn in _CRITICAL_FILES:
@@ -346,12 +350,17 @@ def save_db(df, fn):
                 n_novo  = len(df)
                 _criar_backup_diario(fn, df_atual)
                 if n_atual > 5 and n_novo < int(n_atual * 0.90):
-                    logger.error(
-                        f"🚨 BLOQUEADO save_db({fn}): {n_novo} registos "
-                        f"vs {n_atual} existentes — perda de "
-                        f"{n_atual - n_novo} registos (>10%). Operação cancelada."
-                    )
-                    return False
+                    if permitir_reducao:
+                        logger.warning(
+                            f"save_db({fn}): redução autorizada {n_atual}->{n_novo}"
+                        )
+                    else:
+                        logger.error(
+                            f"🚨 BLOQUEADO save_db({fn}): {n_novo} registos "
+                            f"vs {n_atual} existentes — perda de "
+                            f"{n_atual - n_novo} registos (>10%). Operação cancelada."
+                        )
+                        return False
         except Exception as e:
             logger.warning(f"Verificação segurança {fn}: {e}")
 
