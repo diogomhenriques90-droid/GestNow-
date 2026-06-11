@@ -1674,7 +1674,7 @@ def render_admin_rh(*args):
                             )
                         logger.info(f"DEBUG D: _df_rh apos dedup = {len(_df_rh)} linhas")
 
-                        _ok_rh = save_db(_df_rh, "colaboradores_rh.csv")
+                        _ok_rh = save_db(_df_rh, "colaboradores_rh.csv", permitir_reducao=True)
                         if not _ok_rh:
                             st.error("❌ Erro ao guardar colaboradores_rh.csv — "
                                      "verifica ligação ao GCS")
