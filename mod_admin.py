@@ -465,7 +465,7 @@ def _tab_permissoes():
 
     st.markdown("---")
     # Cabeçalho da tabela
-    hdr = st.columns([3] + [1] * 10)
+    hdr = st.columns([3] + [1] * len(_MODULOS_LABELS))
     hdr[0].markdown("**Utilizador**")
     for i, (_, lbl) in enumerate(_MODULOS_LABELS):
         icon = lbl.split()[0]
@@ -475,7 +475,7 @@ def _tab_permissoes():
     novos: dict = {}
     for admin in admins:
         atual = perm_dict.get(admin, {k: False for k, _ in _MODULOS_LABELS})
-        cols = st.columns([3] + [1] * 10)
+        cols = st.columns([3] + [1] * len(_MODULOS_LABELS))
         cols[0].markdown(f"👤 {admin}")
         novos[admin] = {}
         for i, (mod_key, lbl) in enumerate(_MODULOS_LABELS):
