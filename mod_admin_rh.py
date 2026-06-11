@@ -59,6 +59,167 @@ NIVEL_HABILITACOES_OPTS = [
     "3º Ciclo (9º ano)","Ensino Secundário (12º ano)","Bacharelato",
     "Licenciatura","Mestrado","Doutoramento","Outro",
 ]
+
+# Tabela 14 do Relatório Único — Níveis de Habilitação (gerada a partir de
+# "Habilitações.xlsx"). NIVEL_HABILITACOES_OPTS é mantido acima apenas para
+# backcompat de valores já gravados.
+HABILITACOES_RU = {
+    "14": "Técnico superior formação de professores e ciências da educação",
+    "21": "Técnico Superior Profissional Artes",
+    "22": "Técnico Superior Profissional Humanidades",
+    "31": "Técnico Superior Profissional Ciências Sociais e do Comportamento",
+    "32": "Técnico superior profissional informação e jornalismo",
+    "34": "Técnico Superior Profissional Ciências Empresariais",
+    "38": "Técnico Superior Profissional Direito",
+    "42": "Técnico Superior Profissional Ciências da Vida",
+    "44": "Técnico Superior Profissional Ciências Físicas",
+    "46": "Técnico superior profissional matemática e estatística",
+    "48": "Técnico Superior Profissional Informática",
+    "52": "Técnico Superior Profissional Engenharia e Tecnicas Afins",
+    "54": "Técnico Superior Profissional Indústrias Transformadoras",
+    "58": "Técnico Superior Profissional Arquitectura e Construção",
+    "62": "Técnico Superior Profissional Agricultura, Sivicultura e Pesca",
+    "64": "Técnico Superior Profissional Ciências Veterinárias",
+    "72": "Técnico Superior Profissional Saúde",
+    "76": "Técnico Superior Profissional Serviços Sociais",
+    "81": "Técnico Superior Profissional Serviços Pessoais",
+    "84": "Técnico superior profissional serviços de transporte",
+    "85": "Técnico Superior Profissional Protecção do Ambiente",
+    "86": "Técnico Superior Profissional Serviços de Segurança",
+    "99": "Técnico Superior Profissional Desconhecido ou Não Especificado",
+    "111": "Não sabe ler nem escrever",
+    "112": "Sabe ler e escrever",
+    "211": "1º Ciclo do Ensino Básico",
+    "212": "1º Ciclo Ensino Básico (I.P.)",
+    "221": "2º Ciclo do Ensino Básico",
+    "222": "2º Ciclo Ensino Básico (I.P.)",
+    "231": "3º Ciclo do Ensino Básico",
+    "232": "Ensino Téc.:Geral Comercial",
+    "233": "3º Ciclo Ensino Básico (I.P.)",
+    "234": "Escolas Profissionais-Nível II",
+    "312": "Ensino Sec. Téc.Complementar",
+    "313": "Ensino Sec. Téc.Profissional",
+    "314": "Cursos Esc.Profiss.Nível III",
+    "315": "Ensino Sec. (12 ou equiv.), Lic. Compl.",
+    "316": "Ensino Sec.  c/cursos indole Profissional",
+    "414": "Form.prof.form.educ.(Nível IV)",
+    "421": "Artes (Nível IV)",
+    "422": "Humanidades (Nível IV)",
+    "431": "Ciênc.soc.comportam.(Nível IV)",
+    "432": "Informação jornal. (Nível IV)",
+    "434": "Ciênc. empresariais (Nível IV)",
+    "438": "Direito (Nível IV)",
+    "442": "Ciências da vida (Nível IV)",
+    "444": "Ciências físicas (Nível IV)",
+    "446": "Matemát. estatísti. (Nível IV)",
+    "448": "Informática (Nível IV)",
+    "452": "Eng. técnicas afins (Nível IV)",
+    "454": "Indúst. transf. (Nível IV)",
+    "458": "Arquit. construção (Nível IV)",
+    "462": "Agric.,silvic.pescas(Nível IV)",
+    "464": "Ciênc. veterinárias (Nível IV)",
+    "472": "Saúde (Nível IV)",
+    "476": "Serviços sociais (Nível IV)",
+    "481": "Serviços pessoais (Nível IV)",
+    "484": "Serviços transporte (Nível IV)",
+    "485": "Protecção ambiente (Nível IV)",
+    "486": "Serviços segurança (Nível IV)",
+    "499": "Não especificado (Nível IV)",
+    "514": "Form.prof.form.c.educ.(Bac.)",
+    "521": "Artes (Bac.)",
+    "522": "Humanidades (Bac.)",
+    "531": "Ciênc. soc. comportam. (Bac.)",
+    "532": "Informação jornalismo (Bac.)",
+    "534": "Ciências empresariais (Bac.)",
+    "538": "Direito (Bac.)",
+    "542": "Ciências da vida (Bac.)",
+    "544": "Ciências físicas (Bac.)",
+    "546": "Matemática estatística (Bac.)",
+    "548": "Informática (Bac.)",
+    "552": "Eng. e técnicas afins (bac.)",
+    "554": "Indúst. transformadoras (Bac.)",
+    "558": "Arquitect. construção (Bac.)",
+    "562": "Agric., silvic. pescas (Bac.)",
+    "564": "Ciências veterinárias (Bac.)",
+    "572": "Saúde (Bac.)",
+    "576": "Serviços sociais (Bac.)",
+    "581": "Serviços pessoais (Bac.)",
+    "584": "Serviços de transporte (Bac.)",
+    "585": "Protecção do ambiente (Bac.)",
+    "586": "Serviços de segurança (Bac.)",
+    "599": "Não especificado (Bac.)",
+    "614": "Form.prof.form.c.educ.(Lic.)",
+    "621": "Artes (Lic.)",
+    "622": "Humanidades (Lic.)",
+    "631": "Ciênc. soc. comportam. (Lic.)",
+    "632": "Informação jornalismo (Lic.)",
+    "634": "Ciências empresariais (Lic.)",
+    "638": "Direito (Lic.)",
+    "642": "Ciências da vida (Lic.)",
+    "644": "Ciências físicas (Lic.)",
+    "646": "Matemática estatística (Lic.)",
+    "648": "Informática (Lic.)",
+    "652": "Eng. e técnicas afins (Lic.)",
+    "654": "Indúst. transformadoras (Lic.)",
+    "658": "Arquitect. construção (Lic.)",
+    "662": "Agric,silvic.e pescas(Lic.)",
+    "664": "Ciências veterinárias (Lic.)",
+    "672": "Saúde (Lic.)",
+    "676": "Serviços sociais (Lic.)",
+    "681": "Serviços pessoais (Lic.)",
+    "684": "Serviços de transporte (Lic.)",
+    "685": "Protecção do ambiente (Lic.)",
+    "686": "Serviços de segurança (Lic.)",
+    "699": "Não especificado (Lic.)",
+    "714": "Form.prof.form.c.educ.(Mest.)",
+    "721": "Artes (Mest.)",
+    "722": "Humanidades (Mest.)",
+    "731": "Ciênc. soc. comportam. (Mest.)",
+    "732": "Informação jornalismo (Mest.)",
+    "734": "Ciências empresariais (Mest.)",
+    "738": "Direito (Mest.)",
+    "742": "Ciências da vida (Mest.)",
+    "744": "Ciências físicas (Mest.)",
+    "746": "Matemática estatística (Mest.)",
+    "748": "Informática (Mest.)",
+    "752": "Eng. e técnicas afins (Mest.)",
+    "754": "Indúst. transform.(Mest.)",
+    "758": "Arquitect. construção (Mest.)",
+    "762": "Agric.,silvic.e pescas(Mest.)",
+    "764": "Ciências veterinárias (Mest.)",
+    "772": "Saúde (Mest.)",
+    "776": "Serviços sociais (Mest.)",
+    "781": "Serviços pessoais (Mest.)",
+    "784": "Serviços de transporte (Mest.)",
+    "785": "Protecção do ambiente (Mest.)",
+    "786": "Serviços de segurança (Mest.)",
+    "799": "Não especificado (Mest.)",
+    "814": "Form.prof.form.c.educ.(Dout.)",
+    "821": "Artes (Dout.)",
+    "822": "Humanidades (Dout.)",
+    "831": "Ciênc. soc. comportam. (Dout.)",
+    "832": "Informação jornalismo (Dout.)",
+    "834": "Ciências empresariais (Dout.)",
+    "838": "Direito (Dout.)",
+    "842": "Ciências da vida (Dout.)",
+    "844": "Ciências físicas (Dout.)",
+    "846": "Matemática estatística (Dout.)",
+    "848": "Informática (Dout.)",
+    "852": "Eng. e técnicas afins (Dout.)",
+    "854": "Indúst. transform. (Dout.)",
+    "858": "Arquitect. construção (Dout.)",
+    "862": "Agric.,silvic.e pescas(Dout.)",
+    "864": "Ciências veterinárias (Dout.)",
+    "872": "Saúde (Dout.)",
+    "876": "Serviços sociais (Dout.)",
+    "881": "Serviços pessoais (Dout.)",
+    "884": "Serviços de transporte (Dout.)",
+    "885": "Protecção do ambiente (Dout.)",
+    "886": "Serviços de segurança (Dout.)",
+    "899": "Não especificado (Dout.)",
+}
+HABILITACOES_RU_OPTS = [""] + [f"{_k} - {_v}" for _k, _v in HABILITACOES_RU.items()]
+
 SITUACAO_PROFISSIONAL_OPTS = [
     "Quadro Permanente","Contrato a Termo Certo","Contrato a Termo Incerto",
     "Prestador de Serviços","Estagiário","Outro",
@@ -66,6 +227,113 @@ SITUACAO_PROFISSIONAL_OPTS = [
 FORMA_PAGAMENTO_OPTS = ["Transferência Bancária","Numerário","Cheque","Outro"]
 IRCT_OPTS            = ["IRCT 25989 – CCT Empresas Electrotécnicas",
                         "IRCT 5/2015 – CCT Metalúrgico","Outro","Não aplicável"]
+
+# ── Constantes adicionais (Parte 1 — Fase 2 RH) ───────────────────────
+ESTADO_FISCAL_OPTS = [
+    "Não Casado", "Casado - Único Titular", "Casado - Dois Titulares",
+    "Não Casado - Deficiente", "Casado - Único Titular Deficiente",
+    "Casado - Dois Titulares Deficiente",
+]
+MEDIDA_FISCAL_OPTS = [
+    "Nenhuma", "IRS Jovem", "Programa Regressar",
+    "Residente Não Habitual (RNH)", "Outra",
+]
+ENQUADRAMENTO_SS_OPTS = [
+    "Regime Geral - Trabalhador por Conta de Outrem",
+    "Membro de Órgão Estatutário", "Pensionista",
+    "Isento de Contribuições", "Trabalhador Independente", "Outro",
+]
+MODALIDADE_CONTRATO_OPTS = [
+    "Contrato Sem Termo", "Contrato a Termo Certo", "Contrato a Termo Incerto",
+    "Contrato de Trabalho Temporário", "Contrato de Muito Curta Duração",
+    "Contrato de Trabalho a Tempo Parcial", "Comissão de Serviço",
+    "Outra Situação",
+]
+PRESTACAO_TRABALHO_OPTS = ["Tempo Inteiro", "Tempo Parcial"]
+MOTIVO_CONTRATO_OPTS = [
+    "Substituição Direta ou Indireta de Trabalhador",
+    "Atividade Sazonal",
+    "Acréscimo Excecional de Atividade",
+    "Execução de Tarefa Ocasional ou Serviço Determinado Precisamente Definido e Não Duradouro",
+    "Execução de Obra, Projeto ou Outra Atividade Definida e Temporária",
+    "Lançamento de Nova Atividade",
+    "Contratação de Trabalhador à Procura de Primeiro Emprego",
+    "Contratação de Desempregado de Longa Duração",
+    "Outro",
+]
+MOTIVO_ENTRADA_OPTS = [
+    "Novo Posto de Trabalho", "Substituição de Trabalhador",
+    "Necessidades Temporárias", "Transferência", "Outro",
+]
+MOTIVO_SAIDA_OPTS = [
+    "Caducidade do Contrato a Termo",
+    "Despedimento por Iniciativa do Empregador",
+    "Despedimento Coletivo",
+    "Resolução pelo Trabalhador",
+    "Revogação por Mútuo Acordo",
+    "Reforma",
+    "Morte do Trabalhador",
+    "Denúncia pelo Trabalhador",
+    "Outro",
+]
+SUB_ALIM_MODO_OPTS = [
+    "Não Aplicável", "Subsídio em Dinheiro", "Cartão Refeição",
+    "Refeitório/Cantina",
+]
+SUB_ALIM_ENTIDADE_OPTS = [
+    "Empresa", "Cartão Edenred", "Cartão Sodexo", "Cartão Up Refeição", "Outro",
+]
+NIVEL_PROF_IGDT_OPTS = [
+    "Quadro superior", "Quadro médio",
+    "Encarregado, contramestre, mestre e chefe de equipa",
+    "Profissional altamente qualificado", "Profissional qualificado",
+    "Profissional semiqualificado", "Profissional não qualificado",
+    "Praticante e aprendiz",
+]
+ORIGEM_ENS_SUP_OPTS = [
+    "Não Aplicável", "Universitário Público", "Universitário Privado",
+    "Politécnico Público", "Politécnico Privado",
+]
+TIPO_DOC_ID_OPTS = [
+    "Cartão de Cidadão", "Passaporte", "Título de Residência Temporária",
+    "Título de Residência Permanente", "Cartão Registo Cidadão UE/EEE",
+]
+NIVEL_QUALIF_OPTS = [
+    "Quadro superior", "Quadro médio",
+    "Encarregado, contramestre, mestre e chefe de equipa",
+    "Profissional altamente qualificado", "Profissional qualificado",
+    "Profissional semi-qualificado especializado",
+    "Profissional não qualificado indiferenciado",
+    "Estagiário, praticante e aprendiz",
+]
+TIPO_HORARIO_OPTS = [
+    "Normal Fixo", "Horário Flexível", "Trabalho por Turnos",
+    "Banco de Horas", "Adaptabilidade", "Isenção de Horário",
+]
+DURACAO_TT_OPTS = [
+    "1 - Adaptabilidade por regulamentação colectiva (RU:10)",
+    "2 - Adaptabilidade individual (RU:11)",
+    "3 - Banco de horas por regulamentação colectiva (RU:12)",
+    "4 - Banco de horas individual (RU:13)",
+    "5 - Banco de horas grupal (RU:14)",
+    "6 - Horário concentrado (RU:15)",
+    "7 - Não aplicável",
+]
+REGIME_REFORMA_OPTS = [
+    "1 - Segurança Social", "2 - Caixa Geral de Aposentações",
+    "3 - Outro Regime de Proteção Social", "4 - Não Aplicável",
+]
+ORG_TT_OPTS = [
+    "1 - Trabalho diurno", "2 - Trabalho noturno",
+    "3 - Trabalho por turnos", "4 - Trabalho misto",
+]
+MODO_REMUN_OPTS = [
+    "Mensal", "Quinzenal", "Semanal", "Diário", "Por Tarefa/Output", "Outro",
+]
+CARTA_CAT_OPTS = [
+    "A1", "A2", "A", "B1", "B", "BE", "C1", "C1E", "C", "CE",
+    "D1", "D1E", "D", "DE",
+]
 
 CATEGORIAS_CCT_25989 = {
     "02069": "AJUDANTES DE FOGUEIRO",
@@ -192,6 +460,13 @@ COLS_RH = [
     "Tipo_Horario","Duracao_Tempo_Trabalho","Modo_Remuneracao","Pensionista",
     "Banco_Nome","Banco_Empresa_Pagamento","Num_Utente","Servico_Financas",
     "Regime_Reforma","Organizacao_Tempo_Trabalho","IRCT_Codigo","IRCT_Descricao",
+    # Novos campos (Parte 1 — Fase 2 RH)
+    "Estado_Fiscal","N_Dependentes_Deficiencia","Medida_Fiscal","Enquadramento_SS",
+    "Modalidade_Contrato","Prestacao_Trabalho","Motivo_Contrato","Motivo_Entrada",
+    "Motivo_Saida","Data_Saida","Sub_Alimentacao_Modo","Sub_Alimentacao_Entidade",
+    "Num_Cartao_Refeicao","Seguradora_AT","Apolice_AT","Nivel_Profissional_IGDT",
+    "Origem_Ensino_Superior","Carta_Conducao_Num","Carta_Conducao_Validade",
+    "Carta_Conducao_Categoria","Regulamento_Assinado","Regulamento_Data",
 ]
 
 # Campos que o importador Eticadata só preenche se estiverem vazios em
@@ -1198,8 +1473,15 @@ def render_admin_rh(*args):
                 with st.form(f"dl_form_prof_{_slug}"):
                     _c1, _c2 = st.columns(2)
                     with _c1:
-                        _nivel_hab = st.selectbox("Nível Habilitações", NIVEL_HABILITACOES_OPTS,
-                            index=_opt_idx(NIVEL_HABILITACOES_OPTS, _v("Nivel_Habilitacoes")), key=f"dl_nhab_{_slug}")
+                        _hab_opts  = HABILITACOES_RU_OPTS.copy()
+                        _hab_val   = _v("Nivel_Habilitacoes")
+                        _hab_match = next((o for o in _hab_opts if o.startswith(f"{_hab_val} - ")), "")
+                        if not _hab_match and _hab_val:
+                            _hab_opts  = _hab_opts + [_hab_val]
+                            _hab_match = _hab_val
+                        _hab_idx = _hab_opts.index(_hab_match) if _hab_match in _hab_opts else 0
+                        _nivel_hab = st.selectbox("Nível Habilitações (RU)", _hab_opts,
+                            index=_hab_idx, key=f"dl_nhab_{_slug}")
                         _sit_prof  = st.selectbox("Situação Profissional", SITUACAO_PROFISSIONAL_OPTS,
                             index=_opt_idx(SITUACAO_PROFISSIONAL_OPTS, _v("Situacao_Profissional")), key=f"dl_sitprof_{_slug}")
                         _cpp_opts  = [""] + [f"{k} – {v}" for k,v in PROFISSOES_CPP_CPS.items()]
@@ -1244,8 +1526,9 @@ def render_admin_rh(*args):
                                              use_container_width=True, type="primary"):
                         _profissao_code = _profissao.split(" – ")[0] if " – " in _profissao else _profissao
                         _cat_cct_code   = _cat_cct.split(" – ")[0]   if " – " in _cat_cct   else _cat_cct
+                        _nivel_hab_code = _nivel_hab.split(" - ")[0] if " - " in _nivel_hab else _nivel_hab
                         if _sync_rh_csv(_nome_dl, {
-                            "Nivel_Habilitacoes": _nivel_hab, "Situacao_Profissional": _sit_prof,
+                            "Nivel_Habilitacoes": _nivel_hab_code, "Situacao_Profissional": _sit_prof,
                             "Profissao_CPP": _profissao_code, "Categoria_CCT": _cat_cct_code,
                             "IRCT_Aplicavel": _irct, "Vinculo_Empresa": _vinculo,
                             "Reducao_Horario": _red_hr, "Data_Ultima_Promocao": _dt_prom,
