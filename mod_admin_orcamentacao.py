@@ -766,10 +766,9 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
             m = obras_db[obras_db['Obra'] == no_obra]
             if not m.empty:
                 cliente_auto = m.iloc[0].get('Cliente', '')
-        no_cliente = st.text_input(
-            "Cliente *",
-            value=orc_base.get('Cliente', cliente_auto) if orc_base else cliente_auto,
-            key="noa_cliente"
+        _no_cliente_val = orc_base.get('Cliente', cliente_auto) if orc_base else cliente_auto
+        no_cliente, no_cliente_novo = cliente_select(
+            "Cliente *", "noa_cliente", _no_cliente_val
         )
         no_versao = st.number_input(
             "Versão", min_value=1,
@@ -1035,7 +1034,11 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                          use_container_width=True, key="btn_save_a"):
                 if not no_obra or no_obra == "—":
                     st.error("❌ Selecciona uma obra.")
+                elif not no_cliente.strip():
+                    st.error("❌ Cliente obrigatório.")
                 else:
+                    if no_cliente_novo:
+                        registar_novo_cliente(no_cliente)
                     _no_op_id = (
                         no_op_id_raw.split(" — ")[0].strip()
                         if no_op_id_raw != "— Nenhuma —" else ""
@@ -1126,7 +1129,7 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
     with col1:
         opcoes_obra = obras_ativas if obras_ativas else ["—"]
         nb_obra    = st.selectbox("Obra / Proposta *", opcoes_obra, key="nb_obra")
-        nb_cliente = st.text_input("Cliente *", key="nb_cliente")
+        nb_cliente, nb_cliente_novo = cliente_select("Cliente *", "nb_cliente")
         nb_versao  = st.number_input("Versão", min_value=1, value=1, key="nb_versao")
         nb_validade = st.text_input("Validade", value=_next_month_str(), key="nb_validade")
         nb_notas   = st.text_area("Notas", key="nb_notas")
@@ -1321,6 +1324,8 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
         elif total_pessoas == 0:
             st.error("❌ Adiciona pelo menos um técnico.")
         else:
+            if nb_cliente_novo:
+                registar_novo_cliente(nb_cliente)
             _nb_op_id = (
                 nb_op_id_raw.split(" — ")[0].strip()
                 if nb_op_id_raw != "— Nenhuma —" else ""

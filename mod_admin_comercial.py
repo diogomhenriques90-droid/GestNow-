@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit
+from core import save_db, inv, load_db, log_audit, cliente_select, registar_novo_cliente
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -578,7 +578,7 @@ def render_comercial(*_):
             st.markdown("#### ➕ Nova Oportunidade")
             with st.form("form_oportunidade"):
                 op_nome    = st.text_input("Nome da Oportunidade *", key="op_nome")
-                op_cliente = st.text_input("Cliente *", key="op_cliente")
+                op_cliente, op_cliente_novo = cliente_select("Cliente *", "op_cliente")
                 op_setor   = st.selectbox("Setor",
                     ["Construção", "Indústria", "Petroquímica",
                      "Energia", "Farmacêutica", "Alimentar",
@@ -629,6 +629,8 @@ def render_comercial(*_):
                     if not op_nome.strip() or not op_cliente.strip():
                         st.error("❌ Nome e cliente obrigatórios.")
                     else:
+                        if op_cliente_novo:
+                            registar_novo_cliente(op_cliente)
                         stage_id   = STAGE_IDS[STAGE_NOMES.index(op_stage)]
                         stage_info = _get_stage(stage_id)
                         op_id_novo = str(uuid.uuid4())[:8].upper()
@@ -789,7 +791,7 @@ def render_comercial(*_):
         with col_vf:
             st.markdown("#### ➕ Agendar Visita")
             with st.form("form_visita"):
-                v_cliente  = st.text_input("Cliente *", key="v_cliente")
+                v_cliente, v_cliente_novo = cliente_select("Cliente *", "v_cliente")
                 v_contacto = st.text_input("Contacto", key="v_contacto")
                 v_comercial = st.text_input(
                     "Comercial", value=user_nome, key="v_comercial"
@@ -834,6 +836,8 @@ def render_comercial(*_):
                     if not v_cliente.strip():
                         st.error("❌ Cliente obrigatório.")
                     else:
+                        if v_cliente_novo:
+                            registar_novo_cliente(v_cliente)
                         # Encontrar ID da oportunidade
                         oport_id = ""
                         if v_oport != "—" and not oport_db.empty:
