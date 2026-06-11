@@ -405,7 +405,7 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
         obras_opts = ["Todas"] + sorted(orc_db['Obra'].dropna().unique().tolist())
         obra_f = st.selectbox("Obra", obras_opts, key="orc_list_obra")
     with col_f3:
-        tipo_opts = ["Todos", "A - Instrumentação", "B - Cedência MO"]
+        tipo_opts = ["Todos", "A - Instrumentação", "B - Cedência MO", "📁 Arquivo"]
         tipo_f = st.selectbox("Tipo", tipo_opts, key="orc_list_tipo")
     with col_f4:
         pesq = st.text_input("🔍 Pesquisar cliente/obra", key="orc_list_pesq")
@@ -416,9 +416,11 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
     if obra_f != "Todas":
         df_o = df_o[df_o['Obra'] == obra_f]
     if tipo_f == "A - Instrumentação":
-        df_o = df_o[df_o.get('Tipo', 'A') != 'B']
+        df_o = df_o[~df_o.get('Tipo', 'A').isin(['B', 'Arquivo'])]
     elif tipo_f == "B - Cedência MO":
         df_o = df_o[df_o.get('Tipo', 'A') == 'B']
+    elif tipo_f == "📁 Arquivo":
+        df_o = df_o[df_o.get('Tipo', 'A') == 'Arquivo']
     if pesq:
         mask = (
             df_o['Obra'].str.contains(pesq, case=False, na=False) |
@@ -452,7 +454,12 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
         val_badge = (f" · ⏰ {days}d" if 0 < days <= 30 else
                      (" · 🔴 Expirado" if days <= 0 else ""))
 
-        label_tipo = "🔧 Tipo A" if tipo != 'B' else "👷 Tipo B"
+        if tipo == 'B':
+            label_tipo = "👷 Tipo B"
+        elif tipo == 'Arquivo':
+            label_tipo = "📁 Arquivo"
+        else:
+            label_tipo = "🔧 Tipo A"
 
         with st.expander(
             f"{label_tipo} | {orc.get('Obra','')} — v{orc.get('Versao','1')} "
