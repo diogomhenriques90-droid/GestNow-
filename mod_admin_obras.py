@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import uuid
 from datetime import datetime
-from core import save_db, inv, load_db
+from core import save_db, inv, load_db, cliente_select, registar_novo_cliente
 
 def render_obras(obras_db, frentes_db, users, inst_acessos_db):
     st.markdown("### 🏗️ Gestão de Obras")
@@ -35,7 +35,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
             st.markdown("#### ➕ Nova Obra")
             with st.form("form_nova_obra"):
                 nome     = st.text_input("Nome da Obra *", key="obra_nome")
-                cliente  = st.text_input("Cliente *",      key="obra_cliente")
+                cliente, cliente_novo = cliente_select("Cliente *", "obra_cliente")
                 tipo     = st.selectbox(
                     "Tipo",
                     ["Normal","Instrumentação","Manutenção","Comissionamento"],
@@ -55,6 +55,8 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                          nome.strip() in obras_db['Obra'].values:
                         st.error("❌ Obra já existe.")
                     else:
+                        if cliente_novo:
+                            registar_novo_cliente(cliente)
                         nova = pd.DataFrame([{
                             "Obra":       nome.strip(),
                             "Cliente":    cliente.strip(),

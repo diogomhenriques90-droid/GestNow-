@@ -10,7 +10,9 @@ import streamlit as st
 import pandas as pd
 import uuid
 from datetime import datetime, date, timedelta
-from core import save_db, inv, load_db, log_audit
+from core import (save_db, inv, load_db, log_audit,
+                  _gcs_write_bin, _gcs_read_bin,
+                  cliente_select, registar_novo_cliente)
 
 # ─────────────────────────────────────────────────────────────
 # HELPERS
@@ -244,7 +246,8 @@ def _carregar_dados():
         "Status", "Validade", "Total_Mao_Obra", "Total_Materiais",
         "Total_Equipamentos", "Total_Deslocacoes", "Total_Dormidas",
         "Total_Diarias", "Margem_Pct", "Total_Sem_Margem",
-        "Total_Com_Margem", "Motivo_Rejeicao", "Notas", "Versao_Pai", "Oportunidade_ID"
+        "Total_Com_Margem", "Motivo_Rejeicao", "Notas", "Versao_Pai", "Oportunidade_ID",
+        "Anexos", "Origem"
     ])
     orc_linhas = _load("orcamentos_linhas.csv", [
         "ID", "Orcamento_ID", "Descricao", "Categoria",
@@ -402,7 +405,7 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
         obras_opts = ["Todas"] + sorted(orc_db['Obra'].dropna().unique().tolist())
         obra_f = st.selectbox("Obra", obras_opts, key="orc_list_obra")
     with col_f3:
-        tipo_opts = ["Todos", "A - Instrumentação", "B - Cedência MO"]
+        tipo_opts = ["Todos", "A - Instrumentação", "B - Cedência MO", "📁 Arquivo"]
         tipo_f = st.selectbox("Tipo", tipo_opts, key="orc_list_tipo")
     with col_f4:
         pesq = st.text_input("🔍 Pesquisar cliente/obra", key="orc_list_pesq")
@@ -413,9 +416,11 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
     if obra_f != "Todas":
         df_o = df_o[df_o['Obra'] == obra_f]
     if tipo_f == "A - Instrumentação":
-        df_o = df_o[df_o.get('Tipo', 'A') != 'B']
+        df_o = df_o[~df_o.get('Tipo', 'A').isin(['B', 'Arquivo'])]
     elif tipo_f == "B - Cedência MO":
         df_o = df_o[df_o.get('Tipo', 'A') == 'B']
+    elif tipo_f == "📁 Arquivo":
+        df_o = df_o[df_o.get('Tipo', 'A') == 'Arquivo']
     if pesq:
         mask = (
             df_o['Obra'].str.contains(pesq, case=False, na=False) |
@@ -449,7 +454,12 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
         val_badge = (f" · ⏰ {days}d" if 0 < days <= 30 else
                      (" · 🔴 Expirado" if days <= 0 else ""))
 
-        label_tipo = "🔧 Tipo A" if tipo != 'B' else "👷 Tipo B"
+        if tipo == 'B':
+            label_tipo = "👷 Tipo B"
+        elif tipo == 'Arquivo':
+            label_tipo = "📁 Arquivo"
+        else:
+            label_tipo = "🔧 Tipo A"
 
         with st.expander(
             f"{label_tipo} | {orc.get('Obra','')} — v{orc.get('Versao','1')} "
@@ -490,6 +500,31 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
                         ).fillna(0).sum() / 60
                         if horas > 0:
                             st.caption(f"⏱️ Total estimado: **{horas:.1f} horas**")
+
+                # Anexos
+                anexos_str = orc.get('Anexos', '')
+                if anexos_str:
+                    st.markdown("**📎 Anexos:**")
+                    for nome_anexo in [a for a in anexos_str.split('|') if a]:
+                        anexo_bytes = _gcs_read_bin(
+                            f"data/orcamentos_anexos/{oid}/{nome_anexo}"
+                        )
+                        if anexo_bytes:
+                            if st.download_button(
+                                f"⬇️ {nome_anexo}",
+                                data=anexo_bytes,
+                                file_name=nome_anexo,
+                                key=f"orc_anexo_{oid}_{nome_anexo}",
+                                use_container_width=True,
+                            ):
+                                log_audit(
+                                    usuario=st.session_state.get('user', 'Admin'),
+                                    acao="DOWNLOAD_ANEXO_ORC",
+                                    tabela="orcamentos.csv", registro_id=oid,
+                                    detalhes=f"Anexo '{nome_anexo}' descarregado", ip=""
+                                )
+                        else:
+                            st.caption(f"⚠️ Anexo '{nome_anexo}' não encontrado.")
 
             with col_r:
                 st.markdown(
@@ -682,11 +717,13 @@ def _tab_novo(orc_db, orc_linhas, obras_db, catalogo, tarifas, ref_precos):
     tipo_orc = st.radio(
         "Tipo de Orçamento",
         ["🔧 Tipo A — Instrumentação / Projecto",
-         "👷 Tipo B — Cedência de Mão de Obra"],
+         "👷 Tipo B — Cedência de Mão de Obra",
+         "📁 Orçamento de Arquivo"],
         horizontal=True,
         key="novo_tipo_orc"
     )
     is_tipo_b = "Tipo B" in tipo_orc
+    is_arquivo = "Arquivo" in tipo_orc
 
     st.divider()
 
@@ -699,7 +736,9 @@ def _tab_novo(orc_db, orc_linhas, obras_db, catalogo, tarifas, ref_precos):
         )
     ].copy() if not _op_db.empty else _op_db
 
-    if is_tipo_b:
+    if is_arquivo:
+        _form_arquivo(orc_db, obras_db, user_nome, _op_ativos)
+    elif is_tipo_b:
         _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base,
                      _op_ativos)
     else:
@@ -727,10 +766,9 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
             m = obras_db[obras_db['Obra'] == no_obra]
             if not m.empty:
                 cliente_auto = m.iloc[0].get('Cliente', '')
-        no_cliente = st.text_input(
-            "Cliente *",
-            value=orc_base.get('Cliente', cliente_auto) if orc_base else cliente_auto,
-            key="noa_cliente"
+        _no_cliente_val = orc_base.get('Cliente', cliente_auto) if orc_base else cliente_auto
+        no_cliente, no_cliente_novo = cliente_select(
+            "Cliente *", "noa_cliente", _no_cliente_val
         )
         no_versao = st.number_input(
             "Versão", min_value=1,
@@ -996,7 +1034,11 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                          use_container_width=True, key="btn_save_a"):
                 if not no_obra or no_obra == "—":
                     st.error("❌ Selecciona uma obra.")
+                elif not no_cliente.strip():
+                    st.error("❌ Cliente obrigatório.")
                 else:
+                    if no_cliente_novo:
+                        registar_novo_cliente(no_cliente)
                     _no_op_id = (
                         no_op_id_raw.split(" — ")[0].strip()
                         if no_op_id_raw != "— Nenhuma —" else ""
@@ -1087,7 +1129,7 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
     with col1:
         opcoes_obra = obras_ativas if obras_ativas else ["—"]
         nb_obra    = st.selectbox("Obra / Proposta *", opcoes_obra, key="nb_obra")
-        nb_cliente = st.text_input("Cliente *", key="nb_cliente")
+        nb_cliente, nb_cliente_novo = cliente_select("Cliente *", "nb_cliente")
         nb_versao  = st.number_input("Versão", min_value=1, value=1, key="nb_versao")
         nb_validade = st.text_input("Validade", value=_next_month_str(), key="nb_validade")
         nb_notas   = st.text_area("Notas", key="nb_notas")
@@ -1282,6 +1324,8 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
         elif total_pessoas == 0:
             st.error("❌ Adiciona pelo menos um técnico.")
         else:
+            if nb_cliente_novo:
+                registar_novo_cliente(nb_cliente)
             _nb_op_id = (
                 nb_op_id_raw.split(" — ")[0].strip()
                 if nb_op_id_raw != "— Nenhuma —" else ""
@@ -1340,6 +1384,148 @@ def _guardar_orcamento_b(orc_db, obra, cliente, versao, validade,
         detalhes=f"{obra} | v{versao} | €{total_com:,.2f} | {equipa_str}", ip=""
     )
     st.success(f"✅ Orçamento Tipo B criado! Total: €{total_com:,.2f}")
+    st.rerun()
+
+
+# ── Orçamento de Arquivo ─────────────────────────────────────
+
+def _form_arquivo(orc_db, obras_db, user_nome, op_db=None):
+    st.markdown("#### 📁 Orçamento de Arquivo")
+    st.caption("Para orçamentos feitos fora da app (Excel/PDF, históricos ou "
+               "pontuais). Anexa o(s) ficheiro(s) e regista os dados — entra "
+               "no mesmo pipeline e ciclo de vida dos orçamentos nativos.")
+
+    obras_ativas = (obras_db[obras_db['Ativa'] == 'Ativa']['Obra'].tolist()
+                    if not obras_db.empty else [])
+
+    col1, col2 = st.columns(2)
+    with col1:
+        ar_numero = st.text_input("Número do Orçamento *", key="ar_numero")
+        ar_cliente, ar_cliente_novo = cliente_select("Cliente *", "ar_cliente")
+        opcoes_obra = ["— Nova / Não listada —"] + obras_ativas
+        ar_obra_sel = st.selectbox("Obra Proposta *", opcoes_obra, key="ar_obra_sel")
+        if ar_obra_sel == "— Nova / Não listada —":
+            ar_obra = st.text_input("Nome da Obra Proposta *", key="ar_obra_txt")
+        else:
+            ar_obra = ar_obra_sel
+
+    with col2:
+        ar_valor = st.number_input(
+            "Valor Total (€) *", min_value=0.0, step=100.0, key="ar_valor"
+        )
+        ar_validade = st.text_input(
+            "Validade (dd/mm/aaaa)", value=_next_month_str(), key="ar_validade"
+        )
+        ar_estado = st.selectbox(
+            "Estado",
+            ['Rascunho', 'Enviado', 'Em Revisão', 'Adjudicado', 'Rejeitado'],
+            key="ar_estado"
+        )
+        ar_notas = st.text_area("Notas", key="ar_notas")
+
+    ar_anexos = st.file_uploader(
+        "📎 Anexar ficheiro(s) do orçamento (PDF/XLSX/DOCX)",
+        type=["pdf", "xlsx", "xls", "docx"],
+        accept_multiple_files=True,
+        key="ar_anexos"
+    )
+
+    _op_opts_ar = ["— Nenhuma —"]
+    if op_db is not None and not op_db.empty:
+        _op_opts_ar += [
+            f"{r['ID']} — {r['Nome']} ({r['Cliente']})"
+            for _, r in op_db.iterrows()
+        ]
+    ar_op_id_raw = st.selectbox(
+        "🔗 Oportunidade de Origem (ISO)",
+        _op_opts_ar, key="ar_op_id",
+        help="Liga este orçamento à oportunidade comercial"
+    )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("💾 Guardar Orçamento de Arquivo", type="primary",
+                 use_container_width=True, key="btn_save_arquivo"):
+        cliente_final = ar_cliente.strip()
+        obra_final = (ar_obra or "").strip()
+        if not ar_numero.strip() or not cliente_final or not obra_final:
+            st.error("❌ Número, cliente e obra proposta são obrigatórios.")
+        else:
+            if ar_cliente_novo:
+                registar_novo_cliente(cliente_final)
+            _ar_op_id = (
+                ar_op_id_raw.split(" — ")[0].strip()
+                if ar_op_id_raw != "— Nenhuma —" else ""
+            )
+            _guardar_orcamento_arquivo(
+                orc_db, ar_numero, obra_final, cliente_final, ar_valor,
+                ar_validade, ar_estado, ar_notas, ar_anexos, user_nome, _ar_op_id
+            )
+
+
+def _guardar_orcamento_arquivo(orc_db, numero, obra, cliente, valor_total,
+                                validade, estado, notas, anexos, user_nome,
+                                oportunidade_id=""):
+    from core import _cached_load_all
+    orc_id = str(uuid.uuid4())[:8].upper()
+
+    nomes_anexos = []
+    if anexos:
+        for f in anexos:
+            ok = _gcs_write_bin(
+                f"data/orcamentos_anexos/{orc_id}/{f.name}",
+                f.getvalue(),
+                f.type or "application/octet-stream"
+            )
+            if ok:
+                nomes_anexos.append(f.name)
+                log_audit(
+                    usuario=user_nome, acao="UPLOAD_ANEXO_ORC",
+                    tabela="orcamentos.csv", registro_id=orc_id,
+                    detalhes=f"Anexo '{f.name}' carregado", ip=""
+                )
+            else:
+                st.warning(f"⚠️ Falha ao carregar o anexo '{f.name}'.")
+
+    notas_final = f"Nº Ref.: {numero.strip()}" + (f" | {notas.strip()}" if notas.strip() else "")
+
+    novo = pd.DataFrame([{
+        "ID":                   orc_id,
+        "Obra":                 obra,
+        "Cliente":              cliente.strip(),
+        "Tipo":                 "Arquivo",
+        "Versao":               1,
+        "Data":                 _today_str(),
+        "Criado_Por":           user_nome,
+        "Status":               estado,
+        "Validade":             validade.strip(),
+        "Total_Mao_Obra":       0.0,
+        "Total_Materiais":      0.0,
+        "Total_Equipamentos":   0.0,
+        "Total_Deslocacoes":    0.0,
+        "Total_Dormidas":       0.0,
+        "Total_Diarias":        0.0,
+        "Margem_Pct":           0,
+        "Total_Sem_Margem":     valor_total,
+        "Total_Com_Margem":     valor_total,
+        "Motivo_Rejeicao":      "",
+        "Notas":                notas_final,
+        "Versao_Pai":           "",
+        "Oportunidade_ID":      oportunidade_id or "",
+        "Anexos":               "|".join(nomes_anexos),
+        "Origem":               "Arquivo",
+    }])
+    upd = (pd.concat([orc_db, novo], ignore_index=True)
+           if not orc_db.empty else novo)
+    save_db(upd, "orcamentos.csv")
+    inv("orcamentos.csv")
+    _cached_load_all.clear()
+    log_audit(
+        usuario=user_nome, acao="CRIAR_ORCAMENTO_ARQUIVO",
+        tabela="orcamentos.csv", registro_id=orc_id,
+        detalhes=f"{obra} | Nº {numero} | €{valor_total:,.2f} | "
+                 f"{len(nomes_anexos)} anexo(s)", ip=""
+    )
+    st.success(f"✅ Orçamento de Arquivo registado! Total: €{valor_total:,.2f}")
     st.rerun()
 
 
