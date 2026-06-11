@@ -1003,31 +1003,19 @@ def render_admin_rh(*args):
             _mask_dl = (_rh_dl['Nome'] == _nome_dl) if not _rh_dl.empty else pd.Series([], dtype=bool)
             _row_dl  = _rh_dl[_mask_dl].iloc[0].copy() if _mask_dl.any() else pd.Series(dtype=str)
 
-            # Sincronização automática: campos em branco em
-            # colaboradores_rh.csv são preenchidos a partir de
-            # usuarios.csv e gravados, para que fiquem sempre
-            # actualizados sem necessidade de re-importar.
+            # Fallback de apresentação: campos partilhados que estejam vazios em
+            # colaboradores_rh.csv são pré-preenchidos no formulário a partir de
+            # usuarios.csv. Apenas visual — não grava nada (colaboradores_rh.csv
+            # continua a ser a fonte de verdade quando já tem o campo preenchido).
             _mask_u_dl = (_u_dl['Nome'] == _nome_dl)
             if _mask_u_dl.any():
                 _u_row_dl = _u_dl[_mask_u_dl].iloc[0]
-                _sync_updates_dl = {}
-                for _fk in (
-                    "NISS", "CC", "CC_Validade", "Email", "Morada",
-                    "Localidade", "Codigo_Postal", "Banco_IBAN", "NIF",
-                    "Estado_Civil", "Nacionalidade", "Genero",
-                ):
+                for _fk in ("NISS", "CC", "CC_Validade", "NIF", "Email",
+                            "Morada", "Nacionalidade", "Estado_Civil"):
                     if not str(_row_dl.get(_fk, "")).strip():
                         _uv = str(_u_row_dl.get(_fk, "")).strip()
                         if _uv:
-                            _sync_updates_dl[_fk] = _uv
-                if _sync_updates_dl:
-                    if _sync_rh_csv(_nome_dl, _sync_updates_dl):
-                        _rh_dl = _load_rh_fresh()
-                        _mask_dl = (_rh_dl['Nome'] == _nome_dl) if not _rh_dl.empty else pd.Series([], dtype=bool)
-                        _row_dl = _rh_dl[_mask_dl].iloc[0].copy() if _mask_dl.any() else pd.Series(dtype=str)
-                    else:
-                        st.error("❌ Erro ao sincronizar colaboradores_rh.csv — "
-                                 "verifica ligação ao GCS")
+                            _row_dl[_fk] = _uv
 
             def _v(campo, default=""):
                 return _row_dl.get(campo, default) if not _row_dl.empty else default
