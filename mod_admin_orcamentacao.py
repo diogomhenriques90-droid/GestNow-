@@ -244,7 +244,8 @@ def _carregar_dados():
         "Status", "Validade", "Total_Mao_Obra", "Total_Materiais",
         "Total_Equipamentos", "Total_Deslocacoes", "Total_Dormidas",
         "Total_Diarias", "Margem_Pct", "Total_Sem_Margem",
-        "Total_Com_Margem", "Motivo_Rejeicao", "Notas", "Versao_Pai", "Oportunidade_ID"
+        "Total_Com_Margem", "Motivo_Rejeicao", "Notas", "Versao_Pai", "Oportunidade_ID",
+        "Anexos", "Origem"
     ])
     orc_linhas = _load("orcamentos_linhas.csv", [
         "ID", "Orcamento_ID", "Descricao", "Categoria",
