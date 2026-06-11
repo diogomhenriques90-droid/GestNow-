@@ -979,29 +979,223 @@ def render_admin_rh(*args):
 
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
-        # ── Todos os dados por secções ────────────────────────────
-        for secao, campos in CAMPOS_PERFIL:
-            tem_dados = any(
-                row.get(c,'') and not c.endswith('_b64')
-                for c in campos
+        # ── Dados editáveis por secções (Gestão Individual) ───────
+        _slug_gi = hashlib.md5(nome_sel.encode()).hexdigest()[:8]
+
+        def _vg(campo, default=""):
+            return row.get(campo, default)
+
+        def _save_gi(updates: dict) -> bool:
+            u_gi  = _load_users_fresh()
+            mk_gi = u_gi['Nome'] == nome_sel
+            if not mk_gi.any():
+                return False
+            for _k, _vv in updates.items():
+                u_gi.loc[mk_gi, _k] = _vv
+            ok = save_db(u_gi, "usuarios.csv")
+            if ok:
+                inv("usuarios.csv")
+                from core import _cached_load_all
+                _cached_load_all.clear()
+                log_audit(usuario=st.session_state.get("user","admin"),
+                          acao="ATUALIZAR_GESTAO_INDIVIDUAL",
+                          tabela="usuarios.csv",
+                          registro_id=nome_sel,
+                          detalhes=f"Campos: {', '.join(updates.keys())}")
+            return ok
+
+        # ── 1. Identificação ───────────────────────────────────────
+        with st.expander("👤 Identificação", expanded=True):
+            with st.form(f"gi_form_ident_{_slug_gi}"):
+                st.text_input("Nome", value=nome_sel, disabled=True,
+                    key=f"gi_nome_{_slug_gi}",
+                    help="Para alterar o nome contacte o developer.")
+                _gc1, _gc2 = st.columns(2)
+                with _gc1:
+                    _gi_tel   = st.text_input("Contacto",
+                        value=_vg("Telefone"), key=f"gi_tel_{_slug_gi}")
+                    _gi_email = st.text_input("Email",
+                        value=_vg("Email"), key=f"gi_email_{_slug_gi}")
+                with _gc2:
+                    _gi_datanasc = st.text_input("Data Nascimento (DD/MM/AAAA)",
+                        value=_vg("DataNasc"), key=f"gi_datanasc_{_slug_gi}")
+                if st.form_submit_button("💾 Guardar Identificação",
+                                         use_container_width=True, type="primary"):
+                    if _save_gi({"Telefone": _gi_tel, "Email": _gi_email,
+                                  "DataNasc": _gi_datanasc}):
+                        st.success("✅ Identificação guardada.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+        # ── 2. Morada ───────────────────────────────────────────────
+        with st.expander("📍 Morada"):
+            with st.form(f"gi_form_morada_{_slug_gi}"):
+                _gc1, _gc2 = st.columns(2)
+                with _gc1:
+                    _gi_morada = st.text_input("Morada",
+                        value=_vg("Morada"), key=f"gi_morada_{_slug_gi}")
+                    _gi_localidade = st.text_input("Localidade",
+                        value=_vg("Localidade"), key=f"gi_localidade_{_slug_gi}")
+                with _gc2:
+                    _gi_concelho = st.text_input("Concelho",
+                        value=_vg("Concelho"), key=f"gi_concelho_{_slug_gi}")
+                    _gi_cp = st.text_input("Código Postal",
+                        value=_vg("Codigo_Postal"), key=f"gi_cp_{_slug_gi}")
+                if st.form_submit_button("💾 Guardar Morada",
+                                         use_container_width=True, type="primary"):
+                    if _save_gi({"Morada": _gi_morada, "Localidade": _gi_localidade,
+                                  "Concelho": _gi_concelho, "Codigo_Postal": _gi_cp}):
+                        st.success("✅ Morada guardada.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+        # ── 3. Documentos ───────────────────────────────────────────
+        with st.expander("🪪 Documentos"):
+            with st.form(f"gi_form_docs_{_slug_gi}"):
+                _gc1, _gc2 = st.columns(2)
+                with _gc1:
+                    _gi_cc = st.text_input("Cartão de Cidadão",
+                        value=_vg("CC"), key=f"gi_cc_{_slug_gi}")
+                    _gi_ccval = st.text_input("Validade CC (DD/MM/AAAA)",
+                        value=_vg("CC_Validade"), key=f"gi_ccval_{_slug_gi}")
+                with _gc2:
+                    _gi_niss = st.text_input("NISS",
+                        value=_vg("NISS"), key=f"gi_niss_{_slug_gi}")
+                    _gi_nif = st.text_input("NIF",
+                        value=_vg("NIF"), key=f"gi_nif_{_slug_gi}")
+                if st.form_submit_button("💾 Guardar Documentos",
+                                         use_container_width=True, type="primary"):
+                    if _save_gi({"CC": _gi_cc, "CC_Validade": _gi_ccval,
+                                  "NISS": _gi_niss, "NIF": _gi_nif}):
+                        st.success("✅ Documentos guardados.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+        # ── 4. Bancários ────────────────────────────────────────────
+        with st.expander("🏦 Bancários"):
+            with st.form(f"gi_form_banco_{_slug_gi}"):
+                _gi_iban = st.text_input("IBAN",
+                    value=_vg("Banco_IBAN"), key=f"gi_iban_{_slug_gi}")
+                if st.form_submit_button("💾 Guardar Dados Bancários",
+                                         use_container_width=True, type="primary"):
+                    if _save_gi({"Banco_IBAN": _gi_iban}):
+                        st.success("✅ Dados bancários guardados.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+        # ── 5. Emergência ───────────────────────────────────────────
+        with st.expander("🆘 Emergência"):
+            with st.form(f"gi_form_emerg_{_slug_gi}"):
+                _gc1, _gc2, _gc3 = st.columns(3)
+                with _gc1:
+                    _gi_nome_em = st.text_input("Nome Contacto Emergência",
+                        value=_vg("Nome_Emergencia"), key=f"gi_nomeem_{_slug_gi}")
+                with _gc2:
+                    _gi_tel_em = st.text_input("Telefone Emergência",
+                        value=_vg("Contacto_Emergencia"), key=f"gi_telem_{_slug_gi}")
+                with _gc3:
+                    _gi_grau_em = st.text_input("Grau de Parentesco",
+                        value=_vg("Grau_Parentesco"), key=f"gi_grauem_{_slug_gi}")
+                if st.form_submit_button("💾 Guardar Emergência",
+                                         use_container_width=True, type="primary"):
+                    if _save_gi({"Nome_Emergencia": _gi_nome_em,
+                                  "Contacto_Emergencia": _gi_tel_em,
+                                  "Grau_Parentesco": _gi_grau_em}):
+                        st.success("✅ Dados de emergência guardados.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+        # ── 6. Profissional ─────────────────────────────────────────
+        with st.expander("💼 Profissional"):
+            with st.form(f"gi_form_prof_{_slug_gi}"):
+                _gc1, _gc2 = st.columns(2)
+                with _gc1:
+                    _gi_preco  = st.text_input("Preço Hora (€)",
+                        value=_vg("PrecoHora"), key=f"gi_preco_{_slug_gi}")
+                    _gi_local  = st.text_input("Local de Obra",
+                        value=_vg("Local_Obra"), key=f"gi_local_{_slug_gi}")
+                    _gi_cliente= st.text_input("Cliente",
+                        value=_vg("Cliente_Obra"), key=f"gi_cliente_{_slug_gi}")
+                with _gc2:
+                    _gi_camisola = st.text_input("Tamanho Camisola",
+                        value=_vg("Tamanho_Camisola"), key=f"gi_camisola_{_slug_gi}")
+                    _gi_calca = st.text_input("Tamanho Calça",
+                        value=_vg("Tamanho_Calca"), key=f"gi_calca_{_slug_gi}")
+                    _gi_botas = st.text_input("Tamanho Botas",
+                        value=_vg("Tamanho_Botas"), key=f"gi_botas_{_slug_gi}")
+
+                st.markdown("**Contrato**")
+                _gc3, _gc4 = st.columns(2)
+                with _gc3:
+                    _gi_ct_ger = st.selectbox("Contrato Gerado", ["","Sim","Não"],
+                        index=["","Sim","Não"].index(_vg("Contrato_Gerado"))
+                              if _vg("Contrato_Gerado") in ["","Sim","Não"] else 0,
+                        key=f"gi_ctger_{_slug_gi}")
+                    _gi_ct_ger_data = st.text_input("Data Geração (DD/MM/AAAA)",
+                        value=_vg("Contrato_Data"), key=f"gi_ctgerdata_{_slug_gi}")
+                    _gi_ct_env = st.selectbox("Contrato Enviado", ["","Sim","Não"],
+                        index=["","Sim","Não"].index(_vg("Contrato_Enviado"))
+                              if _vg("Contrato_Enviado") in ["","Sim","Não"] else 0,
+                        key=f"gi_ctenv_{_slug_gi}")
+                    _gi_ct_env_data = st.text_input("Data Envio (DD/MM/AAAA)",
+                        value=_vg("Contrato_Enviado_Data"), key=f"gi_ctenvdata_{_slug_gi}")
+                with _gc4:
+                    _gi_ct_assin = st.selectbox("Contrato Assinado", ["","Sim","Não"],
+                        index=["","Sim","Não"].index(_vg("Contrato_Assinado"))
+                              if _vg("Contrato_Assinado") in ["","Sim","Não"] else 0,
+                        key=f"gi_ctassin_{_slug_gi}")
+                    _gi_ct_assin_data = st.text_input("Data Assinatura (DD/MM/AAAA)",
+                        value=_vg("Contrato_Assinatura_Data"), key=f"gi_ctassindata_{_slug_gi}")
+                    _gi_ct_valid = st.selectbox("Contrato Validado (Admin)", ["","Sim","Não"],
+                        index=["","Sim","Não"].index(_vg("Contrato_Validado_Admin"))
+                              if _vg("Contrato_Validado_Admin") in ["","Sim","Não"] else 0,
+                        key=f"gi_ctvalid_{_slug_gi}")
+                    _gi_ct_valid_data = st.text_input("Data Validação (DD/MM/AAAA)",
+                        value=_vg("Contrato_Validado_Data"), key=f"gi_ctvaliddata_{_slug_gi}")
+
+                if st.form_submit_button("💾 Guardar Profissional",
+                                         use_container_width=True, type="primary"):
+                    if _save_gi({
+                        "PrecoHora": _gi_preco, "Local_Obra": _gi_local,
+                        "Cliente_Obra": _gi_cliente,
+                        "Tamanho_Camisola": _gi_camisola, "Tamanho_Calca": _gi_calca,
+                        "Tamanho_Botas": _gi_botas,
+                        "Contrato_Gerado": _gi_ct_ger, "Contrato_Data": _gi_ct_ger_data,
+                        "Contrato_Enviado": _gi_ct_env, "Contrato_Enviado_Data": _gi_ct_env_data,
+                        "Contrato_Assinado": _gi_ct_assin, "Contrato_Assinatura_Data": _gi_ct_assin_data,
+                        "Contrato_Validado_Admin": _gi_ct_valid, "Contrato_Validado_Data": _gi_ct_valid_data,
+                    }):
+                        st.success("✅ Dados profissionais guardados.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+        # ── Estado do perfil (só leitura) ─────────────────────────
+        with st.expander("ℹ️ Estado do Perfil (só leitura)"):
+            _onboarding_campos = next(
+                (campos for secao, campos in CAMPOS_PERFIL if secao == "Onboarding"), []
             )
-            with st.expander(f"📂 {secao}", expanded=(secao == "Identificação")):
-                c_left, c_right = st.columns(2)
-                for i, campo in enumerate(campos):
-                    valor = row.get(campo, '')
-                    if campo.endswith('_b64'):
-                        valor = "✅ Ficheiro presente" if valor else "❌ Não submetido"
-                    elif not valor:
-                        valor = "—"
-                    col_use = c_left if i % 2 == 0 else c_right
-                    with col_use:
-                        st.markdown(
-                            f"<p style='color:#94A3B8;font-size:0.72rem;"
-                            f"margin:0;text-transform:uppercase;'>{campo}</p>"
-                            f"<p style='color:#F1F5F9;font-size:0.9rem;"
-                            f"font-weight:600;margin:0 0 10px;'>{valor}</p>",
-                            unsafe_allow_html=True
-                        )
+            c_left, c_right = st.columns(2)
+            for i, campo in enumerate(_onboarding_campos):
+                valor = row.get(campo, '')
+                if campo.endswith('_b64'):
+                    valor = "✅ Ficheiro presente" if valor else "❌ Não submetido"
+                elif not valor:
+                    valor = "—"
+                col_use = c_left if i % 2 == 0 else c_right
+                with col_use:
+                    st.markdown(
+                        f"<p style='color:#94A3B8;font-size:0.72rem;"
+                        f"margin:0;text-transform:uppercase;'>{campo}</p>"
+                        f"<p style='color:#F1F5F9;font-size:0.9rem;"
+                        f"font-weight:600;margin:0 0 10px;'>{valor}</p>",
+                        unsafe_allow_html=True
+                    )
 
         # ── Download Comprovativo IBAN ────────────────────────────
         st.markdown("---")
