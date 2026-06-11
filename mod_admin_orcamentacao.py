@@ -501,6 +501,31 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
                         if horas > 0:
                             st.caption(f"⏱️ Total estimado: **{horas:.1f} horas**")
 
+                # Anexos
+                anexos_str = orc.get('Anexos', '')
+                if anexos_str:
+                    st.markdown("**📎 Anexos:**")
+                    for nome_anexo in [a for a in anexos_str.split('|') if a]:
+                        anexo_bytes = _gcs_read_bin(
+                            f"data/orcamentos_anexos/{oid}/{nome_anexo}"
+                        )
+                        if anexo_bytes:
+                            if st.download_button(
+                                f"⬇️ {nome_anexo}",
+                                data=anexo_bytes,
+                                file_name=nome_anexo,
+                                key=f"orc_anexo_{oid}_{nome_anexo}",
+                                use_container_width=True,
+                            ):
+                                log_audit(
+                                    usuario=st.session_state.get('user', 'Admin'),
+                                    acao="DOWNLOAD_ANEXO_ORC",
+                                    tabela="orcamentos.csv", registro_id=oid,
+                                    detalhes=f"Anexo '{nome_anexo}' descarregado", ip=""
+                                )
+                        else:
+                            st.caption(f"⚠️ Anexo '{nome_anexo}' não encontrado.")
+
             with col_r:
                 st.markdown(
                     f"<div class='calc-total' style='margin-bottom:10px;'>"
