@@ -1307,6 +1307,15 @@ def render_admin_rh(*args):
             def _opt_idx(opts, val):
                 return opts.index(val) if val in opts else 0
 
+            def _sel_opts(opts, val):
+                """Devolve (lista_opcoes, indice) com suporte a valores antigos
+                gravados que já não constam da lista actual — são acrescentados
+                no fim em runtime para não se perder o valor guardado."""
+                o = list(opts)
+                if val and val not in o:
+                    o = o + [val]
+                return o, (o.index(val) if val in o else 0)
+
             # Sufixo único por colaborador, para que os widgets (e o seu
             # value=) sejam recriados ao trocar de colaborador, em vez de
             # reaproveitarem o estado (e os valores) do anterior.
@@ -1340,6 +1349,8 @@ def render_admin_rh(*args):
                         _est_civil = st.selectbox("Estado Civil", ESTADO_CIVIL_OPTS,
                             index=_opt_idx(ESTADO_CIVIL_OPTS, _v("Estado_Civil")), key=f"dl_estcivil_{_slug}")
                         _n_dep = st.text_input("Nº Dependentes", value=_v("N_Dependentes"), key=f"dl_ndep_{_slug}")
+                        _n_dep_def = st.text_input("Nº Dependentes c/ Deficiência",
+                            value=_v("N_Dependentes_Deficiencia"), key=f"dl_ndepdef_{_slug}")
                     if st.form_submit_button("💾 Guardar Identificação",
                                              use_container_width=True, type="primary"):
                         if _sync_rh_csv(_nome_dl, {
@@ -1349,6 +1360,7 @@ def render_admin_rh(*args):
                             "CC": _cc, "CC_Validade": _ccval,
                             "Passaporte": _pass_num, "Passaporte_Validade": _pass_val,
                             "Estado_Civil": _est_civil, "N_Dependentes": _n_dep,
+                            "N_Dependentes_Deficiencia": _n_dep_def,
                         }):
                             st.success("✅ Identificação guardada.")
                             st.rerun()
@@ -1358,7 +1370,7 @@ def render_admin_rh(*args):
             # ── 2. Dados Fiscais ──────────────────────────────────
             with st.expander("🏦 Dados Fiscais"):
                 with st.form(f"dl_form_fiscal_{_slug}"):
-                    _c1, _c2 = st.columns(2)
+                    _c1, _c2, _c3 = st.columns(3)
                     with _c1:
                         _irs_esc  = st.text_input("Escalão IRS", value=_v("IRS_Escalao"), key=f"dl_irs_esc_{_slug}")
                         _irs_pct  = st.text_input("Taxa IRS (%)", value=_v("IRS_Percentagem"), key=f"dl_irs_pct_{_slug}")
@@ -1373,12 +1385,24 @@ def render_admin_rh(*args):
                                   if _v("Isencao_IRS") in ["","Sim","Não"] else 0,
                             key=f"dl_isencao_{_slug}")
                         _artigo_irs = st.text_input("Artigo IRS", value=_v("Artigo_IRS"), key=f"dl_artigo_{_slug}")
+                    with _c3:
+                        _ef_opts, _ef_idx = _sel_opts(ESTADO_FISCAL_OPTS, _v("Estado_Fiscal"))
+                        _est_fiscal = st.selectbox("Estado Fiscal", _ef_opts,
+                            index=_ef_idx, key=f"dl_estfiscal_{_slug}")
+                        _mf_opts, _mf_idx = _sel_opts(MEDIDA_FISCAL_OPTS, _v("Medida_Fiscal"))
+                        _med_fiscal = st.selectbox("Medida Fiscal", _mf_opts,
+                            index=_mf_idx, key=f"dl_medfiscal_{_slug}")
+                        _ess_opts, _ess_idx = _sel_opts(ENQUADRAMENTO_SS_OPTS, _v("Enquadramento_SS"))
+                        _enq_ss = st.selectbox("Enquadramento SS", _ess_opts,
+                            index=_ess_idx, key=f"dl_enqss_{_slug}")
                     if st.form_submit_button("💾 Guardar Dados Fiscais",
                                              use_container_width=True, type="primary"):
                         if _sync_rh_csv(_nome_dl, {
                             "IRS_Escalao": _irs_esc, "IRS_Percentagem": _irs_pct,
                             "Titular_Unico": _tit_unico, "Taxa_Retencao_IRS": _taxa_ret,
                             "Isencao_IRS": _isencao, "Artigo_IRS": _artigo_irs,
+                            "Estado_Fiscal": _est_fiscal, "Medida_Fiscal": _med_fiscal,
+                            "Enquadramento_SS": _enq_ss,
                         }):
                             st.success("✅ Dados fiscais guardados.")
                             st.rerun()
@@ -1413,6 +1437,44 @@ def render_admin_rh(*args):
                             value=_v("Local_Trabalho"), key=f"dl_local_{_slug}")
                     _func_ct = st.text_input("Função Contratual",
                         value=_v("Funcao_Contratual"), key=f"dl_func_{_slug}")
+
+                    st.markdown("**Relatório Único — Modalidade e Tempo de Trabalho**")
+                    _c6, _c7, _c8 = st.columns(3)
+                    with _c6:
+                        _mc_opts, _mc_idx = _sel_opts(MODALIDADE_CONTRATO_OPTS, _v("Modalidade_Contrato"))
+                        _mod_ct = st.selectbox("Modalidade Contrato (RU)", _mc_opts,
+                            index=_mc_idx, key=f"dl_modct_{_slug}")
+                        _pt_opts, _pt_idx = _sel_opts(PRESTACAO_TRABALHO_OPTS, _v("Prestacao_Trabalho"))
+                        _prest_trab = st.selectbox("Prestação de Trabalho", _pt_opts,
+                            index=_pt_idx, key=f"dl_presttrab_{_slug}")
+                        _th_opts, _th_idx = _sel_opts(TIPO_HORARIO_OPTS, _v("Tipo_Horario"))
+                        _tipo_hr = st.selectbox("Tipo Horário", _th_opts,
+                            index=_th_idx, key=f"dl_tipohr_{_slug}")
+                    with _c7:
+                        _dtt_opts, _dtt_idx = _sel_opts(DURACAO_TT_OPTS, _v("Duracao_Tempo_Trabalho"))
+                        _dur_tt = st.selectbox("Duração Tempo Trabalho (RU)", _dtt_opts,
+                            index=_dtt_idx, key=f"dl_durtt_{_slug}")
+                        _ott_opts, _ott_idx = _sel_opts(ORG_TT_OPTS, _v("Organizacao_Tempo_Trabalho"))
+                        _org_tt = st.selectbox("Organização Tempo Trabalho (RU)", _ott_opts,
+                            index=_ott_idx, key=f"dl_orgtt_{_slug}")
+                    with _c8:
+                        _mco_opts, _mco_idx = _sel_opts(MOTIVO_CONTRATO_OPTS, _v("Motivo_Contrato"))
+                        _mot_ct = st.selectbox("Motivo Contrato", _mco_opts,
+                            index=_mco_idx, key=f"dl_motct_{_slug}")
+                        _me_opts, _me_idx = _sel_opts(MOTIVO_ENTRADA_OPTS, _v("Motivo_Entrada"))
+                        _mot_ent = st.selectbox("Motivo Entrada", _me_opts,
+                            index=_me_idx, key=f"dl_motent_{_slug}")
+
+                    st.markdown("**Saída**")
+                    _c9, _c10 = st.columns(2)
+                    with _c9:
+                        _ms_opts, _ms_idx = _sel_opts(MOTIVO_SAIDA_OPTS, _v("Motivo_Saida"))
+                        _mot_sai = st.selectbox("Motivo Saída", _ms_opts,
+                            index=_ms_idx, key=f"dl_motsai_{_slug}")
+                    with _c10:
+                        _data_sai = st.text_input("Data Saída (DD/MM/AAAA)",
+                            value=_v("Data_Saida"), key=f"dl_datasai_{_slug}")
+
                     if st.form_submit_button("💾 Guardar Dados Contratuais",
                                              use_container_width=True, type="primary"):
                         if _sync_rh_csv(_nome_dl, {
@@ -1421,6 +1483,11 @@ def render_admin_rh(*args):
                             "Contrato_Fim": _ct_fim, "Contrato_Indeterminado": _ct_ind,
                             "Periodo_Experimental": _pe, "Periodo_Experimental_Fim": _pe_fim,
                             "Local_Trabalho": _local_t, "Funcao_Contratual": _func_ct,
+                            "Modalidade_Contrato": _mod_ct, "Prestacao_Trabalho": _prest_trab,
+                            "Tipo_Horario": _tipo_hr, "Duracao_Tempo_Trabalho": _dur_tt,
+                            "Organizacao_Tempo_Trabalho": _org_tt, "Motivo_Contrato": _mot_ct,
+                            "Motivo_Entrada": _mot_ent, "Motivo_Saida": _mot_sai,
+                            "Data_Saida": _data_sai,
                         }):
                             st.success("✅ Dados contratuais guardados.")
                             st.rerun()
@@ -1454,6 +1521,33 @@ def render_admin_rh(*args):
                             key=f"dl_ibanval_{_slug}")
                         _swift = st.text_input("SWIFT/BIC",
                             value=_v("SWIFT_BIC"), key=f"dl_swift_{_slug}")
+
+                    st.markdown("**Subsídio de Alimentação e Banco**")
+                    _c4, _c5, _c6 = st.columns(3)
+                    with _c4:
+                        _sam_opts, _sam_idx = _sel_opts(SUB_ALIM_MODO_OPTS, _v("Sub_Alimentacao_Modo"))
+                        _sub_al_modo = st.selectbox("Subsídio Alimentação - Modo", _sam_opts,
+                            index=_sam_idx, key=f"dl_subalmodo_{_slug}")
+                        _sae_opts, _sae_idx = _sel_opts(SUB_ALIM_ENTIDADE_OPTS, _v("Sub_Alimentacao_Entidade"))
+                        _sub_al_ent = st.selectbox("Subsídio Alimentação - Entidade", _sae_opts,
+                            index=_sae_idx, key=f"dl_subalent_{_slug}")
+                        _num_cartao_ref = st.text_input("Nº Cartão Refeição",
+                            value=_v("Num_Cartao_Refeicao"), key=f"dl_numcartref_{_slug}")
+                    with _c5:
+                        _mr_opts, _mr_idx = _sel_opts(MODO_REMUN_OPTS, _v("Modo_Remuneracao"))
+                        _modo_rem = st.selectbox("Modo Remuneração", _mr_opts,
+                            index=_mr_idx, key=f"dl_modorem_{_slug}")
+                        _banco_nome = st.text_input("Banco (Nome)",
+                            value=_v("Banco_Nome"), key=f"dl_banconome_{_slug}")
+                    with _c6:
+                        _rr_opts, _rr_idx = _sel_opts(REGIME_REFORMA_OPTS, _v("Regime_Reforma"))
+                        _reg_reforma = st.selectbox("Regime Reforma", _rr_opts,
+                            index=_rr_idx, key=f"dl_regreforma_{_slug}")
+                        _pensionista = st.selectbox("Pensionista", ["","Sim","Não"],
+                            index=["","Sim","Não"].index(_v("Pensionista"))
+                                  if _v("Pensionista") in ["","Sim","Não"] else 0,
+                            key=f"dl_pensionista_{_slug}")
+
                     if st.form_submit_button("💾 Guardar Remuneração",
                                              use_container_width=True, type="primary"):
                         if _sync_rh_csv(_nome_dl, {
@@ -1462,6 +1556,10 @@ def render_admin_rh(*args):
                             "Premio_Producao": _prem, "Outros_Complementos": _outros,
                             "Forma_Pagamento": _forma_pag, "IBAN_Validado": _iban_val,
                             "SWIFT_BIC": _swift,
+                            "Sub_Alimentacao_Modo": _sub_al_modo, "Sub_Alimentacao_Entidade": _sub_al_ent,
+                            "Num_Cartao_Refeicao": _num_cartao_ref, "Modo_Remuneracao": _modo_rem,
+                            "Banco_Nome": _banco_nome, "Regime_Reforma": _reg_reforma,
+                            "Pensionista": _pensionista,
                         }):
                             st.success("✅ Remuneração guardada.")
                             st.rerun()
@@ -1522,6 +1620,25 @@ def render_admin_rh(*args):
                             value=_v("Cartao_Prof_Num"), key=f"dl_cpnum_{_slug}")
                         _cartao_prof_val = st.text_input("Validade Cartão Prof. (DD/MM/AAAA)",
                             value=_v("Cartao_Prof_Validade"), key=f"dl_cpval_{_slug}")
+
+                    st.markdown("**Relatório Único — Outros**")
+                    _c11, _c12 = st.columns(2)
+                    with _c11:
+                        _npi_opts, _npi_idx = _sel_opts(NIVEL_PROF_IGDT_OPTS, _v("Nivel_Profissional_IGDT"))
+                        _nivel_prof_igdt = st.selectbox("Nível Profissional (IGDT)", _npi_opts,
+                            index=_npi_idx, key=f"dl_nivelprofigdt_{_slug}")
+                        _oes_opts, _oes_idx = _sel_opts(ORIGEM_ENS_SUP_OPTS, _v("Origem_Ensino_Superior"))
+                        _origem_ens_sup = st.selectbox("Origem Ensino Superior", _oes_opts,
+                            index=_oes_idx, key=f"dl_origemenssup_{_slug}")
+                        _tdi_opts, _tdi_idx = _sel_opts(TIPO_DOC_ID_OPTS, _v("Tipo_Doc_ID"))
+                        _tipo_doc_id = st.selectbox("Tipo Documento Identificação", _tdi_opts,
+                            index=_tdi_idx, key=f"dl_tipodocid_{_slug}")
+                    with _c12:
+                        _seg_at = st.text_input("Seguradora AT",
+                            value=_v("Seguradora_AT"), key=f"dl_segat_{_slug}")
+                        _apol_at = st.text_input("Apólice AT",
+                            value=_v("Apolice_AT"), key=f"dl_apolat_{_slug}")
+
                     if st.form_submit_button("💾 Guardar Dados Profissionais",
                                              use_container_width=True, type="primary"):
                         _profissao_code = _profissao.split(" – ")[0] if " – " in _profissao else _profissao
@@ -1535,8 +1652,43 @@ def render_admin_rh(*args):
                             "Antiguidade_Anos": _ant_anos, "Nivel_Remuneratorio": _n_rem,
                             "Grau_Deficiencia": _grau_def, "Deficiencia_Tipo": _def_tipo,
                             "Cartao_Prof_Num": _cartao_prof_num, "Cartao_Prof_Validade": _cartao_prof_val,
+                            "Nivel_Profissional_IGDT": _nivel_prof_igdt,
+                            "Origem_Ensino_Superior": _origem_ens_sup,
+                            "Tipo_Doc_ID": _tipo_doc_id,
+                            "Seguradora_AT": _seg_at, "Apolice_AT": _apol_at,
                         }):
                             st.success("✅ Dados profissionais guardados.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+            # ── 6. Condução e Documentos ──────────────────────────
+            with st.expander("🚗 Condução e Documentos"):
+                with st.form(f"dl_form_conducao_{_slug}"):
+                    _c1, _c2 = st.columns(2)
+                    with _c1:
+                        _carta_num = st.text_input("Nº Carta de Condução",
+                            value=_v("Carta_Conducao_Num"), key=f"dl_cartanum_{_slug}")
+                        _carta_val = st.text_input("Validade Carta (DD/MM/AAAA)",
+                            value=_v("Carta_Conducao_Validade"), key=f"dl_cartaval_{_slug}")
+                        _cc_opts, _cc_idx = _sel_opts(CARTA_CAT_OPTS, _v("Carta_Conducao_Categoria"))
+                        _carta_cat = st.selectbox("Categoria(s) Carta", _cc_opts,
+                            index=_cc_idx, key=f"dl_cartacat_{_slug}")
+                    with _c2:
+                        _reg_assinado = st.selectbox("Regulamento Interno Assinado", ["","Sim","Não"],
+                            index=["","Sim","Não"].index(_v("Regulamento_Assinado"))
+                                  if _v("Regulamento_Assinado") in ["","Sim","Não"] else 0,
+                            key=f"dl_regassinado_{_slug}")
+                        _reg_data = st.text_input("Data Assinatura Regulamento (DD/MM/AAAA)",
+                            value=_v("Regulamento_Data"), key=f"dl_regdata_{_slug}")
+                    if st.form_submit_button("💾 Guardar Condução e Documentos",
+                                             use_container_width=True, type="primary"):
+                        if _sync_rh_csv(_nome_dl, {
+                            "Carta_Conducao_Num": _carta_num, "Carta_Conducao_Validade": _carta_val,
+                            "Carta_Conducao_Categoria": _carta_cat,
+                            "Regulamento_Assinado": _reg_assinado, "Regulamento_Data": _reg_data,
+                        }):
+                            st.success("✅ Dados de condução guardados.")
                             st.rerun()
                         else:
                             st.error("❌ Erro ao guardar — verifica ligação ao GCS")
