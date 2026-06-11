@@ -101,7 +101,17 @@ def _gcs_write(fn, content_bytes):
         blob.upload_from_string(content_bytes, content_type="text/csv")
         return True
     except Exception as e:
-        logger.error(f"❌ Erro crítico GCS write {fn}: {e}")
+        logger.error(f"❌ Erro GCS write {fn}: {e} — a verificar se a escrita foi concluída...")
+        # O upload pode ter sido concluído no GCS apesar do erro de rede ao
+        # ler a resposta. Confirma pelo tamanho do blob antes de reportar falha.
+        try:
+            verify_blob = client.bucket(GCS_BUCKET).blob(f"data/{fn}")
+            verify_blob.reload()
+            if verify_blob.size == len(content_bytes):
+                logger.warning(f"✅ _gcs_write({fn}): escrita confirmada apesar do erro ({e})")
+                return True
+        except Exception as e2:
+            logger.error(f"❌ Verificação pós-erro falhou para {fn}: {e2}")
         st.toast("⚠️ Erro ao guardar dados", icon="⚙️")
     return False
 
