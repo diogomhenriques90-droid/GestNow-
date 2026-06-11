@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import uuid, base64, json, unicodedata, re
+import uuid, base64, hashlib, json, unicodedata, re
 from datetime import datetime, date, timedelta
 from io import BytesIO
 
@@ -1023,34 +1023,39 @@ def render_admin_rh(*args):
             def _opt_idx(opts, val):
                 return opts.index(val) if val in opts else 0
 
+            # Sufixo único por colaborador, para que os widgets (e o seu
+            # value=) sejam recriados ao trocar de colaborador, em vez de
+            # reaproveitarem o estado (e os valores) do anterior.
+            _slug = hashlib.md5(_nome_dl.encode()).hexdigest()[:8]
+
             # ── 1. Identificação Legal ────────────────────────────
             with st.expander("🪪 Identificação Legal", expanded=True):
-                with st.form("dl_form_ident"):
+                with st.form(f"dl_form_ident_{_slug}"):
                     _c1, _c2, _c3 = st.columns(3)
                     with _c1:
                         _genero   = st.selectbox("Género", GENERO_OPTS,
-                            index=_opt_idx(GENERO_OPTS, _v("Genero")), key="dl_genero")
+                            index=_opt_idx(GENERO_OPTS, _v("Genero")), key=f"dl_genero_{_slug}")
                         _datanasc = st.text_input("Data Nascimento (DD/MM/AAAA)",
-                            value=_v("DataNasc"), key="dl_datanasc")
-                        _nat  = st.text_input("Naturalidade", value=_v("Naturalidade"), key="dl_nat")
+                            value=_v("DataNasc"), key=f"dl_datanasc_{_slug}")
+                        _nat  = st.text_input("Naturalidade", value=_v("Naturalidade"), key=f"dl_nat_{_slug}")
                     with _c2:
-                        _nac  = st.text_input("Nacionalidade", value=_v("Nacionalidade"), key="dl_nac")
-                        _pais = st.text_input("País Residência", value=_v("Pais_Residencia"), key="dl_pais")
-                        _nif  = st.text_input("NIF", value=_v("NIF"), key="dl_nif")
+                        _nac  = st.text_input("Nacionalidade", value=_v("Nacionalidade"), key=f"dl_nac_{_slug}")
+                        _pais = st.text_input("País Residência", value=_v("Pais_Residencia"), key=f"dl_pais_{_slug}")
+                        _nif  = st.text_input("NIF", value=_v("NIF"), key=f"dl_nif_{_slug}")
                     with _c3:
-                        _niss = st.text_input("NISS", value=_v("NISS"), key="dl_niss")
-                        _cc   = st.text_input("Nº Cartão Cidadão", value=_v("CC"), key="dl_cc")
+                        _niss = st.text_input("NISS", value=_v("NISS"), key=f"dl_niss_{_slug}")
+                        _cc   = st.text_input("Nº Cartão Cidadão", value=_v("CC"), key=f"dl_cc_{_slug}")
                         _ccval= st.text_input("Validade CC (DD/MM/AAAA)",
-                            value=_v("CC_Validade"), key="dl_ccval")
+                            value=_v("CC_Validade"), key=f"dl_ccval_{_slug}")
                     _c4, _c5 = st.columns(2)
                     with _c4:
-                        _pass_num = st.text_input("Passaporte", value=_v("Passaporte"), key="dl_pass")
+                        _pass_num = st.text_input("Passaporte", value=_v("Passaporte"), key=f"dl_pass_{_slug}")
                         _pass_val = st.text_input("Validade Passaporte (DD/MM/AAAA)",
-                            value=_v("Passaporte_Validade"), key="dl_passval")
+                            value=_v("Passaporte_Validade"), key=f"dl_passval_{_slug}")
                     with _c5:
                         _est_civil = st.selectbox("Estado Civil", ESTADO_CIVIL_OPTS,
-                            index=_opt_idx(ESTADO_CIVIL_OPTS, _v("Estado_Civil")), key="dl_estcivil")
-                        _n_dep = st.text_input("Nº Dependentes", value=_v("N_Dependentes"), key="dl_ndep")
+                            index=_opt_idx(ESTADO_CIVIL_OPTS, _v("Estado_Civil")), key=f"dl_estcivil_{_slug}")
+                        _n_dep = st.text_input("Nº Dependentes", value=_v("N_Dependentes"), key=f"dl_ndep_{_slug}")
                     if st.form_submit_button("💾 Guardar Identificação",
                                              use_container_width=True, type="primary"):
                         if _sync_rh_csv(_nome_dl, {
@@ -1068,22 +1073,22 @@ def render_admin_rh(*args):
 
             # ── 2. Dados Fiscais ──────────────────────────────────
             with st.expander("🏦 Dados Fiscais"):
-                with st.form("dl_form_fiscal"):
+                with st.form(f"dl_form_fiscal_{_slug}"):
                     _c1, _c2 = st.columns(2)
                     with _c1:
-                        _irs_esc  = st.text_input("Escalão IRS", value=_v("IRS_Escalao"), key="dl_irs_esc")
-                        _irs_pct  = st.text_input("Taxa IRS (%)", value=_v("IRS_Percentagem"), key="dl_irs_pct")
+                        _irs_esc  = st.text_input("Escalão IRS", value=_v("IRS_Escalao"), key=f"dl_irs_esc_{_slug}")
+                        _irs_pct  = st.text_input("Taxa IRS (%)", value=_v("IRS_Percentagem"), key=f"dl_irs_pct_{_slug}")
                         _tit_unico= st.selectbox("Titular Único", ["","Sim","Não"],
                             index=["","Sim","Não"].index(_v("Titular_Unico"))
                                   if _v("Titular_Unico") in ["","Sim","Não"] else 0,
-                            key="dl_tit_unico")
+                            key=f"dl_tit_unico_{_slug}")
                     with _c2:
-                        _taxa_ret = st.text_input("Taxa Retenção (%)", value=_v("Taxa_Retencao_IRS"), key="dl_taxa_ret")
+                        _taxa_ret = st.text_input("Taxa Retenção (%)", value=_v("Taxa_Retencao_IRS"), key=f"dl_taxa_ret_{_slug}")
                         _isencao  = st.selectbox("Isenção IRS", ["","Sim","Não"],
                             index=["","Sim","Não"].index(_v("Isencao_IRS"))
                                   if _v("Isencao_IRS") in ["","Sim","Não"] else 0,
-                            key="dl_isencao")
-                        _artigo_irs = st.text_input("Artigo IRS", value=_v("Artigo_IRS"), key="dl_artigo")
+                            key=f"dl_isencao_{_slug}")
+                        _artigo_irs = st.text_input("Artigo IRS", value=_v("Artigo_IRS"), key=f"dl_artigo_{_slug}")
                     if st.form_submit_button("💾 Guardar Dados Fiscais",
                                              use_container_width=True, type="primary"):
                         if _sync_rh_csv(_nome_dl, {
@@ -1098,32 +1103,32 @@ def render_admin_rh(*args):
 
             # ── 3. Dados Contratuais ──────────────────────────────
             with st.expander("📄 Dados Contratuais"):
-                with st.form("dl_form_contrato"):
+                with st.form(f"dl_form_contrato_{_slug}"):
                     _c1, _c2, _c3 = st.columns(3)
                     with _c1:
                         _tp_ct = st.selectbox("Tipo Contrato", TIPO_CONTRATO_OPTS,
-                            index=_opt_idx(TIPO_CONTRATO_OPTS, _v("Tipo_Contrato")), key="dl_tpct")
+                            index=_opt_idx(TIPO_CONTRATO_OPTS, _v("Tipo_Contrato")), key=f"dl_tpct_{_slug}")
                         _mod_hr = st.selectbox("Modalidade Horário", MODALIDADE_HORARIO_OPTS,
-                            index=_opt_idx(MODALIDADE_HORARIO_OPTS, _v("Modalidade_Horario")), key="dl_modhr")
-                        _hrs_sem = st.text_input("Horas/Semana", value=_v("Horas_Semana"), key="dl_hrsem")
+                            index=_opt_idx(MODALIDADE_HORARIO_OPTS, _v("Modalidade_Horario")), key=f"dl_modhr_{_slug}")
+                        _hrs_sem = st.text_input("Horas/Semana", value=_v("Horas_Semana"), key=f"dl_hrsem_{_slug}")
                     with _c2:
                         _ct_ini  = st.text_input("Data Início Contrato (DD/MM/AAAA)",
-                            value=_v("Contrato_Inicio"), key="dl_ctini")
+                            value=_v("Contrato_Inicio"), key=f"dl_ctini_{_slug}")
                         _ct_fim  = st.text_input("Data Fim Contrato (DD/MM/AAAA)",
-                            value=_v("Contrato_Fim"), key="dl_ctfim")
+                            value=_v("Contrato_Fim"), key=f"dl_ctfim_{_slug}")
                         _ct_ind  = st.selectbox("Contrato Indeterminado", ["","Sim","Não"],
                             index=["","Sim","Não"].index(_v("Contrato_Indeterminado"))
                                   if _v("Contrato_Indeterminado") in ["","Sim","Não"] else 0,
-                            key="dl_ctind")
+                            key=f"dl_ctind_{_slug}")
                     with _c3:
                         _pe      = st.text_input("Período Experimental (meses)",
-                            value=_v("Periodo_Experimental"), key="dl_pe")
+                            value=_v("Periodo_Experimental"), key=f"dl_pe_{_slug}")
                         _pe_fim  = st.text_input("Fim Período Exp. (DD/MM/AAAA)",
-                            value=_v("Periodo_Experimental_Fim"), key="dl_pefim")
+                            value=_v("Periodo_Experimental_Fim"), key=f"dl_pefim_{_slug}")
                         _local_t = st.text_input("Local de Trabalho",
-                            value=_v("Local_Trabalho"), key="dl_local")
+                            value=_v("Local_Trabalho"), key=f"dl_local_{_slug}")
                     _func_ct = st.text_input("Função Contratual",
-                        value=_v("Funcao_Contratual"), key="dl_func")
+                        value=_v("Funcao_Contratual"), key=f"dl_func_{_slug}")
                     if st.form_submit_button("💾 Guardar Dados Contratuais",
                                              use_container_width=True, type="primary"):
                         if _sync_rh_csv(_nome_dl, {
@@ -1140,31 +1145,31 @@ def render_admin_rh(*args):
 
             # ── 4. Remuneração e Pagamento ────────────────────────
             with st.expander("💰 Remuneração e Pagamento"):
-                with st.form("dl_form_rem"):
+                with st.form(f"dl_form_rem_{_slug}"):
                     _c1, _c2, _c3 = st.columns(3)
                     with _c1:
                         _sal_b  = st.text_input("Salário Base (€)",
-                            value=_v("Salario_Base"), key="dl_salb")
+                            value=_v("Salario_Base"), key=f"dl_salb_{_slug}")
                         _sub_al = st.text_input("Subsídio Alimentação (€)",
-                            value=_v("Subsidio_Alimentacao"), key="dl_subal")
+                            value=_v("Subsidio_Alimentacao"), key=f"dl_subal_{_slug}")
                         _sub_fe = st.text_input("Subsídio Férias (€)",
-                            value=_v("Subsidio_Ferias"), key="dl_subfe")
+                            value=_v("Subsidio_Ferias"), key=f"dl_subfe_{_slug}")
                     with _c2:
                         _sub_na = st.text_input("Subsídio Natal (€)",
-                            value=_v("Subsidio_Natal"), key="dl_subna")
+                            value=_v("Subsidio_Natal"), key=f"dl_subna_{_slug}")
                         _prem   = st.text_input("Prémio Produção (€)",
-                            value=_v("Premio_Producao"), key="dl_prem")
+                            value=_v("Premio_Producao"), key=f"dl_prem_{_slug}")
                         _outros = st.text_input("Outros Complementos",
-                            value=_v("Outros_Complementos"), key="dl_outros")
+                            value=_v("Outros_Complementos"), key=f"dl_outros_{_slug}")
                     with _c3:
                         _forma_pag = st.selectbox("Forma Pagamento", FORMA_PAGAMENTO_OPTS,
-                            index=_opt_idx(FORMA_PAGAMENTO_OPTS, _v("Forma_Pagamento")), key="dl_fpag")
+                            index=_opt_idx(FORMA_PAGAMENTO_OPTS, _v("Forma_Pagamento")), key=f"dl_fpag_{_slug}")
                         _iban_val  = st.selectbox("IBAN Validado", ["","Sim","Não"],
                             index=["","Sim","Não"].index(_v("IBAN_Validado"))
                                   if _v("IBAN_Validado") in ["","Sim","Não"] else 0,
-                            key="dl_ibanval")
+                            key=f"dl_ibanval_{_slug}")
                         _swift = st.text_input("SWIFT/BIC",
-                            value=_v("SWIFT_BIC"), key="dl_swift")
+                            value=_v("SWIFT_BIC"), key=f"dl_swift_{_slug}")
                     if st.form_submit_button("💾 Guardar Remuneração",
                                              use_container_width=True, type="primary"):
                         if _sync_rh_csv(_nome_dl, {
@@ -1181,51 +1186,51 @@ def render_admin_rh(*args):
 
             # ── 5. Profissional / Relatório Único ─────────────────
             with st.expander("📊 Profissional & Relatório Único"):
-                with st.form("dl_form_prof"):
+                with st.form(f"dl_form_prof_{_slug}"):
                     _c1, _c2 = st.columns(2)
                     with _c1:
                         _nivel_hab = st.selectbox("Nível Habilitações", NIVEL_HABILITACOES_OPTS,
-                            index=_opt_idx(NIVEL_HABILITACOES_OPTS, _v("Nivel_Habilitacoes")), key="dl_nhab")
+                            index=_opt_idx(NIVEL_HABILITACOES_OPTS, _v("Nivel_Habilitacoes")), key=f"dl_nhab_{_slug}")
                         _sit_prof  = st.selectbox("Situação Profissional", SITUACAO_PROFISSIONAL_OPTS,
-                            index=_opt_idx(SITUACAO_PROFISSIONAL_OPTS, _v("Situacao_Profissional")), key="dl_sitprof")
+                            index=_opt_idx(SITUACAO_PROFISSIONAL_OPTS, _v("Situacao_Profissional")), key=f"dl_sitprof_{_slug}")
                         _cpp_opts  = [""] + [f"{k} – {v}" for k,v in PROFISSOES_CPP_CPS.items()]
                         _cpp_val   = _v("Profissao_CPP")
                         _cpp_match = next((o for o in _cpp_opts if o.startswith(_cpp_val)), "")
                         _cpp_idx   = _cpp_opts.index(_cpp_match) if _cpp_match in _cpp_opts else 0
                         _profissao = st.selectbox("Profissão (CPP 2010)", _cpp_opts,
-                            index=_cpp_idx, key="dl_cpp")
+                            index=_cpp_idx, key=f"dl_cpp_{_slug}")
                         _cct_opts  = [""] + [f"{k} – {v}" for k,v in CATEGORIAS_CCT_25989.items()]
                         _cct_val   = _v("Categoria_CCT")
                         _cct_match = next((o for o in _cct_opts if o.startswith(_cct_val)), "")
                         _cct_idx   = _cct_opts.index(_cct_match) if _cct_match in _cct_opts else 0
                         _cat_cct   = st.selectbox("Categoria CCT", _cct_opts,
-                            index=_cct_idx, key="dl_catcct")
+                            index=_cct_idx, key=f"dl_catcct_{_slug}")
                     with _c2:
                         _irct = st.selectbox("IRCT Aplicável", IRCT_OPTS,
-                            index=_opt_idx(IRCT_OPTS, _v("IRCT_Aplicavel")), key="dl_irct")
+                            index=_opt_idx(IRCT_OPTS, _v("IRCT_Aplicavel")), key=f"dl_irct_{_slug}")
                         _vinculo = st.text_input("Vínculo Empresa",
-                            value=_v("Vinculo_Empresa"), key="dl_vinculo")
+                            value=_v("Vinculo_Empresa"), key=f"dl_vinculo_{_slug}")
                         _red_hr  = st.selectbox("Redução Horário", ["","Sim","Não"],
                             index=["","Sim","Não"].index(_v("Reducao_Horario"))
                                   if _v("Reducao_Horario") in ["","Sim","Não"] else 0,
-                            key="dl_redhr")
+                            key=f"dl_redhr_{_slug}")
                         _dt_prom = st.text_input("Data Última Promoção (DD/MM/AAAA)",
-                            value=_v("Data_Ultima_Promocao"), key="dl_dtprom")
+                            value=_v("Data_Ultima_Promocao"), key=f"dl_dtprom_{_slug}")
                         _ant_anos= st.text_input("Antiguidade (anos)",
-                            value=_v("Antiguidade_Anos"), key="dl_antanos")
+                            value=_v("Antiguidade_Anos"), key=f"dl_antanos_{_slug}")
                         _n_rem   = st.text_input("Nível Remuneratório",
-                            value=_v("Nivel_Remuneratorio"), key="dl_nrem")
+                            value=_v("Nivel_Remuneratorio"), key=f"dl_nrem_{_slug}")
                     _c3, _c4 = st.columns(2)
                     with _c3:
                         _grau_def = st.text_input("Grau Deficiência (%)",
-                            value=_v("Grau_Deficiencia"), key="dl_graudef")
+                            value=_v("Grau_Deficiencia"), key=f"dl_graudef_{_slug}")
                         _def_tipo = st.text_input("Tipo Deficiência",
-                            value=_v("Deficiencia_Tipo"), key="dl_deftipo")
+                            value=_v("Deficiencia_Tipo"), key=f"dl_deftipo_{_slug}")
                     with _c4:
                         _cartao_prof_num = st.text_input("Nº Cartão Profissional",
-                            value=_v("Cartao_Prof_Num"), key="dl_cpnum")
+                            value=_v("Cartao_Prof_Num"), key=f"dl_cpnum_{_slug}")
                         _cartao_prof_val = st.text_input("Validade Cartão Prof. (DD/MM/AAAA)",
-                            value=_v("Cartao_Prof_Validade"), key="dl_cpval")
+                            value=_v("Cartao_Prof_Validade"), key=f"dl_cpval_{_slug}")
                     if st.form_submit_button("💾 Guardar Dados Profissionais",
                                              use_container_width=True, type="primary"):
                         _profissao_code = _profissao.split(" – ")[0] if " – " in _profissao else _profissao
