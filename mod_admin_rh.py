@@ -59,6 +59,167 @@ NIVEL_HABILITACOES_OPTS = [
     "3º Ciclo (9º ano)","Ensino Secundário (12º ano)","Bacharelato",
     "Licenciatura","Mestrado","Doutoramento","Outro",
 ]
+
+# Tabela 14 do Relatório Único — Níveis de Habilitação (gerada a partir de
+# "Habilitações.xlsx"). NIVEL_HABILITACOES_OPTS é mantido acima apenas para
+# backcompat de valores já gravados.
+HABILITACOES_RU = {
+    "14": "Técnico superior formação de professores e ciências da educação",
+    "21": "Técnico Superior Profissional Artes",
+    "22": "Técnico Superior Profissional Humanidades",
+    "31": "Técnico Superior Profissional Ciências Sociais e do Comportamento",
+    "32": "Técnico superior profissional informação e jornalismo",
+    "34": "Técnico Superior Profissional Ciências Empresariais",
+    "38": "Técnico Superior Profissional Direito",
+    "42": "Técnico Superior Profissional Ciências da Vida",
+    "44": "Técnico Superior Profissional Ciências Físicas",
+    "46": "Técnico superior profissional matemática e estatística",
+    "48": "Técnico Superior Profissional Informática",
+    "52": "Técnico Superior Profissional Engenharia e Tecnicas Afins",
+    "54": "Técnico Superior Profissional Indústrias Transformadoras",
+    "58": "Técnico Superior Profissional Arquitectura e Construção",
+    "62": "Técnico Superior Profissional Agricultura, Sivicultura e Pesca",
+    "64": "Técnico Superior Profissional Ciências Veterinárias",
+    "72": "Técnico Superior Profissional Saúde",
+    "76": "Técnico Superior Profissional Serviços Sociais",
+    "81": "Técnico Superior Profissional Serviços Pessoais",
+    "84": "Técnico superior profissional serviços de transporte",
+    "85": "Técnico Superior Profissional Protecção do Ambiente",
+    "86": "Técnico Superior Profissional Serviços de Segurança",
+    "99": "Técnico Superior Profissional Desconhecido ou Não Especificado",
+    "111": "Não sabe ler nem escrever",
+    "112": "Sabe ler e escrever",
+    "211": "1º Ciclo do Ensino Básico",
+    "212": "1º Ciclo Ensino Básico (I.P.)",
+    "221": "2º Ciclo do Ensino Básico",
+    "222": "2º Ciclo Ensino Básico (I.P.)",
+    "231": "3º Ciclo do Ensino Básico",
+    "232": "Ensino Téc.:Geral Comercial",
+    "233": "3º Ciclo Ensino Básico (I.P.)",
+    "234": "Escolas Profissionais-Nível II",
+    "312": "Ensino Sec. Téc.Complementar",
+    "313": "Ensino Sec. Téc.Profissional",
+    "314": "Cursos Esc.Profiss.Nível III",
+    "315": "Ensino Sec. (12 ou equiv.), Lic. Compl.",
+    "316": "Ensino Sec.  c/cursos indole Profissional",
+    "414": "Form.prof.form.educ.(Nível IV)",
+    "421": "Artes (Nível IV)",
+    "422": "Humanidades (Nível IV)",
+    "431": "Ciênc.soc.comportam.(Nível IV)",
+    "432": "Informação jornal. (Nível IV)",
+    "434": "Ciênc. empresariais (Nível IV)",
+    "438": "Direito (Nível IV)",
+    "442": "Ciências da vida (Nível IV)",
+    "444": "Ciências físicas (Nível IV)",
+    "446": "Matemát. estatísti. (Nível IV)",
+    "448": "Informática (Nível IV)",
+    "452": "Eng. técnicas afins (Nível IV)",
+    "454": "Indúst. transf. (Nível IV)",
+    "458": "Arquit. construção (Nível IV)",
+    "462": "Agric.,silvic.pescas(Nível IV)",
+    "464": "Ciênc. veterinárias (Nível IV)",
+    "472": "Saúde (Nível IV)",
+    "476": "Serviços sociais (Nível IV)",
+    "481": "Serviços pessoais (Nível IV)",
+    "484": "Serviços transporte (Nível IV)",
+    "485": "Protecção ambiente (Nível IV)",
+    "486": "Serviços segurança (Nível IV)",
+    "499": "Não especificado (Nível IV)",
+    "514": "Form.prof.form.c.educ.(Bac.)",
+    "521": "Artes (Bac.)",
+    "522": "Humanidades (Bac.)",
+    "531": "Ciênc. soc. comportam. (Bac.)",
+    "532": "Informação jornalismo (Bac.)",
+    "534": "Ciências empresariais (Bac.)",
+    "538": "Direito (Bac.)",
+    "542": "Ciências da vida (Bac.)",
+    "544": "Ciências físicas (Bac.)",
+    "546": "Matemática estatística (Bac.)",
+    "548": "Informática (Bac.)",
+    "552": "Eng. e técnicas afins (bac.)",
+    "554": "Indúst. transformadoras (Bac.)",
+    "558": "Arquitect. construção (Bac.)",
+    "562": "Agric., silvic. pescas (Bac.)",
+    "564": "Ciências veterinárias (Bac.)",
+    "572": "Saúde (Bac.)",
+    "576": "Serviços sociais (Bac.)",
+    "581": "Serviços pessoais (Bac.)",
+    "584": "Serviços de transporte (Bac.)",
+    "585": "Protecção do ambiente (Bac.)",
+    "586": "Serviços de segurança (Bac.)",
+    "599": "Não especificado (Bac.)",
+    "614": "Form.prof.form.c.educ.(Lic.)",
+    "621": "Artes (Lic.)",
+    "622": "Humanidades (Lic.)",
+    "631": "Ciênc. soc. comportam. (Lic.)",
+    "632": "Informação jornalismo (Lic.)",
+    "634": "Ciências empresariais (Lic.)",
+    "638": "Direito (Lic.)",
+    "642": "Ciências da vida (Lic.)",
+    "644": "Ciências físicas (Lic.)",
+    "646": "Matemática estatística (Lic.)",
+    "648": "Informática (Lic.)",
+    "652": "Eng. e técnicas afins (Lic.)",
+    "654": "Indúst. transformadoras (Lic.)",
+    "658": "Arquitect. construção (Lic.)",
+    "662": "Agric,silvic.e pescas(Lic.)",
+    "664": "Ciências veterinárias (Lic.)",
+    "672": "Saúde (Lic.)",
+    "676": "Serviços sociais (Lic.)",
+    "681": "Serviços pessoais (Lic.)",
+    "684": "Serviços de transporte (Lic.)",
+    "685": "Protecção do ambiente (Lic.)",
+    "686": "Serviços de segurança (Lic.)",
+    "699": "Não especificado (Lic.)",
+    "714": "Form.prof.form.c.educ.(Mest.)",
+    "721": "Artes (Mest.)",
+    "722": "Humanidades (Mest.)",
+    "731": "Ciênc. soc. comportam. (Mest.)",
+    "732": "Informação jornalismo (Mest.)",
+    "734": "Ciências empresariais (Mest.)",
+    "738": "Direito (Mest.)",
+    "742": "Ciências da vida (Mest.)",
+    "744": "Ciências físicas (Mest.)",
+    "746": "Matemática estatística (Mest.)",
+    "748": "Informática (Mest.)",
+    "752": "Eng. e técnicas afins (Mest.)",
+    "754": "Indúst. transform.(Mest.)",
+    "758": "Arquitect. construção (Mest.)",
+    "762": "Agric.,silvic.e pescas(Mest.)",
+    "764": "Ciências veterinárias (Mest.)",
+    "772": "Saúde (Mest.)",
+    "776": "Serviços sociais (Mest.)",
+    "781": "Serviços pessoais (Mest.)",
+    "784": "Serviços de transporte (Mest.)",
+    "785": "Protecção do ambiente (Mest.)",
+    "786": "Serviços de segurança (Mest.)",
+    "799": "Não especificado (Mest.)",
+    "814": "Form.prof.form.c.educ.(Dout.)",
+    "821": "Artes (Dout.)",
+    "822": "Humanidades (Dout.)",
+    "831": "Ciênc. soc. comportam. (Dout.)",
+    "832": "Informação jornalismo (Dout.)",
+    "834": "Ciências empresariais (Dout.)",
+    "838": "Direito (Dout.)",
+    "842": "Ciências da vida (Dout.)",
+    "844": "Ciências físicas (Dout.)",
+    "846": "Matemática estatística (Dout.)",
+    "848": "Informática (Dout.)",
+    "852": "Eng. e técnicas afins (Dout.)",
+    "854": "Indúst. transform. (Dout.)",
+    "858": "Arquitect. construção (Dout.)",
+    "862": "Agric.,silvic.e pescas(Dout.)",
+    "864": "Ciências veterinárias (Dout.)",
+    "872": "Saúde (Dout.)",
+    "876": "Serviços sociais (Dout.)",
+    "881": "Serviços pessoais (Dout.)",
+    "884": "Serviços de transporte (Dout.)",
+    "885": "Protecção do ambiente (Dout.)",
+    "886": "Serviços de segurança (Dout.)",
+    "899": "Não especificado (Dout.)",
+}
+HABILITACOES_RU_OPTS = [""] + [f"{_k} - {_v}" for _k, _v in HABILITACOES_RU.items()]
+
 SITUACAO_PROFISSIONAL_OPTS = [
     "Quadro Permanente","Contrato a Termo Certo","Contrato a Termo Incerto",
     "Prestador de Serviços","Estagiário","Outro",
@@ -66,6 +227,113 @@ SITUACAO_PROFISSIONAL_OPTS = [
 FORMA_PAGAMENTO_OPTS = ["Transferência Bancária","Numerário","Cheque","Outro"]
 IRCT_OPTS            = ["IRCT 25989 – CCT Empresas Electrotécnicas",
                         "IRCT 5/2015 – CCT Metalúrgico","Outro","Não aplicável"]
+
+# ── Constantes adicionais (Parte 1 — Fase 2 RH) ───────────────────────
+ESTADO_FISCAL_OPTS = [
+    "Não Casado", "Casado - Único Titular", "Casado - Dois Titulares",
+    "Não Casado - Deficiente", "Casado - Único Titular Deficiente",
+    "Casado - Dois Titulares Deficiente",
+]
+MEDIDA_FISCAL_OPTS = [
+    "Nenhuma", "IRS Jovem", "Programa Regressar",
+    "Residente Não Habitual (RNH)", "Outra",
+]
+ENQUADRAMENTO_SS_OPTS = [
+    "Regime Geral - Trabalhador por Conta de Outrem",
+    "Membro de Órgão Estatutário", "Pensionista",
+    "Isento de Contribuições", "Trabalhador Independente", "Outro",
+]
+MODALIDADE_CONTRATO_OPTS = [
+    "Contrato Sem Termo", "Contrato a Termo Certo", "Contrato a Termo Incerto",
+    "Contrato de Trabalho Temporário", "Contrato de Muito Curta Duração",
+    "Contrato de Trabalho a Tempo Parcial", "Comissão de Serviço",
+    "Outra Situação",
+]
+PRESTACAO_TRABALHO_OPTS = ["Tempo Inteiro", "Tempo Parcial"]
+MOTIVO_CONTRATO_OPTS = [
+    "Substituição Direta ou Indireta de Trabalhador",
+    "Atividade Sazonal",
+    "Acréscimo Excecional de Atividade",
+    "Execução de Tarefa Ocasional ou Serviço Determinado Precisamente Definido e Não Duradouro",
+    "Execução de Obra, Projeto ou Outra Atividade Definida e Temporária",
+    "Lançamento de Nova Atividade",
+    "Contratação de Trabalhador à Procura de Primeiro Emprego",
+    "Contratação de Desempregado de Longa Duração",
+    "Outro",
+]
+MOTIVO_ENTRADA_OPTS = [
+    "Novo Posto de Trabalho", "Substituição de Trabalhador",
+    "Necessidades Temporárias", "Transferência", "Outro",
+]
+MOTIVO_SAIDA_OPTS = [
+    "Caducidade do Contrato a Termo",
+    "Despedimento por Iniciativa do Empregador",
+    "Despedimento Coletivo",
+    "Resolução pelo Trabalhador",
+    "Revogação por Mútuo Acordo",
+    "Reforma",
+    "Morte do Trabalhador",
+    "Denúncia pelo Trabalhador",
+    "Outro",
+]
+SUB_ALIM_MODO_OPTS = [
+    "Não Aplicável", "Subsídio em Dinheiro", "Cartão Refeição",
+    "Refeitório/Cantina",
+]
+SUB_ALIM_ENTIDADE_OPTS = [
+    "Empresa", "Cartão Edenred", "Cartão Sodexo", "Cartão Up Refeição", "Outro",
+]
+NIVEL_PROF_IGDT_OPTS = [
+    "Quadro superior", "Quadro médio",
+    "Encarregado, contramestre, mestre e chefe de equipa",
+    "Profissional altamente qualificado", "Profissional qualificado",
+    "Profissional semiqualificado", "Profissional não qualificado",
+    "Praticante e aprendiz",
+]
+ORIGEM_ENS_SUP_OPTS = [
+    "Não Aplicável", "Universitário Público", "Universitário Privado",
+    "Politécnico Público", "Politécnico Privado",
+]
+TIPO_DOC_ID_OPTS = [
+    "Cartão de Cidadão", "Passaporte", "Título de Residência Temporária",
+    "Título de Residência Permanente", "Cartão Registo Cidadão UE/EEE",
+]
+NIVEL_QUALIF_OPTS = [
+    "Quadro superior", "Quadro médio",
+    "Encarregado, contramestre, mestre e chefe de equipa",
+    "Profissional altamente qualificado", "Profissional qualificado",
+    "Profissional semi-qualificado especializado",
+    "Profissional não qualificado indiferenciado",
+    "Estagiário, praticante e aprendiz",
+]
+TIPO_HORARIO_OPTS = [
+    "Normal Fixo", "Horário Flexível", "Trabalho por Turnos",
+    "Banco de Horas", "Adaptabilidade", "Isenção de Horário",
+]
+DURACAO_TT_OPTS = [
+    "1 - Adaptabilidade por regulamentação colectiva (RU:10)",
+    "2 - Adaptabilidade individual (RU:11)",
+    "3 - Banco de horas por regulamentação colectiva (RU:12)",
+    "4 - Banco de horas individual (RU:13)",
+    "5 - Banco de horas grupal (RU:14)",
+    "6 - Horário concentrado (RU:15)",
+    "7 - Não aplicável",
+]
+REGIME_REFORMA_OPTS = [
+    "1 - Segurança Social", "2 - Caixa Geral de Aposentações",
+    "3 - Outro Regime de Proteção Social", "4 - Não Aplicável",
+]
+ORG_TT_OPTS = [
+    "1 - Trabalho diurno", "2 - Trabalho noturno",
+    "3 - Trabalho por turnos", "4 - Trabalho misto",
+]
+MODO_REMUN_OPTS = [
+    "Mensal", "Quinzenal", "Semanal", "Diário", "Por Tarefa/Output", "Outro",
+]
+CARTA_CAT_OPTS = [
+    "A1", "A2", "A", "B1", "B", "BE", "C1", "C1E", "C", "CE",
+    "D1", "D1E", "D", "DE",
+]
 
 CATEGORIAS_CCT_25989 = {
     "02069": "AJUDANTES DE FOGUEIRO",
@@ -187,7 +455,23 @@ COLS_RH = [
     "Nivel_Remuneratorio","Grau_Deficiencia","Deficiencia_Tipo",
     "Seg_Social_Cartao","Cartao_Prof_Num","Cartao_Prof_Validade",
     "Alvara_Num","Alvara_Validade",
+    # Campos dinâmicos do Eticadata (Parte 0c)
+    "Eticadata_ID","Data_Admissao","Tipo_Doc_ID","Nivel_Qualificacao",
+    "Tipo_Horario","Duracao_Tempo_Trabalho","Modo_Remuneracao","Pensionista",
+    "Banco_Nome","Banco_Empresa_Pagamento","Num_Utente","Servico_Financas",
+    "Regime_Reforma","Organizacao_Tempo_Trabalho","IRCT_Codigo","IRCT_Descricao",
+    # Novos campos (Parte 1 — Fase 2 RH)
+    "Estado_Fiscal","N_Dependentes_Deficiencia","Medida_Fiscal","Enquadramento_SS",
+    "Modalidade_Contrato","Prestacao_Trabalho","Motivo_Contrato","Motivo_Entrada",
+    "Motivo_Saida","Data_Saida","Sub_Alimentacao_Modo","Sub_Alimentacao_Entidade",
+    "Num_Cartao_Refeicao","Seguradora_AT","Apolice_AT","Nivel_Profissional_IGDT",
+    "Origem_Ensino_Superior","Carta_Conducao_Num","Carta_Conducao_Validade",
+    "Carta_Conducao_Categoria","Regulamento_Assinado","Regulamento_Data",
 ]
+
+# Campos que o importador Eticadata só preenche se estiverem vazios em
+# colaboradores_rh.csv — preserva correções manuais feitas pelo admin.
+CAMPOS_PROTEGIDOS_RH = ["Nacionalidade", "Estado_Civil", "Naturalidade"]
 
 # Mapeamento Eticadata → COLS_RH (nome coluna Eticadata: nome campo GestNow)
 ETICADATA_MAP = {
@@ -376,11 +660,13 @@ def render_admin_rh(*args):
         ("Passaporte_Validade",  "Passaporte"),
         ("Cartao_Prof_Validade", "Carta Prof."),
         ("Alvara_Validade",      "Alvará"),
+        ("Carta_Conducao_Validade", "Carta de Condução"),
     ]
-    _CAMPOS_OBG = ["NIF","NISS","CC","CC_Validade","Banco_IBAN","Tipo_Contrato"]
+    _CAMPOS_OBG = ["NIF","NISS","CC","CC_Validade","Banco_IBAN","Tipo_Contrato",
+                   "Estado_Fiscal","Enquadramento_SS","Categoria_CCT"]
 
-    _n_exp, _n_prox, _n_ct, _n_inc = 0, 0, 0, 0
-    _det_exp, _det_prox, _det_ct, _det_inc = [], [], [], []
+    _n_exp, _n_prox, _n_ct, _n_inc, _n_reg = 0, 0, 0, 0, 0
+    _det_exp, _det_prox, _det_ct, _det_inc, _det_reg = [], [], [], [], []
 
     def _parse_date(s):
         for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
@@ -412,13 +698,17 @@ def render_admin_rh(*args):
             if _falta:
                 _n_inc += 1
                 _det_inc.append(f"{_nm} — em falta: {', '.join(_falta)}")
+            if _r.get('Regulamento_Assinado', '') != 'Sim':
+                _n_reg += 1
+                _det_reg.append(f"{_nm} — regulamento interno por assinar")
 
-    if _n_exp + _n_prox + _n_ct + _n_inc > 0:
-        _ca1, _ca2, _ca3, _ca4 = st.columns(4)
+    if _n_exp + _n_prox + _n_ct + _n_inc + _n_reg > 0:
+        _ca1, _ca2, _ca3, _ca4, _ca5 = st.columns(5)
         _ca1.metric("🔴 Expirados",   _n_exp)
         _ca2.metric("🟡 A expirar",   _n_prox)
         _ca3.metric("🟠 Contratos",   _n_ct)
         _ca4.metric("⚪ Incompletos", _n_inc)
+        _ca5.metric("⚪ Regulamento", _n_reg)
         with st.expander("📋 Ver detalhes dos alertas"):
             if _det_exp:
                 st.markdown("**🔴 Documentos Expirados**")
@@ -432,6 +722,9 @@ def render_admin_rh(*args):
             if _det_inc:
                 st.markdown("**⚪ Fichas Incompletas**")
                 for _d in _det_inc: st.markdown(f"- {_d}")
+            if _det_reg:
+                st.markdown("**⚪ Regulamento Interno por Assinar**")
+                for _d in _det_reg: st.markdown(f"- {_d}")
         st.markdown("---")
 
     (tab_lista, tab_gestao, tab_dados_legais, tab_eticadata,
@@ -695,29 +988,223 @@ def render_admin_rh(*args):
 
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
-        # ── Todos os dados por secções ────────────────────────────
-        for secao, campos in CAMPOS_PERFIL:
-            tem_dados = any(
-                row.get(c,'') and not c.endswith('_b64')
-                for c in campos
+        # ── Dados editáveis por secções (Gestão Individual) ───────
+        _slug_gi = hashlib.md5(nome_sel.encode()).hexdigest()[:8]
+
+        def _vg(campo, default=""):
+            return row.get(campo, default)
+
+        def _save_gi(updates: dict) -> bool:
+            u_gi  = _load_users_fresh()
+            mk_gi = u_gi['Nome'] == nome_sel
+            if not mk_gi.any():
+                return False
+            for _k, _vv in updates.items():
+                u_gi.loc[mk_gi, _k] = _vv
+            ok = save_db(u_gi, "usuarios.csv")
+            if ok:
+                inv("usuarios.csv")
+                from core import _cached_load_all
+                _cached_load_all.clear()
+                log_audit(usuario=st.session_state.get("user","admin"),
+                          acao="ATUALIZAR_GESTAO_INDIVIDUAL",
+                          tabela="usuarios.csv",
+                          registro_id=nome_sel,
+                          detalhes=f"Campos: {', '.join(updates.keys())}")
+            return ok
+
+        # ── 1. Identificação ───────────────────────────────────────
+        with st.expander("👤 Identificação", expanded=True):
+            with st.form(f"gi_form_ident_{_slug_gi}"):
+                st.text_input("Nome", value=nome_sel, disabled=True,
+                    key=f"gi_nome_{_slug_gi}",
+                    help="Para alterar o nome contacte o developer.")
+                _gc1, _gc2 = st.columns(2)
+                with _gc1:
+                    _gi_tel   = st.text_input("Contacto",
+                        value=_vg("Telefone"), key=f"gi_tel_{_slug_gi}")
+                    _gi_email = st.text_input("Email",
+                        value=_vg("Email"), key=f"gi_email_{_slug_gi}")
+                with _gc2:
+                    _gi_datanasc = st.text_input("Data Nascimento (DD/MM/AAAA)",
+                        value=_vg("DataNasc"), key=f"gi_datanasc_{_slug_gi}")
+                if st.form_submit_button("💾 Guardar Identificação",
+                                         use_container_width=True, type="primary"):
+                    if _save_gi({"Telefone": _gi_tel, "Email": _gi_email,
+                                  "DataNasc": _gi_datanasc}):
+                        st.success("✅ Identificação guardada.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+        # ── 2. Morada ───────────────────────────────────────────────
+        with st.expander("📍 Morada"):
+            with st.form(f"gi_form_morada_{_slug_gi}"):
+                _gc1, _gc2 = st.columns(2)
+                with _gc1:
+                    _gi_morada = st.text_input("Morada",
+                        value=_vg("Morada"), key=f"gi_morada_{_slug_gi}")
+                    _gi_localidade = st.text_input("Localidade",
+                        value=_vg("Localidade"), key=f"gi_localidade_{_slug_gi}")
+                with _gc2:
+                    _gi_concelho = st.text_input("Concelho",
+                        value=_vg("Concelho"), key=f"gi_concelho_{_slug_gi}")
+                    _gi_cp = st.text_input("Código Postal",
+                        value=_vg("Codigo_Postal"), key=f"gi_cp_{_slug_gi}")
+                if st.form_submit_button("💾 Guardar Morada",
+                                         use_container_width=True, type="primary"):
+                    if _save_gi({"Morada": _gi_morada, "Localidade": _gi_localidade,
+                                  "Concelho": _gi_concelho, "Codigo_Postal": _gi_cp}):
+                        st.success("✅ Morada guardada.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+        # ── 3. Documentos ───────────────────────────────────────────
+        with st.expander("🪪 Documentos"):
+            with st.form(f"gi_form_docs_{_slug_gi}"):
+                _gc1, _gc2 = st.columns(2)
+                with _gc1:
+                    _gi_cc = st.text_input("Cartão de Cidadão",
+                        value=_vg("CC"), key=f"gi_cc_{_slug_gi}")
+                    _gi_ccval = st.text_input("Validade CC (DD/MM/AAAA)",
+                        value=_vg("CC_Validade"), key=f"gi_ccval_{_slug_gi}")
+                with _gc2:
+                    _gi_niss = st.text_input("NISS",
+                        value=_vg("NISS"), key=f"gi_niss_{_slug_gi}")
+                    _gi_nif = st.text_input("NIF",
+                        value=_vg("NIF"), key=f"gi_nif_{_slug_gi}")
+                if st.form_submit_button("💾 Guardar Documentos",
+                                         use_container_width=True, type="primary"):
+                    if _save_gi({"CC": _gi_cc, "CC_Validade": _gi_ccval,
+                                  "NISS": _gi_niss, "NIF": _gi_nif}):
+                        st.success("✅ Documentos guardados.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+        # ── 4. Bancários ────────────────────────────────────────────
+        with st.expander("🏦 Bancários"):
+            with st.form(f"gi_form_banco_{_slug_gi}"):
+                _gi_iban = st.text_input("IBAN",
+                    value=_vg("Banco_IBAN"), key=f"gi_iban_{_slug_gi}")
+                if st.form_submit_button("💾 Guardar Dados Bancários",
+                                         use_container_width=True, type="primary"):
+                    if _save_gi({"Banco_IBAN": _gi_iban}):
+                        st.success("✅ Dados bancários guardados.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+        # ── 5. Emergência ───────────────────────────────────────────
+        with st.expander("🆘 Emergência"):
+            with st.form(f"gi_form_emerg_{_slug_gi}"):
+                _gc1, _gc2, _gc3 = st.columns(3)
+                with _gc1:
+                    _gi_nome_em = st.text_input("Nome Contacto Emergência",
+                        value=_vg("Nome_Emergencia"), key=f"gi_nomeem_{_slug_gi}")
+                with _gc2:
+                    _gi_tel_em = st.text_input("Telefone Emergência",
+                        value=_vg("Contacto_Emergencia"), key=f"gi_telem_{_slug_gi}")
+                with _gc3:
+                    _gi_grau_em = st.text_input("Grau de Parentesco",
+                        value=_vg("Grau_Parentesco"), key=f"gi_grauem_{_slug_gi}")
+                if st.form_submit_button("💾 Guardar Emergência",
+                                         use_container_width=True, type="primary"):
+                    if _save_gi({"Nome_Emergencia": _gi_nome_em,
+                                  "Contacto_Emergencia": _gi_tel_em,
+                                  "Grau_Parentesco": _gi_grau_em}):
+                        st.success("✅ Dados de emergência guardados.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+        # ── 6. Profissional ─────────────────────────────────────────
+        with st.expander("💼 Profissional"):
+            with st.form(f"gi_form_prof_{_slug_gi}"):
+                _gc1, _gc2 = st.columns(2)
+                with _gc1:
+                    _gi_preco  = st.text_input("Preço Hora (€)",
+                        value=_vg("PrecoHora"), key=f"gi_preco_{_slug_gi}")
+                    _gi_local  = st.text_input("Local de Obra",
+                        value=_vg("Local_Obra"), key=f"gi_local_{_slug_gi}")
+                    _gi_cliente= st.text_input("Cliente",
+                        value=_vg("Cliente_Obra"), key=f"gi_cliente_{_slug_gi}")
+                with _gc2:
+                    _gi_camisola = st.text_input("Tamanho Camisola",
+                        value=_vg("Tamanho_Camisola"), key=f"gi_camisola_{_slug_gi}")
+                    _gi_calca = st.text_input("Tamanho Calça",
+                        value=_vg("Tamanho_Calca"), key=f"gi_calca_{_slug_gi}")
+                    _gi_botas = st.text_input("Tamanho Botas",
+                        value=_vg("Tamanho_Botas"), key=f"gi_botas_{_slug_gi}")
+
+                st.markdown("**Contrato**")
+                _gc3, _gc4 = st.columns(2)
+                with _gc3:
+                    _gi_ct_ger = st.selectbox("Contrato Gerado", ["","Sim","Não"],
+                        index=["","Sim","Não"].index(_vg("Contrato_Gerado"))
+                              if _vg("Contrato_Gerado") in ["","Sim","Não"] else 0,
+                        key=f"gi_ctger_{_slug_gi}")
+                    _gi_ct_ger_data = st.text_input("Data Geração (DD/MM/AAAA)",
+                        value=_vg("Contrato_Data"), key=f"gi_ctgerdata_{_slug_gi}")
+                    _gi_ct_env = st.selectbox("Contrato Enviado", ["","Sim","Não"],
+                        index=["","Sim","Não"].index(_vg("Contrato_Enviado"))
+                              if _vg("Contrato_Enviado") in ["","Sim","Não"] else 0,
+                        key=f"gi_ctenv_{_slug_gi}")
+                    _gi_ct_env_data = st.text_input("Data Envio (DD/MM/AAAA)",
+                        value=_vg("Contrato_Enviado_Data"), key=f"gi_ctenvdata_{_slug_gi}")
+                with _gc4:
+                    _gi_ct_assin = st.selectbox("Contrato Assinado", ["","Sim","Não"],
+                        index=["","Sim","Não"].index(_vg("Contrato_Assinado"))
+                              if _vg("Contrato_Assinado") in ["","Sim","Não"] else 0,
+                        key=f"gi_ctassin_{_slug_gi}")
+                    _gi_ct_assin_data = st.text_input("Data Assinatura (DD/MM/AAAA)",
+                        value=_vg("Contrato_Assinatura_Data"), key=f"gi_ctassindata_{_slug_gi}")
+                    _gi_ct_valid = st.selectbox("Contrato Validado (Admin)", ["","Sim","Não"],
+                        index=["","Sim","Não"].index(_vg("Contrato_Validado_Admin"))
+                              if _vg("Contrato_Validado_Admin") in ["","Sim","Não"] else 0,
+                        key=f"gi_ctvalid_{_slug_gi}")
+                    _gi_ct_valid_data = st.text_input("Data Validação (DD/MM/AAAA)",
+                        value=_vg("Contrato_Validado_Data"), key=f"gi_ctvaliddata_{_slug_gi}")
+
+                if st.form_submit_button("💾 Guardar Profissional",
+                                         use_container_width=True, type="primary"):
+                    if _save_gi({
+                        "PrecoHora": _gi_preco, "Local_Obra": _gi_local,
+                        "Cliente_Obra": _gi_cliente,
+                        "Tamanho_Camisola": _gi_camisola, "Tamanho_Calca": _gi_calca,
+                        "Tamanho_Botas": _gi_botas,
+                        "Contrato_Gerado": _gi_ct_ger, "Contrato_Data": _gi_ct_ger_data,
+                        "Contrato_Enviado": _gi_ct_env, "Contrato_Enviado_Data": _gi_ct_env_data,
+                        "Contrato_Assinado": _gi_ct_assin, "Contrato_Assinatura_Data": _gi_ct_assin_data,
+                        "Contrato_Validado_Admin": _gi_ct_valid, "Contrato_Validado_Data": _gi_ct_valid_data,
+                    }):
+                        st.success("✅ Dados profissionais guardados.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+        # ── Estado do perfil (só leitura) ─────────────────────────
+        with st.expander("ℹ️ Estado do Perfil (só leitura)"):
+            _onboarding_campos = next(
+                (campos for secao, campos in CAMPOS_PERFIL if secao == "Onboarding"), []
             )
-            with st.expander(f"📂 {secao}", expanded=(secao == "Identificação")):
-                c_left, c_right = st.columns(2)
-                for i, campo in enumerate(campos):
-                    valor = row.get(campo, '')
-                    if campo.endswith('_b64'):
-                        valor = "✅ Ficheiro presente" if valor else "❌ Não submetido"
-                    elif not valor:
-                        valor = "—"
-                    col_use = c_left if i % 2 == 0 else c_right
-                    with col_use:
-                        st.markdown(
-                            f"<p style='color:#94A3B8;font-size:0.72rem;"
-                            f"margin:0;text-transform:uppercase;'>{campo}</p>"
-                            f"<p style='color:#F1F5F9;font-size:0.9rem;"
-                            f"font-weight:600;margin:0 0 10px;'>{valor}</p>",
-                            unsafe_allow_html=True
-                        )
+            c_left, c_right = st.columns(2)
+            for i, campo in enumerate(_onboarding_campos):
+                valor = row.get(campo, '')
+                if campo.endswith('_b64'):
+                    valor = "✅ Ficheiro presente" if valor else "❌ Não submetido"
+                elif not valor:
+                    valor = "—"
+                col_use = c_left if i % 2 == 0 else c_right
+                with col_use:
+                    st.markdown(
+                        f"<p style='color:#94A3B8;font-size:0.72rem;"
+                        f"margin:0;text-transform:uppercase;'>{campo}</p>"
+                        f"<p style='color:#F1F5F9;font-size:0.9rem;"
+                        f"font-weight:600;margin:0 0 10px;'>{valor}</p>",
+                        unsafe_allow_html=True
+                    )
 
         # ── Download Comprovativo IBAN ────────────────────────────
         st.markdown("---")
@@ -1011,7 +1498,7 @@ def render_admin_rh(*args):
             if _mask_u_dl.any():
                 _u_row_dl = _u_dl[_mask_u_dl].iloc[0]
                 for _fk in ("NISS", "CC", "CC_Validade", "NIF", "Email",
-                            "Morada", "Nacionalidade", "Estado_Civil"):
+                            "Morada", "Nacionalidade", "Estado_Civil", "DataNasc"):
                     if not str(_row_dl.get(_fk, "")).strip():
                         _uv = str(_u_row_dl.get(_fk, "")).strip()
                         if _uv:
@@ -1022,6 +1509,15 @@ def render_admin_rh(*args):
 
             def _opt_idx(opts, val):
                 return opts.index(val) if val in opts else 0
+
+            def _sel_opts(opts, val):
+                """Devolve (lista_opcoes, indice) com suporte a valores antigos
+                gravados que já não constam da lista actual — são acrescentados
+                no fim em runtime para não se perder o valor guardado."""
+                o = list(opts)
+                if val and val not in o:
+                    o = o + [val]
+                return o, (o.index(val) if val in o else 0)
 
             # Sufixo único por colaborador, para que os widgets (e o seu
             # value=) sejam recriados ao trocar de colaborador, em vez de
@@ -1056,6 +1552,8 @@ def render_admin_rh(*args):
                         _est_civil = st.selectbox("Estado Civil", ESTADO_CIVIL_OPTS,
                             index=_opt_idx(ESTADO_CIVIL_OPTS, _v("Estado_Civil")), key=f"dl_estcivil_{_slug}")
                         _n_dep = st.text_input("Nº Dependentes", value=_v("N_Dependentes"), key=f"dl_ndep_{_slug}")
+                        _n_dep_def = st.text_input("Nº Dependentes c/ Deficiência",
+                            value=_v("N_Dependentes_Deficiencia"), key=f"dl_ndepdef_{_slug}")
                     if st.form_submit_button("💾 Guardar Identificação",
                                              use_container_width=True, type="primary"):
                         if _sync_rh_csv(_nome_dl, {
@@ -1065,6 +1563,7 @@ def render_admin_rh(*args):
                             "CC": _cc, "CC_Validade": _ccval,
                             "Passaporte": _pass_num, "Passaporte_Validade": _pass_val,
                             "Estado_Civil": _est_civil, "N_Dependentes": _n_dep,
+                            "N_Dependentes_Deficiencia": _n_dep_def,
                         }):
                             st.success("✅ Identificação guardada.")
                             st.rerun()
@@ -1074,7 +1573,7 @@ def render_admin_rh(*args):
             # ── 2. Dados Fiscais ──────────────────────────────────
             with st.expander("🏦 Dados Fiscais"):
                 with st.form(f"dl_form_fiscal_{_slug}"):
-                    _c1, _c2 = st.columns(2)
+                    _c1, _c2, _c3 = st.columns(3)
                     with _c1:
                         _irs_esc  = st.text_input("Escalão IRS", value=_v("IRS_Escalao"), key=f"dl_irs_esc_{_slug}")
                         _irs_pct  = st.text_input("Taxa IRS (%)", value=_v("IRS_Percentagem"), key=f"dl_irs_pct_{_slug}")
@@ -1089,12 +1588,24 @@ def render_admin_rh(*args):
                                   if _v("Isencao_IRS") in ["","Sim","Não"] else 0,
                             key=f"dl_isencao_{_slug}")
                         _artigo_irs = st.text_input("Artigo IRS", value=_v("Artigo_IRS"), key=f"dl_artigo_{_slug}")
+                    with _c3:
+                        _ef_opts, _ef_idx = _sel_opts(ESTADO_FISCAL_OPTS, _v("Estado_Fiscal"))
+                        _est_fiscal = st.selectbox("Estado Fiscal", _ef_opts,
+                            index=_ef_idx, key=f"dl_estfiscal_{_slug}")
+                        _mf_opts, _mf_idx = _sel_opts(MEDIDA_FISCAL_OPTS, _v("Medida_Fiscal"))
+                        _med_fiscal = st.selectbox("Medida Fiscal", _mf_opts,
+                            index=_mf_idx, key=f"dl_medfiscal_{_slug}")
+                        _ess_opts, _ess_idx = _sel_opts(ENQUADRAMENTO_SS_OPTS, _v("Enquadramento_SS"))
+                        _enq_ss = st.selectbox("Enquadramento SS", _ess_opts,
+                            index=_ess_idx, key=f"dl_enqss_{_slug}")
                     if st.form_submit_button("💾 Guardar Dados Fiscais",
                                              use_container_width=True, type="primary"):
                         if _sync_rh_csv(_nome_dl, {
                             "IRS_Escalao": _irs_esc, "IRS_Percentagem": _irs_pct,
                             "Titular_Unico": _tit_unico, "Taxa_Retencao_IRS": _taxa_ret,
                             "Isencao_IRS": _isencao, "Artigo_IRS": _artigo_irs,
+                            "Estado_Fiscal": _est_fiscal, "Medida_Fiscal": _med_fiscal,
+                            "Enquadramento_SS": _enq_ss,
                         }):
                             st.success("✅ Dados fiscais guardados.")
                             st.rerun()
@@ -1129,6 +1640,44 @@ def render_admin_rh(*args):
                             value=_v("Local_Trabalho"), key=f"dl_local_{_slug}")
                     _func_ct = st.text_input("Função Contratual",
                         value=_v("Funcao_Contratual"), key=f"dl_func_{_slug}")
+
+                    st.markdown("**Relatório Único — Modalidade e Tempo de Trabalho**")
+                    _c6, _c7, _c8 = st.columns(3)
+                    with _c6:
+                        _mc_opts, _mc_idx = _sel_opts(MODALIDADE_CONTRATO_OPTS, _v("Modalidade_Contrato"))
+                        _mod_ct = st.selectbox("Modalidade Contrato (RU)", _mc_opts,
+                            index=_mc_idx, key=f"dl_modct_{_slug}")
+                        _pt_opts, _pt_idx = _sel_opts(PRESTACAO_TRABALHO_OPTS, _v("Prestacao_Trabalho"))
+                        _prest_trab = st.selectbox("Prestação de Trabalho", _pt_opts,
+                            index=_pt_idx, key=f"dl_presttrab_{_slug}")
+                        _th_opts, _th_idx = _sel_opts(TIPO_HORARIO_OPTS, _v("Tipo_Horario"))
+                        _tipo_hr = st.selectbox("Tipo Horário", _th_opts,
+                            index=_th_idx, key=f"dl_tipohr_{_slug}")
+                    with _c7:
+                        _dtt_opts, _dtt_idx = _sel_opts(DURACAO_TT_OPTS, _v("Duracao_Tempo_Trabalho"))
+                        _dur_tt = st.selectbox("Duração Tempo Trabalho (RU)", _dtt_opts,
+                            index=_dtt_idx, key=f"dl_durtt_{_slug}")
+                        _ott_opts, _ott_idx = _sel_opts(ORG_TT_OPTS, _v("Organizacao_Tempo_Trabalho"))
+                        _org_tt = st.selectbox("Organização Tempo Trabalho (RU)", _ott_opts,
+                            index=_ott_idx, key=f"dl_orgtt_{_slug}")
+                    with _c8:
+                        _mco_opts, _mco_idx = _sel_opts(MOTIVO_CONTRATO_OPTS, _v("Motivo_Contrato"))
+                        _mot_ct = st.selectbox("Motivo Contrato", _mco_opts,
+                            index=_mco_idx, key=f"dl_motct_{_slug}")
+                        _me_opts, _me_idx = _sel_opts(MOTIVO_ENTRADA_OPTS, _v("Motivo_Entrada"))
+                        _mot_ent = st.selectbox("Motivo Entrada", _me_opts,
+                            index=_me_idx, key=f"dl_motent_{_slug}")
+
+                    st.markdown("**Saída**")
+                    _c9, _c10 = st.columns(2)
+                    with _c9:
+                        _ms_opts, _ms_idx = _sel_opts(MOTIVO_SAIDA_OPTS, _v("Motivo_Saida"))
+                        _mot_sai = st.selectbox("Motivo Saída", _ms_opts,
+                            index=_ms_idx, key=f"dl_motsai_{_slug}")
+                    with _c10:
+                        _data_sai = st.text_input("Data Saída (DD/MM/AAAA)",
+                            value=_v("Data_Saida"), key=f"dl_datasai_{_slug}")
+
                     if st.form_submit_button("💾 Guardar Dados Contratuais",
                                              use_container_width=True, type="primary"):
                         if _sync_rh_csv(_nome_dl, {
@@ -1137,6 +1686,11 @@ def render_admin_rh(*args):
                             "Contrato_Fim": _ct_fim, "Contrato_Indeterminado": _ct_ind,
                             "Periodo_Experimental": _pe, "Periodo_Experimental_Fim": _pe_fim,
                             "Local_Trabalho": _local_t, "Funcao_Contratual": _func_ct,
+                            "Modalidade_Contrato": _mod_ct, "Prestacao_Trabalho": _prest_trab,
+                            "Tipo_Horario": _tipo_hr, "Duracao_Tempo_Trabalho": _dur_tt,
+                            "Organizacao_Tempo_Trabalho": _org_tt, "Motivo_Contrato": _mot_ct,
+                            "Motivo_Entrada": _mot_ent, "Motivo_Saida": _mot_sai,
+                            "Data_Saida": _data_sai,
                         }):
                             st.success("✅ Dados contratuais guardados.")
                             st.rerun()
@@ -1170,6 +1724,33 @@ def render_admin_rh(*args):
                             key=f"dl_ibanval_{_slug}")
                         _swift = st.text_input("SWIFT/BIC",
                             value=_v("SWIFT_BIC"), key=f"dl_swift_{_slug}")
+
+                    st.markdown("**Subsídio de Alimentação e Banco**")
+                    _c4, _c5, _c6 = st.columns(3)
+                    with _c4:
+                        _sam_opts, _sam_idx = _sel_opts(SUB_ALIM_MODO_OPTS, _v("Sub_Alimentacao_Modo"))
+                        _sub_al_modo = st.selectbox("Subsídio Alimentação - Modo", _sam_opts,
+                            index=_sam_idx, key=f"dl_subalmodo_{_slug}")
+                        _sae_opts, _sae_idx = _sel_opts(SUB_ALIM_ENTIDADE_OPTS, _v("Sub_Alimentacao_Entidade"))
+                        _sub_al_ent = st.selectbox("Subsídio Alimentação - Entidade", _sae_opts,
+                            index=_sae_idx, key=f"dl_subalent_{_slug}")
+                        _num_cartao_ref = st.text_input("Nº Cartão Refeição",
+                            value=_v("Num_Cartao_Refeicao"), key=f"dl_numcartref_{_slug}")
+                    with _c5:
+                        _mr_opts, _mr_idx = _sel_opts(MODO_REMUN_OPTS, _v("Modo_Remuneracao"))
+                        _modo_rem = st.selectbox("Modo Remuneração", _mr_opts,
+                            index=_mr_idx, key=f"dl_modorem_{_slug}")
+                        _banco_nome = st.text_input("Banco (Nome)",
+                            value=_v("Banco_Nome"), key=f"dl_banconome_{_slug}")
+                    with _c6:
+                        _rr_opts, _rr_idx = _sel_opts(REGIME_REFORMA_OPTS, _v("Regime_Reforma"))
+                        _reg_reforma = st.selectbox("Regime Reforma", _rr_opts,
+                            index=_rr_idx, key=f"dl_regreforma_{_slug}")
+                        _pensionista = st.selectbox("Pensionista", ["","Sim","Não"],
+                            index=["","Sim","Não"].index(_v("Pensionista"))
+                                  if _v("Pensionista") in ["","Sim","Não"] else 0,
+                            key=f"dl_pensionista_{_slug}")
+
                     if st.form_submit_button("💾 Guardar Remuneração",
                                              use_container_width=True, type="primary"):
                         if _sync_rh_csv(_nome_dl, {
@@ -1178,6 +1759,10 @@ def render_admin_rh(*args):
                             "Premio_Producao": _prem, "Outros_Complementos": _outros,
                             "Forma_Pagamento": _forma_pag, "IBAN_Validado": _iban_val,
                             "SWIFT_BIC": _swift,
+                            "Sub_Alimentacao_Modo": _sub_al_modo, "Sub_Alimentacao_Entidade": _sub_al_ent,
+                            "Num_Cartao_Refeicao": _num_cartao_ref, "Modo_Remuneracao": _modo_rem,
+                            "Banco_Nome": _banco_nome, "Regime_Reforma": _reg_reforma,
+                            "Pensionista": _pensionista,
                         }):
                             st.success("✅ Remuneração guardada.")
                             st.rerun()
@@ -1189,8 +1774,15 @@ def render_admin_rh(*args):
                 with st.form(f"dl_form_prof_{_slug}"):
                     _c1, _c2 = st.columns(2)
                     with _c1:
-                        _nivel_hab = st.selectbox("Nível Habilitações", NIVEL_HABILITACOES_OPTS,
-                            index=_opt_idx(NIVEL_HABILITACOES_OPTS, _v("Nivel_Habilitacoes")), key=f"dl_nhab_{_slug}")
+                        _hab_opts  = HABILITACOES_RU_OPTS.copy()
+                        _hab_val   = _v("Nivel_Habilitacoes")
+                        _hab_match = next((o for o in _hab_opts if o.startswith(f"{_hab_val} - ")), "")
+                        if not _hab_match and _hab_val:
+                            _hab_opts  = _hab_opts + [_hab_val]
+                            _hab_match = _hab_val
+                        _hab_idx = _hab_opts.index(_hab_match) if _hab_match in _hab_opts else 0
+                        _nivel_hab = st.selectbox("Nível Habilitações (RU)", _hab_opts,
+                            index=_hab_idx, key=f"dl_nhab_{_slug}")
                         _sit_prof  = st.selectbox("Situação Profissional", SITUACAO_PROFISSIONAL_OPTS,
                             index=_opt_idx(SITUACAO_PROFISSIONAL_OPTS, _v("Situacao_Profissional")), key=f"dl_sitprof_{_slug}")
                         _cpp_opts  = [""] + [f"{k} – {v}" for k,v in PROFISSOES_CPP_CPS.items()]
@@ -1231,20 +1823,75 @@ def render_admin_rh(*args):
                             value=_v("Cartao_Prof_Num"), key=f"dl_cpnum_{_slug}")
                         _cartao_prof_val = st.text_input("Validade Cartão Prof. (DD/MM/AAAA)",
                             value=_v("Cartao_Prof_Validade"), key=f"dl_cpval_{_slug}")
+
+                    st.markdown("**Relatório Único — Outros**")
+                    _c11, _c12 = st.columns(2)
+                    with _c11:
+                        _npi_opts, _npi_idx = _sel_opts(NIVEL_PROF_IGDT_OPTS, _v("Nivel_Profissional_IGDT"))
+                        _nivel_prof_igdt = st.selectbox("Nível Profissional (IGDT)", _npi_opts,
+                            index=_npi_idx, key=f"dl_nivelprofigdt_{_slug}")
+                        _oes_opts, _oes_idx = _sel_opts(ORIGEM_ENS_SUP_OPTS, _v("Origem_Ensino_Superior"))
+                        _origem_ens_sup = st.selectbox("Origem Ensino Superior", _oes_opts,
+                            index=_oes_idx, key=f"dl_origemenssup_{_slug}")
+                        _tdi_opts, _tdi_idx = _sel_opts(TIPO_DOC_ID_OPTS, _v("Tipo_Doc_ID"))
+                        _tipo_doc_id = st.selectbox("Tipo Documento Identificação", _tdi_opts,
+                            index=_tdi_idx, key=f"dl_tipodocid_{_slug}")
+                    with _c12:
+                        _seg_at = st.text_input("Seguradora AT",
+                            value=_v("Seguradora_AT"), key=f"dl_segat_{_slug}")
+                        _apol_at = st.text_input("Apólice AT",
+                            value=_v("Apolice_AT"), key=f"dl_apolat_{_slug}")
+
                     if st.form_submit_button("💾 Guardar Dados Profissionais",
                                              use_container_width=True, type="primary"):
                         _profissao_code = _profissao.split(" – ")[0] if " – " in _profissao else _profissao
                         _cat_cct_code   = _cat_cct.split(" – ")[0]   if " – " in _cat_cct   else _cat_cct
+                        _nivel_hab_code = _nivel_hab.split(" - ")[0] if " - " in _nivel_hab else _nivel_hab
                         if _sync_rh_csv(_nome_dl, {
-                            "Nivel_Habilitacoes": _nivel_hab, "Situacao_Profissional": _sit_prof,
+                            "Nivel_Habilitacoes": _nivel_hab_code, "Situacao_Profissional": _sit_prof,
                             "Profissao_CPP": _profissao_code, "Categoria_CCT": _cat_cct_code,
                             "IRCT_Aplicavel": _irct, "Vinculo_Empresa": _vinculo,
                             "Reducao_Horario": _red_hr, "Data_Ultima_Promocao": _dt_prom,
                             "Antiguidade_Anos": _ant_anos, "Nivel_Remuneratorio": _n_rem,
                             "Grau_Deficiencia": _grau_def, "Deficiencia_Tipo": _def_tipo,
                             "Cartao_Prof_Num": _cartao_prof_num, "Cartao_Prof_Validade": _cartao_prof_val,
+                            "Nivel_Profissional_IGDT": _nivel_prof_igdt,
+                            "Origem_Ensino_Superior": _origem_ens_sup,
+                            "Tipo_Doc_ID": _tipo_doc_id,
+                            "Seguradora_AT": _seg_at, "Apolice_AT": _apol_at,
                         }):
                             st.success("✅ Dados profissionais guardados.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+            # ── 6. Condução e Documentos ──────────────────────────
+            with st.expander("🚗 Condução e Documentos"):
+                with st.form(f"dl_form_conducao_{_slug}"):
+                    _c1, _c2 = st.columns(2)
+                    with _c1:
+                        _carta_num = st.text_input("Nº Carta de Condução",
+                            value=_v("Carta_Conducao_Num"), key=f"dl_cartanum_{_slug}")
+                        _carta_val = st.text_input("Validade Carta (DD/MM/AAAA)",
+                            value=_v("Carta_Conducao_Validade"), key=f"dl_cartaval_{_slug}")
+                        _cc_opts, _cc_idx = _sel_opts(CARTA_CAT_OPTS, _v("Carta_Conducao_Categoria"))
+                        _carta_cat = st.selectbox("Categoria(s) Carta", _cc_opts,
+                            index=_cc_idx, key=f"dl_cartacat_{_slug}")
+                    with _c2:
+                        _reg_assinado = st.selectbox("Regulamento Interno Assinado", ["","Sim","Não"],
+                            index=["","Sim","Não"].index(_v("Regulamento_Assinado"))
+                                  if _v("Regulamento_Assinado") in ["","Sim","Não"] else 0,
+                            key=f"dl_regassinado_{_slug}")
+                        _reg_data = st.text_input("Data Assinatura Regulamento (DD/MM/AAAA)",
+                            value=_v("Regulamento_Data"), key=f"dl_regdata_{_slug}")
+                    if st.form_submit_button("💾 Guardar Condução e Documentos",
+                                             use_container_width=True, type="primary"):
+                        if _sync_rh_csv(_nome_dl, {
+                            "Carta_Conducao_Num": _carta_num, "Carta_Conducao_Validade": _carta_val,
+                            "Carta_Conducao_Categoria": _carta_cat,
+                            "Regulamento_Assinado": _reg_assinado, "Regulamento_Data": _reg_data,
+                        }):
+                            st.success("✅ Dados de condução guardados.")
                             st.rerun()
                         else:
                             st.error("❌ Erro ao guardar — verifica ligação ao GCS")
@@ -1260,6 +1907,81 @@ def render_admin_rh(*args):
             "O match é feito pelo Nome com `usuarios.csv`. "
             "Colaboradores sem match são criados automaticamente."
         )
+
+        # ── Migração de schema (Parte 0) ──────────────────────────
+        if st.session_state.get('tipo') == 'Admin':
+            with st.expander("🔧 Migrar schema colaboradores_rh.csv"):
+                _DUPLICADOS_MIGRACAO = {
+                    "Categoria_Profissional_Cod":  "Categoria_CCT",
+                    "Categoria_Profissional_Desc": "Categoria_CCT",
+                    "Profissao_CPP_Cod":           "Profissao_CPP",
+                    "Profissao_CPP_Desc":          "Profissao_CPP",
+                    "IRCT_Aplicabilidade":         "IRCT_Aplicavel",
+                    "Habilitacoes":                "Nivel_Habilitacoes",
+                    "Habilitacoes_Cod":            "Nivel_Habilitacoes",
+                    "Habilitacoes_Desc":           "Nivel_Habilitacoes",
+                }
+                _df_mig = _load_rh_fresh()
+                _cols_dup_presentes = [c for c in _DUPLICADOS_MIGRACAO if c in _df_mig.columns]
+
+                if not _cols_dup_presentes:
+                    st.success("✅ Schema já migrado.")
+                else:
+                    st.warning(
+                        f"⚠️ Encontradas {len(_cols_dup_presentes)} coluna(s) "
+                        f"duplicada(s): {', '.join(_cols_dup_presentes)}"
+                    )
+                    _relatorio_mig = []
+                    for _dup, _canon in _DUPLICADOS_MIGRACAO.items():
+                        if _dup not in _df_mig.columns:
+                            continue
+                        _n_merge = 0
+                        for _idx in _df_mig.index:
+                            _val_dup   = str(_df_mig.at[_idx, _dup]).strip()
+                            _val_canon = str(_df_mig.at[_idx, _canon]).strip() \
+                                if _canon in _df_mig.columns else ""
+                            if _val_dup and not _val_canon:
+                                _n_merge += 1
+                        _relatorio_mig.append(
+                            f"- `{_dup}` → `{_canon}`: {_n_merge} valor(es) a migrar"
+                        )
+
+                    st.markdown("**Relatório de migração:**")
+                    for _l in _relatorio_mig:
+                        st.markdown(_l)
+
+                    if st.button("✅ Aplicar migração", key="btn_migrar_schema",
+                                  type="primary"):
+                        for _dup, _canon in _DUPLICADOS_MIGRACAO.items():
+                            if _dup not in _df_mig.columns:
+                                continue
+                            if _canon not in _df_mig.columns:
+                                _df_mig[_canon] = ""
+                            for _idx in _df_mig.index:
+                                _val_dup   = str(_df_mig.at[_idx, _dup]).strip()
+                                _val_canon = str(_df_mig.at[_idx, _canon]).strip()
+                                if _val_dup and not _val_canon:
+                                    _df_mig.at[_idx, _canon] = _val_dup
+                            _df_mig = _df_mig.drop(columns=[_dup])
+
+                        _ok_mig = save_db(_df_mig, "colaboradores_rh.csv",
+                                          permitir_reducao=True)
+                        if _ok_mig:
+                            inv("colaboradores_rh.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
+                            log_audit(
+                                usuario=admin_nome,
+                                acao="MIGRAR_SCHEMA_RH",
+                                tabela="colaboradores_rh.csv",
+                                registro_id="batch",
+                                detalhes=f"Colunas migradas: {', '.join(_cols_dup_presentes)}",
+                                ip=""
+                            )
+                            st.success("✅ Migração aplicada com sucesso.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
         # ── Tabelas de conversão de valores Eticadata ─────────────
         _E_SEXO = {"0": "Masculino", "1": "Feminino"}
@@ -1296,17 +2018,12 @@ def render_admin_rh(*args):
             # Campos extra Eticadata (referência)
             "IRCT_Codigo":                "25989",
             "IRCT_Descricao":             "CCT - Empresas Electrotécnicas",
-            "IRCT_Aplicabilidade":        "04 - Acto de Gestão",
             "Modo_Remuneracao":           "Mensal",
             "Duracao_Tempo_Trabalho":     "1 - Adaptabilidade por regulamentação colectiva (RU:10)",
             "Tipo_Horario":               "Normal Fixo",
             "Pensionista":                "Não",
             "Regime_Reforma":             "1 - Segurança Social",
             "Organizacao_Tempo_Trabalho": "1 - Trabalho diurno",
-            "Categoria_Profissional_Cod": "02155",
-            "Categoria_Profissional_Desc":"PROFISSIONAL QUALIFICADO OFICIAL",
-            "Profissao_CPP_Cod":          "74124",
-            "Profissao_CPP_Desc":         "Electromecânico, electricista e outros instaladores de máquinas e equipamentos eléctricos",
         }
 
         def _etica_strip_date(s):
@@ -1590,6 +2307,10 @@ def render_admin_rh(*args):
                                     for _k, _vv in _rh_full.items():
                                         if _k not in _df_rh.columns:
                                             _df_rh[_k] = ""
+                                        if _k in CAMPOS_PROTEGIDOS_RH:
+                                            _atual_v = str(_df_rh.loc[_mrh, _k].iloc[0]).strip()
+                                            if _atual_v:
+                                                continue
                                         _df_rh.loc[_mrh, _k] = _vv
                                         _n_campos += 1
                                 else:
