@@ -385,6 +385,12 @@ def save_db(df, fn, permitir_reducao=False):
                 n_atual = len(df_atual)
                 n_novo  = len(df)
                 _criar_backup_diario(fn, df_atual)
+                if n_novo == 0:
+                    logger.error(
+                        f"🚨 BLOQUEADO save_db({fn}): tentativa de gravar 0 "
+                        f"registos sobre {n_atual} existentes. Operação cancelada."
+                    )
+                    return False
                 if n_atual > 5 and n_novo < int(n_atual * 0.90):
                     if permitir_reducao:
                         logger.warning(
