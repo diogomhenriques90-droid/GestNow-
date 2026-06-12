@@ -870,7 +870,7 @@ def render_fat_fornecedores(obras_db, *_):
                         ) == 'Sim'
                         if is_sub_f:
                             f_ret_pct = float(
-                                forn_row.iloc[0].get('Retencao_Pct',25)
+                                forn_row.iloc[0].get('Retencao_Pct',25) or 25
                             )
                             f_ret_val = round(
                                 f_sub_val * f_ret_pct / 100, 2
@@ -1140,7 +1140,7 @@ def render_fat_fornecedores(obras_db, *_):
                     f"Retido: €{ret_sub:,.2f}</span><br>"
                     f"<small style='color:#64748B;'>"
                     f"NIF: {sub.get('NIF','')} · "
-                    f"Taxa: {float(sub.get('Retencao_Pct',25)):.0f}% · "
+                    f"Taxa: {float(sub.get('Retencao_Pct',25) or 25):.0f}% · "
                     f"Volume: €{vol_sub:,.2f}"
                     f"</small></div>",
                     unsafe_allow_html=True

@@ -946,7 +946,7 @@ def render_admin_diarias(*args):
                                 f"{p.get('Técnico','')}</b>"
                                 f"<span style='float:right;color:#10B981;"
                                 f"font-weight:700;'>"
-                                f"€ {float(p.get('Valor_Total',0)):.2f}"
+                                f"€ {float(p.get('Valor_Total',0) or 0):.2f}"
                                 f"</span><br>"
                                 f"<small style='color:#64748B;'>"
                                 f"{p.get('Obras','')} · "
