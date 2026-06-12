@@ -1363,9 +1363,33 @@ def render_admin_rh(*args):
                     st.error("⚠️ Nome não coincide. Operação cancelada.")
                 else:
                     u_rm = _load_users_fresh()
+                    _row_rm = u_rm[u_rm["Nome"] == nome_sel]
+                    _nif_rm = re.sub(
+                        r'\D', '', str(_row_rm.iloc[0].get("NIF", ""))
+                    ) if not _row_rm.empty else ""
                     u_rm = u_rm[u_rm["Nome"] != nome_sel]
                     save_db(u_rm, "usuarios.csv")
                     inv("usuarios.csv")
+
+                    # Desactivar (não eliminar) o registo em colaboradores_rh.csv
+                    # — mantém histórico para mod_fat_rh.py e rastreabilidade ISO.
+                    # Match por NIF (mais fiável que o Nome, que pode divergir
+                    # entre nome legal completo e nome curto), com fallback
+                    # para Nome quando o NIF não está preenchido/encontrado.
+                    rh_rm = _load_rh_fresh()
+                    mask_rm = pd.Series([], dtype=bool)
+                    if not rh_rm.empty:
+                        if _nif_rm and 'NIF' in rh_rm.columns:
+                            mask_rm = rh_rm['NIF'].apply(
+                                lambda v: re.sub(r'\D', '', str(v))
+                            ) == _nif_rm
+                        if not mask_rm.any():
+                            mask_rm = rh_rm["Nome"] == nome_sel
+                    if mask_rm.any():
+                        rh_rm.loc[mask_rm, "Ativo"] = "Não"
+                        save_db(rh_rm, "colaboradores_rh.csv")
+                        inv("colaboradores_rh.csv")
+
                     from core import _cached_load_all
                     _cached_load_all.clear()
                     log_audit(usuario=st.session_state.get("user","admin"),
@@ -2190,6 +2214,23 @@ def render_admin_rh(*args):
                 _nomes_ci  = {n.strip().lower(): n for n in _nomes_exact}
                 _nomes_acc = {_norm_nome(n): n for n in _nomes_exact}
 
+                # Lookups por NIF/NISS — mais fiáveis que o nome quando o
+                # Eticadata usa o nome legal completo e o GestNow um nome
+                # curto (ex.: "Ana Sofia Pires de Carvalho" vs "Ana Carvalho").
+                def _digits(s):
+                    return re.sub(r'\D', '', str(s))
+
+                _nif_to_nome = {
+                    _digits(v): n
+                    for n, v in zip(_u_eti.get('Nome', []), _u_eti.get('NIF', []))
+                    if _digits(v)
+                } if not _u_eti.empty else {}
+                _niss_to_nome = {
+                    _digits(v): n
+                    for n, v in zip(_u_eti.get('Nome', []), _u_eti.get('NISS', []))
+                    if _digits(v)
+                } if not _u_eti.empty else {}
+
                 def _find_match_eti(nome_eti):
                     n = str(nome_eti).strip()
                     if n in _nomes_exact:                  # a. exacto
@@ -2210,12 +2251,22 @@ def render_admin_rh(*args):
                                 return gn
                     return None
 
+                def _find_match_full(nome_eti, rh_v):
+                    # Prioridade: NIF → NISS → variações do nome
+                    nif_e = _digits(rh_v.get("NIF", ""))
+                    if nif_e and nif_e in _nif_to_nome:
+                        return _nif_to_nome[nif_e]
+                    niss_e = _digits(rh_v.get("NISS", ""))
+                    if niss_e and niss_e in _niss_to_nome:
+                        return _niss_to_nome[niss_e]
+                    return _find_match_eti(nome_eti)
+
                 # ── Preview com status de match ────────────────────
                 _prev_rows = []
                 for _, _er in _eti_df.iterrows():
                     _nem = _er.get(_nome_col_eti, "")
-                    _ng  = _find_match_eti(_nem)
                     _rh_p, _, _, _ = _etica_map_row(_er)
+                    _ng  = _find_match_full(_nem, _rh_p)
                     _prev_rows.append({
                         "Status":         "✅ Match" if _ng else "⚠️ Sem match",
                         "Nome Eticadata": _nem,
@@ -2269,8 +2320,8 @@ def render_admin_rh(*args):
 
                         for _, _er in _eti_df.iterrows():
                             _nem   = _er.get(_nome_col_eti, "")
-                            _ng    = _find_match_eti(_nem)
                             _rh_v, _u_emp, _u_alw, _chefe = _etica_map_row(_er)
+                            _ng    = _find_match_full(_nem, _rh_v)
 
                             if _ng:
                                 _mu = (
@@ -2307,8 +2358,11 @@ def render_admin_rh(*args):
 
                                 # Actualizar colaboradores_rh.csv — match robusto:
                                 # 1º por Eticadata_ID (intCodigo, estável e único);
-                                # 2º fallback por Nome normalizado (sem acentos/maiúsc./espaços)
-                                _eti_id = str(_rh_v.get("Eticadata_ID", "")).strip()
+                                # 2º por NIF/NISS (partilhados com usuarios.csv);
+                                # 3º fallback por Nome normalizado (sem acentos/maiúsc./espaços)
+                                _eti_id  = str(_rh_v.get("Eticadata_ID", "")).strip()
+                                _eti_nif  = _digits(_rh_v.get("NIF", ""))
+                                _eti_niss = _digits(_rh_v.get("NISS", ""))
                                 if _df_rh.empty:
                                     _mrh = pd.Series([], dtype=bool)
                                 else:
@@ -2317,6 +2371,14 @@ def render_admin_rh(*args):
                                         _mrh = (
                                             _df_rh['Eticadata_ID'].astype(str).str.strip()
                                             == _eti_id
+                                        )
+                                    if not _mrh.any() and _eti_nif and 'NIF' in _df_rh.columns:
+                                        _mrh = (
+                                            _df_rh['NIF'].apply(_digits) == _eti_nif
+                                        )
+                                    if not _mrh.any() and _eti_niss and 'NISS' in _df_rh.columns:
+                                        _mrh = (
+                                            _df_rh['NISS'].apply(_digits) == _eti_niss
                                         )
                                     if not _mrh.any() and 'Nome' in _df_rh.columns:
                                         _mrh = (

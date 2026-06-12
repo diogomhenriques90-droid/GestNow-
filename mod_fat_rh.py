@@ -697,6 +697,11 @@ def render_fat_rh(obras_db, registos_db, *_):
         "Seg_Social_Cartao","Cartao_Prof_Num","Cartao_Prof_Validade",
         "Alvara_Num","Alvara_Validade",
     ])
+    # rh_ativos — apenas colaboradores activos, para KPIs/listas/gráficos.
+    # rh_db (completo) é preservado para os save_db() de edição de fichas,
+    # para não eliminar do CSV os registos desactivados.
+    rh_ativos = rh_db[rh_db['Ativo'] != 'Não'].reset_index(drop=True) \
+        if not rh_db.empty and 'Ativo' in rh_db.columns else rh_db
     ferias_db = _load("ferias_db.csv", [
         "ID","Colaborador","Data_Inicio","Data_Fim",
         "Dias_Uteis","Estado","Aprovado_Por","Obra"
@@ -748,15 +753,13 @@ def render_fat_rh(obras_db, registos_db, *_):
     """, unsafe_allow_html=True)
 
     # ── KPIs ──────────────────────────────────────────────────────
-    n_colab   = len(rh_db) if not rh_db.empty else 0
-    n_ativos  = len(rh_db[rh_db.get('Ativo','Sim')=='Sim']) \
-                if not rh_db.empty and 'Ativo' in rh_db.columns \
-                else n_colab
+    n_colab   = len(rh_ativos) if not rh_ativos.empty else 0
+    n_ativos  = n_colab
 
     total_sal = 0.0
     total_custo_rh = 0.0
-    if not rh_db.empty:
-        for _, row in rh_db.iterrows():
+    if not rh_ativos.empty:
+        for _, row in rh_ativos.iterrows():
             sal = float(row.get('Salario_Base',0) or 0)
             total_sal      += sal
             total_custo_rh += _custo_real(sal)['total']
@@ -955,25 +958,25 @@ def render_fat_rh(obras_db, registos_db, *_):
             # Gráficos
             col_gc1, col_gc2 = st.columns(2)
             with col_gc1:
-                fig_mapa = _grafico_mapa_remuneracoes(rh_db, users_df)
+                fig_mapa = _grafico_mapa_remuneracoes(rh_ativos, users_df)
                 if fig_mapa:
                     st.plotly_chart(
                         fig_mapa, use_container_width=True
                     )
             with col_gc2:
-                fig_dnt = _grafico_evolucao_custo_rh(rh_db)
+                fig_dnt = _grafico_evolucao_custo_rh(rh_ativos)
                 if fig_dnt:
                     st.plotly_chart(
                         fig_dnt, use_container_width=True
                     )
 
-            if rh_db.empty:
+            if rh_ativos.empty:
                 st.info(
                     "📋 Sem fichas financeiras. "
                     "Adiciona colaboradores no formulário."
                 )
             else:
-                for _, colab in rh_db.iterrows():
+                for _, colab in rh_ativos.iterrows():
                     sal    = float(colab.get('Salario_Base',0) or 0)
                     c_real = _custo_real(sal)
                     lq     = _liquido(
@@ -1103,7 +1106,7 @@ def render_fat_rh(obras_db, registos_db, *_):
 
         mes_num_m = meses_pt.index(mes_mapa) + 1
 
-        if rh_db.empty:
+        if rh_ativos.empty:
             st.info(
                 "📋 Sem fichas financeiras. "
                 "Adiciona no tab 👤 Colaboradores."
@@ -1115,7 +1118,7 @@ def render_fat_rh(obras_db, registos_db, *_):
             tot_tsu_t = tot_irs_mapa = tot_liq = 0.0
             tot_tsu_e = tot_sub_fv   = tot_custo = 0.0
 
-            for _, colab in rh_db.iterrows():
+            for _, colab in rh_ativos.iterrows():
                 sal  = float(colab.get('Salario_Base',0) or 0)
                 ec   = colab.get('Estado_Civil','Solteiro(a)')
                 dep  = int(colab.get('N_Dependentes',0) or 0)
@@ -1234,7 +1237,7 @@ def render_fat_rh(obras_db, registos_db, *_):
 
         mes_num_r = meses_pt.index(mes_rec) + 1
 
-        if rh_db.empty:
+        if rh_ativos.empty:
             st.info("📋 Sem fichas financeiras para gerar recibos.")
         else:
             # Gerar todos em ZIP
@@ -1248,12 +1251,12 @@ def render_fat_rh(obras_db, registos_db, *_):
                 buf_zip = io.BytesIO()
                 n_gerados = 0
                 with st.spinner(
-                    f"A gerar {len(rh_db)} recibo(s)..."
+                    f"A gerar {len(rh_ativos)} recibo(s)..."
                 ):
                     with zf.ZipFile(
                         buf_zip, 'w', zf.ZIP_DEFLATED
                     ) as zfile:
-                        for _, colab in rh_db.iterrows():
+                        for _, colab in rh_ativos.iterrows():
                             try:
                                 pdf_r = _gerar_recibo_vencimento(
                                     dict(colab),
@@ -1302,15 +1305,15 @@ def render_fat_rh(obras_db, registos_db, *_):
 
             colab_sel_r = st.selectbox(
                 "Colaborador",
-                rh_db['Nome'].tolist()
-                if 'Nome' in rh_db.columns else [],
+                rh_ativos['Nome'].tolist()
+                if 'Nome' in rh_ativos.columns else [],
                 key="rec_colab_sel"
             )
 
             if colab_sel_r:
-                colab_row = rh_db[
-                    rh_db['Nome'] == colab_sel_r
-                ].iloc[0] if not rh_db.empty else None
+                colab_row = rh_ativos[
+                    rh_ativos['Nome'] == colab_sel_r
+                ].iloc[0] if not rh_ativos.empty else None
 
                 if colab_row is not None:
                     sal_prev = float(colab_row.get('Salario_Base',0) or 0)
@@ -1381,8 +1384,8 @@ def render_fat_rh(obras_db, registos_db, *_):
         with col_f1:
             st.markdown("#### ➕ Marcar Férias")
             with st.form("form_ferias"):
-                colab_lista_f = rh_db['Nome'].tolist() \
-                                if not rh_db.empty else []
+                colab_lista_f = rh_ativos['Nome'].tolist() \
+                                if not rh_ativos.empty else []
                 f_colab = st.selectbox(
                     "Colaborador *",
                     colab_lista_f if colab_lista_f else [""],
@@ -1467,9 +1470,9 @@ def render_fat_rh(obras_db, registos_db, *_):
                 st.info("📅 Sem férias marcadas.")
 
             # Controlo de dias disponíveis
-            if not rh_db.empty and not ferias_db.empty:
+            if not rh_ativos.empty and not ferias_db.empty:
                 st.markdown("#### 📋 Saldo de Férias")
-                for _, colab in rh_db.iterrows():
+                for _, colab in rh_ativos.iterrows():
                     nome_c = colab.get('Nome','')
                     # Dias gozados este ano
                     fer_colab = ferias_db[
@@ -1531,7 +1534,7 @@ def render_fat_rh(obras_db, registos_db, *_):
             f"Valor de cada um: 1 mês de salário base."
         )
 
-        if not rh_db.empty:
+        if not rh_ativos.empty:
             mes_sub = st.selectbox(
                 "Calcular para mês",
                 ["Junho (Sub. Férias)","Dezembro (Sub. Natal)"],
@@ -1539,7 +1542,7 @@ def render_fat_rh(obras_db, registos_db, *_):
             )
             col_sub1, col_sub2 = st.columns(2)
             total_sub = 0.0
-            for _, colab in rh_db.iterrows():
+            for _, colab in rh_ativos.iterrows():
                 sal_s = float(colab.get('Salario_Base',0) or 0)
                 total_sub += sal_s
 
@@ -1565,14 +1568,14 @@ def render_fat_rh(obras_db, registos_db, *_):
             "Devem ser contabilizadas todos os meses."
         )
 
-        if rh_db.empty:
+        if rh_ativos.empty:
             st.info("📋 Sem fichas para calcular provisões.")
         else:
             col_pv1, col_pv2 = st.columns(2)
             with col_pv1:
                 st.plotly_chart(
                     _grafico_provisoes_acumuladas(
-                        rh_db, mes_atual, ano_atual
+                        rh_ativos, mes_atual, ano_atual
                     ),
                     use_container_width=True
                 )
@@ -1583,7 +1586,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                 total_tsu_emp = 0.0
                 total_seg_a   = 0.0
 
-                for _, colab in rh_db.iterrows():
+                for _, colab in rh_ativos.iterrows():
                     sal = float(colab.get('Salario_Base',0) or 0)
                     c   = _custo_real(sal)
                     total_prov_m  += c['sub_ferias_prov'] + \
@@ -1631,7 +1634,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     use_container_width=True
                 ):
                     novas_prov = []
-                    for _, colab in rh_db.iterrows():
+                    for _, colab in rh_ativos.iterrows():
                         sal = float(colab.get('Salario_Base',0) or 0)
                         c   = _custo_real(sal)
                         for tipo, val in [
@@ -1676,11 +1679,11 @@ def render_fat_rh(obras_db, registos_db, *_):
             "Ano", min_value=2020, value=ano_atual, key="irs_ano"
         )
 
-        if rh_db.empty:
+        if rh_ativos.empty:
             st.info("📋 Sem fichas financeiras.")
         else:
             rows_irs = []
-            for _, colab in rh_db.iterrows():
+            for _, colab in rh_ativos.iterrows():
                 sal  = float(colab.get('Salario_Base',0) or 0)
                 ec   = colab.get('Estado_Civil','Solteiro(a)')
                 dep  = int(colab.get('N_Dependentes',0) or 0)
@@ -1738,7 +1741,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                 ):
                     mes_dri_num = meses_pt.index(mes_dri) + 1
                     rows_dri    = []
-                    for _, colab in rh_db.iterrows():
+                    for _, colab in rh_ativos.iterrows():
                         sal  = float(colab.get('Salario_Base',0) or 0)
                         c    = _custo_real(sal)
                         lq_d = _liquido(sal)
@@ -1754,7 +1757,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     total_ss = sum(
                         float(colab.get('Salario_Base',0) or 0) *
                         (TSU_EMPRESA + TSU_TRABALHADOR) / 100
-                        for _, colab in rh_db.iterrows()
+                        for _, colab in rh_ativos.iterrows()
                     )
                     st.markdown(
                         f"<div style='background:rgba(59,130,246,0.1);"
