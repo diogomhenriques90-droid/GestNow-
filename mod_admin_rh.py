@@ -8,7 +8,8 @@ from core import (
     save_db, inv, load_db, log_audit, criar_notificacao,
     hp, _gcs_read, _gcs_write_binary, _gcs_read_binary,
     _fill_contrato_template, ICONS, logger,
-    cliente_select, registar_cliente_do_select
+    cliente_select, registar_cliente_do_select,
+    lista_rh_select, registar_valor_lista_rh, set_funcao_categoria
 )
 
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
@@ -1803,6 +1804,42 @@ def render_admin_rh(*args):
 
             # ── 5. Profissional / Relatório Único ─────────────────
             with st.expander("📊 Profissional & Relatório Único"):
+                # Função / Categoria Operacional — fonte única em usuarios.csv,
+                # sincronizada com Obras › Alocações. Fora do form: o
+                # "➕ Novo..." precisa de rerun ao mudar o selectbox.
+                st.markdown("**Função e Categoria Operacional (interna)**")
+                _fc_f_atual = str(_u_row_dl.get("Funcao", "")).strip() \
+                              if _mask_u_dl.any() else ""
+                _fc_c_atual = str(_u_row_dl.get("Categoria_Operacional", "")).strip() \
+                              if _mask_u_dl.any() else ""
+                _fc1, _fc2 = st.columns(2)
+                with _fc1:
+                    _fc_f, _fc_f_novo = lista_rh_select(
+                        "Função", "funcao", f"dl_funcao_{_slug}",
+                        valor_atual=_fc_f_atual,
+                        em_uso=_u_dl["Funcao"] if "Funcao" in _u_dl.columns else [])
+                with _fc2:
+                    _fc_c, _fc_c_novo = lista_rh_select(
+                        "Categoria Operacional (interna — ≠ Categoria CCT)",
+                        "categoria_operacional", f"dl_catop_{_slug}",
+                        valor_atual=_fc_c_atual,
+                        em_uso=_u_dl["Categoria_Operacional"]
+                               if "Categoria_Operacional" in _u_dl.columns else [])
+                if st.button("💾 Guardar Função/Categoria Operacional",
+                             key=f"dl_fc_save_{_slug}", type="primary"):
+                    if (_fc_f_novo and not _fc_f) or (_fc_c_novo and not _fc_c):
+                        st.error("⚠️ Introduz o novo valor antes de guardar.")
+                    else:
+                        if _fc_f_novo:
+                            _fc_f = registar_valor_lista_rh("funcao", _fc_f)
+                        if _fc_c_novo:
+                            _fc_c = registar_valor_lista_rh("categoria_operacional", _fc_c)
+                        if set_funcao_categoria(_nome_dl, funcao=_fc_f, categoria=_fc_c):
+                            st.success("✅ Função/Categoria Operacional guardadas.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                st.markdown("---")
                 with st.form(f"dl_form_prof_{_slug}"):
                     _c1, _c2 = st.columns(2)
                     with _c1:
