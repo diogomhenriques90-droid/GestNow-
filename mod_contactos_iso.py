@@ -7,7 +7,7 @@ import streamlit as st
 import pandas as pd
 import uuid
 from datetime import datetime, date, timedelta
-from core import save_db, inv, load_db, log_audit
+from core import save_db, inv, load_db, log_audit, cliente_select, registar_novo_cliente
 
 _COLS = [
     "ID", "Data", "Hora", "Canal", "Sentido",
@@ -271,7 +271,7 @@ def render_contactos_iso(*_):
         st.markdown("**B — Cliente / Contacto**")
         col_b1, col_b2 = st.columns(2)
         with col_b1:
-            n_cli_nome = st.text_input("Nome da Empresa *",  key="ct_n_cli_nome")
+            n_cli_nome, n_cli_novo = cliente_select("Nome da Empresa *", "ct_n_cli")
             n_ct_nome  = st.text_input("Nome do Contacto *", key="ct_n_ct_nome")
         with col_b2:
             n_ct_tel   = st.text_input("Telefone", key="ct_n_ct_tel")
@@ -330,6 +330,17 @@ def render_contactos_iso(*_):
                 st.error(f"❌ Campos obrigatórios em falta: {', '.join(erros)}")
             else:
                 cid = str(uuid.uuid4())[:8].upper()
+
+                # Empresa nova → registar na fonte canónica (W3.4) com os
+                # contactos disponíveis; reutiliza se já existir (dedup)
+                if n_cli_novo:
+                    n_cli_nome = registar_novo_cliente(
+                        n_cli_nome,
+                        nif=st.session_state.get("ct_n_cli__novo_nif", ""),
+                        email=st.session_state.get("ct_n_cli__novo_email", "") or n_ct_email.strip(),
+                        telefone=st.session_state.get("ct_n_cli__novo_tel", "") or n_ct_tel.strip(),
+                        origem="Oportunidade",
+                    )
 
                 ev_path = ""
                 if n_ev_file and n_ev_tipo != "Nenhuma":
