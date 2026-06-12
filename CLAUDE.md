@@ -62,7 +62,7 @@ All source files are flat in the repository root: `app.py`, `core.py`, `mod_admi
 All persistent data lives in Google Cloud Storage as CSV files under `gs://gestnow-dados/data/*.csv` — 19 CSVs loaded by `load_all()` plus additional module-specific CSVs loaded on demand. There is no database.
 
 Key functions:
-- `_cached_load_db(fn, cols_tuple, silent, _v)` — `@st.cache_data(ttl=300)` cached reader. Do **not** call directly.
+- `_cached_load_db(fn, cols_tuple, silent, _v)` — `@st.cache_data(ttl=3600)` cached reader. Do **not** call directly.
 - `load_db(fn, cols, silent)` — public wrapper; reads `st.session_state._fv[fn]` as a version key to support selective invalidation.
 - `save_db(df, fn)` — writes CSV to GCS. For `registos.csv`, `usuarios.csv`, `folhas_ponto.csv`, it blocks if the new DataFrame loses >10% of rows and auto-creates a daily backup.
 - `inv(ficheiro=None)` — cache invalidation. **Always call with the filename** (`inv("obras_lista.csv")`) after every `save_db`. Only call bare `inv()` (nuclear, clears all cache) for global reset operations (backup restore, IT admin, full-app refresh).

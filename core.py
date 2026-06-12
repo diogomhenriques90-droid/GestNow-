@@ -15,6 +15,7 @@ import pandas as pd
 import os, re, secrets, io, base64, bcrypt, logging, uuid, hashlib, json, time
 from datetime import datetime, timedelta, date
 from google.cloud import storage as gcs
+from google.api_core.exceptions import NotFound as _GCSNotFound
 import plotly.express as px
 from streamlit_folium import folium_static
 import folium
@@ -79,8 +80,11 @@ def _gcs_read(fn):
         if client:
             bucket = client.bucket(GCS_BUCKET)
             blob   = bucket.blob(f"data/{fn}")
-            if blob.exists():
+            try:
+                # 1 round-trip: download directo; NotFound substitui o exists()
                 return io.BytesIO(blob.download_as_bytes())
+            except _GCSNotFound:
+                return None
     except Exception as e:
         logger.debug(f"GCS read fallback para {fn}: {e}")
     return None
