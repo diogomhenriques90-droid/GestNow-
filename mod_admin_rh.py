@@ -263,10 +263,9 @@ MOTIVO_CONTRATO_OPTS = [
     "Contratação de Desempregado de Longa Duração",
     "Outro",
 ]
-MOTIVO_ENTRADA_OPTS = [
-    "Novo Posto de Trabalho", "Substituição de Trabalhador",
-    "Necessidades Temporárias", "Transferência", "Outro",
-]
+# Motivo Entrada partilha a lista do Motivo Contrato (constante única, W5).
+# Valores antigos gravados fora da lista continuam visíveis via _sel_opts.
+MOTIVO_ENTRADA_OPTS = MOTIVO_CONTRATO_OPTS
 MOTIVO_SAIDA_OPTS = [
     "Caducidade do Contrato a Termo",
     "Despedimento por Iniciativa do Empregador",
@@ -1264,9 +1263,13 @@ def render_admin_rh(*args):
                 st.success("✅ Campos bloqueados atualizados.")
                 st.rerun()
 
-        # ── Alterar Função e Password ─────────────────────────────
+        # ── Permissões APP e Password ─────────────────────────────
+        # "Permissões APP (Tipo)" e "Permissões APP (Cargo)" são os campos
+        # de acesso da app (colunas Tipo/Cargo de usuarios.csv) — distintos
+        # de Função/Categoria Operacional (tab Dados Legais). Só os rótulos
+        # mudaram no W5; valores, keys e mecânica de permissões intactos.
         st.markdown("---")
-        st.markdown("#### ⚙️ Alterar Função / Password")
+        st.markdown("#### ⚙️ Permissões APP / Password")
 
         col_f1, col_f2 = st.columns(2)
         with col_f1:
@@ -1274,7 +1277,7 @@ def render_admin_rh(*args):
                             "Gestor", "Secretariado"]
             tipo_atual   = row.get("Tipo", "Técnico")
             idx_tipo     = tipos_opcoes.index(tipo_atual)                            if tipo_atual in tipos_opcoes else 0
-            novo_tipo = st.selectbox("👤 Função (Tipo)",
+            novo_tipo = st.selectbox("👤 Permissões APP (Tipo)",
                 tipos_opcoes, index=idx_tipo, key="rh_novo_tipo")
 
         with col_f2:
@@ -1283,10 +1286,10 @@ def render_admin_rh(*args):
                              "Engenheiro", "QA/QC", "Admin", "Outro"]
             cargo_atual   = row.get("Cargo", "")
             idx_cargo     = cargos_opcoes.index(cargo_atual)                             if cargo_atual in cargos_opcoes else 0
-            novo_cargo = st.selectbox("🏷️ Cargo",
+            novo_cargo = st.selectbox("🏷️ Permissões APP (Cargo)",
                 cargos_opcoes, index=idx_cargo, key="rh_novo_cargo")
 
-        if st.button("💾 Guardar Função/Cargo",
+        if st.button("💾 Guardar Permissões APP",
                      key="btn_guardar_funcao", type="primary"):
             u_fn = _load_users_fresh()
             mk_fn = u_fn["Nome"] == nome_sel
@@ -1302,7 +1305,7 @@ def render_admin_rh(*args):
                           tabela="usuarios.csv",
                           registro_id=nome_sel,
                           detalhes=f"Tipo={novo_tipo}, Cargo={novo_cargo}")
-                st.success(f"✅ Função actualizada: {novo_tipo} / {novo_cargo}")
+                st.success(f"✅ Permissões APP actualizadas: {novo_tipo} / {novo_cargo}")
                 st.rerun()
 
         st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
