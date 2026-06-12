@@ -919,5 +919,5 @@ st.markdown("""
 }
 @media (max-width:768px) { .footer { display:none; } }
 </style>
-<div class="footer">🎛️ GESTNOW v3.0 — Sistema de Gestão de Instrumentação Industrial</div>
+<div class="footer">GESTNOW v3.0 - Plataforma de Gestão de Empresas/Gestão de Obras e Instrumentação Industrial</div>
 """, unsafe_allow_html=True)
