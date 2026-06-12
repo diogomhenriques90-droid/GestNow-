@@ -526,14 +526,14 @@ def _render_validacao_obrigatoria(user_nome):
 # =============================================================================
 if st.session_state.get('user'):
     with st.sidebar:
-        st.image("assets/logo_cps_tema_escuro.png", use_container_width=True)
-        st.markdown("""
-        <div style="text-align:center;padding:12px;
-            background:linear-gradient(135deg,#1E293B,#0F172A);
-            border-radius:16px;margin-bottom:20px;">
-            <div style="font-size:1.2rem;font-weight:700;color:#F8FAFC;">GESTNOW v3</div>
-            <div style="font-size:0.8rem;color:#94A3B8;">Instrumentação Industrial</div>
-        </div>""", unsafe_allow_html=True)
+        with open("assets/logo_cps_tema_escuro.png", "rb") as _f:
+            _logo_sb_b64 = base64.b64encode(_f.read()).decode()
+        st.markdown(
+            f"<div style='display:flex;justify-content:center;margin:8px 0 20px 0;'>"
+            f"<img src='data:image/png;base64,{_logo_sb_b64}' alt='CPS Smart Solutions' "
+            f"style='width:min(220px,95%);height:auto;'/></div>",
+            unsafe_allow_html=True
+        )
 
         st.markdown(f"""
         <div style="padding:12px;background:rgba(255,255,255,0.05);
