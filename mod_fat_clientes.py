@@ -570,8 +570,13 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 ].iloc[0] if not clientes_db.empty else None
                 nif_cli     = cli_row['NIF']     if cli_row is not None else ""
                 morada_cli  = cli_row['Morada']  if cli_row is not None else ""
-                dias_pag    = int(cli_row.get('Condicoes_Pagamento', 30)
-                                  ) if cli_row is not None else 30
+                if cli_row is not None:
+                    _dias_pag_num = pd.to_numeric(
+                        cli_row.get('Condicoes_Pagamento', 30), errors='coerce'
+                    )
+                    dias_pag = int(_dias_pag_num) if pd.notna(_dias_pag_num) else 30
+                else:
+                    dias_pag = 30
             else:
                 cliente_sel = st.text_input(
                     "Nome do Cliente *", key="fat_cli_nome"
@@ -823,6 +828,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         [linhas_fat, df_novas_l], ignore_index=True
                     ) if not linhas_fat.empty else df_novas_l
                     save_db(updated_l, "faturas_linhas.csv")
+                    inv("faturas_linhas.csv")
 
                     # Guardar fatura
                     nova_fat = pd.DataFrame([{
@@ -1220,6 +1226,11 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             fc_cli.get('Total', 0), errors='coerce'
                         ).fillna(0).sum()
 
+                    limite_cli = pd.to_numeric(
+                        cli.get('Limite_Credito', 0), errors='coerce'
+                    )
+                    limite_cli = limite_cli if pd.notna(limite_cli) else 0
+
                     st.markdown(
                         f"<div style='background:#1E293B;"
                         f"border-radius:10px;padding:14px;"
@@ -1233,7 +1244,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         f"<small style='color:#64748B;'>"
                         f"NIF: {cli.get('NIF','')} · "
                         f"{cli.get('Condicoes_Pagamento',30)} dias · "
-                        f"Limite: €{float(cli.get('Limite_Credito',0)):,.0f}"
+                        f"Limite: €{limite_cli:,.0f}"
                         f"</small><br>"
                         f"<small style='color:#475569;'>"
                         f"📧 {cli.get('Email','')} · "

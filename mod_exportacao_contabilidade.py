@@ -1377,8 +1377,8 @@ def render_exportacao_contabilidade(*_):
                     f"<span style='color:{cor_eq};'>"
                     f"{ic_eq} {eq}</span><br>"
                     f"<small style='color:#64748B;'>"
-                    f"D: €{float(h.get('Total_Debito',0)):,.2f} · "
-                    f"C: €{float(h.get('Total_Credito',0)):,.2f}"
+                    f"D: €{float(h.get('Total_Debito',0) or 0):,.2f} · "
+                    f"C: €{float(h.get('Total_Credito',0) or 0):,.2f}"
                     f"</small></div></div></div>",
                     unsafe_allow_html=True
                 )
