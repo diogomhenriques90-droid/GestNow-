@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import io
+import io, base64
 from datetime import datetime
 from core import cp, _gcs_read, inv
 
@@ -53,16 +53,12 @@ def render_login():
     </style>
     """, unsafe_allow_html=True)
 
-    _c1, _c2, _c3 = st.columns([1, 2, 1])
-    with _c2:
-        st.image("assets/logo_cps_tema_escuro.png", width=380)
+    with open("assets/logo_cps_tema_escuro.png", "rb") as _f:
+        _logo_b64 = base64.b64encode(_f.read()).decode()
     st.markdown(
-        "<h3 style='text-align:center; color:#60A5FA; margin-top:8px;'>GESTNOW v3</h3>",
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        "<p style='text-align:center; color:rgba(255,255,255,0.7); margin-bottom:40px;'>"
-        "Gestão de Empresas e de Obras Industriais</p>",
+        f"<div style='display:flex;justify-content:center;margin:8px 0 40px 0;'>"
+        f"<img src='data:image/png;base64,{_logo_b64}' alt='CPS Smart Solutions' "
+        f"style='width:min(380px,80vw);height:auto;'/></div>",
         unsafe_allow_html=True
     )
 
