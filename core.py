@@ -787,8 +787,8 @@ def inject_pwa_meta():
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0F172A">
     <meta name="description" content="GESTNOW - Gestão de Instrumentação Industrial">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/png" href="/favicon-32x32.png">
+    <link rel="manifest" href="/app/static/manifest.json">
+    <link rel="icon" type="image/png" href="/app/static/icone_cps_192.png">
     """, unsafe_allow_html=True)
 
 # =============================================================================

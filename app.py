@@ -17,8 +17,8 @@ except ImportError:
     HAS_OPTION_MENU = False
 
 st.set_page_config(
-    page_title="GESTNOW v3 - Instrumentação Industrial [DEV]",
-    page_icon=ICONS["app"],
+    page_title="GESTNOW v3.0 — Sistema de Gestão de Empresas/Gestão de Obras e Instrumentação Industrial",
+    page_icon="assets/icone_cps_192.png",
     layout="wide",
     initial_sidebar_state="collapsed",
     menu_items={
@@ -27,6 +27,9 @@ st.set_page_config(
         'About':       "# GESTNOW v3\nSistema de Gestão de Instrumentação Industrial"
     }
 )
+
+st.logo("assets/logo_cps_tema_escuro.png",
+        icon_image="assets/icone_cps_192.png", size="large")
 
 inject_pwa_meta()
 inject_global_css()
@@ -523,11 +526,11 @@ def _render_validacao_obrigatoria(user_nome):
 # =============================================================================
 if st.session_state.get('user'):
     with st.sidebar:
-        st.markdown(f"""
-        <div style="text-align:center;padding:20px;
+        st.image("assets/logo_cps_tema_escuro.png", use_container_width=True)
+        st.markdown("""
+        <div style="text-align:center;padding:12px;
             background:linear-gradient(135deg,#1E293B,#0F172A);
             border-radius:16px;margin-bottom:20px;">
-            <div style="font-size:3rem;margin-bottom:10px;">{ICONS["app"]}</div>
             <div style="font-size:1.2rem;font-weight:700;color:#F8FAFC;">GESTNOW v3</div>
             <div style="font-size:0.8rem;color:#94A3B8;">Instrumentação Industrial</div>
         </div>""", unsafe_allow_html=True)
