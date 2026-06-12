@@ -332,7 +332,7 @@ def load_db(fn, cols, silent=False):
     return df
 
 # ── Ficheiros críticos — protegidos contra perda de dados ───────────────────
-_CRITICAL_FILES = {"registos.csv", "usuarios.csv", "folhas_ponto.csv", "contratos.csv", "obras_lista.csv", "colaboradores_rh.csv"}
+_CRITICAL_FILES = {"registos.csv", "usuarios.csv", "folhas_ponto.csv", "contratos.csv", "obras_lista.csv", "colaboradores_rh.csv", "clientes_financeiro.csv"}
 
 # ── Colunas de permissoes_admin.csv ─────────────────────────────────────────
 _PERM_COLS = [
@@ -536,8 +536,18 @@ NOVO_CLIENTE_OPT = "➕ Novo cliente..."
 
 _CLIENTES_FINANCEIRO_COLS = [
     "ID", "Nome", "NIF", "Morada", "Email", "Telefone",
-    "Condicoes_Pagamento", "Limite_Credito", "Contacto_Fat", "Activo"
+    "Condicoes_Pagamento", "Limite_Credito", "Contacto_Fat", "Activo",
+    "Sector", "Origem", "Criado_Por", "Data_Criacao", "Notas"
 ]
+
+def _norm_nome_cliente(nome):
+    """Normaliza nome de cliente para dedup: trim, espaços colapsados,
+    minúsculas e sem acentos."""
+    import unicodedata
+    nome = " ".join(str(nome or "").split())
+    nome = unicodedata.normalize("NFKD", nome)
+    nome = "".join(c for c in nome if not unicodedata.combining(c))
+    return nome.casefold()
 
 def get_clientes_opts():
     """Lista ordenada de nomes de clientes activos (fonte: clientes_financeiro.csv)."""
@@ -568,23 +578,162 @@ def cliente_select(label, key, valor_atual=""):
     sel = st.selectbox(label, display, index=idx, key=key)
     if sel == NOVO_CLIENTE_OPT:
         novo = st.text_input("Nome do novo cliente *", key=f"{key}__novo")
+        nc1, nc2, nc3 = st.columns(3)
+        with nc1: st.text_input("NIF (opcional)",      key=f"{key}__novo_nif")
+        with nc2: st.text_input("Email (opcional)",    key=f"{key}__novo_email")
+        with nc3: st.text_input("Telefone (opcional)", key=f"{key}__novo_tel")
         return novo.strip(), True
     return sel, False
 
 
-def registar_novo_cliente(nome):
-    """Adiciona um cliente novo a clientes_financeiro.csv (fonte canónica),
-    se ainda não existir lá."""
-    nome = (nome or "").strip()
+def registar_novo_cliente(nome, nif="", email="", telefone="", morada="",
+                          sector="", origem="Manual", criado_por="", notas=""):
+    """Adiciona um cliente novo a clientes_financeiro.csv (fonte canónica).
+    Dedup por nome normalizado (case-insensitive, sem acentos). Devolve o
+    nome tal como ficou registado (o já existente, em caso de duplicado)."""
+    nome = " ".join(str(nome or "").split())
     if not nome:
-        return
+        return ""
     df = load_db("clientes_financeiro.csv", _CLIENTES_FINANCEIRO_COLS, silent=True)
-    if not df.empty and nome in df['Nome'].astype(str).str.strip().values:
-        return
-    novo_row = pd.DataFrame([{"ID": uuid.uuid4().hex[:8].upper(), "Nome": nome, "Activo": "Sim"}])
+    if not df.empty and 'Nome' in df.columns:
+        alvo = _norm_nome_cliente(nome)
+        for n_exist in df['Nome'].astype(str):
+            if n_exist.strip() and _norm_nome_cliente(n_exist) == alvo:
+                return n_exist.strip()
+    novo_row = pd.DataFrame([{
+        "ID":           uuid.uuid4().hex[:8].upper(),
+        "Nome":         nome,
+        "NIF":          str(nif or "").strip(),
+        "Email":        str(email or "").strip(),
+        "Telefone":     str(telefone or "").strip(),
+        "Morada":       str(morada or "").strip(),
+        "Sector":       str(sector or "").strip(),
+        "Origem":       origem,
+        "Criado_Por":   criado_por or st.session_state.get('user', '') or '',
+        "Data_Criacao": datetime.now().strftime("%d/%m/%Y"),
+        "Activo":       "Sim",
+        "Notas":        str(notas or "").strip(),
+    }])
     upd = pd.concat([df, novo_row], ignore_index=True) if not df.empty else novo_row
     save_db(upd, "clientes_financeiro.csv")
     inv("clientes_financeiro.csv")
+    return nome
+
+
+def registar_cliente_do_select(nome, key, origem="Manual"):
+    """Regista um cliente criado via cliente_select, lendo os campos
+    opcionais (NIF/Email/Telefone) do mini-form inline."""
+    return registar_novo_cliente(
+        nome,
+        nif=st.session_state.get(f"{key}__novo_nif", ""),
+        email=st.session_state.get(f"{key}__novo_email", ""),
+        telefone=st.session_state.get(f"{key}__novo_tel", ""),
+        origem=origem,
+    )
+
+
+# Fontes de nomes de cliente em texto livre (migração + verificação de refs)
+_FONTES_CLIENTE = [
+    ("obras_lista.csv",             "Cliente",              "Obras"),
+    ("orcamentos.csv",              "Cliente",              "Orçamentos"),
+    ("comercial_oportunidades.csv", "Cliente",              "Oportunidades"),
+    ("com_contactos.csv",           "Cliente_Nome",         "Contactos ISO"),
+    ("comercial_clientes.csv",      "Nome",                 "Clientes Angariados"),
+    ("faturas_clientes.csv",        "Cliente",              "Faturação"),
+    ("usuarios.csv",                "Cliente_Obra",         "Colaboradores (obra)"),
+    ("usuarios.csv",                "Contrato_Cliente_Obra","Contratos RH"),
+]
+
+
+def referencias_cliente(nome):
+    """Verifica onde um cliente está referenciado (match normalizado).
+    Devolve lista de (descrição, nº de ocorrências) — vazia se sem referências."""
+    alvo = _norm_nome_cliente(nome)
+    refs = []
+    for fn, col, desc in _FONTES_CLIENTE:
+        df = load_db(fn, [col], silent=True)
+        if df.empty or col not in df.columns:
+            continue
+        n = sum(1 for v in df[col].astype(str) if v.strip() and _norm_nome_cliente(v) == alvo)
+        if n:
+            refs.append((desc, n))
+    return refs
+
+
+def migrar_clientes_existentes(executar=False):
+    """Recolhe nomes de cliente em texto livre de todos os CSVs com coluna de
+    cliente e cria os que faltam em clientes_financeiro.csv (Origem="Migração").
+    Idempotente (dedup por nome normalizado); NÃO altera os CSVs de origem.
+
+    executar=False → dry-run: devolve a lista sem gravar nada.
+    Devolve (a_criar, n_existentes): lista ordenada de nomes a criar e nº de
+    clientes já registados na fonte canónica.
+    """
+    df_cli = load_db("clientes_financeiro.csv", _CLIENTES_FINANCEIRO_COLS, silent=True)
+    existentes = set()
+    if not df_cli.empty and 'Nome' in df_cli.columns:
+        existentes = {_norm_nome_cliente(n) for n in df_cli['Nome'].astype(str) if n.strip()}
+
+    # comercial_clientes.csv traz NIF/contactos — usar para enriquecer
+    com_cli = load_db("comercial_clientes.csv", [
+        "ID", "Nome", "NIF", "Setor", "Morada", "Email", "Telefone",
+        "Contacto", "Comercial_Resp", "Data_Angariacao", "Origem",
+        "Potencial", "Notas"
+    ], silent=True)
+    detalhes = {}
+    if not com_cli.empty and 'Nome' in com_cli.columns:
+        for _, r in com_cli.iterrows():
+            nm = str(r.get('Nome', '')).strip()
+            if nm:
+                detalhes[_norm_nome_cliente(nm)] = {
+                    "nif":      str(r.get('NIF', '')).strip(),
+                    "email":    str(r.get('Email', '')).strip(),
+                    "telefone": str(r.get('Telefone', '')).strip(),
+                    "morada":   str(r.get('Morada', '')).strip(),
+                    "sector":   str(r.get('Setor', '')).strip(),
+                }
+
+    a_criar = {}
+    for fn, col, _desc in _FONTES_CLIENTE:
+        if fn == "faturas_clientes.csv":
+            continue  # faturas referem clientes, não são fonte de registo
+        df = load_db(fn, [col], silent=True)
+        if df.empty or col not in df.columns:
+            continue
+        for v in df[col].astype(str):
+            nome = " ".join(v.split())
+            if not nome:
+                continue
+            chave = _norm_nome_cliente(nome)
+            if chave not in existentes and chave not in a_criar:
+                a_criar[chave] = nome
+
+    nomes_ordenados = sorted(a_criar.values(), key=str.casefold)
+    if not executar or not a_criar:
+        return nomes_ordenados, len(existentes)
+
+    novas = []
+    for chave, nome in a_criar.items():
+        det = detalhes.get(chave, {})
+        novas.append({
+            "ID":           uuid.uuid4().hex[:8].upper(),
+            "Nome":         nome,
+            "NIF":          det.get("nif", ""),
+            "Email":        det.get("email", ""),
+            "Telefone":     det.get("telefone", ""),
+            "Morada":       det.get("morada", ""),
+            "Sector":       det.get("sector", ""),
+            "Origem":       "Migração",
+            "Criado_Por":   st.session_state.get('user', '') or '',
+            "Data_Criacao": datetime.now().strftime("%d/%m/%Y"),
+            "Activo":       "Sim",
+            "Notas":        "",
+        })
+    upd = pd.concat([df_cli, pd.DataFrame(novas)], ignore_index=True) \
+          if not df_cli.empty else pd.DataFrame(novas)
+    save_db(upd, "clientes_financeiro.csv")
+    inv("clientes_financeiro.csv")
+    return nomes_ordenados, len(existentes)
 
 
 _LOAD_ALL_FILES = (

@@ -7,7 +7,8 @@ from io import BytesIO
 from core import (
     save_db, inv, load_db, log_audit, criar_notificacao,
     hp, _gcs_read, _gcs_write_binary, _gcs_read_binary,
-    _fill_contrato_template, ICONS, logger
+    _fill_contrato_template, ICONS, logger,
+    cliente_select, registar_cliente_do_select
 )
 
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
@@ -788,9 +789,8 @@ def render_admin_rh(*args):
                         key="nc_local",
                         placeholder="Ex: Refinaria de Sines")
                 with c4:
-                    novo_cliente = st.text_input("Cliente *",
-                        key="nc_cliente",
-                        placeholder="Ex: GALP Energia")
+                    novo_cliente, novo_cliente_novo = cliente_select(
+                        "Cliente *", "nc_cliente")
 
                 st.markdown("**Dados opcionais**")
                 c5, c6 = st.columns(2)
@@ -839,6 +839,9 @@ def render_admin_rh(*args):
                     else:
                         novo_id  = str(uuid.uuid4())[:8].upper()
                         pwd_hash = hp(novo_pwd.strip())
+
+                        if novo_cliente_novo:
+                            registar_cliente_do_select(novo_cliente, "nc_cliente")
 
                         novo_row = {
                             "ID": novo_id,
@@ -1130,8 +1133,8 @@ def render_admin_rh(*args):
                         value=_vg("PrecoHora"), key=f"gi_preco_{_slug_gi}")
                     _gi_local  = st.text_input("Local de Obra",
                         value=_vg("Local_Obra"), key=f"gi_local_{_slug_gi}")
-                    _gi_cliente= st.text_input("Cliente",
-                        value=_vg("Cliente_Obra"), key=f"gi_cliente_{_slug_gi}")
+                    _gi_cliente, _gi_cliente_novo = cliente_select(
+                        "Cliente", f"gi_cliente_{_slug_gi}", _vg("Cliente_Obra"))
                 with _gc2:
                     _gi_camisola = st.text_input("Tamanho Camisola",
                         value=_vg("Tamanho_Camisola"), key=f"gi_camisola_{_slug_gi}")
@@ -1171,6 +1174,9 @@ def render_admin_rh(*args):
 
                 if st.form_submit_button("💾 Guardar Profissional",
                                          use_container_width=True, type="primary"):
+                    if _gi_cliente_novo:
+                        registar_cliente_do_select(
+                            _gi_cliente, f"gi_cliente_{_slug_gi}")
                     if _save_gi({
                         "PrecoHora": _gi_preco, "Local_Obra": _gi_local,
                         "Cliente_Obra": _gi_cliente,
@@ -2607,10 +2613,9 @@ def render_admin_rh(*args):
                             value=date.today(), key="ct_data_ini"
                         )
                     with c2:
-                        ct_cliente = st.text_input(
-                            "Cliente *",
-                            value=row_ct.get('Cliente_Obra',''),
-                            key="ct_cliente"
+                        ct_cliente, ct_cliente_novo = cliente_select(
+                            "Cliente *", "ct_cliente",
+                            row_ct.get('Cliente_Obra','')
                         )
                         ct_data_doc = st.date_input(
                             "Data do documento",
@@ -2622,6 +2627,8 @@ def render_admin_rh(*args):
                         if not ct_local or not ct_cliente:
                             st.error("❌ Local e Cliente são obrigatórios.")
                         else:
+                            if ct_cliente_novo:
+                                registar_cliente_do_select(ct_cliente, "ct_cliente")
                             morada_completa = " ".join(filter(None, [
                                 row_ct.get('Morada',''),
                                 row_ct.get('Localidade',''),

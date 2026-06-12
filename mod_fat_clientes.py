@@ -13,7 +13,10 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit, criar_notificacao
+from core import (save_db, inv, load_db, log_audit, criar_notificacao,
+                  registar_novo_cliente, referencias_cliente,
+                  migrar_clientes_existentes, _norm_nome_cliente,
+                  _CLIENTES_FINANCEIRO_COLS)
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -466,10 +469,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
         "Subtotal","IVA","Total","Estado","Notas",
         "PDF_b64","Enviada_Em","Paga_Em"
     ])
-    clientes_db = _load("clientes_financeiro.csv", [
-        "ID","Nome","NIF","Morada","Email","Telefone",
-        "Condicoes_Pagamento","Limite_Credito","Contacto_Fat"
-    ])
+    clientes_db = _load("clientes_financeiro.csv", _CLIENTES_FINANCEIRO_COLS)
     linhas_fat  = _load("faturas_linhas.csv", [
         "ID","Fatura_ID","Descricao","Quantidade",
         "Preco_Unit","IVA_Pct","Total"
@@ -552,8 +552,12 @@ def render_fat_clientes(obras_db, registos_db, *_):
 
             # Cliente
             st.markdown("#### 👤 Cliente")
-            clientes_lista = clientes_db['Nome'].tolist() \
-                             if not clientes_db.empty else []
+            if not clientes_db.empty:
+                _inativos_l = clientes_db['Activo'].astype(str).str.strip()\
+                    .str.lower().isin(['não','nao','inativo','inactivo','0','false'])
+                clientes_lista = clientes_db.loc[~_inativos_l, 'Nome'].tolist()
+            else:
+                clientes_lista = []
             usar_existente = st.checkbox(
                 "Usar cliente registado",
                 value=bool(clientes_lista),
@@ -867,6 +871,13 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         ip=""
                     )
                     inv("faturas_clientes.csv")
+
+                    # Cliente em texto livre → auto-registo silencioso na
+                    # fonte canónica (dedup por nome normalizado)
+                    if not (usar_existente and clientes_lista):
+                        registar_novo_cliente(
+                            cliente_sel, nif=nif_cli, morada=morada_cli,
+                            origem="Manual", criado_por=user_nome)
 
                     st.success(
                         f"✅ {num_final} emitida! "
@@ -1185,8 +1196,15 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     "💾 Guardar Cliente",
                     use_container_width=True, type="primary"
                 ):
+                    _dup_c = (not clientes_db.empty and any(
+                        n.strip() and _norm_nome_cliente(n) == _norm_nome_cliente(cli_nome)
+                        for n in clientes_db['Nome'].astype(str)))
                     if not cli_nome.strip() or not cli_nif.strip():
                         st.error("❌ Nome e NIF obrigatórios.")
+                    elif _dup_c:
+                        st.error("❌ Já existe um cliente com este nome "
+                                 "(verifica a lista — a comparação ignora "
+                                 "maiúsculas e acentos).")
                     else:
                         novo_c = pd.DataFrame([{
                             "ID":                   str(uuid.uuid4())[:8].upper(),
@@ -1198,6 +1216,10 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             "Contacto_Fat":         cli_cont.strip(),
                             "Condicoes_Pagamento":  cli_dias,
                             "Limite_Credito":       cli_lim,
+                            "Activo":               "Sim",
+                            "Origem":               "Manual",
+                            "Criado_Por":           user_nome,
+                            "Data_Criacao":         datetime.now().strftime("%d/%m/%Y"),
                         }])
                         updated_c = pd.concat(
                             [clientes_db, novo_c], ignore_index=True
@@ -1263,6 +1285,157 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             expanded=False
                         ):
                             st.plotly_chart(fig_tl, key=f"tl_{cli.get('Nome','')}")
+
+        # ════════════════════════════════════════════════════════════
+        # GESTÃO DE CLIENTES — fonte canónica única (secção aditiva)
+        # ════════════════════════════════════════════════════════════
+        st.divider()
+        st.markdown("### 🛠️ Gestão de Clientes")
+        st.caption(
+            "Fonte canónica única (`clientes_financeiro.csv`) — alimenta os "
+            "selectbox de Cliente em toda a app. Clientes inactivos "
+            "desaparecem dos selectbox; o histórico mantém-se."
+        )
+
+        if clientes_db.empty:
+            st.info("📋 Sem clientes na fonte canónica.")
+        else:
+            gc_pesq = st.text_input(
+                "🔍 Pesquisar cliente", key="gc_pesquisa",
+                placeholder="Nome ou NIF..."
+            )
+            cli_gestao = clientes_db.copy()
+            if gc_pesq.strip():
+                _p = gc_pesq.strip().lower()
+                cli_gestao = cli_gestao[cli_gestao.apply(
+                    lambda r: _p in str(r.get('Nome','')).lower()
+                              or _p in str(r.get('NIF','')).lower(),
+                    axis=1
+                )]
+            st.caption(f"{len(cli_gestao)} cliente(s)")
+
+            for _, cli_g in cli_gestao.iterrows():
+                cid_g   = str(cli_g.get('ID',''))
+                nome_g  = str(cli_g.get('Nome',''))
+                ativo_g = str(cli_g.get('Activo','Sim')).strip().lower() \
+                          not in ['não','nao','inativo','inactivo','0','false']
+                with st.expander(
+                    f"{'🟢' if ativo_g else '🔴'} {nome_g} — "
+                    f"{cli_g.get('Origem','') or '—'} · "
+                    f"{cli_g.get('Data_Criacao','') or '—'}"
+                ):
+                    with st.form(f"gc_form_{cid_g}"):
+                        g1, g2 = st.columns(2)
+                        with g1:
+                            g_nif    = st.text_input("NIF",
+                                value=str(cli_g.get('NIF','')), key=f"gc_nif_{cid_g}")
+                            g_email  = st.text_input("Email",
+                                value=str(cli_g.get('Email','')), key=f"gc_email_{cid_g}")
+                            g_tel    = st.text_input("Telefone",
+                                value=str(cli_g.get('Telefone','')), key=f"gc_tel_{cid_g}")
+                            g_morada = st.text_input("Morada",
+                                value=str(cli_g.get('Morada','')), key=f"gc_morada_{cid_g}")
+                            g_sector = st.text_input("Sector",
+                                value=str(cli_g.get('Sector','')), key=f"gc_sector_{cid_g}")
+                        with g2:
+                            g_cont  = st.text_input("Contacto Faturação",
+                                value=str(cli_g.get('Contacto_Fat','')), key=f"gc_cont_{cid_g}")
+                            g_dias  = st.text_input("Condições Pagamento (dias)",
+                                value=str(cli_g.get('Condicoes_Pagamento','')), key=f"gc_dias_{cid_g}")
+                            g_lim   = st.text_input("Limite Crédito (€)",
+                                value=str(cli_g.get('Limite_Credito','')), key=f"gc_lim_{cid_g}")
+                            g_ativo = st.selectbox("Activo", ["Sim","Não"],
+                                index=0 if ativo_g else 1, key=f"gc_ativo_{cid_g}")
+                        g_notas = st.text_area("Notas",
+                            value=str(cli_g.get('Notas','')), key=f"gc_notas_{cid_g}")
+
+                        if st.form_submit_button("💾 Guardar Alterações",
+                                                 use_container_width=True):
+                            upd_g  = clientes_db.copy()
+                            mask_g = upd_g['ID'].astype(str) == cid_g
+                            for col_g, val_g in [
+                                ("NIF", g_nif), ("Email", g_email),
+                                ("Telefone", g_tel), ("Morada", g_morada),
+                                ("Sector", g_sector), ("Contacto_Fat", g_cont),
+                                ("Condicoes_Pagamento", g_dias),
+                                ("Limite_Credito", g_lim),
+                                ("Activo", g_ativo), ("Notas", g_notas),
+                            ]:
+                                upd_g.loc[mask_g, col_g] = str(val_g).strip()
+                            save_db(upd_g, "clientes_financeiro.csv")
+                            inv("clientes_financeiro.csv")
+                            log_audit(user_nome, "EDITAR_CLIENTE",
+                                      "clientes_financeiro.csv", cid_g, nome_g, "")
+                            st.success("✅ Cliente actualizado.")
+                            st.rerun()
+
+                    # Eliminação protegida — verifica referências em toda a app
+                    refs_g = referencias_cliente(nome_g)
+                    if refs_g:
+                        st.warning(
+                            "🔒 **Eliminação bloqueada** — cliente referenciado em: "
+                            + "; ".join(f"{d} ({n}×)" for d, n in refs_g)
+                            + ". Em alternativa, desactiva-o (Activo=Não): "
+                            "desaparece dos selectbox e o histórico fica intacto."
+                        )
+                    else:
+                        conf_g = st.checkbox(
+                            f"Confirmo a eliminação definitiva de «{nome_g}»",
+                            key=f"gc_conf_{cid_g}"
+                        )
+                        if st.button("🗑️ Eliminar Cliente",
+                                     key=f"gc_del_{cid_g}", disabled=not conf_g):
+                            upd_g = clientes_db[
+                                clientes_db['ID'].astype(str) != cid_g
+                            ]
+                            save_db(upd_g, "clientes_financeiro.csv",
+                                    permitir_reducao=True)
+                            inv("clientes_financeiro.csv")
+                            log_audit(user_nome, "ELIMINAR_CLIENTE",
+                                      "clientes_financeiro.csv", cid_g, nome_g, "")
+                            st.success(f"🗑️ Cliente «{nome_g}» eliminado.")
+                            st.rerun()
+
+        # ── Migração de clientes em texto livre (só Admin) ──────────
+        if st.session_state.get('tipo') == 'Admin':
+            with st.expander("🔄 Migração — importar clientes em texto livre (Admin)"):
+                st.caption(
+                    "Recolhe nomes de cliente espalhados por obras, orçamentos, "
+                    "contactos ISO, oportunidades, clientes angariados e RH, e "
+                    "cria os que faltam na fonte canónica (Origem=Migração). "
+                    "Idempotente — não altera os ficheiros de origem."
+                )
+                if st.button("🔍 Analisar fontes", key="gc_mig_analisar"):
+                    _mig_nomes, _mig_exist = migrar_clientes_existentes(executar=False)
+                    st.session_state['gc_mig_preview'] = _mig_nomes
+                    st.session_state['gc_mig_exist']   = _mig_exist
+
+                if 'gc_mig_preview' in st.session_state:
+                    _mig_nomes = st.session_state['gc_mig_preview']
+                    _mig_exist = st.session_state.get('gc_mig_exist', 0)
+                    if not _mig_nomes:
+                        st.success(
+                            f"✅ Nada a migrar — {_mig_exist} cliente(s) "
+                            "já registados na fonte canónica."
+                        )
+                    else:
+                        st.info(
+                            f"**{len(_mig_nomes)} cliente(s) a criar** "
+                            f"({_mig_exist} já registados):"
+                        )
+                        st.markdown("\n".join(f"- {n}" for n in _mig_nomes))
+                        if st.button(
+                            f"✅ Confirmar criação de {len(_mig_nomes)} cliente(s)",
+                            key="gc_mig_exec", type="primary"
+                        ):
+                            _criados, _ = migrar_clientes_existentes(executar=True)
+                            st.session_state.pop('gc_mig_preview', None)
+                            st.session_state.pop('gc_mig_exist', None)
+                            log_audit(user_nome, "MIGRAR_CLIENTES",
+                                      "clientes_financeiro.csv", "",
+                                      f"{len(_criados)} clientes migrados", "")
+                            st.success(f"✅ {len(_criados)} cliente(s) migrados!")
+                            st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB — AGING

@@ -13,7 +13,8 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit, cliente_select, registar_novo_cliente
+from core import (save_db, inv, load_db, log_audit, cliente_select,
+                  registar_novo_cliente, registar_cliente_do_select)
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -630,7 +631,8 @@ def render_comercial(*_):
                         st.error("❌ Nome e cliente obrigatórios.")
                     else:
                         if op_cliente_novo:
-                            registar_novo_cliente(op_cliente)
+                            registar_cliente_do_select(
+                                op_cliente, "op_cliente", origem="Oportunidade")
                         stage_id   = STAGE_IDS[STAGE_NOMES.index(op_stage)]
                         stage_info = _get_stage(stage_id)
                         op_id_novo = str(uuid.uuid4())[:8].upper()
@@ -837,7 +839,8 @@ def render_comercial(*_):
                         st.error("❌ Cliente obrigatório.")
                     else:
                         if v_cliente_novo:
-                            registar_novo_cliente(v_cliente)
+                            registar_cliente_do_select(
+                                v_cliente, "v_cliente", origem="Oportunidade")
                         # Encontrar ID da oportunidade
                         oport_id = ""
                         if v_oport != "—" and not oport_db.empty:
@@ -1093,6 +1096,12 @@ def render_comercial(*_):
                                   novo_c['ID'].iloc[0],
                                   f"{cc_nome} | {cc_origem}", "")
                         inv("comercial_clientes.csv")
+                        # Fonte canónica única — disponível em todos os selectbox
+                        registar_novo_cliente(
+                            cc_nome, nif=cc_nif, email=cc_email,
+                            telefone=cc_tel, morada=cc_morada,
+                            sector=cc_setor, origem="Manual",
+                            criado_por=cc_comercial.strip() or user_nome)
                         st.success(f"✅ Cliente {cc_nome} angariado!")
                         st.rerun()
 

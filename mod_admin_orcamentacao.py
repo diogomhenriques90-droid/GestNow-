@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime, date, timedelta
 from core import (save_db, inv, load_db, log_audit,
                   _gcs_write_bin, _gcs_read_bin,
-                  cliente_select, registar_novo_cliente)
+                  cliente_select, registar_cliente_do_select)
 
 # ─────────────────────────────────────────────────────────────
 # HELPERS
@@ -623,10 +623,9 @@ def _modal_criar_obra(orc, oid, orc_db):
             value=orc.get('Obra', ''),
             key=f"cr_nome_{oid}"
         )
-        obra_cliente = st.text_input(
-            "Cliente *",
-            value=orc.get('Cliente', ''),
-            key=f"cr_cliente_{oid}"
+        obra_cliente, obra_cliente_novo = cliente_select(
+            "Cliente *", f"cr_cliente_{oid}",
+            orc.get('Cliente', '')
         )
         obra_tipo = st.selectbox(
             "Tipo",
@@ -653,6 +652,9 @@ def _modal_criar_obra(orc, oid, orc_db):
             if not obra_nome or not obra_cliente:
                 st.error("Nome e cliente obrigatórios.")
             else:
+                if obra_cliente_novo:
+                    registar_cliente_do_select(
+                        obra_cliente, f"cr_cliente_{oid}")
                 obras_db = _load("obras_lista.csv",
                                  ["Obra", "Cliente", "Ativa", "Tipo",
                                   "Localizacao", "Codigo", "Orcamento_ID"])
@@ -1038,7 +1040,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                     st.error("❌ Cliente obrigatório.")
                 else:
                     if no_cliente_novo:
-                        registar_novo_cliente(no_cliente)
+                        registar_cliente_do_select(no_cliente, "noa_cliente")
                     _no_op_id = (
                         no_op_id_raw.split(" — ")[0].strip()
                         if no_op_id_raw != "— Nenhuma —" else ""
@@ -1325,7 +1327,7 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
             st.error("❌ Adiciona pelo menos um técnico.")
         else:
             if nb_cliente_novo:
-                registar_novo_cliente(nb_cliente)
+                registar_cliente_do_select(nb_cliente, "nb_cliente")
             _nb_op_id = (
                 nb_op_id_raw.split(" — ")[0].strip()
                 if nb_op_id_raw != "— Nenhuma —" else ""
@@ -1451,7 +1453,7 @@ def _form_arquivo(orc_db, obras_db, user_nome, op_db=None):
             st.error("❌ Número, cliente e obra proposta são obrigatórios.")
         else:
             if ar_cliente_novo:
-                registar_novo_cliente(cliente_final)
+                registar_cliente_do_select(cliente_final, "ar_cliente")
             _ar_op_id = (
                 ar_op_id_raw.split(" — ")[0].strip()
                 if ar_op_id_raw != "— Nenhuma —" else ""
