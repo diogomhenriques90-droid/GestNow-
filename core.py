@@ -636,6 +636,108 @@ def registar_cliente_do_select(nome, key, origem="Manual"):
     )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# FUNÇÃO / CATEGORIA OPERACIONAL — fonte única em usuarios.csv (W5)
+# Categoria Operacional ≠ Categoria CCT (Relatório Único) e ≠ Categoria_Profissional
+# (texto livre do onboarding/perfil).
+# ─────────────────────────────────────────────────────────────────────────────
+NOVO_VALOR_LISTA_OPT = "➕ Novo..."
+
+_RH_LISTAS_COLS = ["Lista", "Valor", "Criado_Por", "Data"]
+
+
+def get_lista_rh(lista):
+    """Valores do catálogo rh_listas.csv para uma lista ('funcao' ou
+    'categoria_operacional')."""
+    df = load_db("rh_listas.csv", _RH_LISTAS_COLS, silent=True)
+    if df.empty:
+        return []
+    sel = df[df['Lista'].astype(str).str.strip() == lista]
+    return sorted({v.strip() for v in sel['Valor'].astype(str) if v.strip()})
+
+
+def registar_valor_lista_rh(lista, valor):
+    """Adiciona um valor ao catálogo rh_listas.csv com dedup por valor
+    normalizado (trim, minúsculas, sem acentos). Devolve o valor tal como
+    ficou registado (o já existente, em caso de duplicado)."""
+    valor = " ".join(str(valor or "").split())
+    if not valor:
+        return ""
+    df = load_db("rh_listas.csv", _RH_LISTAS_COLS, silent=True)
+    alvo = _norm_nome_cliente(valor)
+    if not df.empty:
+        sel = df[df['Lista'].astype(str).str.strip() == lista]
+        for v_exist in sel['Valor'].astype(str):
+            if v_exist.strip() and _norm_nome_cliente(v_exist) == alvo:
+                return v_exist.strip()
+    novo = pd.DataFrame([{
+        "Lista":      lista,
+        "Valor":      valor,
+        "Criado_Por": st.session_state.get('user', '') or '',
+        "Data":       datetime.now().strftime("%d/%m/%Y"),
+    }])
+    upd = pd.concat([df, novo], ignore_index=True) if not df.empty else novo
+    save_db(upd, "rh_listas.csv")
+    inv("rh_listas.csv")
+    return valor
+
+
+def lista_rh_select(label, lista, key, valor_atual="", em_uso=None):
+    """Selectbox com catálogo rh_listas.csv ∪ valores em uso ∪ valor actual,
+    mais '➕ Novo...' (padrão idêntico ao cliente_select). Devolve
+    (valor, eh_novo). Valores gravados fora do catálogo são acrescentados
+    em runtime para não perder dados."""
+    opts = set(get_lista_rh(lista))
+    if em_uso is not None:
+        opts |= {str(v).strip() for v in em_uso if str(v).strip()}
+    valor_atual = (valor_atual or "").strip()
+    if valor_atual:
+        opts.add(valor_atual)
+    display = [""] + sorted(opts) + [NOVO_VALOR_LISTA_OPT]
+    idx = display.index(valor_atual) if valor_atual in display else 0
+    sel = st.selectbox(label, display, index=idx, key=key)
+    if sel == NOVO_VALOR_LISTA_OPT:
+        novo = st.text_input(f"Novo valor — {label} *", key=f"{key}__novo")
+        return novo.strip(), True
+    return sel, False
+
+
+def set_funcao_categoria(nome, funcao=None, categoria=None):
+    """Escreve Funcao / Categoria_Operacional no registo de `nome` em
+    usuarios.csv — helper ÚNICO de escrita destes campos (fonte única,
+    usado pelas vistas Dados Legais e Alocações e pelo importador).
+    None = não tocar no campo. Devolve True/False."""
+    buf = _gcs_read("usuarios.csv")
+    if not buf:
+        return False
+    df = pd.read_csv(buf, dtype=str, on_bad_lines='skip', encoding='utf-8-sig')
+    df.columns = df.columns.str.strip()
+    df = df.fillna("")
+    for col in ("Funcao", "Categoria_Operacional"):
+        if col not in df.columns:
+            df[col] = ""
+    mask = df['Nome'].astype(str).str.strip() == str(nome).strip()
+    if not mask.any():
+        return False
+    detalhes = []
+    if funcao is not None:
+        df.loc[mask, 'Funcao'] = str(funcao).strip()
+        detalhes.append(f"Funcao={str(funcao).strip()}")
+    if categoria is not None:
+        df.loc[mask, 'Categoria_Operacional'] = str(categoria).strip()
+        detalhes.append(f"Categoria_Operacional={str(categoria).strip()}")
+    if not detalhes:
+        return True
+    if not save_db(df, "usuarios.csv"):
+        return False
+    inv("usuarios.csv")
+    _cached_load_all.clear()
+    log_audit(usuario=st.session_state.get('user', '') or '',
+              acao="ALTERAR_FUNCAO_CATEGORIA", tabela="usuarios.csv",
+              registro_id=nome, detalhes=", ".join(detalhes))
+    return True
+
+
 # Fontes de nomes de cliente em texto livre (migração + verificação de refs)
 _FONTES_CLIENTE = [
     ("obras_lista.csv",             "Cliente",              "Obras"),
@@ -755,6 +857,7 @@ def _cached_load_all(_versions):
     """Backend cacheado de load_all. _versions força cache miss quando qualquer ficheiro muda."""
     users = load_db("usuarios.csv", [
         "Nome", "Password", "Tipo", "Email", "Telefone", "Cargo",
+        "Funcao", "Categoria_Operacional",
         "NIF", "NISS", "CC", "CC_Validade", "DataNasc", "Nacionalidade",
         "Morada", "Localidade", "Concelho", "Codigo_Postal", "Naturalidade",
         "Estado_Civil", "Sexo", "Dependentes", "Profissao",
