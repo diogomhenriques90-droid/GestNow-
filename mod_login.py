@@ -53,8 +53,11 @@ def render_login():
     </style>
     """, unsafe_allow_html=True)
 
+    _c1, _c2, _c3 = st.columns([1, 2, 1])
+    with _c2:
+        st.image("assets/logo_cps_tema_escuro.png", width=380)
     st.markdown(
-        "<h1 style='text-align:center; color:#60A5FA;'>GESTNOW v3</h1>",
+        "<h3 style='text-align:center; color:#60A5FA; margin-top:8px;'>GESTNOW v3</h3>",
         unsafe_allow_html=True
     )
     st.markdown(

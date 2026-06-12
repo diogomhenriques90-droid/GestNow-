@@ -5,6 +5,7 @@ address = "0.0.0.0"
 enableCORS = false
 enableXsrfProtection = false
 maxUploadSize = 100
+enableStaticServing = true
 
 [browser]
 gatherUsageStats = false
