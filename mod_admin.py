@@ -618,28 +618,30 @@ def render_admin(*args):
     st.divider()
 
     # ── Tabs — 11 módulos + tab Permissões (só Diogo Henriques) ──────
+    # Lazy: só o _tab_* activo é avaliado (antes st.tabs avaliava os 11).
+    # A selecção persiste em st.session_state["admin_tab_sel"] via a key.
     _e_super = st.session_state.get('user','') in _SUPER_ADMINS
-    _tab_labels = [
-        "📦 Armazém", "👥 RH", "🗂️ Secretariado", "🏭 Produção",
-        "💰 Faturação", "📊 Orçamentação", "💼 Comercial",
-        "🔗 Contactos ISO", "🎯 Qualidade", "💻 IT", "🛡️ HSE",
+    _ADMIN_TABS = [
+        ("📦 Armazém",       _tab_armazem),
+        ("👥 RH",            _tab_rh),
+        ("🗂️ Secretariado",  _tab_secretariado),
+        ("🏭 Produção",      _tab_producao),
+        ("💰 Faturação",     _tab_faturacao),
+        ("📊 Orçamentação",  _tab_orcamentacao),
+        ("💼 Comercial",     _tab_comercial),
+        ("🔗 Contactos ISO", _tab_contactos_iso),
+        ("🎯 Qualidade",     _tab_qualidade),
+        ("💻 IT",            _tab_it),
+        ("🛡️ HSE",           _tab_hse),
     ]
     if _e_super:
-        _tab_labels.append("🔐 Permissões")
-    tabs = st.tabs(_tab_labels)
-    with tabs[0]:  _tab_armazem()
-    with tabs[1]:  _tab_rh()
-    with tabs[2]:  _tab_secretariado()
-    with tabs[3]:  _tab_producao()
-    with tabs[4]:  _tab_faturacao()
-    with tabs[5]:  _tab_orcamentacao()
-    with tabs[6]:  _tab_comercial()
-    with tabs[7]:  _tab_contactos_iso()
-    with tabs[8]:  _tab_qualidade()
-    with tabs[9]:  _tab_it()
-    with tabs[10]: _tab_hse()
-    if _e_super:
-        with tabs[11]: _tab_permissoes()
+        _ADMIN_TABS.append(("🔐 Permissões", _tab_permissoes))
+    _admin_labels = [lbl for lbl, _ in _ADMIN_TABS]
+    _admin_sel = st.segmented_control(
+        "Módulo Admin", _admin_labels, default=_admin_labels[0],
+        key="admin_tab_sel", label_visibility="collapsed",
+    )
+    dict(_ADMIN_TABS).get(_admin_sel or _admin_labels[0], _tab_armazem)()
 
 
 # =============================================================================
