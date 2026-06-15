@@ -16,9 +16,6 @@ import os, re, secrets, io, base64, bcrypt, logging, uuid, hashlib, json, time
 from datetime import datetime, timedelta, date
 from google.cloud import storage as gcs
 from google.api_core.exceptions import NotFound as _GCSNotFound
-import plotly.express as px
-from streamlit_folium import folium_static
-import folium
 
 # =============================================================================
 # DESIGN SYSTEM
