@@ -234,33 +234,35 @@ def _tab_faturacao():
     if not tem_permissao(st.session_state.get('user',''), 'mod_faturacao'):
         _sem_permissao("Faturação"); return
     st.markdown("## 💰 Faturação")
-    fat_tabs = st.tabs([
-        "📊 Dashboard CFO", "🧾 Clientes & Faturação", "📥 Fornecedores",
-        "👥 RH Financeiro", "🚗 Frota & Renting", "📈 Performance Obras",
-        "💵 Tesouraria", "🆘 Simulador Crise", "🇪🇺 Fundos Europeus",
-        "🏭 Imobilizado", "🧾 Fiscal", "📋 Auditoria Anual", "📊 Reporting",
-        "📊 Custos por Obra", "💶 Diárias", "📄 Folhas de Ponto",
-        "⏱️ Horas Faturação", "📤 Emissão Mensal", "📤 Export Contabilidade",
-    ])
-    with fat_tabs[0]:  _subtab_fat_dashboard()
-    with fat_tabs[1]:  _subtab_fat_clientes()
-    with fat_tabs[2]:  _subtab_fat_fornecedores()
-    with fat_tabs[3]:  _subtab_fat_rh()
-    with fat_tabs[4]:  _subtab_fat_frota()
-    with fat_tabs[5]:  _subtab_fat_obras()
-    with fat_tabs[6]:  _subtab_fat_tesouraria()
-    with fat_tabs[7]:  _subtab_fat_crise()
-    with fat_tabs[8]:  _subtab_fat_fundos()
-    with fat_tabs[9]:  _subtab_fat_imobilizado()
-    with fat_tabs[10]: _subtab_fat_fiscal()
-    with fat_tabs[11]: _subtab_fat_auditoria()
-    with fat_tabs[12]: _subtab_fat_reporting()
-    with fat_tabs[13]: _subtab_fat_custos()
-    with fat_tabs[14]: _subtab_fat_diarias()
-    with fat_tabs[15]: _subtab_fat_folhas()
-    with fat_tabs[16]: _subtab_fat_horas()
-    with fat_tabs[17]: _subtab_fat_emissao()
-    with fat_tabs[18]: _subtab_fat_exportacao()
+    # Lazy: só o sub-render activo é avaliado (antes st.tabs avaliava os 19).
+    # A selecção persiste em st.session_state["fat_subtab_sel"] via a key.
+    _FAT_SUBTABS = [
+        ("📊 Dashboard CFO",        _subtab_fat_dashboard),
+        ("🧾 Clientes & Faturação", _subtab_fat_clientes),
+        ("📥 Fornecedores",         _subtab_fat_fornecedores),
+        ("👥 RH Financeiro",        _subtab_fat_rh),
+        ("🚗 Frota & Renting",      _subtab_fat_frota),
+        ("📈 Performance Obras",    _subtab_fat_obras),
+        ("💵 Tesouraria",           _subtab_fat_tesouraria),
+        ("🆘 Simulador Crise",      _subtab_fat_crise),
+        ("🇪🇺 Fundos Europeus",      _subtab_fat_fundos),
+        ("🏭 Imobilizado",          _subtab_fat_imobilizado),
+        ("🧾 Fiscal",               _subtab_fat_fiscal),
+        ("📋 Auditoria Anual",      _subtab_fat_auditoria),
+        ("📊 Reporting",            _subtab_fat_reporting),
+        ("📊 Custos por Obra",      _subtab_fat_custos),
+        ("💶 Diárias",              _subtab_fat_diarias),
+        ("📄 Folhas de Ponto",      _subtab_fat_folhas),
+        ("⏱️ Horas Faturação",      _subtab_fat_horas),
+        ("📤 Emissão Mensal",       _subtab_fat_emissao),
+        ("📤 Export Contabilidade", _subtab_fat_exportacao),
+    ]
+    _fat_labels = [lbl for lbl, _ in _FAT_SUBTABS]
+    _fat_sel = st.segmented_control(
+        "Secção de Faturação", _fat_labels, default=_fat_labels[0],
+        key="fat_subtab_sel", label_visibility="collapsed",
+    )
+    dict(_FAT_SUBTABS).get(_fat_sel or _fat_labels[0], _subtab_fat_dashboard)()
 
 
 @st.fragment
