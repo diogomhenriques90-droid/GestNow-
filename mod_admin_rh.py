@@ -1968,6 +1968,101 @@ def render_admin_rh(*args):
                         else:
                             st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
+            # ── 7. Importador Funções/Categorias (W5) ─────────────
+            with st.expander("📥 Importar Funções/Categorias (CSV)"):
+                st.info(
+                    "Ficheiro com colunas **`Funçao;Categoria;NIF`** "
+                    "(separador `;`, UTF-8 com BOM). Match exclusivamente por "
+                    "NIF contra os colaboradores existentes — NIFs sem match "
+                    "NÃO criam colaboradores. Campos vazios ou `#N/A` não "
+                    "tocam no valor existente na app. Reimportar é idempotente."
+                )
+                _fc_file = st.file_uploader(
+                    "Ficheiro de Funções/Categorias",
+                    type=["csv"], key="dl_fc_import_file")
+                if _fc_file is not None:
+                    _fc_imp = None
+                    try:
+                        _fc_imp = pd.read_csv(_fc_file, dtype=str, sep=";",
+                                              encoding="utf-8-sig").fillna("")
+                    except Exception as _e:
+                        st.error(f"❌ Erro ao ler o ficheiro: {_e}")
+                    if _fc_imp is not None:
+                        _fc_imp.columns = [c.strip() for c in _fc_imp.columns]
+                        _fc_cols = {}
+                        for _c in _fc_imp.columns:
+                            _cn = "".join(
+                                ch for ch in unicodedata.normalize("NFKD", _c)
+                                if not unicodedata.combining(ch)).casefold()
+                            if _cn in ("funcao", "categoria", "nif"):
+                                _fc_cols[_cn] = _c
+                        if len(_fc_cols) < 3:
+                            st.error("❌ Formato inválido — esperadas as colunas "
+                                     "`Funçao;Categoria;NIF`.")
+                        else:
+                            st.markdown(f"**{len(_fc_imp)}** linha(s) no ficheiro.")
+                            if st.button("📥 Importar", key="dl_fc_import_btn",
+                                         type="primary"):
+                                _VAZIOS_FC = {"", "#n/a", "#n/d", "n/a", "#na", "#ref!"}
+                                _u_imp = _load_users_fresh()
+                                for _col in ("Funcao", "Categoria_Operacional"):
+                                    if _col not in _u_imp.columns:
+                                        _u_imp[_col] = ""
+                                _nif_u = _u_imp["NIF"].astype(str).str.strip() \
+                                         if "NIF" in _u_imp.columns else pd.Series("", index=_u_imp.index)
+                                _n_colab, _n_ignorados = 0, 0
+                                _sem_match = []
+                                _vals_novos = {"funcao": set(), "categoria_operacional": set()}
+                                for _, _r_imp in _fc_imp.iterrows():
+                                    _nif_i = str(_r_imp[_fc_cols["nif"]]).strip()
+                                    _mk_i = (_nif_u == _nif_i) if _nif_i else pd.Series(False, index=_u_imp.index)
+                                    if not _mk_i.any():
+                                        _sem_match.append(_nif_i or "(NIF vazio)")
+                                        continue
+                                    _tocou = False
+                                    _f_i = str(_r_imp[_fc_cols["funcao"]]).strip()
+                                    if _f_i.casefold() in _VAZIOS_FC:
+                                        _n_ignorados += 1
+                                    else:
+                                        _u_imp.loc[_mk_i, "Funcao"] = _f_i
+                                        _vals_novos["funcao"].add(_f_i)
+                                        _tocou = True
+                                    _c_i = str(_r_imp[_fc_cols["categoria"]]).strip()
+                                    if _c_i.casefold() in _VAZIOS_FC:
+                                        _n_ignorados += 1
+                                    else:
+                                        _u_imp.loc[_mk_i, "Categoria_Operacional"] = _c_i
+                                        _vals_novos["categoria_operacional"].add(_c_i)
+                                        _tocou = True
+                                    if _tocou:
+                                        _n_colab += 1
+                                if save_db(_u_imp, "usuarios.csv"):
+                                    inv("usuarios.csv")
+                                    from core import _cached_load_all
+                                    _cached_load_all.clear()
+                                    for _lst_fc, _vs_fc in _vals_novos.items():
+                                        for _v_fc in sorted(_vs_fc):
+                                            registar_valor_lista_rh(_lst_fc, _v_fc)
+                                    log_audit(
+                                        usuario=st.session_state.get("user", "admin"),
+                                        acao="IMPORTAR_FUNCAO_CATEGORIA",
+                                        tabela="usuarios.csv",
+                                        registro_id="batch",
+                                        detalhes=(f"{_n_colab} colaboradores actualizados; "
+                                                  f"{len(_sem_match)} sem match; "
+                                                  f"{_n_ignorados} campos ignorados"))
+                                    st.success(
+                                        f"✅ Importação concluída: **{_n_colab}** "
+                                        f"colaborador(es) actualizado(s) · "
+                                        f"**{len(_sem_match)}** NIF(s) sem match · "
+                                        f"**{_n_ignorados}** campo(s) ignorado(s) "
+                                        f"por estarem vazios no ficheiro.")
+                                    if _sem_match:
+                                        st.warning("⚠️ NIFs sem match (não criados): "
+                                                   + ", ".join(_sem_match))
+                                else:
+                                    st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
     # ════════════════════════════════════════════════════════════════
     # TAB 4 — IMPORTAR ETICADATA
     # ════════════════════════════════════════════════════════════════
