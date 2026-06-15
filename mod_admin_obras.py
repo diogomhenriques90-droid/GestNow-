@@ -2,7 +2,9 @@ import streamlit as st
 import pandas as pd
 import uuid
 from datetime import datetime
-from core import save_db, inv, load_db, cliente_select, registar_cliente_do_select
+from core import (save_db, inv, load_db, cliente_select,
+                  registar_cliente_do_select, lista_rh_select,
+                  registar_valor_lista_rh, set_funcao_categoria)
 
 def render_obras(obras_db, frentes_db, users, inst_acessos_db):
     st.markdown("### 🏗️ Gestão de Obras")
@@ -210,6 +212,14 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 key="aloc_tec"
             )
 
+        cargo_aloc  = ""
+        u_row_aloc  = None
+        if not users.empty and tec_aloc in users['Nome'].values:
+            u_row_aloc = users[users['Nome'] == tec_aloc].iloc[0]
+            cargo_aloc = str(u_row_aloc.get('Cargo', ''))
+
+        # Função / Categoria Operacional — fonte única em usuarios.csv,
+        # sincronizada com RH › Dados Legais (substitui o texto "Cargo: X")
         col3, col4 = st.columns(2)
         with col3:
             preco_hora = st.number_input(
@@ -218,16 +228,42 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 key="aloc_preco"
             )
         with col4:
-            cargo_aloc = ""
-            if not users.empty and tec_aloc in users['Nome'].values:
-                cargo_aloc = str(
-                    users[users['Nome'] == tec_aloc]['Cargo'].values[0]
-                )
-            st.markdown(
-                f"<p style='color:#94A3B8;font-size:0.85rem;"
-                f"padding:28px 0 0;margin:0;'>Cargo: {cargo_aloc}</p>",
-                unsafe_allow_html=True
+            fc_f_aloc, fc_f_novo = lista_rh_select(
+                "Função", "funcao", f"aloc_fc_f_{tec_aloc}",
+                valor_atual=str(u_row_aloc.get('Funcao', ''))
+                            if u_row_aloc is not None else "",
+                em_uso=users['Funcao'] if 'Funcao' in users.columns else []
             )
+        col5, col6 = st.columns(2)
+        with col5:
+            fc_c_aloc, fc_c_novo = lista_rh_select(
+                "Categoria Operacional (interna)", "categoria_operacional",
+                f"aloc_fc_c_{tec_aloc}",
+                valor_atual=str(u_row_aloc.get('Categoria_Operacional', ''))
+                            if u_row_aloc is not None else "",
+                em_uso=users['Categoria_Operacional']
+                       if 'Categoria_Operacional' in users.columns else []
+            )
+        with col6:
+            st.markdown("<div style='height:28px;'></div>",
+                        unsafe_allow_html=True)
+            if st.button("💾 Guardar Função/Categoria",
+                         key=f"aloc_fc_save_{tec_aloc}",
+                         use_container_width=True):
+                if (fc_f_novo and not fc_f_aloc) or (fc_c_novo and not fc_c_aloc):
+                    st.error("⚠️ Introduz o novo valor antes de guardar.")
+                else:
+                    if fc_f_novo:
+                        fc_f_aloc = registar_valor_lista_rh("funcao", fc_f_aloc)
+                    if fc_c_novo:
+                        fc_c_aloc = registar_valor_lista_rh(
+                            "categoria_operacional", fc_c_aloc)
+                    if set_funcao_categoria(tec_aloc, funcao=fc_f_aloc,
+                                            categoria=fc_c_aloc):
+                        st.success("✅ Função/Categoria Operacional guardadas.")
+                        st.rerun(scope="fragment")
+                    else:
+                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
         if st.button(
             "➕ Alocar Colaborador",

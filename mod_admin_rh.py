@@ -8,7 +8,8 @@ from core import (
     save_db, inv, load_db, log_audit, criar_notificacao,
     hp, _gcs_read, _gcs_write_binary, _gcs_read_binary,
     _fill_contrato_template, ICONS, logger,
-    cliente_select, registar_cliente_do_select
+    cliente_select, registar_cliente_do_select,
+    lista_rh_select, registar_valor_lista_rh, set_funcao_categoria
 )
 
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
@@ -262,10 +263,9 @@ MOTIVO_CONTRATO_OPTS = [
     "Contratação de Desempregado de Longa Duração",
     "Outro",
 ]
-MOTIVO_ENTRADA_OPTS = [
-    "Novo Posto de Trabalho", "Substituição de Trabalhador",
-    "Necessidades Temporárias", "Transferência", "Outro",
-]
+# Motivo Entrada partilha a lista do Motivo Contrato (constante única, W5).
+# Valores antigos gravados fora da lista continuam visíveis via _sel_opts.
+MOTIVO_ENTRADA_OPTS = MOTIVO_CONTRATO_OPTS
 MOTIVO_SAIDA_OPTS = [
     "Caducidade do Contrato a Termo",
     "Despedimento por Iniciativa do Empregador",
@@ -1263,9 +1263,13 @@ def render_admin_rh(*args):
                 st.success("✅ Campos bloqueados atualizados.")
                 st.rerun()
 
-        # ── Alterar Função e Password ─────────────────────────────
+        # ── Permissões APP e Password ─────────────────────────────
+        # "Permissões APP (Tipo)" e "Permissões APP (Cargo)" são os campos
+        # de acesso da app (colunas Tipo/Cargo de usuarios.csv) — distintos
+        # de Função/Categoria Operacional (tab Dados Legais). Só os rótulos
+        # mudaram no W5; valores, keys e mecânica de permissões intactos.
         st.markdown("---")
-        st.markdown("#### ⚙️ Alterar Função / Password")
+        st.markdown("#### ⚙️ Permissões APP / Password")
 
         col_f1, col_f2 = st.columns(2)
         with col_f1:
@@ -1273,7 +1277,7 @@ def render_admin_rh(*args):
                             "Gestor", "Secretariado"]
             tipo_atual   = row.get("Tipo", "Técnico")
             idx_tipo     = tipos_opcoes.index(tipo_atual)                            if tipo_atual in tipos_opcoes else 0
-            novo_tipo = st.selectbox("👤 Função (Tipo)",
+            novo_tipo = st.selectbox("👤 Permissões APP (Tipo)",
                 tipos_opcoes, index=idx_tipo, key="rh_novo_tipo")
 
         with col_f2:
@@ -1282,10 +1286,10 @@ def render_admin_rh(*args):
                              "Engenheiro", "QA/QC", "Admin", "Outro"]
             cargo_atual   = row.get("Cargo", "")
             idx_cargo     = cargos_opcoes.index(cargo_atual)                             if cargo_atual in cargos_opcoes else 0
-            novo_cargo = st.selectbox("🏷️ Cargo",
+            novo_cargo = st.selectbox("🏷️ Permissões APP (Cargo)",
                 cargos_opcoes, index=idx_cargo, key="rh_novo_cargo")
 
-        if st.button("💾 Guardar Função/Cargo",
+        if st.button("💾 Guardar Permissões APP",
                      key="btn_guardar_funcao", type="primary"):
             u_fn = _load_users_fresh()
             mk_fn = u_fn["Nome"] == nome_sel
@@ -1301,7 +1305,7 @@ def render_admin_rh(*args):
                           tabela="usuarios.csv",
                           registro_id=nome_sel,
                           detalhes=f"Tipo={novo_tipo}, Cargo={novo_cargo}")
-                st.success(f"✅ Função actualizada: {novo_tipo} / {novo_cargo}")
+                st.success(f"✅ Permissões APP actualizadas: {novo_tipo} / {novo_cargo}")
                 st.rerun()
 
         st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
@@ -1803,6 +1807,42 @@ def render_admin_rh(*args):
 
             # ── 5. Profissional / Relatório Único ─────────────────
             with st.expander("📊 Profissional & Relatório Único"):
+                # Função / Categoria Operacional — fonte única em usuarios.csv,
+                # sincronizada com Obras › Alocações. Fora do form: o
+                # "➕ Novo..." precisa de rerun ao mudar o selectbox.
+                st.markdown("**Função e Categoria Operacional (interna)**")
+                _fc_f_atual = str(_u_row_dl.get("Funcao", "")).strip() \
+                              if _mask_u_dl.any() else ""
+                _fc_c_atual = str(_u_row_dl.get("Categoria_Operacional", "")).strip() \
+                              if _mask_u_dl.any() else ""
+                _fc1, _fc2 = st.columns(2)
+                with _fc1:
+                    _fc_f, _fc_f_novo = lista_rh_select(
+                        "Função", "funcao", f"dl_funcao_{_slug}",
+                        valor_atual=_fc_f_atual,
+                        em_uso=_u_dl["Funcao"] if "Funcao" in _u_dl.columns else [])
+                with _fc2:
+                    _fc_c, _fc_c_novo = lista_rh_select(
+                        "Categoria Operacional (interna — ≠ Categoria CCT)",
+                        "categoria_operacional", f"dl_catop_{_slug}",
+                        valor_atual=_fc_c_atual,
+                        em_uso=_u_dl["Categoria_Operacional"]
+                               if "Categoria_Operacional" in _u_dl.columns else [])
+                if st.button("💾 Guardar Função/Categoria Operacional",
+                             key=f"dl_fc_save_{_slug}", type="primary"):
+                    if (_fc_f_novo and not _fc_f) or (_fc_c_novo and not _fc_c):
+                        st.error("⚠️ Introduz o novo valor antes de guardar.")
+                    else:
+                        if _fc_f_novo:
+                            _fc_f = registar_valor_lista_rh("funcao", _fc_f)
+                        if _fc_c_novo:
+                            _fc_c = registar_valor_lista_rh("categoria_operacional", _fc_c)
+                        if set_funcao_categoria(_nome_dl, funcao=_fc_f, categoria=_fc_c):
+                            st.success("✅ Função/Categoria Operacional guardadas.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                st.markdown("---")
                 with st.form(f"dl_form_prof_{_slug}"):
                     _c1, _c2 = st.columns(2)
                     with _c1:
@@ -1927,6 +1967,101 @@ def render_admin_rh(*args):
                             st.rerun()
                         else:
                             st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+
+            # ── 7. Importador Funções/Categorias (W5) ─────────────
+            with st.expander("📥 Importar Funções/Categorias (CSV)"):
+                st.info(
+                    "Ficheiro com colunas **`Funçao;Categoria;NIF`** "
+                    "(separador `;`, UTF-8 com BOM). Match exclusivamente por "
+                    "NIF contra os colaboradores existentes — NIFs sem match "
+                    "NÃO criam colaboradores. Campos vazios ou `#N/A` não "
+                    "tocam no valor existente na app. Reimportar é idempotente."
+                )
+                _fc_file = st.file_uploader(
+                    "Ficheiro de Funções/Categorias",
+                    type=["csv"], key="dl_fc_import_file")
+                if _fc_file is not None:
+                    _fc_imp = None
+                    try:
+                        _fc_imp = pd.read_csv(_fc_file, dtype=str, sep=";",
+                                              encoding="utf-8-sig").fillna("")
+                    except Exception as _e:
+                        st.error(f"❌ Erro ao ler o ficheiro: {_e}")
+                    if _fc_imp is not None:
+                        _fc_imp.columns = [c.strip() for c in _fc_imp.columns]
+                        _fc_cols = {}
+                        for _c in _fc_imp.columns:
+                            _cn = "".join(
+                                ch for ch in unicodedata.normalize("NFKD", _c)
+                                if not unicodedata.combining(ch)).casefold()
+                            if _cn in ("funcao", "categoria", "nif"):
+                                _fc_cols[_cn] = _c
+                        if len(_fc_cols) < 3:
+                            st.error("❌ Formato inválido — esperadas as colunas "
+                                     "`Funçao;Categoria;NIF`.")
+                        else:
+                            st.markdown(f"**{len(_fc_imp)}** linha(s) no ficheiro.")
+                            if st.button("📥 Importar", key="dl_fc_import_btn",
+                                         type="primary"):
+                                _VAZIOS_FC = {"", "#n/a", "#n/d", "n/a", "#na", "#ref!"}
+                                _u_imp = _load_users_fresh()
+                                for _col in ("Funcao", "Categoria_Operacional"):
+                                    if _col not in _u_imp.columns:
+                                        _u_imp[_col] = ""
+                                _nif_u = _u_imp["NIF"].astype(str).str.strip() \
+                                         if "NIF" in _u_imp.columns else pd.Series("", index=_u_imp.index)
+                                _n_colab, _n_ignorados = 0, 0
+                                _sem_match = []
+                                _vals_novos = {"funcao": set(), "categoria_operacional": set()}
+                                for _, _r_imp in _fc_imp.iterrows():
+                                    _nif_i = str(_r_imp[_fc_cols["nif"]]).strip()
+                                    _mk_i = (_nif_u == _nif_i) if _nif_i else pd.Series(False, index=_u_imp.index)
+                                    if not _mk_i.any():
+                                        _sem_match.append(_nif_i or "(NIF vazio)")
+                                        continue
+                                    _tocou = False
+                                    _f_i = str(_r_imp[_fc_cols["funcao"]]).strip()
+                                    if _f_i.casefold() in _VAZIOS_FC:
+                                        _n_ignorados += 1
+                                    else:
+                                        _u_imp.loc[_mk_i, "Funcao"] = _f_i
+                                        _vals_novos["funcao"].add(_f_i)
+                                        _tocou = True
+                                    _c_i = str(_r_imp[_fc_cols["categoria"]]).strip()
+                                    if _c_i.casefold() in _VAZIOS_FC:
+                                        _n_ignorados += 1
+                                    else:
+                                        _u_imp.loc[_mk_i, "Categoria_Operacional"] = _c_i
+                                        _vals_novos["categoria_operacional"].add(_c_i)
+                                        _tocou = True
+                                    if _tocou:
+                                        _n_colab += 1
+                                if save_db(_u_imp, "usuarios.csv"):
+                                    inv("usuarios.csv")
+                                    from core import _cached_load_all
+                                    _cached_load_all.clear()
+                                    for _lst_fc, _vs_fc in _vals_novos.items():
+                                        for _v_fc in sorted(_vs_fc):
+                                            registar_valor_lista_rh(_lst_fc, _v_fc)
+                                    log_audit(
+                                        usuario=st.session_state.get("user", "admin"),
+                                        acao="IMPORTAR_FUNCAO_CATEGORIA",
+                                        tabela="usuarios.csv",
+                                        registro_id="batch",
+                                        detalhes=(f"{_n_colab} colaboradores actualizados; "
+                                                  f"{len(_sem_match)} sem match; "
+                                                  f"{_n_ignorados} campos ignorados"))
+                                    st.success(
+                                        f"✅ Importação concluída: **{_n_colab}** "
+                                        f"colaborador(es) actualizado(s) · "
+                                        f"**{len(_sem_match)}** NIF(s) sem match · "
+                                        f"**{_n_ignorados}** campo(s) ignorado(s) "
+                                        f"por estarem vazios no ficheiro.")
+                                    if _sem_match:
+                                        st.warning("⚠️ NIFs sem match (não criados): "
+                                                   + ", ".join(_sem_match))
+                                else:
+                                    st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
     # ════════════════════════════════════════════════════════════════
     # TAB 4 — IMPORTAR ETICADATA
