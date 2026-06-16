@@ -735,6 +735,73 @@ def set_funcao_categoria(nome, funcao=None, categoria=None):
     return True
 
 
+def update_usuario(chave, alteracoes: dict, *,
+                   chave_col: str = "Nome",
+                   acao: str = "ATUALIZAR_USUARIO",
+                   detalhes: str | None = None,
+                   permitir_multiplos: bool = False) -> bool:
+    """Helper ÚNICO de actualização in-place de usuarios.csv (generaliza o
+    padrão W5 set_funcao_categoria). Lê SEMPRE o df completo fresco do GCS,
+    aplica as `alteracoes` via .loc, preserva a união de colunas e nunca
+    reindexa a uma lista fixa. NÃO cria linhas.
+
+    chave              valor que identifica o registo (por omissão, o Nome).
+    alteracoes         {coluna: valor} já validado/formatado pelo caller. Os
+                       valores são gravados tal-e-qual (sem .strip()) — preserva
+                       b64/JSON; a formatação é responsabilidade do caller.
+    chave_col          coluna usada no match (default "Nome").
+    acao / detalhes    para o log_audit. Se detalhes is None, gera
+                       "Campos: c1, c2" — SÓ nomes de colunas, NUNCA valores
+                       (o helper toca Password/PIN/IBAN; regra dura).
+    permitir_multiplos Segurança contra corrupção cross-collaborator: por
+                       omissão (False), se o match casar >1 linha o helper
+                       RECUSA (return False) e regista o conflito, sem escrever.
+                       Só escreve em várias linhas quando explicitamente True.
+
+    Devolve True em sucesso; False em ficheiro vazio, no-match, match múltiplo
+    sem flag, ou falha do save_db (guarda 0-linhas/10% mantida por save_db).
+    """
+    if not alteracoes:
+        return True  # no-op: zero I/O, sem leitura/escrita/log
+    buf = _gcs_read("usuarios.csv")
+    if not buf:
+        return False
+    df = pd.read_csv(buf, dtype=str, on_bad_lines='skip', encoding='utf-8-sig')
+    df.columns = df.columns.str.strip()
+    df = df.fillna("")
+    if chave_col not in df.columns:
+        return False
+    # Garante que as colunas a escrever existem — preserva a união de colunas
+    for col in alteracoes:
+        if col not in df.columns:
+            df[col] = ""
+    mask = df[chave_col].astype(str).str.strip() == str(chave).strip()
+    n_match = int(mask.sum())
+    if n_match == 0:
+        return False
+    if n_match > 1 and not permitir_multiplos:
+        # Match múltiplo = recusa por default (Nomes não são únicos).
+        # Escrever em todas as linhas seria corrupção cross-collaborator.
+        log_audit(usuario=st.session_state.get('user', '') or '',
+                  acao="UPDATE_USUARIO_CONFLITO", tabela="usuarios.csv",
+                  registro_id=str(chave),
+                  detalhes=f"{n_match} linhas com {chave_col}={chave} — "
+                           f"escrita recusada (permitir_multiplos=False)")
+        return False
+    for col, valor in alteracoes.items():
+        df.loc[mask, col] = valor
+    if not save_db(df, "usuarios.csv"):
+        return False
+    inv("usuarios.csv")
+    _cached_load_all.clear()
+    det = detalhes if detalhes is not None else \
+        "Campos: " + ", ".join(alteracoes.keys())
+    log_audit(usuario=st.session_state.get('user', '') or '',
+              acao=acao, tabela="usuarios.csv",
+              registro_id=str(chave), detalhes=det)
+    return True
+
+
 # Fontes de nomes de cliente em texto livre (migração + verificação de refs)
 _FONTES_CLIENTE = [
     ("obras_lista.csv",             "Cliente",              "Obras"),
