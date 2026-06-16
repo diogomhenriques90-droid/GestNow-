@@ -269,11 +269,14 @@ def render_criar_admin():
                 df_novo   = pd.DataFrame([novo])
                 df_users  = pd.concat([df_users, df_novo], ignore_index=True)
 
-                # Garantir ordem das colunas
+                # Garantir ordem das colunas — preservar colunas extra do
+                # ficheiro vivo (ex.: Funcao, Categoria_Operacional, Contrato_*)
+                # em vez de as descartar com um reindex à lista fixa.
                 for col in _COLS_USERS:
                     if col not in df_users.columns:
                         df_users[col] = ""
-                df_users = df_users[_COLS_USERS]
+                _extra = [c for c in df_users.columns if c not in _COLS_USERS]
+                df_users = df_users[_COLS_USERS + _extra]
 
                 save_db(df_users, "usuarios.csv")
 
