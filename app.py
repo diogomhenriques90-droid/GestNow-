@@ -17,7 +17,7 @@ except ImportError:
     HAS_OPTION_MENU = False
 
 st.set_page_config(
-    page_title="GESTNOW v3.0 — Sistema de Gestão de Empresas/Gestão de Obras e Instrumentação Industrial",
+    page_title="GestNow — CPS Smart Solutions",
     page_icon="assets/icone_cps_192.png",
     layout="wide",
     initial_sidebar_state="collapsed",
