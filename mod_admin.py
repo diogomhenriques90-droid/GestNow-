@@ -435,6 +435,7 @@ _MODULOS_LABELS = [
     ("mod_qualidade",      "🎯 Qualidade"),
     ("mod_it",          "💻 IT"),
     ("mod_hse",         "🛡️ HSE"),
+    ("mod_dashboard_obra", "🏗️ Painel de Obra"),
 ]
 
 @st.fragment
