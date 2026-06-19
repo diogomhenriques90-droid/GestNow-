@@ -4,7 +4,7 @@ import json, base64, time
 from datetime import datetime
 from core import (init_session, check_timeout, load_all, inject_pwa_meta,
                   inject_global_css, ICONS, hp, save_db, log_audit,
-                  criar_notificacao, load_db, _gcs_read, inv,
+                  criar_notificacao, load_db, _gcs_read, inv, tem_permissao,
                   _verificar_alerta_backup, _registar_backup,
                   # FIX 1 — importar a versão cached de core em vez de redefinir
                   _load_users_cached)
@@ -571,10 +571,14 @@ if st.session_state.get('user'):
                 [f"{ICONS['dashboard']} Portal", "Logout"],
                 label_visibility="collapsed", key="sidebar_nav_cliente")
         elif tipo == 'Admin':
-            menu_item = st.radio("Nav",
-                [f"{ICONS['dashboard']} Dashboard", f"{ICONS['admin']} Admin",
-                 f"{ICONS['instrumentation']} Instrumentação",
-                 f"{ICONS['profile']} Perfil", "Logout"],
+            _opts_admin = [f"{ICONS['dashboard']} Dashboard", f"{ICONS['admin']} Admin",
+                           f"{ICONS['instrumentation']} Instrumentação",
+                           f"{ICONS['profile']} Perfil"]
+            # Painel de Obra — mesma condição da barra inferior (super-admin vê sempre)
+            if tem_permissao(st.session_state.get('user', ''), 'mod_dashboard_obra'):
+                _opts_admin.append(f"{ICONS['work']} Painel de Obra")
+            _opts_admin.append("Logout")
+            menu_item = st.radio("Nav", _opts_admin,
                 label_visibility="collapsed", key="sidebar_nav_admin")
         elif tem_acesso_inst:
             menu_item = st.radio("Nav",
@@ -617,6 +621,10 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
     elif tipo == 'Admin':
         nav_options = ["Dashboard","Admin","Instrumentação","Perfil","Logout"]
         nav_icons   = ["graph-up","gear","tools","person","box-arrow-right"]
+        # Painel de Obra — só aparece a Admins com permissão (super-admin vê sempre)
+        if tem_permissao(st.session_state.get('user',''), 'mod_dashboard_obra'):
+            nav_options.insert(4, "Painel de Obra")
+            nav_icons.insert(4, "building")
     elif tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
         nav_options = ["Início","Obra","Instrumentação","Perfil","Logout"]
         nav_icons   = ["house","tools","wrench","person","box-arrow-right"]
@@ -630,6 +638,7 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
         if   "Admin"          in current_menu: default_index = 1
         elif "Instrumentação" in current_menu: default_index = 2
         elif "Perfil"         in current_menu: default_index = 3
+        elif "Painel de Obra" in current_menu: default_index = 4
         else:                                  default_index = 0
     elif tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
         if   "Obra"           in current_menu: default_index = 1
@@ -663,6 +672,7 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
         "Dashboard":      f"{ICONS['dashboard']} Dashboard",
         "Admin":          f"{ICONS['admin']} Admin",
         "Perfil":         f"{ICONS['profile']} Perfil",
+        "Painel de Obra": f"{ICONS['work']} Painel de Obra",
         "Logout":         "Logout",
     }
 
@@ -859,6 +869,10 @@ else:
             st.markdown(f"# {ICONS['profile']} Perfil do Utilizador")
             from mod_perfil import render_perfil
             render_perfil(*DATA)
+        elif f"{ICONS['work']} Painel de Obra" in menu and \
+                tem_permissao(user_nome, 'mod_dashboard_obra'):
+            from mod_dashboard_obra import render_dashboard_obra
+            render_dashboard_obra(*DATA)
         elif f"{ICONS['dashboard']} Dashboard" in menu or menu == '':
             st.markdown(f"# {ICONS['dashboard']} Dashboard Geral")
             c1,c2,c3,c4 = st.columns(4)
