@@ -764,11 +764,10 @@ def render_admin_rh(*args):
                 for _d in _det_reg: st.markdown(f"- {_d}")
         st.markdown("---")
 
-    (tab_lista, tab_gestao, tab_dados_legais, tab_eticadata,
+    (tab_lista, tab_gestao, tab_eticadata,
      tab_contrato, tab_template, tab_formacoes) = st.tabs([
         "👥 Colaboradores",
-        "📋 Gestão Individual",
-        "📋 Dados Legais",
+        "📋 Ficha do Colaborador",
         "📥 Importar Eticadata",
         "📄 Contratos",
         "⚙️ Templates & Config",
@@ -976,7 +975,7 @@ def render_admin_rh(*args):
             st.info("Sem colaboradores registados.")
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 2 — GESTÃO INDIVIDUAL
+    # TAB 2 — FICHA DO COLABORADOR (Gestão Individual + Dados Legais)
     # ════════════════════════════════════════════════════════════════
     with tab_gestao:
         users_live2 = _load_users_fresh()
@@ -1539,10 +1538,11 @@ def render_admin_rh(*args):
                             st.success(f"✅ {ln_nome} reactivado.")
                             st.rerun()
 
-    # ════════════════════════════════════════════════════════════════
-    # TAB 3 — DADOS LEGAIS
-    # ════════════════════════════════════════════════════════════════
-    with tab_dados_legais:
+    # ────────────────────────────────────────────────────────────────
+    # DADOS LEGAIS — mesma aba (Ficha do Colaborador), secções seguintes
+    # ────────────────────────────────────────────────────────────────
+    with tab_gestao:
+        st.markdown("---")
         st.markdown("### 📋 Dados Legais e Fiscais")
 
         _u_dl = _load_users_fresh()
@@ -2098,7 +2098,7 @@ def render_admin_rh(*args):
                                     st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 4 — IMPORTAR ETICADATA
+    # TAB 3 — IMPORTAR ETICADATA
     # ════════════════════════════════════════════════════════════════
     with tab_eticadata:
         st.markdown("### 📥 Importar Lista de Trabalhadores (Eticadata)")
@@ -2694,7 +2694,7 @@ def render_admin_rh(*args):
                         st.rerun()
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 5 — CONTRATOS
+    # TAB 4 — CONTRATOS
     # ════════════════════════════════════════════════════════════════
     with tab_contrato:
         users_ct = _load_users_fresh()
@@ -3034,7 +3034,7 @@ def render_admin_rh(*args):
                     pass
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 6 — TEMPLATES & CONFIG
+    # TAB 5 — TEMPLATES & CONFIG
     # ════════════════════════════════════════════════════════════════
     with tab_template:
         st.markdown("### ⚙️ Template do Contrato")
@@ -3102,7 +3102,7 @@ def render_admin_rh(*args):
                 )
 
     # ════════════════════════════════════════════════════════════════
-    # TAB 7 — FORMAÇÕES
+    # TAB 6 — FORMAÇÕES
     # ════════════════════════════════════════════════════════════════
     with tab_formacoes:
         from mod_admin_formacoes import render_formacoes

@@ -87,11 +87,16 @@ class TestEstruturaAbas(unittest.TestCase):
     def test_sem_erro(self):
         self.assertFalse(self.at.exception, msg=str(self.at.exception))
 
-    def test_abas_gestao_individual_e_dados_legais_existem(self):
+    def test_aba_ficha_do_colaborador_unifica_gestao_e_dados_legais(self):
         labels = [t.label for t in self.at.tabs]
         self.assertIn("👥 Colaboradores", labels)
-        self.assertIn("📋 Gestão Individual", labels)
-        self.assertIn("📋 Dados Legais", labels)
+        self.assertIn("📋 Ficha do Colaborador", labels)
+        self.assertNotIn("📋 Gestão Individual", labels)
+        self.assertNotIn("📋 Dados Legais", labels)
+        # Conteúdo de ambas as secções antigas continua presente, agora
+        # dentro da mesma aba.
+        markdown_textos = " ".join(m.value for m in self.at.markdown)
+        self.assertIn("Dados Legais e Fiscais", markdown_textos)
 
     def test_nome_bloqueado_em_gestao_individual(self):
         campo_nome = self.at.text_input(key=f"gi_nome_{SLUG}")
