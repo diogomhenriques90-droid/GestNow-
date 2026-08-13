@@ -136,10 +136,14 @@ class TestEstruturaAbas(unittest.TestCase):
         self.assertEqual(self.at.text_input(key=f"dl_datanasc_{SLUG}").value,
                           "15/05/1990")
 
-    def test_seletor_colaborador_e_partilhado_entre_abas(self):
+    def test_seletor_unico_de_colaborador_para_a_ficha_inteira(self):
+        # Um único seletor (rh_gestao_sel) escolhe o colaborador tanto para a
+        # secção de Gestão Individual como para a de Dados Legais — não há
+        # um segundo seletor "dl_colab_sel" duplicado.
         self.assertEqual(self.at.session_state['rh_colaborador_sel'], NOME)
         self.assertEqual(self.at.selectbox(key="rh_gestao_sel").value, NOME)
-        self.assertEqual(self.at.selectbox(key="dl_colab_sel").value, NOME)
+        with self.assertRaises(KeyError):
+            self.at.selectbox(key="dl_colab_sel")
 
 
 class TestGravarComportamentoAtual(unittest.TestCase):
