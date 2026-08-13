@@ -104,12 +104,13 @@ class TestEstruturaAbas(unittest.TestCase):
         self.assertEqual(campo_nome.value, NOME)
 
     def test_gestao_individual_mostra_dados_de_usuarios_csv(self):
+        # NIF/CC/CC_Validade/NISS foram fundidos na secção "🪪 Documentos e
+        # Identificação Legal" (dl_*) — deixaram de existir campos gi_nif/
+        # gi_cc/gi_niss próprios.
         self.assertEqual(self.at.text_input(key=f"gi_email_{SLUG}").value,
                           "ana@usuarios.pt")
         self.assertEqual(self.at.text_input(key=f"gi_morada_{SLUG}").value,
                           "Rua A 100")
-        self.assertEqual(self.at.text_input(key=f"gi_nif_{SLUG}").value,
-                          "123456789")
         self.assertEqual(self.at.text_input(key=f"gi_iban_{SLUG}").value,
                           "PT50000000000000000000000")
         self.assertEqual(self.at.text_input(key=f"gi_preco_{SLUG}").value, "15")
@@ -126,15 +127,20 @@ class TestEstruturaAbas(unittest.TestCase):
         self.assertEqual(self.at.text_input(key=f"dl_salb_{SLUG}").value, "1200")
 
     def test_dados_legais_usa_fallback_de_usuarios_quando_vazio(self):
-        # NIF/CC/Email/Morada estão vazios em colaboradores_rh.csv — o
-        # formulário pré-preenche (só apresentação) com o valor de
-        # usuarios.csv.
+        # NIF/CC estão vazios em colaboradores_rh.csv — o campo fundido
+        # (dual-write) pré-preenche com o valor de usuarios.csv.
         self.assertEqual(self.at.text_input(key=f"dl_nif_{SLUG}").value,
                           "123456789")
         self.assertEqual(self.at.text_input(key=f"dl_cc_{SLUG}").value,
                           "12345678")
-        self.assertEqual(self.at.text_input(key=f"dl_datanasc_{SLUG}").value,
+
+    def test_datanasc_lado_a_lado_sem_fallback_entre_ficheiros(self):
+        # DataNasc não é dual-write: cada lado mostra o seu próprio valor
+        # bruto, mesmo que um esteja vazio (sem se copiar um para o outro).
+        self.assertEqual(self.at.text_input(key=f"dl_datanasc_u_{SLUG}").value,
                           "15/05/1990")
+        self.assertEqual(self.at.text_input(key=f"dl_datanasc_rh_{SLUG}").value,
+                          "")
 
     def test_seletor_unico_de_colaborador_para_a_ficha_inteira(self):
         # Um único seletor (rh_gestao_sel) escolhe o colaborador tanto para a
@@ -147,7 +153,9 @@ class TestEstruturaAbas(unittest.TestCase):
 
 
 class TestGravarComportamentoAtual(unittest.TestCase):
-    """Cada aba grava hoje apenas no seu próprio ficheiro — sem dual-write."""
+    """Contacto/Email (Gestão Individual) ainda só gravam em usuarios.csv —
+    ainda não fundidos. Identificação (Documentos e Identificação Legal),
+    já fundida, passa a gravar nos dois ficheiros — ver TestFusaoIdentificacao."""
 
     def _submit(self, form_key, label):
         with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
@@ -166,12 +174,49 @@ class TestGravarComportamentoAtual(unittest.TestCase):
         self.assertIn("usuarios.csv", ficheiros_gravados)
         self.assertNotIn("colaboradores_rh.csv", ficheiros_gravados)
 
-    def test_guardar_identificacao_em_dados_legais_so_grava_colaboradores_rh(self):
-        mock_write = self._submit(f"dl_form_ident_{SLUG}",
-                                   "💾 Guardar Identificação")
-        ficheiros_gravados = [c.args[0] for c in mock_write.call_args_list]
-        self.assertIn("colaboradores_rh.csv", ficheiros_gravados)
-        self.assertNotIn("usuarios.csv", ficheiros_gravados)
+
+class TestFusaoIdentificacao(unittest.TestCase):
+    """Secção fundida "🪪 Documentos e Identificação Legal": os campos
+    partilhados (NIF, NISS, CC, CC_Validade, Nacionalidade, Estado_Civil)
+    são dual-write; DataNasc fica lado a lado, sem sincronização."""
+
+    def _submeter(self, alteracoes: dict):
+        """Aplica `alteracoes` (key do widget -> novo valor) aos campos do
+        formulário de Identificação fundido e submete-o. Devolve o conteúdo
+        gravado em cada ficheiro."""
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = _run()
+            for key, valor in alteracoes.items():
+                at.text_input(key=key).set_value(valor).run()
+            at.button(
+                key=f"FormSubmitter:dl_form_ident_{SLUG}-💾 Guardar Identificação"
+            ).click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        return writes
+
+    def test_campo_partilhado_editado_grava_nos_dois_ficheiros(self):
+        writes = self._submeter({f"dl_nif_{SLUG}": "111222333"})
+        self.assertIn(b"111222333", writes["usuarios.csv"])
+        self.assertIn(b"111222333", writes["colaboradores_rh.csv"])
+
+    def test_datanasc_usuarios_nao_e_espelhado_em_colaboradores_rh(self):
+        writes = self._submeter({f"dl_datanasc_u_{SLUG}": "20/12/1985"})
+        self.assertIn(b"20/12/1985", writes["usuarios.csv"])
+        self.assertNotIn(b"20/12/1985", writes["colaboradores_rh.csv"])
+
+    def test_datanasc_colaboradores_rh_nao_e_espelhado_em_usuarios(self):
+        writes = self._submeter({f"dl_datanasc_rh_{SLUG}": "03/03/1975"})
+        self.assertIn(b"03/03/1975", writes["colaboradores_rh.csv"])
+        self.assertNotIn(b"03/03/1975", writes["usuarios.csv"])
 
 
 class TestSaveDual(unittest.TestCase):

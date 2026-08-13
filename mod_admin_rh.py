@@ -1064,25 +1064,21 @@ def render_admin_rh(*args):
                           detalhes=f"Campos: {', '.join(updates.keys())}")
             return ok
 
-        # ── 1. Identificação ───────────────────────────────────────
+        # ── 1. Identificação (contactos rápidos; documentos/NIF/NISS/CC
+        # ── e DataNasc ficam na secção "🪪 Identificação" mais abaixo,
+        # ── fundida com Dados Legais) ────────────────────────────────
         with st.expander("👤 Identificação", expanded=True):
             with st.form(f"gi_form_ident_{_slug_gi}"):
                 st.text_input("Nome", value=nome_sel, disabled=True,
                     key=f"gi_nome_{_slug_gi}",
                     help="Para alterar o nome contacte o developer.")
-                _gc1, _gc2 = st.columns(2)
-                with _gc1:
-                    _gi_tel   = st.text_input("Contacto",
-                        value=_vg("Telefone"), key=f"gi_tel_{_slug_gi}")
-                    _gi_email = st.text_input("Email",
-                        value=_vg("Email"), key=f"gi_email_{_slug_gi}")
-                with _gc2:
-                    _gi_datanasc = st.text_input("Data Nascimento (DD/MM/AAAA)",
-                        value=_vg("DataNasc"), key=f"gi_datanasc_{_slug_gi}")
+                _gi_tel   = st.text_input("Contacto",
+                    value=_vg("Telefone"), key=f"gi_tel_{_slug_gi}")
+                _gi_email = st.text_input("Email",
+                    value=_vg("Email"), key=f"gi_email_{_slug_gi}")
                 if st.form_submit_button("💾 Guardar Identificação",
                                          use_container_width=True, type="primary"):
-                    if _save_gi({"Telefone": _gi_tel, "Email": _gi_email,
-                                  "DataNasc": _gi_datanasc}):
+                    if _save_gi({"Telefone": _gi_tel, "Email": _gi_email}):
                         st.success("✅ Identificação guardada.")
                         st.rerun()
                     else:
@@ -1107,29 +1103,6 @@ def render_admin_rh(*args):
                     if _save_gi({"Morada": _gi_morada, "Localidade": _gi_localidade,
                                   "Concelho": _gi_concelho, "Codigo_Postal": _gi_cp}):
                         st.success("✅ Morada guardada.")
-                        st.rerun()
-                    else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
-
-        # ── 3. Documentos ───────────────────────────────────────────
-        with st.expander("🪪 Documentos"):
-            with st.form(f"gi_form_docs_{_slug_gi}"):
-                _gc1, _gc2 = st.columns(2)
-                with _gc1:
-                    _gi_cc = st.text_input("Cartão de Cidadão",
-                        value=_vg("CC"), key=f"gi_cc_{_slug_gi}")
-                    _gi_ccval = st.text_input("Validade CC (DD/MM/AAAA)",
-                        value=_vg("CC_Validade"), key=f"gi_ccval_{_slug_gi}")
-                with _gc2:
-                    _gi_niss = st.text_input("NISS",
-                        value=_vg("NISS"), key=f"gi_niss_{_slug_gi}")
-                    _gi_nif = st.text_input("NIF",
-                        value=_vg("NIF"), key=f"gi_nif_{_slug_gi}")
-                if st.form_submit_button("💾 Guardar Documentos",
-                                         use_container_width=True, type="primary"):
-                    if _save_gi({"CC": _gi_cc, "CC_Validade": _gi_ccval,
-                                  "NISS": _gi_niss, "NIF": _gi_nif}):
-                        st.success("✅ Documentos guardados.")
                         st.rerun()
                     else:
                         st.error("❌ Erro ao guardar — verifica ligação ao GCS")
@@ -1567,6 +1540,11 @@ def render_admin_rh(*args):
         _mask_dl = (_rh_dl['Nome'] == _nome_dl) if not _rh_dl.empty else pd.Series([], dtype=bool)
         _row_dl  = _rh_dl[_mask_dl].iloc[0].copy() if _mask_dl.any() else pd.Series(dtype=str)
 
+        # DataNasc é campo "lado a lado" (dois registos independentes,
+        # sem espelho) — guarda-se o valor bruto de colaboradores_rh.csv
+        # antes do fallback de apresentação abaixo, que não se aplica a ele.
+        _datanasc_rh_raw = _row_dl.get("DataNasc", "") if not _row_dl.empty else ""
+
         # Fallback de apresentação: campos partilhados que estejam vazios em
         # colaboradores_rh.csv são pré-preenchidos no formulário a partir de
         # usuarios.csv. Apenas visual — não grava nada (colaboradores_rh.csv
@@ -1575,7 +1553,7 @@ def render_admin_rh(*args):
         if _mask_u_dl.any():
             _u_row_dl = _u_dl[_mask_u_dl].iloc[0]
             for _fk in ("NISS", "CC", "CC_Validade", "NIF", "Email",
-                        "Morada", "Nacionalidade", "Estado_Civil", "DataNasc"):
+                        "Morada", "Nacionalidade", "Estado_Civil"):
                 if not str(_row_dl.get(_fk, "")).strip():
                     _uv = str(_u_row_dl.get(_fk, "")).strip()
                     if _uv:
@@ -1601,45 +1579,60 @@ def render_admin_rh(*args):
         # reaproveitarem o estado (e os valores) do anterior.
         _slug = hashlib.md5(_nome_dl.encode()).hexdigest()[:8]
 
-        # ── 1. Identificação Legal ────────────────────────────
-        with st.expander("🪪 Identificação Legal", expanded=True):
+        # ── 1. Identificação — Documentos & Dados Legais (fundida) ────
+        # NIF/NISS/CC/CC_Validade/Nacionalidade/Estado_Civil são dual-write
+        # (usuarios.csv fonte, espelho em colaboradores_rh.csv). DataNasc é
+        # "lado a lado": dois registos independentes, sem sincronização.
+        with st.expander("🪪 Documentos e Identificação Legal", expanded=True):
             with st.form(f"dl_form_ident_{_slug}"):
                 _c1, _c2, _c3 = st.columns(3)
                 with _c1:
-                    _genero   = st.selectbox("Género", GENERO_OPTS,
-                        index=_opt_idx(GENERO_OPTS, _v("Genero")), key=f"dl_genero_{_slug}")
-                    _datanasc = st.text_input("Data Nascimento (DD/MM/AAAA)",
-                        value=_v("DataNasc"), key=f"dl_datanasc_{_slug}")
-                    _nat  = st.text_input("Naturalidade", value=_v("Naturalidade"), key=f"dl_nat_{_slug}")
-                with _c2:
-                    _nac  = st.text_input("Nacionalidade", value=_v("Nacionalidade"), key=f"dl_nac_{_slug}")
-                    _pais = st.text_input("País Residência", value=_v("Pais_Residencia"), key=f"dl_pais_{_slug}")
                     _nif  = st.text_input("NIF", value=_v("NIF"), key=f"dl_nif_{_slug}")
-                with _c3:
                     _niss = st.text_input("NISS", value=_v("NISS"), key=f"dl_niss_{_slug}")
                     _cc   = st.text_input("Nº Cartão Cidadão", value=_v("CC"), key=f"dl_cc_{_slug}")
+                with _c2:
                     _ccval= st.text_input("Validade CC (DD/MM/AAAA)",
                         value=_v("CC_Validade"), key=f"dl_ccval_{_slug}")
+                    _nac  = st.text_input("Nacionalidade", value=_v("Nacionalidade"), key=f"dl_nac_{_slug}")
+                    _est_civil = st.selectbox("Estado Civil", ESTADO_CIVIL_OPTS,
+                        index=_opt_idx(ESTADO_CIVIL_OPTS, _v("Estado_Civil")), key=f"dl_estcivil_{_slug}")
+                with _c3:
+                    _genero   = st.selectbox("Género", GENERO_OPTS,
+                        index=_opt_idx(GENERO_OPTS, _v("Genero")), key=f"dl_genero_{_slug}")
+                    _nat  = st.text_input("Naturalidade", value=_v("Naturalidade"), key=f"dl_nat_{_slug}")
+                    _pais = st.text_input("País Residência", value=_v("Pais_Residencia"), key=f"dl_pais_{_slug}")
+
+                st.markdown("**Data de Nascimento** _(registo independente em cada ficheiro)_")
                 _c4, _c5 = st.columns(2)
                 with _c4:
+                    _datanasc_u = st.text_input(
+                        "Data Nascimento — Gestão Individual (DD/MM/AAAA)",
+                        value=_vg("DataNasc"), key=f"dl_datanasc_u_{_slug}")
+                with _c5:
+                    _datanasc_rh = st.text_input(
+                        "Data Nascimento — Dados Legais (DD/MM/AAAA)",
+                        value=_datanasc_rh_raw, key=f"dl_datanasc_rh_{_slug}")
+
+                _c6, _c7 = st.columns(2)
+                with _c6:
                     _pass_num = st.text_input("Passaporte", value=_v("Passaporte"), key=f"dl_pass_{_slug}")
                     _pass_val = st.text_input("Validade Passaporte (DD/MM/AAAA)",
                         value=_v("Passaporte_Validade"), key=f"dl_passval_{_slug}")
-                with _c5:
-                    _est_civil = st.selectbox("Estado Civil", ESTADO_CIVIL_OPTS,
-                        index=_opt_idx(ESTADO_CIVIL_OPTS, _v("Estado_Civil")), key=f"dl_estcivil_{_slug}")
+                with _c7:
                     _n_dep = st.text_input("Nº Dependentes", value=_v("N_Dependentes"), key=f"dl_ndep_{_slug}")
                     _n_dep_def = st.text_input("Nº Dependentes c/ Deficiência",
                         value=_v("N_Dependentes_Deficiencia"), key=f"dl_ndepdef_{_slug}")
                 if st.form_submit_button("💾 Guardar Identificação",
                                          use_container_width=True, type="primary"):
-                    if _sync_rh_csv(_nome_dl, {
-                        "Genero": _genero, "DataNasc": _datanasc,
-                        "Naturalidade": _nat, "Nacionalidade": _nac,
-                        "Pais_Residencia": _pais, "NIF": _nif, "NISS": _niss,
-                        "CC": _cc, "CC_Validade": _ccval,
+                    if _save_dual(_nome_dl, {
+                        "NIF": _nif, "NISS": _niss, "CC": _cc, "CC_Validade": _ccval,
+                        "Nacionalidade": _nac, "Estado_Civil": _est_civil,
+                    }, extra_usuarios={"DataNasc": _datanasc_u},
+                       extra_rh={
+                        "DataNasc": _datanasc_rh, "Genero": _genero,
+                        "Naturalidade": _nat, "Pais_Residencia": _pais,
                         "Passaporte": _pass_num, "Passaporte_Validade": _pass_val,
-                        "Estado_Civil": _est_civil, "N_Dependentes": _n_dep,
+                        "N_Dependentes": _n_dep,
                         "N_Dependentes_Deficiencia": _n_dep_def,
                     }):
                         st.success("✅ Identificação guardada.")
