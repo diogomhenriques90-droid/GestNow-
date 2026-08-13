@@ -1142,15 +1142,67 @@ def render_admin_rh(*args):
                     else:
                         st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
-        # ── 6. Profissional ─────────────────────────────────────────
-        with st.expander("💼 Profissional"):
+        # ── 6. Profissional (fundida) ─────────────────────────────────
+        # Tipo/Cargo (Permissões APP), PrecoHora/Salario_Base e
+        # Local_Obra/Local_Trabalho lado a lado — sem sincronização entre
+        # usuarios.csv e colaboradores_rh.csv (cada par são dois registos
+        # independentes, à semelhança de DataNasc na secção Identificação).
+        _rh_prof = _load_rh_fresh()
+        _mask_rh_prof = (_rh_prof['Nome'] == nome_sel) if not _rh_prof.empty else pd.Series([], dtype=bool)
+        _row_rh_prof = _rh_prof[_mask_rh_prof].iloc[0] if _mask_rh_prof.any() else pd.Series(dtype=str)
+
+        def _vrh_prof(campo, default=""):
+            return _row_rh_prof.get(campo, default)
+
+        with st.expander("💼 Profissional", expanded=True):
+            st.markdown("**Permissões APP**")
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                tipos_opcoes = ["Técnico", "Chefe de Equipa", "Admin",
+                                "Gestor", "Secretariado"]
+                tipo_atual   = row.get("Tipo", "Técnico")
+                idx_tipo     = tipos_opcoes.index(tipo_atual) if tipo_atual in tipos_opcoes else 0
+                novo_tipo = st.selectbox("👤 Permissões APP (Tipo)",
+                    tipos_opcoes, index=idx_tipo, key="rh_novo_tipo")
+            with col_f2:
+                cargos_opcoes = ["Técnico", "Instrumentista", "Eletricista",
+                                 "Mecânico", "Chefe de Equipa", "Encarregado",
+                                 "Engenheiro", "QA/QC", "Admin", "Outro"]
+                cargo_atual   = row.get("Cargo", "")
+                idx_cargo     = cargos_opcoes.index(cargo_atual) if cargo_atual in cargos_opcoes else 0
+                novo_cargo = st.selectbox("🏷️ Permissões APP (Cargo)",
+                    cargos_opcoes, index=idx_cargo, key="rh_novo_cargo")
+            if st.button("💾 Guardar Permissões APP",
+                         key="btn_guardar_funcao", type="primary"):
+                u_fn = _load_users_fresh()
+                mk_fn = u_fn["Nome"] == nome_sel
+                if mk_fn.any():
+                    u_fn.loc[mk_fn, "Tipo"]  = novo_tipo
+                    u_fn.loc[mk_fn, "Cargo"] = novo_cargo
+                    save_db(u_fn, "usuarios.csv")
+                    inv("usuarios.csv")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
+                    log_audit(usuario=st.session_state.get("user","admin"),
+                              acao="ALTERAR_FUNCAO",
+                              tabela="usuarios.csv",
+                              registro_id=nome_sel,
+                              detalhes=f"Tipo={novo_tipo}, Cargo={novo_cargo}")
+                    st.success(f"✅ Permissões APP actualizadas: {novo_tipo} / {novo_cargo}")
+                    st.rerun()
+
+            st.markdown("---")
             with st.form(f"gi_form_prof_{_slug_gi}"):
                 _gc1, _gc2 = st.columns(2)
                 with _gc1:
                     _gi_preco  = st.text_input("Preço Hora (€)",
                         value=_vg("PrecoHora"), key=f"gi_preco_{_slug_gi}")
+                    _gi_salb   = st.text_input("Salário Base (€)",
+                        value=_vrh_prof("Salario_Base"), key=f"gi_salb_{_slug_gi}")
                     _gi_local  = st.text_input("Local de Obra",
                         value=_vg("Local_Obra"), key=f"gi_local_{_slug_gi}")
+                    _gi_local_trab = st.text_input("Local de Trabalho",
+                        value=_vrh_prof("Local_Trabalho"), key=f"gi_localtrab_{_slug_gi}")
                     _gi_cliente, _gi_cliente_novo = cliente_select(
                         "Cliente", f"gi_cliente_{_slug_gi}", _vg("Cliente_Obra"))
                 with _gc2:
@@ -1204,6 +1256,8 @@ def render_admin_rh(*args):
                         "Contrato_Enviado": _gi_ct_env, "Contrato_Enviado_Data": _gi_ct_env_data,
                         "Contrato_Assinado": _gi_ct_assin, "Contrato_Assinatura_Data": _gi_ct_assin_data,
                         "Contrato_Validado_Admin": _gi_ct_valid, "Contrato_Validado_Data": _gi_ct_valid_data,
+                    }) and _sync_rh_csv(nome_sel, {
+                        "Salario_Base": _gi_salb, "Local_Trabalho": _gi_local_trab,
                     }):
                         st.success("✅ Dados profissionais guardados.")
                         st.rerun()
@@ -1281,53 +1335,10 @@ def render_admin_rh(*args):
                 st.success("✅ Campos bloqueados atualizados.")
                 st.rerun()
 
-        # ── Permissões APP e Password ─────────────────────────────
-        # "Permissões APP (Tipo)" e "Permissões APP (Cargo)" são os campos
-        # de acesso da app (colunas Tipo/Cargo de usuarios.csv) — distintos
-        # de Função/Categoria Operacional (tab Dados Legais). Só os rótulos
-        # mudaram no W5; valores, keys e mecânica de permissões intactos.
+        # ── Redefinir Password ─────────────────────────────────────
+        # Permissões APP (Tipo/Cargo) mudaram para a secção "💼 Profissional"
+        # acima, lado a lado com PrecoHora/Local_Obra.
         st.markdown("---")
-        st.markdown("#### ⚙️ Permissões APP / Password")
-
-        col_f1, col_f2 = st.columns(2)
-        with col_f1:
-            tipos_opcoes = ["Técnico", "Chefe de Equipa", "Admin",
-                            "Gestor", "Secretariado"]
-            tipo_atual   = row.get("Tipo", "Técnico")
-            idx_tipo     = tipos_opcoes.index(tipo_atual)                            if tipo_atual in tipos_opcoes else 0
-            novo_tipo = st.selectbox("👤 Permissões APP (Tipo)",
-                tipos_opcoes, index=idx_tipo, key="rh_novo_tipo")
-
-        with col_f2:
-            cargos_opcoes = ["Técnico", "Instrumentista", "Eletricista",
-                             "Mecânico", "Chefe de Equipa", "Encarregado",
-                             "Engenheiro", "QA/QC", "Admin", "Outro"]
-            cargo_atual   = row.get("Cargo", "")
-            idx_cargo     = cargos_opcoes.index(cargo_atual)                             if cargo_atual in cargos_opcoes else 0
-            novo_cargo = st.selectbox("🏷️ Permissões APP (Cargo)",
-                cargos_opcoes, index=idx_cargo, key="rh_novo_cargo")
-
-        if st.button("💾 Guardar Permissões APP",
-                     key="btn_guardar_funcao", type="primary"):
-            u_fn = _load_users_fresh()
-            mk_fn = u_fn["Nome"] == nome_sel
-            if mk_fn.any():
-                u_fn.loc[mk_fn, "Tipo"]  = novo_tipo
-                u_fn.loc[mk_fn, "Cargo"] = novo_cargo
-                save_db(u_fn, "usuarios.csv")
-                inv("usuarios.csv")
-                from core import _cached_load_all
-                _cached_load_all.clear()
-                log_audit(usuario=st.session_state.get("user","admin"),
-                          acao="ALTERAR_FUNCAO",
-                          tabela="usuarios.csv",
-                          registro_id=nome_sel,
-                          detalhes=f"Tipo={novo_tipo}, Cargo={novo_cargo}")
-                st.success(f"✅ Permissões APP actualizadas: {novo_tipo} / {novo_cargo}")
-                st.rerun()
-
-        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-
         with st.expander("🔐 Redefinir Password"):
             nova_pwd_admin = st.text_input(
                 "Nova Password *", type="password", key="rh_nova_pwd_admin",
@@ -1705,8 +1716,6 @@ def render_admin_rh(*args):
                         value=_v("Periodo_Experimental"), key=f"dl_pe_{_slug}")
                     _pe_fim  = st.text_input("Fim Período Exp. (DD/MM/AAAA)",
                         value=_v("Periodo_Experimental_Fim"), key=f"dl_pefim_{_slug}")
-                    _local_t = st.text_input("Local de Trabalho",
-                        value=_v("Local_Trabalho"), key=f"dl_local_{_slug}")
                 _func_ct = st.text_input("Função Contratual",
                     value=_v("Funcao_Contratual"), key=f"dl_func_{_slug}")
 
@@ -1754,7 +1763,7 @@ def render_admin_rh(*args):
                         "Horas_Semana": _hrs_sem, "Contrato_Inicio": _ct_ini,
                         "Contrato_Fim": _ct_fim, "Contrato_Indeterminado": _ct_ind,
                         "Periodo_Experimental": _pe, "Periodo_Experimental_Fim": _pe_fim,
-                        "Local_Trabalho": _local_t, "Funcao_Contratual": _func_ct,
+                        "Funcao_Contratual": _func_ct,
                         "Modalidade_Contrato": _mod_ct, "Prestacao_Trabalho": _prest_trab,
                         "Tipo_Horario": _tipo_hr, "Duracao_Tempo_Trabalho": _dur_tt,
                         "Organizacao_Tempo_Trabalho": _org_tt, "Motivo_Contrato": _mot_ct,
@@ -1767,26 +1776,26 @@ def render_admin_rh(*args):
                         st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
         # ── 4. Remuneração e Pagamento ────────────────────────
+        # Salário Base fica na secção "💼 Profissional" (lado a lado com
+        # PrecoHora); os restantes campos de remuneração mantêm-se aqui.
         with st.expander("💰 Remuneração e Pagamento"):
             with st.form(f"dl_form_rem_{_slug}"):
                 _c1, _c2, _c3 = st.columns(3)
                 with _c1:
-                    _sal_b  = st.text_input("Salário Base (€)",
-                        value=_v("Salario_Base"), key=f"dl_salb_{_slug}")
                     _sub_al = st.text_input("Subsídio Alimentação (€)",
                         value=_v("Subsidio_Alimentacao"), key=f"dl_subal_{_slug}")
                     _sub_fe = st.text_input("Subsídio Férias (€)",
                         value=_v("Subsidio_Ferias"), key=f"dl_subfe_{_slug}")
-                with _c2:
                     _sub_na = st.text_input("Subsídio Natal (€)",
                         value=_v("Subsidio_Natal"), key=f"dl_subna_{_slug}")
+                with _c2:
                     _prem   = st.text_input("Prémio Produção (€)",
                         value=_v("Premio_Producao"), key=f"dl_prem_{_slug}")
                     _outros = st.text_input("Outros Complementos",
                         value=_v("Outros_Complementos"), key=f"dl_outros_{_slug}")
-                with _c3:
                     _forma_pag = st.selectbox("Forma Pagamento", FORMA_PAGAMENTO_OPTS,
                         index=_opt_idx(FORMA_PAGAMENTO_OPTS, _v("Forma_Pagamento")), key=f"dl_fpag_{_slug}")
+                with _c3:
                     _iban_val  = st.selectbox("IBAN Validado", ["","Sim","Não"],
                         index=["","Sim","Não"].index(_v("IBAN_Validado"))
                               if _v("IBAN_Validado") in ["","Sim","Não"] else 0,
@@ -1821,7 +1830,7 @@ def render_admin_rh(*args):
                 if st.form_submit_button("💾 Guardar Remuneração",
                                          use_container_width=True, type="primary"):
                     if _sync_rh_csv(_nome_dl, {
-                        "Salario_Base": _sal_b, "Subsidio_Alimentacao": _sub_al,
+                        "Subsidio_Alimentacao": _sub_al,
                         "Subsidio_Ferias": _sub_fe, "Subsidio_Natal": _sub_na,
                         "Premio_Producao": _prem, "Outros_Complementos": _outros,
                         "Forma_Pagamento": _forma_pag, "IBAN_Validado": _iban_val,

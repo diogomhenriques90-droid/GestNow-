@@ -124,7 +124,9 @@ class TestEstruturaAbas(unittest.TestCase):
                           "Casado(a)")
         self.assertEqual(self.at.text_input(key=f"dl_niss_{SLUG}").value,
                           "99999999999")
-        self.assertEqual(self.at.text_input(key=f"dl_salb_{SLUG}").value, "1200")
+        # Salario_Base mudou-se para a secção "💼 Profissional" (gi_salb),
+        # lado a lado com PrecoHora.
+        self.assertEqual(self.at.text_input(key=f"gi_salb_{SLUG}").value, "1200")
 
     def test_dados_legais_usa_fallback_de_usuarios_quando_vazio(self):
         # NIF/CC estão vazios em colaboradores_rh.csv — o campo fundido
@@ -231,6 +233,70 @@ class TestFusaoBancarios(unittest.TestCase):
         writes = self._submeter({f"gi_banco_{SLUG}": "Banco Teste"})
         self.assertIn(b"Banco Teste", writes["usuarios.csv"])
         self.assertIn(b"Banco Teste", writes["colaboradores_rh.csv"])
+
+
+class TestFusaoProfissional(unittest.TestCase):
+    """Secção fundida "💼 Profissional": Tipo/Cargo (Permissões APP),
+    PrecoHora/Salario_Base e Local_Obra/Local_Trabalho ficam lado a lado,
+    cada par com dois registos independentes, sem sincronização."""
+
+    def _submeter_profissional(self, alteracoes: dict):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = _run()
+            for key, valor in alteracoes.items():
+                at.text_input(key=key).set_value(valor).run()
+            at.button(
+                key=f"FormSubmitter:gi_form_prof_{SLUG}-💾 Guardar Profissional"
+            ).click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        return writes
+
+    def test_preco_hora_nao_e_espelhado_em_colaboradores_rh(self):
+        writes = self._submeter_profissional({f"gi_preco_{SLUG}": "22.5"})
+        self.assertIn(b"22.5", writes["usuarios.csv"])
+        self.assertNotIn(b"22.5", writes["colaboradores_rh.csv"])
+
+    def test_salario_base_nao_e_espelhado_em_usuarios(self):
+        writes = self._submeter_profissional({f"gi_salb_{SLUG}": "1350"})
+        self.assertIn(b"1350", writes["colaboradores_rh.csv"])
+        self.assertNotIn(b"1350", writes["usuarios.csv"])
+
+    def test_local_obra_nao_e_espelhado_em_colaboradores_rh(self):
+        writes = self._submeter_profissional({f"gi_local_{SLUG}": "Obra Nova"})
+        self.assertIn(b"Obra Nova", writes["usuarios.csv"])
+        self.assertNotIn(b"Obra Nova", writes["colaboradores_rh.csv"])
+
+    def test_local_trabalho_nao_e_espelhado_em_usuarios(self):
+        writes = self._submeter_profissional({f"gi_localtrab_{SLUG}": "Obra RH"})
+        self.assertIn(b"Obra RH", writes["colaboradores_rh.csv"])
+        self.assertNotIn(b"Obra RH", writes["usuarios.csv"])
+
+    def test_permissoes_app_continua_a_gravar_so_em_usuarios(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = _run()
+            at.selectbox(key="rh_novo_cargo").set_value("Engenheiro").run()
+            at.button(key="btn_guardar_funcao").click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertIn(b"Engenheiro", writes["usuarios.csv"])
+        self.assertNotIn("colaboradores_rh.csv", writes)
 
 
 class TestFusaoIdentificacao(unittest.TestCase):
