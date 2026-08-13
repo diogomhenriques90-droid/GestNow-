@@ -165,5 +165,64 @@ class TestGravarComportamentoAtual(unittest.TestCase):
         self.assertNotIn("usuarios.csv", ficheiros_gravados)
 
 
+class TestSaveDual(unittest.TestCase):
+    """`_save_dual` — helper novo que grava em usuarios.csv (fonte) e espelha
+    os mesmos campos em colaboradores_rh.csv. Usado pela ficha unificada."""
+
+    def _call(self, updates, rh_csv=_RH_CSV):
+        import mod_admin_rh as m
+
+        def _gcs_read(fn):
+            if fn == "usuarios.csv":
+                return io.BytesIO(_USUARIOS_CSV)
+            if fn == "colaboradores_rh.csv":
+                return io.BytesIO(rh_csv) if rh_csv is not None else None
+            return None
+
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        with patch("mod_admin_rh._gcs_read", side_effect=_gcs_read), \
+             patch("core._gcs_read", side_effect=_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            ok = m._save_dual(NOME, updates)
+        return ok, writes
+
+    def test_grava_em_usuarios_e_espelha_em_colaboradores_rh(self):
+        ok, writes = self._call({"Email": "novo@x.pt", "NIF": "999888777"})
+        self.assertTrue(ok)
+        self.assertIn("usuarios.csv", writes)
+        self.assertIn("colaboradores_rh.csv", writes)
+        self.assertIn(b"novo@x.pt", writes["usuarios.csv"])
+        self.assertIn(b"novo@x.pt", writes["colaboradores_rh.csv"])
+        self.assertIn(b"999888777", writes["colaboradores_rh.csv"])
+
+    def test_cria_linha_em_colaboradores_rh_se_nao_existir(self):
+        ok, writes = self._call({"Email": "a@x.pt"}, rh_csv=None)
+        self.assertTrue(ok)
+        self.assertIn(b"Ana Teste", writes["colaboradores_rh.csv"])
+        self.assertIn(b"a@x.pt", writes["colaboradores_rh.csv"])
+
+    def test_colaborador_inexistente_nao_grava_nada(self):
+        import mod_admin_rh as m
+
+        def _gcs_read(fn):
+            if fn == "usuarios.csv":
+                return io.BytesIO(_USUARIOS_CSV)
+            return None
+
+        with patch("mod_admin_rh._gcs_read", side_effect=_gcs_read), \
+             patch("core._gcs_read", side_effect=_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write") as mock_write:
+            ok = m._save_dual("Não Existe", {"Email": "x@x.pt"})
+        self.assertFalse(ok)
+        mock_write.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -598,6 +598,40 @@ def _sync_rh_csv(nome: str, updates: dict) -> bool:
     return ok
 
 
+# Campos partilhados entre usuarios.csv e colaboradores_rh.csv na ficha
+# unificada de RH. usuarios.csv é a fonte; colaboradores_rh.csv recebe um
+# espelho automático (dual-write) a cada gravação destes campos.
+CAMPOS_DUAL_WRITE = [
+    "NIF", "NISS", "CC", "CC_Validade", "Email", "Morada", "Localidade",
+    "Codigo_Postal", "Banco_Nome", "Banco_IBAN", "Nacionalidade", "Estado_Civil",
+]
+
+
+def _save_dual(nome: str, updates: dict) -> bool:
+    """Grava `updates` em usuarios.csv (fonte de verdade) e espelha os mesmos
+    campos em colaboradores_rh.csv. Se a gravação em usuarios.csv falhar,
+    devolve False sem tentar o espelho. Uma falha no espelho não desfaz a
+    gravação em usuarios.csv — fica apenas registada em log."""
+    u = _load_users_fresh()
+    mask = u['Nome'] == nome if 'Nome' in u.columns and not u.empty else pd.Series([], dtype=bool)
+    if not mask.any():
+        return False
+    for k, v in updates.items():
+        u.loc[mask, k] = v
+    ok = save_db(u, "usuarios.csv")
+    if not ok:
+        return False
+    inv("usuarios.csv")
+    from core import _cached_load_all
+    _cached_load_all.clear()
+    if not _sync_rh_csv(nome, updates):
+        logger.warning(
+            f"Espelho para colaboradores_rh.csv falhou: {nome} — "
+            f"campos: {', '.join(updates.keys())}"
+        )
+    return True
+
+
 def _exportar_excel_colaborador(user_row: pd.Series) -> bytes:
     """Gera um Excel com todos os dados do colaborador."""
     output = BytesIO()
