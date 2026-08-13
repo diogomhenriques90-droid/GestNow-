@@ -178,7 +178,7 @@ class TestSaveDual(unittest.TestCase):
     """`_save_dual` — helper novo que grava em usuarios.csv (fonte) e espelha
     os mesmos campos em colaboradores_rh.csv. Usado pela ficha unificada."""
 
-    def _call(self, updates, rh_csv=_RH_CSV):
+    def _call(self, updates, rh_csv=_RH_CSV, extra_usuarios=None, extra_rh=None):
         import mod_admin_rh as m
 
         def _gcs_read(fn):
@@ -198,7 +198,8 @@ class TestSaveDual(unittest.TestCase):
              patch("core._gcs_read", side_effect=_gcs_read), \
              patch("core._gcs_client", return_value=None), \
              patch("core._gcs_write", side_effect=_gcs_write):
-            ok = m._save_dual(NOME, updates)
+            ok = m._save_dual(NOME, updates,
+                               extra_usuarios=extra_usuarios, extra_rh=extra_rh)
         return ok, writes
 
     def test_grava_em_usuarios_e_espelha_em_colaboradores_rh(self):
@@ -215,6 +216,23 @@ class TestSaveDual(unittest.TestCase):
         self.assertTrue(ok)
         self.assertIn(b"Ana Teste", writes["colaboradores_rh.csv"])
         self.assertIn(b"a@x.pt", writes["colaboradores_rh.csv"])
+
+    def test_extra_usuarios_so_grava_em_usuarios_csv(self):
+        # Campo "lado a lado" cujo lado usuarios.csv não é espelhado.
+        ok, writes = self._call({"NIF": "999888777"},
+                                 extra_usuarios={"DataNasc": "01/01/2000"})
+        self.assertTrue(ok)
+        self.assertIn(b"01/01/2000", writes["usuarios.csv"])
+        self.assertNotIn(b"01/01/2000", writes["colaboradores_rh.csv"])
+
+    def test_extra_rh_so_grava_em_colaboradores_rh_csv(self):
+        # Campo só-RH (ex.: Genero) gravado no mesmo espelho, sem tocar em
+        # usuarios.csv.
+        ok, writes = self._call({"NIF": "999888777"},
+                                 extra_rh={"Genero": "Feminino"})
+        self.assertTrue(ok)
+        self.assertNotIn(b"Feminino", writes["usuarios.csv"])
+        self.assertIn(b"Feminino", writes["colaboradores_rh.csv"])
 
     def test_colaborador_inexistente_nao_grava_nada(self):
         import mod_admin_rh as m

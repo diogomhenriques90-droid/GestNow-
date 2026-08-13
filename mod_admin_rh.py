@@ -607,16 +607,28 @@ CAMPOS_DUAL_WRITE = [
 ]
 
 
-def _save_dual(nome: str, updates: dict) -> bool:
-    """Grava `updates` em usuarios.csv (fonte de verdade) e espelha os mesmos
-    campos em colaboradores_rh.csv. Se a gravação em usuarios.csv falhar,
-    devolve False sem tentar o espelho. Uma falha no espelho não desfaz a
-    gravação em usuarios.csv — fica apenas registada em log."""
+def _save_dual(nome: str, updates: dict,
+               extra_usuarios: dict = None, extra_rh: dict = None) -> bool:
+    """Grava `updates` (campos partilhados) em usuarios.csv (fonte de
+    verdade) e espelha os mesmos campos em colaboradores_rh.csv.
+
+    `extra_usuarios`: campos adicionais gravados só em usuarios.csv (não
+    espelhados) — ex.: um campo "lado a lado" cujo lado usuarios.csv não
+    tem equivalente partilhado.
+    `extra_rh`: campos adicionais gravados só em colaboradores_rh.csv no
+    mesmo espelho — ex.: o lado colaboradores_rh.csv de um campo "lado a
+    lado", ou campos que só existem em colaboradores_rh.csv.
+
+    Se a gravação em usuarios.csv falhar, devolve False sem tentar nada em
+    colaboradores_rh.csv. Uma falha no espelho não desfaz a gravação em
+    usuarios.csv — fica apenas registada em log."""
+    extra_usuarios = extra_usuarios or {}
+    extra_rh = extra_rh or {}
     u = _load_users_fresh()
     mask = u['Nome'] == nome if 'Nome' in u.columns and not u.empty else pd.Series([], dtype=bool)
     if not mask.any():
         return False
-    for k, v in updates.items():
+    for k, v in {**updates, **extra_usuarios}.items():
         u.loc[mask, k] = v
     ok = save_db(u, "usuarios.csv")
     if not ok:
@@ -624,10 +636,11 @@ def _save_dual(nome: str, updates: dict) -> bool:
     inv("usuarios.csv")
     from core import _cached_load_all
     _cached_load_all.clear()
-    if not _sync_rh_csv(nome, updates):
+    rh_updates = {**updates, **extra_rh}
+    if not _sync_rh_csv(nome, rh_updates):
         logger.warning(
             f"Espelho para colaboradores_rh.csv falhou: {nome} — "
-            f"campos: {', '.join(updates.keys())}"
+            f"campos: {', '.join(rh_updates.keys())}"
         )
     return True
 
