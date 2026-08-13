@@ -1099,14 +1099,21 @@ def render_admin_rh(*args):
                     else:
                         st.error("❌ Erro ao guardar — verifica ligação ao GCS")
 
-        # ── 4. Bancários ────────────────────────────────────────────
+        # ── 4. Bancários (fundida) ────────────────────────────────────
+        # Banco_Nome e Banco_IBAN são dual-write (usuarios.csv fonte,
+        # espelho em colaboradores_rh.csv). Os restantes campos de
+        # remuneração ficam na secção "💰 Remuneração e Pagamento" abaixo.
         with st.expander("🏦 Bancários"):
             with st.form(f"gi_form_banco_{_slug_gi}"):
+                _gi_banco = st.text_input("Banco (Nome)",
+                    value=_vg("Banco_Nome"), key=f"gi_banco_{_slug_gi}")
                 _gi_iban = st.text_input("IBAN",
                     value=_vg("Banco_IBAN"), key=f"gi_iban_{_slug_gi}")
                 if st.form_submit_button("💾 Guardar Dados Bancários",
                                          use_container_width=True, type="primary"):
-                    if _save_gi({"Banco_IBAN": _gi_iban}):
+                    if _save_dual(nome_sel, {
+                        "Banco_Nome": _gi_banco, "Banco_IBAN": _gi_iban,
+                    }):
                         st.success("✅ Dados bancários guardados.")
                         st.rerun()
                     else:
@@ -1787,7 +1794,7 @@ def render_admin_rh(*args):
                     _swift = st.text_input("SWIFT/BIC",
                         value=_v("SWIFT_BIC"), key=f"dl_swift_{_slug}")
 
-                st.markdown("**Subsídio de Alimentação e Banco**")
+                st.markdown("**Subsídio de Alimentação e Reforma**")
                 _c4, _c5, _c6 = st.columns(3)
                 with _c4:
                     _sam_opts, _sam_idx = _sel_opts(SUB_ALIM_MODO_OPTS, _v("Sub_Alimentacao_Modo"))
@@ -1802,12 +1809,10 @@ def render_admin_rh(*args):
                     _mr_opts, _mr_idx = _sel_opts(MODO_REMUN_OPTS, _v("Modo_Remuneracao"))
                     _modo_rem = st.selectbox("Modo Remuneração", _mr_opts,
                         index=_mr_idx, key=f"dl_modorem_{_slug}")
-                    _banco_nome = st.text_input("Banco (Nome)",
-                        value=_v("Banco_Nome"), key=f"dl_banconome_{_slug}")
-                with _c6:
                     _rr_opts, _rr_idx = _sel_opts(REGIME_REFORMA_OPTS, _v("Regime_Reforma"))
                     _reg_reforma = st.selectbox("Regime Reforma", _rr_opts,
                         index=_rr_idx, key=f"dl_regreforma_{_slug}")
+                with _c6:
                     _pensionista = st.selectbox("Pensionista", ["","Sim","Não"],
                         index=["","Sim","Não"].index(_v("Pensionista"))
                               if _v("Pensionista") in ["","Sim","Não"] else 0,
@@ -1823,7 +1828,7 @@ def render_admin_rh(*args):
                         "SWIFT_BIC": _swift,
                         "Sub_Alimentacao_Modo": _sub_al_modo, "Sub_Alimentacao_Entidade": _sub_al_ent,
                         "Num_Cartao_Refeicao": _num_cartao_ref, "Modo_Remuneracao": _modo_rem,
-                        "Banco_Nome": _banco_nome, "Regime_Reforma": _reg_reforma,
+                        "Regime_Reforma": _reg_reforma,
                         "Pensionista": _pensionista,
                     }):
                         st.success("✅ Remuneração guardada.")

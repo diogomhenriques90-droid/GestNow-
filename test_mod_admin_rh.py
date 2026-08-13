@@ -198,6 +198,41 @@ class TestFusaoContactosMorada(unittest.TestCase):
         self.assertNotIn(b"Sintra", writes["colaboradores_rh.csv"])
 
 
+class TestFusaoBancarios(unittest.TestCase):
+    """Secção fundida "🏦 Bancários": Banco_Nome e Banco_IBAN são
+    dual-write (usuarios.csv fonte, espelho em colaboradores_rh.csv)."""
+
+    def _submeter(self, alteracoes: dict):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = _run()
+            for key, valor in alteracoes.items():
+                at.text_input(key=key).set_value(valor).run()
+            at.button(
+                key=f"FormSubmitter:gi_form_banco_{SLUG}-💾 Guardar Dados Bancários"
+            ).click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        return writes
+
+    def test_iban_editado_grava_nos_dois_ficheiros(self):
+        writes = self._submeter({f"gi_iban_{SLUG}": "PT50111122223333444455566"})
+        self.assertIn(b"PT50111122223333444455566", writes["usuarios.csv"])
+        self.assertIn(b"PT50111122223333444455566", writes["colaboradores_rh.csv"])
+
+    def test_banco_nome_editado_grava_nos_dois_ficheiros(self):
+        writes = self._submeter({f"gi_banco_{SLUG}": "Banco Teste"})
+        self.assertIn(b"Banco Teste", writes["usuarios.csv"])
+        self.assertIn(b"Banco Teste", writes["colaboradores_rh.csv"])
+
+
 class TestFusaoIdentificacao(unittest.TestCase):
     """Secção fundida "🪪 Documentos e Identificação Legal": os campos
     partilhados (NIF, NISS, CC, CC_Validade, Nacionalidade, Estado_Civil)
