@@ -1064,45 +1064,37 @@ def render_admin_rh(*args):
                           detalhes=f"Campos: {', '.join(updates.keys())}")
             return ok
 
-        # ── 1. Identificação (contactos rápidos; documentos/NIF/NISS/CC
-        # ── e DataNasc ficam na secção "🪪 Identificação" mais abaixo,
-        # ── fundida com Dados Legais) ────────────────────────────────
-        with st.expander("👤 Identificação", expanded=True):
+        # ── 1. Contactos & Morada (fundida) ───────────────────────────
+        # Email, Morada, Localidade e Codigo_Postal são dual-write
+        # (usuarios.csv fonte, espelho em colaboradores_rh.csv). Telefone
+        # e Concelho só existem em usuarios.csv.
+        with st.expander("📍 Contactos & Morada", expanded=True):
             with st.form(f"gi_form_ident_{_slug_gi}"):
                 st.text_input("Nome", value=nome_sel, disabled=True,
                     key=f"gi_nome_{_slug_gi}",
                     help="Para alterar o nome contacte o developer.")
-                _gi_tel   = st.text_input("Contacto",
-                    value=_vg("Telefone"), key=f"gi_tel_{_slug_gi}")
-                _gi_email = st.text_input("Email",
-                    value=_vg("Email"), key=f"gi_email_{_slug_gi}")
-                if st.form_submit_button("💾 Guardar Identificação",
-                                         use_container_width=True, type="primary"):
-                    if _save_gi({"Telefone": _gi_tel, "Email": _gi_email}):
-                        st.success("✅ Identificação guardada.")
-                        st.rerun()
-                    else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
-
-        # ── 2. Morada ───────────────────────────────────────────────
-        with st.expander("📍 Morada"):
-            with st.form(f"gi_form_morada_{_slug_gi}"):
                 _gc1, _gc2 = st.columns(2)
                 with _gc1:
+                    _gi_tel   = st.text_input("Contacto",
+                        value=_vg("Telefone"), key=f"gi_tel_{_slug_gi}")
+                    _gi_email = st.text_input("Email",
+                        value=_vg("Email"), key=f"gi_email_{_slug_gi}")
                     _gi_morada = st.text_input("Morada",
                         value=_vg("Morada"), key=f"gi_morada_{_slug_gi}")
+                with _gc2:
                     _gi_localidade = st.text_input("Localidade",
                         value=_vg("Localidade"), key=f"gi_localidade_{_slug_gi}")
-                with _gc2:
                     _gi_concelho = st.text_input("Concelho",
                         value=_vg("Concelho"), key=f"gi_concelho_{_slug_gi}")
                     _gi_cp = st.text_input("Código Postal",
                         value=_vg("Codigo_Postal"), key=f"gi_cp_{_slug_gi}")
-                if st.form_submit_button("💾 Guardar Morada",
+                if st.form_submit_button("💾 Guardar Contactos & Morada",
                                          use_container_width=True, type="primary"):
-                    if _save_gi({"Morada": _gi_morada, "Localidade": _gi_localidade,
-                                  "Concelho": _gi_concelho, "Codigo_Postal": _gi_cp}):
-                        st.success("✅ Morada guardada.")
+                    if _save_dual(nome_sel, {
+                        "Email": _gi_email, "Morada": _gi_morada,
+                        "Localidade": _gi_localidade, "Codigo_Postal": _gi_cp,
+                    }, extra_usuarios={"Telefone": _gi_tel, "Concelho": _gi_concelho}):
+                        st.success("✅ Contactos & Morada guardados.")
                         st.rerun()
                     else:
                         st.error("❌ Erro ao guardar — verifica ligação ao GCS")

@@ -152,27 +152,50 @@ class TestEstruturaAbas(unittest.TestCase):
             self.at.selectbox(key="dl_colab_sel")
 
 
-class TestGravarComportamentoAtual(unittest.TestCase):
-    """Contacto/Email (Gestão Individual) ainda só gravam em usuarios.csv —
-    ainda não fundidos. Identificação (Documentos e Identificação Legal),
-    já fundida, passa a gravar nos dois ficheiros — ver TestFusaoIdentificacao."""
+class TestFusaoContactosMorada(unittest.TestCase):
+    """Secção fundida "📍 Contactos & Morada": Email, Morada, Localidade e
+    Codigo_Postal são dual-write; Telefone e Concelho só existem em
+    usuarios.csv (sem equivalente em colaboradores_rh.csv)."""
 
-    def _submit(self, form_key, label):
+    def _submeter(self, alteracoes: dict):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
         with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None), \
-             patch("core._gcs_write", return_value=True) as mock_write:
+             patch("core._gcs_write", side_effect=_gcs_write):
             at = _run()
-            at.button(key=f"FormSubmitter:{form_key}-{label}").click().run()
+            for key, valor in alteracoes.items():
+                at.text_input(key=key).set_value(valor).run()
+            at.button(
+                key=f"FormSubmitter:gi_form_ident_{SLUG}-💾 Guardar Contactos & Morada"
+            ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
-            return mock_write
+        return writes
 
-    def test_guardar_identificacao_em_gestao_individual_so_grava_usuarios(self):
-        mock_write = self._submit(f"gi_form_ident_{SLUG}",
-                                   "💾 Guardar Identificação")
-        ficheiros_gravados = [c.args[0] for c in mock_write.call_args_list]
-        self.assertIn("usuarios.csv", ficheiros_gravados)
-        self.assertNotIn("colaboradores_rh.csv", ficheiros_gravados)
+    def test_email_editado_grava_nos_dois_ficheiros(self):
+        writes = self._submeter({f"gi_email_{SLUG}": "novo@x.pt"})
+        self.assertIn(b"novo@x.pt", writes["usuarios.csv"])
+        self.assertIn(b"novo@x.pt", writes["colaboradores_rh.csv"])
+
+    def test_morada_editada_grava_nos_dois_ficheiros(self):
+        writes = self._submeter({f"gi_morada_{SLUG}": "Rua Nova 5"})
+        self.assertIn(b"Rua Nova 5", writes["usuarios.csv"])
+        self.assertIn(b"Rua Nova 5", writes["colaboradores_rh.csv"])
+
+    def test_telefone_so_grava_em_usuarios(self):
+        writes = self._submeter({f"gi_tel_{SLUG}": "935555555"})
+        self.assertIn(b"935555555", writes["usuarios.csv"])
+        self.assertNotIn(b"935555555", writes["colaboradores_rh.csv"])
+
+    def test_concelho_so_grava_em_usuarios(self):
+        writes = self._submeter({f"gi_concelho_{SLUG}": "Sintra"})
+        self.assertIn(b"Sintra", writes["usuarios.csv"])
+        self.assertNotIn(b"Sintra", writes["colaboradores_rh.csv"])
 
 
 class TestFusaoIdentificacao(unittest.TestCase):
