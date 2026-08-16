@@ -135,6 +135,29 @@ _OBRAS_RECORDS = [{
 }]
 
 
+# users/inst_acessos_db, para os testes da aba "👷 Alocações" (Fase 3 —
+# Responsável de Equipa + Valor Hora auto-preenchido).
+_USERS_RECORDS = [{
+    "Nome": "Colaborador Caro", "Cargo": "Técnico Instrumentação",
+    "PrecoHora": "22.5", "Funcao": "", "Categoria_Operacional": "",
+}]
+
+
+def _script_com_obra_e_users(obras_records, users_records, inst_acessos_records=None):
+    import streamlit as st
+    import pandas as pd
+    st.session_state.setdefault('_fv', {})
+    st.session_state['user'] = 'Admin'
+    from mod_admin_obras import render_obras
+    vazio = pd.DataFrame()
+    inst_acessos_db = pd.DataFrame(inst_acessos_records) \
+        if inst_acessos_records else vazio
+    render_obras(
+        pd.DataFrame(obras_records), vazio,
+        pd.DataFrame(users_records), inst_acessos_db
+    )
+
+
 class TestListaObrasAtivasAtual(unittest.TestCase):
     """Comportamento ATUAL da lista "🏭 Obras Ativas" — antes da Fase 2
     do Painel de Obra (campos operacionais) acrescentar a capacidade de
@@ -240,6 +263,34 @@ class TestEditarObra(unittest.TestCase):
         self.assertEqual(linha["EPIs"], "Outro")
         self.assertEqual(linha["Plataforma"], "Andaime 8m")
         self.assertEqual(linha["Descricao_Trabalhos"], "Manutenção de instrumentação")
+
+
+class TestAlocacaoPrecoHoraAtual(unittest.TestCase):
+    """Comportamento ATUAL da aba "👷 Alocações" — antes da Fase 3
+    acrescentar o preenchimento automático do Preço Hora a partir do
+    colaborador. Hoje o valor por omissão é sempre 15.0€, independente
+    do PrecoHora real do colaborador selecionado (22.5€ na fixture)."""
+
+    @classmethod
+    def setUpClass(cls):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            cls.at = AppTest.from_function(
+                _script_com_obra_e_users,
+                args=(_OBRAS_RECORDS, _USERS_RECORDS),
+                default_timeout=30)
+            cls.at.run()
+
+    def test_sem_erro(self):
+        self.assertFalse(self.at.exception, msg=str(self.at.exception))
+
+    def test_preco_hora_nao_reflete_o_colaborador(self):
+        campo = self.at.number_input(key="aloc_preco")
+        self.assertEqual(campo.label, "Preço Hora na Obra (€)")
+        # Colaborador Caro tem PrecoHora=22.5€ em usuarios.csv, mas o
+        # campo continua fixo em 15.0€.
+        self.assertEqual(campo.value, 15.0)
 
 
 if __name__ == "__main__":
