@@ -7,6 +7,7 @@ from core import (save_db, inv, load_db, cliente_select,
                   registar_valor_lista_rh, set_funcao_categoria)
 
 RESPONSAVEL_OPTS = ["", "CPS", "Cliente", "Outro"]
+RESPONSAVEL_EQUIPA_VAZIO = "— Nenhum —"
 
 
 def _parse_data_pt(s):
@@ -154,6 +155,35 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                         # ── Formulário de edição (campos operacionais) ──
                         if st.session_state.get(f'a_editar_obra_{ob_nome}', False):
                             with st.form(f"form_editar_obra_{ob_nome}"):
+                                # Responsável de Equipa — só entre quem está
+                                # atualmente alocado a esta obra (evita
+                                # escrever um nome à mão desalinhado da
+                                # equipa real). Um valor antigo que já não
+                                # esteja alocado é preservado na lista, para
+                                # não se perder o que estava gravado.
+                                equipa_obra = []
+                                if not inst_acessos_db.empty and \
+                                   {'Obra', 'Utilizador', 'Ativo'} <= set(inst_acessos_db.columns):
+                                    equipa_obra = sorted(set(
+                                        inst_acessos_db.loc[
+                                            (inst_acessos_db['Obra'] == ob_nome) &
+                                            (inst_acessos_db['Ativo'] == 'Sim'),
+                                            'Utilizador'
+                                        ].astype(str)
+                                    ))
+                                resp_atual = str(ob.get('Responsavel_Equipa', '')).strip()
+                                resp_opts = [RESPONSAVEL_EQUIPA_VAZIO] + equipa_obra
+                                if resp_atual and resp_atual not in resp_opts:
+                                    resp_opts.append(resp_atual)
+                                ed_responsavel = st.selectbox(
+                                    "Responsável de Equipa", resp_opts,
+                                    index=resp_opts.index(resp_atual) if resp_atual in resp_opts else 0,
+                                    key=f"ed_resp_{ob_nome}",
+                                    help="Só lista quem está atualmente alocado a esta obra."
+                                )
+                                if not equipa_obra:
+                                    st.caption("⚠️ Sem colaboradores alocados a esta obra.")
+
                                 ed_c1, ed_c2 = st.columns(2)
                                 with ed_c1:
                                     ed_data_fim = st.date_input(
@@ -204,6 +234,8 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     mask_ed = obras_db['Obra'] == ob_nome
                                     obras_db.loc[mask_ed, 'DataFim'] = \
                                         ed_data_fim.strftime("%d/%m/%Y") if ed_data_fim else ""
+                                    obras_db.loc[mask_ed, 'Responsavel_Equipa'] = \
+                                        "" if ed_responsavel == RESPONSAVEL_EQUIPA_VAZIO else ed_responsavel
                                     obras_db.loc[mask_ed, 'Alojamento']  = ed_alojamento
                                     obras_db.loc[mask_ed, 'Viatura']     = ed_viatura
                                     obras_db.loc[mask_ed, 'Ferramentas'] = ed_ferramentas

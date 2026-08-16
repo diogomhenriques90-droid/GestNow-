@@ -351,22 +351,97 @@ _INST_ACESSOS_RECORDS = [
 ]
 
 
-class TestEditarObraSemResponsavelAtual(unittest.TestCase):
-    """Comportamento ATUAL do ecrã "Editar Obra" — antes da Fase 3
-    acrescentar o campo "Responsável de Equipa". Hoje não existe."""
+class TestResponsavelDeEquipa(unittest.TestCase):
+    """Segunda metade da Fase 3 do Painel de Obra (campos operacionais):
+    "Responsável de Equipa" no ecrã Editar Obra, limitado a quem está
+    atualmente alocado (Ativo=Sim) a essa obra especificamente."""
 
-    def test_nao_existe_campo_responsavel(self):
+    def _abrir(self, obras_records=None, inst_acessos_records=None):
+        obras_records = obras_records if obras_records is not None else _OBRAS_RECORDS
+        inst_acessos_records = inst_acessos_records if inst_acessos_records is not None \
+            else _INST_ACESSOS_RECORDS
         with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None):
             at = AppTest.from_function(
                 _script_com_obra_e_equipa,
-                args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
+                args=(obras_records, inst_acessos_records),
                 default_timeout=30)
             at.run()
         self.assertFalse(at.exception, msg=str(at.exception))
-        labels = [w.label for w in at.selectbox]
-        self.assertNotIn("Responsável de Equipa", labels)
+        return at
+
+    def test_campo_existe(self):
+        at = self._abrir()
+        campo = at.selectbox(key="ed_resp_Obra Existente Teste")
+        self.assertEqual(campo.label, "Responsável de Equipa")
+
+    def test_lista_so_alocados_ativos_desta_obra(self):
+        at = self._abrir()
+        campo = at.selectbox(key="ed_resp_Obra Existente Teste")
+        # Ana e Bruno estão ativos NESTA obra — entram.
+        self.assertIn("Ana Alocada", campo.options)
+        self.assertIn("Bruno Alocado", campo.options)
+        # Carla está inativa; Duarte está alocado a OUTRA obra — de fora.
+        self.assertNotIn("Carla Inativa", campo.options)
+        self.assertNotIn("Duarte Outra Obra", campo.options)
+
+    def test_obra_sem_equipa_fica_so_com_opcao_vazia(self):
+        at = self._abrir(inst_acessos_records=[])
+        campo = at.selectbox(key="ed_resp_Obra Existente Teste")
+        self.assertEqual(list(campo.options), ["— Nenhum —"])
+
+    def test_valor_ja_gravado_preservado_mesmo_sem_alocacao_atual(self):
+        # Responsável designado anteriormente, entretanto desalocado —
+        # não desaparece silenciosamente da lista.
+        obras_com_resp = [{**_OBRAS_RECORDS[0], "Responsavel_Equipa": "Carla Inativa"}]
+        at = self._abrir(obras_records=obras_com_resp)
+        campo = at.selectbox(key="ed_resp_Obra Existente Teste")
+        self.assertEqual(campo.value, "Carla Inativa")
+        self.assertIn("Carla Inativa", campo.options)
+
+    def test_guardar_grava_responsavel_escolhido(self):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("streamlit.rerun"), \
+             patch("mod_admin_obras.save_db") as mock_save:
+            mock_save.return_value = True
+            at = AppTest.from_function(
+                _script_com_obra_e_equipa,
+                args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
+                default_timeout=30)
+            at.run()
+            at.selectbox(key="ed_resp_Obra Existente Teste").set_value("Ana Alocada").run()
+            at.button(
+                key="FormSubmitter:form_editar_obra_Obra Existente Teste-"
+                    "💾 Guardar Alterações"
+            ).click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        df_gravado = mock_save.call_args[0][0]
+        linha = df_gravado[df_gravado["Obra"] == "Obra Existente Teste"].iloc[0]
+        self.assertEqual(linha["Responsavel_Equipa"], "Ana Alocada")
+
+    def test_guardar_sem_escolher_grava_vazio(self):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("streamlit.rerun"), \
+             patch("mod_admin_obras.save_db") as mock_save:
+            mock_save.return_value = True
+            at = AppTest.from_function(
+                _script_com_obra_e_equipa,
+                args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
+                default_timeout=30)
+            at.run()
+            at.button(
+                key="FormSubmitter:form_editar_obra_Obra Existente Teste-"
+                    "💾 Guardar Alterações"
+            ).click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        df_gravado = mock_save.call_args[0][0]
+        linha = df_gravado[df_gravado["Obra"] == "Obra Existente Teste"].iloc[0]
+        self.assertEqual(linha["Responsavel_Equipa"], "")
 
 
 if __name__ == "__main__":

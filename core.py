@@ -993,7 +993,7 @@ def _cached_load_all(_versions):
         "Latitude", "Longitude", "Raio_Validacao",
         "DataInicio", "DataFim", "TipoObra", "AssinaturaObrigatoria", "Logo_b64",
         "Alojamento", "Viatura", "Ferramentas", "EPIs",
-        "Descricao_Trabalhos", "Plataforma"
+        "Descricao_Trabalhos", "Plataforma", "Responsavel_Equipa"
     ])
 
     frentes = load_db("frentes_lista.csv", [
