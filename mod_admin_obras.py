@@ -46,6 +46,8 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 local    = st.text_input("Localização", key="obra_local")
                 cod      = st.text_input("Código Obra", key="obra_cod",
                                           placeholder="Ex: SINES-001")
+                data_fim = st.date_input("Data de Término Prevista",
+                    value=None, key="obra_data_fim")
 
                 if st.form_submit_button(
                     "💾 Criar Obra",
@@ -67,6 +69,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                             "Local":      local.strip(),
                             "Ativa":        "Ativa",
                             "DataInicio":   datetime.now().strftime("%d/%m/%Y"),
+                            "DataFim":      data_fim.strftime("%d/%m/%Y") if data_fim else "",
                             "Orcamento_ID": "",
                         }])
                         obras_db = pd.concat(
