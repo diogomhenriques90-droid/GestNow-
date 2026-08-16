@@ -152,10 +152,94 @@ class TestListaObrasAtivasAtual(unittest.TestCase):
     def test_sem_erro(self):
         self.assertFalse(self.at.exception, msg=str(self.at.exception))
 
-    def test_nao_existe_botao_editar(self):
+    def test_existe_botao_fechar(self):
         labels = [b.label for b in self.at.button]
         self.assertIn("🗄️ Fechar", labels)
-        self.assertNotIn("✏️ Editar", labels)
+
+
+class TestEditarObra(unittest.TestCase):
+    """Fase 2 do Painel de Obra (campos operacionais): botão "✏️ Editar"
+    por obra, abre um formulário com Data de Término Prevista e os 6
+    campos operacionais novos (Alojamento, Viatura, Ferramentas, EPIs,
+    Descrição dos Trabalhos, Plataforma)."""
+
+    def test_botao_editar_existe(self):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(
+                _script_com_obra, args=(_OBRAS_RECORDS,), default_timeout=30)
+            at.run()
+        labels = [b.label for b in at.button]
+        self.assertIn("✏️ Editar", labels)
+
+    def _abrir_editar(self):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(
+                _script_com_obra, args=(_OBRAS_RECORDS,), default_timeout=30)
+            at.run()
+            at.button(key="editar_obra_Obra Existente Teste").click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        return at
+
+    def test_clicar_editar_mostra_formulario_com_6_campos(self):
+        at = self._abrir_editar()
+        self.assertEqual(
+            at.date_input(key="ed_datafim_Obra Existente Teste").label,
+            "Data de Término Prevista")
+        for campo, opcoes in [
+            ("ed_aloj_Obra Existente Teste", "Alojamento"),
+            ("ed_viat_Obra Existente Teste", "Viatura"),
+            ("ed_ferr_Obra Existente Teste", "Ferramentas"),
+            ("ed_epis_Obra Existente Teste", "EPIs"),
+        ]:
+            widget = at.selectbox(key=campo)
+            self.assertEqual(widget.label, opcoes)
+            self.assertEqual(list(widget.options), ["", "CPS", "Cliente", "Outro"])
+        self.assertEqual(
+            at.text_input(key="ed_plat_Obra Existente Teste").label, "Plataforma")
+        self.assertEqual(
+            at.text_area(key="ed_desc_Obra Existente Teste").label,
+            "Descrição dos Trabalhos")
+
+    def test_guardar_alteracoes_grava_os_6_campos_e_data_fim(self):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("streamlit.rerun"), \
+             patch("mod_admin_obras.save_db") as mock_save:
+            mock_save.return_value = True
+            at = AppTest.from_function(
+                _script_com_obra, args=(_OBRAS_RECORDS,), default_timeout=30)
+            at.run()
+            at.button(key="editar_obra_Obra Existente Teste").click().run()
+            at.date_input(key="ed_datafim_Obra Existente Teste").set_value(
+                pd.Timestamp("2027-06-30").date()).run()
+            at.selectbox(key="ed_aloj_Obra Existente Teste").set_value("CPS").run()
+            at.selectbox(key="ed_viat_Obra Existente Teste").set_value("Cliente").run()
+            at.selectbox(key="ed_ferr_Obra Existente Teste").set_value("CPS").run()
+            at.selectbox(key="ed_epis_Obra Existente Teste").set_value("Outro").run()
+            at.text_input(key="ed_plat_Obra Existente Teste").set_value(
+                "Andaime 8m").run()
+            at.text_area(key="ed_desc_Obra Existente Teste").set_value(
+                "Manutenção de instrumentação").run()
+            at.button(
+                key="FormSubmitter:form_editar_obra_Obra Existente Teste-"
+                    "💾 Guardar Alterações"
+            ).click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertTrue(mock_save.called)
+        df_gravado = mock_save.call_args[0][0]
+        linha = df_gravado[df_gravado["Obra"] == "Obra Existente Teste"].iloc[0]
+        self.assertEqual(linha["DataFim"], "30/06/2027")
+        self.assertEqual(linha["Alojamento"], "CPS")
+        self.assertEqual(linha["Viatura"], "Cliente")
+        self.assertEqual(linha["Ferramentas"], "CPS")
+        self.assertEqual(linha["EPIs"], "Outro")
+        self.assertEqual(linha["Plataforma"], "Andaime 8m")
+        self.assertEqual(linha["Descricao_Trabalhos"], "Manutenção de instrumentação")
 
 
 if __name__ == "__main__":

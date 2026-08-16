@@ -1,10 +1,24 @@
 import streamlit as st
 import pandas as pd
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from core import (save_db, inv, load_db, cliente_select,
                   registar_cliente_do_select, lista_rh_select,
                   registar_valor_lista_rh, set_funcao_categoria)
+
+RESPONSAVEL_OPTS = ["", "CPS", "Cliente", "Outro"]
+
+
+def _parse_data_pt(s):
+    """'dd/mm/aaaa' -> date, ou None se vazio/inválido."""
+    s = str(s or "").strip()
+    if not s:
+        return None
+    try:
+        return datetime.strptime(s, "%d/%m/%Y").date()
+    except ValueError:
+        return None
+
 
 def render_obras(obras_db, frentes_db, users, inst_acessos_db):
     st.markdown("### 🏗️ Gestão de Obras")
@@ -119,8 +133,15 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
 
                         col_ed, col_del = st.columns([3, 1])
                         with col_ed:
-                            # Editar cliente/local inline
-                            pass
+                            if st.button(
+                                "✏️ Editar",
+                                key=f"editar_obra_{ob_nome}",
+                                use_container_width=True,
+                                help="Editar dados operacionais da obra"
+                            ):
+                                chave_editar = f'a_editar_obra_{ob_nome}'
+                                st.session_state[chave_editar] = \
+                                    not st.session_state.get(chave_editar, False)
                         with col_del:
                             if st.button(
                                 "🗄️ Fechar",
@@ -129,6 +150,73 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                 help="Fechar obra e mover para histórico"
                             ):
                                 st.session_state[f'confirmar_fechar_{ob_nome}'] = True
+
+                        # ── Formulário de edição (campos operacionais) ──
+                        if st.session_state.get(f'a_editar_obra_{ob_nome}', False):
+                            with st.form(f"form_editar_obra_{ob_nome}"):
+                                ed_c1, ed_c2 = st.columns(2)
+                                with ed_c1:
+                                    ed_data_fim = st.date_input(
+                                        "Data de Término Prevista",
+                                        value=_parse_data_pt(ob.get('DataFim', '')),
+                                        key=f"ed_datafim_{ob_nome}"
+                                    )
+                                    ed_alojamento = st.selectbox(
+                                        "Alojamento", RESPONSAVEL_OPTS,
+                                        index=RESPONSAVEL_OPTS.index(ob.get('Alojamento', ''))
+                                              if ob.get('Alojamento', '') in RESPONSAVEL_OPTS else 0,
+                                        key=f"ed_aloj_{ob_nome}"
+                                    )
+                                    ed_viatura = st.selectbox(
+                                        "Viatura", RESPONSAVEL_OPTS,
+                                        index=RESPONSAVEL_OPTS.index(ob.get('Viatura', ''))
+                                              if ob.get('Viatura', '') in RESPONSAVEL_OPTS else 0,
+                                        key=f"ed_viat_{ob_nome}"
+                                    )
+                                with ed_c2:
+                                    ed_ferramentas = st.selectbox(
+                                        "Ferramentas", RESPONSAVEL_OPTS,
+                                        index=RESPONSAVEL_OPTS.index(ob.get('Ferramentas', ''))
+                                              if ob.get('Ferramentas', '') in RESPONSAVEL_OPTS else 0,
+                                        key=f"ed_ferr_{ob_nome}"
+                                    )
+                                    ed_epis = st.selectbox(
+                                        "EPIs", RESPONSAVEL_OPTS,
+                                        index=RESPONSAVEL_OPTS.index(ob.get('EPIs', ''))
+                                              if ob.get('EPIs', '') in RESPONSAVEL_OPTS else 0,
+                                        key=f"ed_epis_{ob_nome}"
+                                    )
+                                    ed_plataforma = st.text_input(
+                                        "Plataforma",
+                                        value=ob.get('Plataforma', ''),
+                                        key=f"ed_plat_{ob_nome}"
+                                    )
+                                ed_descricao = st.text_area(
+                                    "Descrição dos Trabalhos",
+                                    value=ob.get('Descricao_Trabalhos', ''),
+                                    key=f"ed_desc_{ob_nome}"
+                                )
+
+                                if st.form_submit_button(
+                                    "💾 Guardar Alterações",
+                                    use_container_width=True, type="primary"
+                                ):
+                                    mask_ed = obras_db['Obra'] == ob_nome
+                                    obras_db.loc[mask_ed, 'DataFim'] = \
+                                        ed_data_fim.strftime("%d/%m/%Y") if ed_data_fim else ""
+                                    obras_db.loc[mask_ed, 'Alojamento']  = ed_alojamento
+                                    obras_db.loc[mask_ed, 'Viatura']     = ed_viatura
+                                    obras_db.loc[mask_ed, 'Ferramentas'] = ed_ferramentas
+                                    obras_db.loc[mask_ed, 'EPIs']        = ed_epis
+                                    obras_db.loc[mask_ed, 'Plataforma']  = ed_plataforma
+                                    obras_db.loc[mask_ed, 'Descricao_Trabalhos'] = ed_descricao
+                                    save_db(obras_db, "obras_lista.csv")
+                                    inv("obras_lista.csv")
+                                    from core import _cached_load_all
+                                    _cached_load_all.clear()
+                                    st.session_state[f'a_editar_obra_{ob_nome}'] = False
+                                    st.success(f"✅ Obra '{ob_nome}' atualizada!")
+                                    st.rerun(scope="fragment")
 
                         # Confirmação fechar
                         if st.session_state.get(f'confirmar_fechar_{ob_nome}'):

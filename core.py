@@ -991,7 +991,9 @@ def _cached_load_all(_versions):
     obras = load_db("obras_lista.csv", [
         "Obra", "Codigo", "Cliente", "Local", "Ativa",
         "Latitude", "Longitude", "Raio_Validacao",
-        "DataInicio", "DataFim", "TipoObra", "AssinaturaObrigatoria", "Logo_b64"
+        "DataInicio", "DataFim", "TipoObra", "AssinaturaObrigatoria", "Logo_b64",
+        "Alojamento", "Viatura", "Ferramentas", "EPIs",
+        "Descricao_Trabalhos", "Plataforma"
     ])
 
     frentes = load_db("frentes_lista.csv", [
