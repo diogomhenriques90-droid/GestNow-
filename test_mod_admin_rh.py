@@ -133,8 +133,14 @@ class TestEstruturaAbas(unittest.TestCase):
         self.assertEqual(self.at.text_input(key=f"gi_iban_{SLUG}").value,
                           "PT50000000000000000000000")
         self.assertEqual(self.at.text_input(key=f"gi_preco_{SLUG}").value, "15")
-        self.assertEqual(self.at.text_input(key=f"gi_local_{SLUG}").value,
+        # Local de Obra é agora um dropdown de obras reais (obra_select).
+        # "Refinaria X" não existe em obras_lista.csv — fica preservado na
+        # lista em runtime (não se perde o valor gravado), mas o Cliente
+        # derivado fica "—" por não haver Obra correspondente.
+        self.assertEqual(self.at.selectbox(key=f"gi_local_{SLUG}").value,
                           "Refinaria X")
+        self.assertEqual(self.at.text_input(key=f"gi_cliente_{SLUG}").value, "—")
+        self.assertTrue(self.at.text_input(key=f"gi_cliente_{SLUG}").disabled)
 
     def test_dados_legais_mostra_dados_proprios_quando_preenchidos(self):
         # Estado_Civil e NISS têm valor próprio em colaboradores_rh.csv,
@@ -272,7 +278,12 @@ class TestFusaoProfissional(unittest.TestCase):
              patch("core._gcs_write", side_effect=_gcs_write):
             at = _run()
             for key, valor in alteracoes.items():
-                at.text_input(key=key).set_value(valor).run()
+                # gi_local_* é agora um selectbox (obra_select); os
+                # restantes campos desta secção continuam text_input.
+                try:
+                    at.text_input(key=key).set_value(valor).run()
+                except KeyError:
+                    at.selectbox(key=key).set_value(valor).run()
             at.button(
                 key=f"FormSubmitter:gi_form_prof_{SLUG}-💾 Guardar Profissional"
             ).click().run()
@@ -290,9 +301,15 @@ class TestFusaoProfissional(unittest.TestCase):
         self.assertNotIn(b"1350", writes["usuarios.csv"])
 
     def test_local_obra_nao_e_espelhado_em_colaboradores_rh(self):
-        writes = self._submeter_profissional({f"gi_local_{SLUG}": "Obra Nova"})
-        self.assertIn(b"Obra Nova", writes["usuarios.csv"])
-        self.assertNotIn(b"Obra Nova", writes["colaboradores_rh.csv"])
+        writes = self._submeter_profissional({f"gi_local_{SLUG}": "Obra Real Y"})
+        self.assertIn(b"Obra Real Y", writes["usuarios.csv"])
+        self.assertNotIn(b"Obra Real Y", writes["colaboradores_rh.csv"])
+
+    def test_cliente_e_derivado_da_obra_escolhida_ao_gravar(self):
+        # Ao escolher uma Obra real, o Cliente gravado em usuarios.csv é o
+        # dessa obra (obras_lista.csv), não um valor escolhido à parte.
+        writes = self._submeter_profissional({f"gi_local_{SLUG}": "Obra Real Y"})
+        self.assertIn(b"Cliente Real Y", writes["usuarios.csv"])
 
     def test_local_trabalho_nao_e_espelhado_em_usuarios(self):
         writes = self._submeter_profissional({f"gi_localtrab_{SLUG}": "Obra RH"})
@@ -439,27 +456,28 @@ class TestSaveDual(unittest.TestCase):
         mock_write.assert_not_called()
 
 
-class TestCriarColaboradorAtual(unittest.TestCase):
-    """Comportamento ATUAL do formulário "➕ Novo" (criar colaborador, aba
-    Colaboradores) — antes da correção do par independente Local da Obra
-    (texto livre) / Cliente (dropdown), na Fase 1 do Painel de Obra
-    (campos operacionais). Bloqueia o que já funciona hoje para não se
-    alterar sem se dar por isso."""
+def _script_criar():
+    import streamlit as st
+    import pandas as pd
+    st.session_state.setdefault('_fv', {})
+    st.session_state['user'] = 'Admin'
+    st.session_state['show_criar_colab'] = True
+    from mod_admin_rh import render_admin_rh
+    vazio = pd.DataFrame()
+    render_admin_rh(vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio,
+                     vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio,
+                     vazio, vazio, vazio, vazio)
+
+
+class TestCriarColaboradorObraReal(unittest.TestCase):
+    """Formulário "➕ Novo" (criar colaborador, aba Colaboradores) — Fase 1
+    do Painel de Obra (campos operacionais): Local da Obra passa a dropdown
+    de obras reais (obra_select) e Cliente passa a derivado (só leitura),
+    tal como já acontece na Ficha do Colaborador. Substitui o antigo par
+    independente texto-livre/dropdown."""
 
     @classmethod
     def setUpClass(cls):
-        def _script_criar():
-            import streamlit as st
-            import pandas as pd
-            st.session_state.setdefault('_fv', {})
-            st.session_state['user'] = 'Admin'
-            st.session_state['show_criar_colab'] = True
-            from mod_admin_rh import render_admin_rh
-            vazio = pd.DataFrame()
-            render_admin_rh(vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio,
-                             vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio,
-                             vazio, vazio, vazio, vazio)
-
         with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None):
@@ -469,17 +487,24 @@ class TestCriarColaboradorAtual(unittest.TestCase):
     def test_sem_erro(self):
         self.assertFalse(self.at.exception, msg=str(self.at.exception))
 
-    def test_local_da_obra_e_texto_livre(self):
-        campo = self.at.text_input(key="nc_local")
+    def test_local_da_obra_e_dropdown_de_obras_reais(self):
+        campo = self.at.selectbox(key="nc_local")
         self.assertEqual(campo.label, "Local da Obra *")
+        self.assertIn("Obra Real X", campo.options)
+        self.assertIn("Obra Real Y", campo.options)
 
-    def test_cliente_e_dropdown_independente_do_local(self):
-        # "Cliente" é hoje um selectbox (cliente_select) sem qualquer
-        # ligação ao texto de "Local da Obra".
-        campo = self.at.selectbox(key="nc_cliente")
+    def test_cliente_e_so_leitura_e_comeca_vazio(self):
+        campo = self.at.text_input(key="nc_cliente")
         self.assertEqual(campo.label, "Cliente *")
+        self.assertTrue(campo.disabled)
+        self.assertEqual(campo.value, "—")
 
-    def test_criar_colaborador_grava_local_e_cliente_sem_validacao_cruzada(self):
+    def test_criar_colaborador_deriva_cliente_da_obra_escolhida(self):
+        # Nota: "Cliente" (dentro do form) só reflete a Obra escolhida no
+        # momento do submit — widgets dentro de st.form não se recalculam
+        # entre si antes disso (comportamento já existente no resto da
+        # app, ex. cliente_select). Por isso só se verifica o resultado
+        # final gravado, não uma pré-visualização a meio do formulário.
         writes = {}
 
         def _gcs_write(fn, content_bytes):
@@ -490,32 +515,35 @@ class TestCriarColaboradorAtual(unittest.TestCase):
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None), \
              patch("core._gcs_write", side_effect=_gcs_write):
-            def _script_criar():
-                import streamlit as st
-                import pandas as pd
-                st.session_state.setdefault('_fv', {})
-                st.session_state['user'] = 'Admin'
-                st.session_state['show_criar_colab'] = True
-                from mod_admin_rh import render_admin_rh
-                vazio = pd.DataFrame()
-                render_admin_rh(vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio,
-                                 vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio,
-                                 vazio, vazio, vazio, vazio)
-
             at = AppTest.from_function(_script_criar, default_timeout=30)
             at.run()
             at.text_input(key="nc_nome").set_value("Novo Colaborador Teste").run()
             at.text_input(key="nc_tel").set_value("911111111").run()
             at.text_input(key="nc_pwd").set_value("segredo123").run()
-            # Local da Obra é texto livre — não corresponde a nenhuma obra
-            # real, e nada impede submeter mesmo assim.
-            at.text_input(key="nc_local").set_value("Obra Inventada Qualquer").run()
-            at.selectbox(key="nc_cliente").set_value("Cliente Real X").run()
+            at.selectbox(key="nc_local").set_value("Obra Real Y").run()
             at.button(
                 key="FormSubmitter:form_criar_colab-💾 Criar Colaborador"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertIn(b"Obra Inventada Qualquer", writes.get("usuarios.csv", b""))
+        gravado = writes.get("usuarios.csv", b"")
+        self.assertIn(b"Obra Real Y", gravado)
+        self.assertIn(b"Cliente Real Y", gravado)
+
+    def test_sem_obra_escolhida_bloqueia_criacao(self):
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write") as mock_write:
+            at = AppTest.from_function(_script_criar, default_timeout=30)
+            at.run()
+            at.text_input(key="nc_nome").set_value("Sem Obra Teste").run()
+            at.text_input(key="nc_tel").set_value("911111111").run()
+            at.text_input(key="nc_pwd").set_value("segredo123").run()
+            at.button(
+                key="FormSubmitter:form_criar_colab-💾 Criar Colaborador"
+            ).click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        mock_write.assert_not_called()
 
 
 if __name__ == "__main__":
