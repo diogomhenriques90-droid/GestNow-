@@ -444,5 +444,29 @@ class TestResponsavelDeEquipa(unittest.TestCase):
         self.assertEqual(linha["Responsavel_Equipa"], "")
 
 
+class TestEditarObraSemRequisitosAtual(unittest.TestCase):
+    """Comportamento ATUAL do ecrã "Editar Obra" — antes da Fase 4
+    acrescentar a leitura (só leitura) de Requisitos Adicionais e
+    Formações/Documentos Obrigatórios, vindos de
+    acessos_requisitos_obras.csv (editados no módulo Gestão de
+    Acessos, não aqui)."""
+
+    def test_nao_mostra_requisitos(self):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(
+                _script_com_obra_e_equipa,
+                args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
+                default_timeout=30)
+            at.run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown) + \
+                 " ".join(i.value for i in at.info) + \
+                 " ".join(c.value for c in at.caption)
+        self.assertNotIn("Requisitos", textos)
+        self.assertNotIn("Formaç", textos)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
