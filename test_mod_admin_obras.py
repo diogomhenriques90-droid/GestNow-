@@ -114,5 +114,49 @@ class TestNovaObraDataTermino(unittest.TestCase):
         self.assertEqual(linha["DataFim"], "")
 
 
+def _script_com_obra(obras_records):
+    # AppTest.from_function() recompila só o CORPO desta função como um
+    # script isolado — não tem acesso a globals do módulo de teste, por
+    # isso a obra vem via `args=` (dados simples, serializáveis).
+    import streamlit as st
+    import pandas as pd
+    st.session_state.setdefault('_fv', {})
+    st.session_state['user'] = 'Admin'
+    from mod_admin_obras import render_obras
+    vazio = pd.DataFrame()
+    render_obras(pd.DataFrame(obras_records), vazio, vazio, vazio)
+
+
+_OBRAS_RECORDS = [{
+    "Obra": "Obra Existente Teste", "Cliente": "Cliente Real X",
+    "Local": "Sines", "TipoObra": "Normal", "Ativa": "Ativa",
+    "DataInicio": "01/01/2026", "DataFim": "",
+    "Codigo": "OBR-001", "Orcamento_ID": "",
+}]
+
+
+class TestListaObrasAtivasAtual(unittest.TestCase):
+    """Comportamento ATUAL da lista "🏭 Obras Ativas" — antes da Fase 2
+    do Painel de Obra (campos operacionais) acrescentar a capacidade de
+    editar uma obra já criada. Hoje só existe "🗄️ Fechar"."""
+
+    @classmethod
+    def setUpClass(cls):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            cls.at = AppTest.from_function(
+                _script_com_obra, args=(_OBRAS_RECORDS,), default_timeout=30)
+            cls.at.run()
+
+    def test_sem_erro(self):
+        self.assertFalse(self.at.exception, msg=str(self.at.exception))
+
+    def test_nao_existe_botao_editar(self):
+        labels = [b.label for b in self.at.button]
+        self.assertIn("🗄️ Fechar", labels)
+        self.assertNotIn("✏️ Editar", labels)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
