@@ -49,6 +49,21 @@ def _get_valor_diaria(obra: str, diarias_config: pd.DataFrame) -> float:
     return _VALOR_DIARIA_PADRAO
 
 
+_MODALIDADE_DIARIA_OPTS = ["Corrida Semanal", "Outro"]
+_MODALIDADE_DIARIA_PADRAO = "Corrida Semanal"
+
+
+def _get_modalidade_diaria(obra: str, diarias_config: pd.DataFrame) -> str:
+    if not diarias_config.empty and 'Obra' in diarias_config.columns \
+       and 'Modalidade' in diarias_config.columns:
+        match = diarias_config[diarias_config['Obra'] == obra]
+        if not match.empty:
+            valor = str(match.iloc[0]['Modalidade']).strip()
+            if valor in _MODALIDADE_DIARIA_OPTS:
+                return valor
+    return _MODALIDADE_DIARIA_PADRAO
+
+
 def _get_config_empresa() -> dict:
     try:
         buf = _gcs_read("empresa_config.json")
@@ -720,6 +735,7 @@ def render_admin_diarias(*args):
                 rows_cfg.append({
                     "Obra":       obra,
                     "€ / Dia":    _get_valor_diaria(obra, diarias_config),
+                    "Modalidade": _get_modalidade_diaria(obra, diarias_config),
                     "Ativa":      True,
                 })
             df_cfg = pd.DataFrame(rows_cfg)
@@ -750,6 +766,11 @@ def render_admin_diarias(*args):
                         format="€ %.2f",
                         width="small"
                     ),
+                    "Modalidade": st.column_config.SelectboxColumn(
+                        "Modalidade",
+                        options=_MODALIDADE_DIARIA_OPTS,
+                        width="medium"
+                    ),
                     "Ativa": st.column_config.CheckboxColumn(
                         "Ativa",
                         help="Desativa para excluir da contagem",
@@ -772,6 +793,7 @@ def render_admin_diarias(*args):
                         novas_config.append({
                             "Obra":          row["Obra"],
                             "Valor_Diaria":  str(row["€ / Dia"]),
+                            "Modalidade":    row["Modalidade"],
                             "Atualizado_Em": datetime.now().strftime(
                                 '%d/%m/%Y %H:%M'
                             ),

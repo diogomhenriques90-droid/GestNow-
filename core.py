@@ -1067,7 +1067,7 @@ def _cached_load_all(_versions):
     ])
 
     diarias_config = load_db("diarias_config.csv", [
-        "Obra", "Valor_Diaria", "Atualizado_Em", "Atualizado_Por"
+        "Obra", "Valor_Diaria", "Modalidade", "Atualizado_Em", "Atualizado_Por"
     ])
 
     diarias_faltas = load_db("diarias_faltas.csv", [
