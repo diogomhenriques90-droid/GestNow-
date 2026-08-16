@@ -265,11 +265,10 @@ class TestEditarObra(unittest.TestCase):
         self.assertEqual(linha["Descricao_Trabalhos"], "Manutenção de instrumentação")
 
 
-class TestAlocacaoPrecoHoraAtual(unittest.TestCase):
-    """Comportamento ATUAL da aba "👷 Alocações" — antes da Fase 3
-    acrescentar o preenchimento automático do Preço Hora a partir do
-    colaborador. Hoje o valor por omissão é sempre 15.0€, independente
-    do PrecoHora real do colaborador selecionado (22.5€ na fixture)."""
+class TestAlocacaoPrecoHoraAutoPreenchido(unittest.TestCase):
+    """Fase 3 do Painel de Obra (campos operacionais): o "Preço Hora na
+    Obra" passa a assumir por omissão o PrecoHora real do colaborador
+    selecionado (usuarios.csv), continuando editável (override manual)."""
 
     @classmethod
     def setUpClass(cls):
@@ -285,11 +284,44 @@ class TestAlocacaoPrecoHoraAtual(unittest.TestCase):
     def test_sem_erro(self):
         self.assertFalse(self.at.exception, msg=str(self.at.exception))
 
-    def test_preco_hora_nao_reflete_o_colaborador(self):
-        campo = self.at.number_input(key="aloc_preco")
+    def test_preco_hora_reflete_o_colaborador_selecionado(self):
+        campo = self.at.number_input(key="aloc_preco_Colaborador Caro")
         self.assertEqual(campo.label, "Preço Hora na Obra (€)")
-        # Colaborador Caro tem PrecoHora=22.5€ em usuarios.csv, mas o
-        # campo continua fixo em 15.0€.
+        self.assertEqual(campo.value, 22.5)
+
+    def test_preco_hora_continua_editavel(self):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("streamlit.rerun"), \
+             patch("mod_admin_obras.save_db") as mock_save:
+            mock_save.return_value = True
+            at = AppTest.from_function(
+                _script_com_obra_e_users,
+                args=(_OBRAS_RECORDS, _USERS_RECORDS),
+                default_timeout=30)
+            at.run()
+            at.number_input(key="aloc_preco_Colaborador Caro").set_value(30.0).run()
+            at.button(key="btn_alocar").click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertTrue(mock_save.called)
+        df_gravado = mock_save.call_args[0][0]
+        self.assertEqual(df_gravado.iloc[0]["PrecoHora"], 30.0)
+
+    def test_colaborador_sem_precohora_valido_usa_15(self):
+        users_sem_preco = [{
+            "Nome": "Colaborador Sem Preco", "Cargo": "Técnico",
+            "PrecoHora": "", "Funcao": "", "Categoria_Operacional": "",
+        }]
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(
+                _script_com_obra_e_users,
+                args=(_OBRAS_RECORDS, users_sem_preco),
+                default_timeout=30)
+            at.run()
+        campo = at.number_input(key="aloc_preco_Colaborador Sem Preco")
         self.assertEqual(campo.value, 15.0)
 
 

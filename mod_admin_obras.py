@@ -309,14 +309,24 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
             u_row_aloc = users[users['Nome'] == tec_aloc].iloc[0]
             cargo_aloc = str(u_row_aloc.get('Cargo', ''))
 
+        preco_hora_default = 15.0
+        if u_row_aloc is not None:
+            try:
+                preco_hora_default = float(str(u_row_aloc.get('PrecoHora', '')).replace(',', '.'))
+            except (ValueError, TypeError):
+                pass
+
         # Função / Categoria Operacional — fonte única em usuarios.csv,
         # sincronizada com RH › Dados Legais (substitui o texto "Cargo: X")
         col3, col4 = st.columns(2)
         with col3:
             preco_hora = st.number_input(
                 "Preço Hora na Obra (€)",
-                min_value=0.0, value=15.0, step=0.5,
-                key="aloc_preco"
+                min_value=0.0, value=preco_hora_default, step=0.5,
+                # Key por colaborador — recria o widget (com o novo valor
+                # por omissão) ao mudar de pessoa, em vez de manter o
+                # que ficou escrito para o colaborador anterior.
+                key=f"aloc_preco_{tec_aloc}"
             )
         with col4:
             fc_f_aloc, fc_f_novo = lista_rh_select(
