@@ -47,12 +47,31 @@ _RH_CSV = (
     "Ana Teste,,99999999999,,,,,,Casado(a),,Sem Termo,1200,Normal\n"
 ).encode("utf-8-sig")
 
+# obras_lista.csv: duas obras reais, para os testes de Local_Obra/Cliente
+# derivado (Fase 1 — Painel de Obra: campos operacionais).
+_OBRAS_LISTA_CSV = (
+    "Obra,Cliente,Ativa\n"
+    "Obra Real X,Cliente Real X,Ativa\n"
+    "Obra Real Y,Cliente Real Y,Ativa\n"
+).encode("utf-8-sig")
+
+# clientes_financeiro.csv: fonte canónica usada por cliente_select().
+_CLIENTES_FINANCEIRO_CSV = (
+    "ID,Nome,Activo\n"
+    "C1,Cliente Real X,Sim\n"
+    "C2,Cliente Real Y,Sim\n"
+).encode("utf-8-sig")
+
 
 def _fake_gcs_read(fn):
     if fn == "usuarios.csv":
         return io.BytesIO(_USUARIOS_CSV)
     if fn == "colaboradores_rh.csv":
         return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
     return None
 
 
@@ -418,6 +437,85 @@ class TestSaveDual(unittest.TestCase):
             ok = m._save_dual("Não Existe", {"Email": "x@x.pt"})
         self.assertFalse(ok)
         mock_write.assert_not_called()
+
+
+class TestCriarColaboradorAtual(unittest.TestCase):
+    """Comportamento ATUAL do formulário "➕ Novo" (criar colaborador, aba
+    Colaboradores) — antes da correção do par independente Local da Obra
+    (texto livre) / Cliente (dropdown), na Fase 1 do Painel de Obra
+    (campos operacionais). Bloqueia o que já funciona hoje para não se
+    alterar sem se dar por isso."""
+
+    @classmethod
+    def setUpClass(cls):
+        def _script_criar():
+            import streamlit as st
+            import pandas as pd
+            st.session_state.setdefault('_fv', {})
+            st.session_state['user'] = 'Admin'
+            st.session_state['show_criar_colab'] = True
+            from mod_admin_rh import render_admin_rh
+            vazio = pd.DataFrame()
+            render_admin_rh(vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio,
+                             vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio,
+                             vazio, vazio, vazio, vazio)
+
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            cls.at = AppTest.from_function(_script_criar, default_timeout=30)
+            cls.at.run()
+
+    def test_sem_erro(self):
+        self.assertFalse(self.at.exception, msg=str(self.at.exception))
+
+    def test_local_da_obra_e_texto_livre(self):
+        campo = self.at.text_input(key="nc_local")
+        self.assertEqual(campo.label, "Local da Obra *")
+
+    def test_cliente_e_dropdown_independente_do_local(self):
+        # "Cliente" é hoje um selectbox (cliente_select) sem qualquer
+        # ligação ao texto de "Local da Obra".
+        campo = self.at.selectbox(key="nc_cliente")
+        self.assertEqual(campo.label, "Cliente *")
+
+    def test_criar_colaborador_grava_local_e_cliente_sem_validacao_cruzada(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            def _script_criar():
+                import streamlit as st
+                import pandas as pd
+                st.session_state.setdefault('_fv', {})
+                st.session_state['user'] = 'Admin'
+                st.session_state['show_criar_colab'] = True
+                from mod_admin_rh import render_admin_rh
+                vazio = pd.DataFrame()
+                render_admin_rh(vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio,
+                                 vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio,
+                                 vazio, vazio, vazio, vazio)
+
+            at = AppTest.from_function(_script_criar, default_timeout=30)
+            at.run()
+            at.text_input(key="nc_nome").set_value("Novo Colaborador Teste").run()
+            at.text_input(key="nc_tel").set_value("911111111").run()
+            at.text_input(key="nc_pwd").set_value("segredo123").run()
+            # Local da Obra é texto livre — não corresponde a nenhuma obra
+            # real, e nada impede submeter mesmo assim.
+            at.text_input(key="nc_local").set_value("Obra Inventada Qualquer").run()
+            at.selectbox(key="nc_cliente").set_value("Cliente Real X").run()
+            at.button(
+                key="FormSubmitter:form_criar_colab-💾 Criar Colaborador"
+            ).click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertIn(b"Obra Inventada Qualquer", writes.get("usuarios.csv", b""))
 
 
 if __name__ == "__main__":
