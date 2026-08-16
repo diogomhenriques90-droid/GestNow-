@@ -587,6 +587,52 @@ def cliente_select(label, key, valor_atual=""):
     return sel, False
 
 
+# ── OBRAS — seleção a partir da fonte canónica (obras_lista.csv) ──────────────
+OBRA_VAZIA_OPT = "— Selecionar —"
+
+def get_obras_opts(incluir_inativas=False):
+    """Lista ordenada de nomes de obra (fonte: obras_lista.csv)."""
+    df = load_db("obras_lista.csv", ["Obra", "Cliente", "Ativa"], silent=True)
+    if df.empty or 'Obra' not in df.columns:
+        return []
+    if not incluir_inativas and 'Ativa' in df.columns:
+        df = df[df['Ativa'].astype(str).str.strip() == 'Ativa']
+    return sorted({n.strip() for n in df['Obra'].astype(str) if n.strip()})
+
+
+def get_cliente_da_obra(obra_nome):
+    """Devolve o Cliente de `obra_nome` em obras_lista.csv, ou "" se a obra
+    não existir (ou obra_nome estiver vazio)."""
+    obra_nome = (obra_nome or "").strip()
+    if not obra_nome:
+        return ""
+    df = load_db("obras_lista.csv", ["Obra", "Cliente"], silent=True)
+    if df.empty or 'Obra' not in df.columns:
+        return ""
+    m = df[df['Obra'].astype(str).str.strip() == obra_nome]
+    return str(m.iloc[0].get('Cliente', '')).strip() if not m.empty else ""
+
+
+def obra_select(label, key, valor_atual=""):
+    """Selectbox de obra a partir da fonte canónica (obras_lista.csv, só
+    obras Ativas) — sem opção de criar obra nova aqui (usar Gestão de
+    Obras para isso).
+
+    Devolve o nome da obra escolhida, ou "" se nada estiver selecionado.
+    Um valor antigo que já não conste da lista (ex. obra entretanto
+    fechada) é acrescentado em runtime, para não se perder o que já
+    estava gravado.
+    """
+    opts = get_obras_opts()
+    display = [OBRA_VAZIA_OPT] + list(opts)
+    valor_atual = (valor_atual or "").strip()
+    if valor_atual and valor_atual not in display:
+        display.append(valor_atual)
+    idx = display.index(valor_atual) if valor_atual in display else 0
+    sel = st.selectbox(label, display, index=idx, key=key)
+    return "" if sel == OBRA_VAZIA_OPT else sel
+
+
 def registar_novo_cliente(nome, nif="", email="", telefone="", morada="",
                           sector="", origem="Manual", criado_por="", notas=""):
     """Adiciona um cliente novo a clientes_financeiro.csv (fonte canónica).
