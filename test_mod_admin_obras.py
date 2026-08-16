@@ -444,14 +444,29 @@ class TestResponsavelDeEquipa(unittest.TestCase):
         self.assertEqual(linha["Responsavel_Equipa"], "")
 
 
-class TestEditarObraSemRequisitosAtual(unittest.TestCase):
-    """Comportamento ATUAL do ecrã "Editar Obra" — antes da Fase 4
-    acrescentar a leitura (só leitura) de Requisitos Adicionais e
-    Formações/Documentos Obrigatórios, vindos de
-    acessos_requisitos_obras.csv (editados no módulo Gestão de
-    Acessos, não aqui)."""
+_REQ_OBRAS_RECORDS = [{
+    "ID": "RQ1", "Obra": "Obra Existente Teste", "Tipo_Obra": "Refinaria / Petroquímica",
+    "Documentos_Obrigatorios": "Cartão de Cidadão|Formação ATEX (áreas classificadas)",
+    "Nivel_Seguranca": "Alto",
+    "Instrucoes": "Zona ATEX — formação obrigatória antes de entrar.",
+    "Atualizado_Em": "01/01/2026",
+}]
 
-    def test_nao_mostra_requisitos(self):
+
+def _load_db_com_requisitos(fn, cols, silent=False):
+    if fn == "acessos_requisitos_obras.csv":
+        return pd.DataFrame(_REQ_OBRAS_RECORDS)
+    return pd.DataFrame(columns=cols)
+
+
+class TestRequisitosDeAcessoSoLeitura(unittest.TestCase):
+    """Fase 4 do Painel de Obra (campos operacionais): o ecrã "Editar
+    Obra" passa a mostrar (só leitura) os Requisitos Adicionais e
+    Formações/Documentos Obrigatórios já configurados em Gestão de
+    Acessos › ⚙️ Requisitos de Acesso por Obra — sem duplicar a edição
+    aqui (mesmo princípio seguido nas Diárias, Fase 2)."""
+
+    def test_sem_requisitos_configurados_mostra_aviso(self):
         with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None):
@@ -461,11 +476,31 @@ class TestEditarObraSemRequisitosAtual(unittest.TestCase):
                 default_timeout=30)
             at.run()
         self.assertFalse(at.exception, msg=str(at.exception))
-        textos = " ".join(m.value for m in at.markdown) + \
-                 " ".join(i.value for i in at.info) + \
-                 " ".join(c.value for c in at.caption)
-        self.assertNotIn("Requisitos", textos)
-        self.assertNotIn("Formaç", textos)
+        textos_info = " ".join(i.value for i in at.info)
+        self.assertIn("Sem requisitos de acesso configurados", textos_info)
+        self.assertIn("Gestão de Acessos", textos_info)
+
+    def test_com_requisitos_mostra_documentos_e_instrucoes_so_leitura(self):
+        with patch("mod_admin_obras.load_db", side_effect=_load_db_com_requisitos), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(
+                _script_com_obra_e_equipa,
+                args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
+                default_timeout=30)
+            at.run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos_caption = " ".join(c.value for c in at.caption)
+        self.assertIn("Cartão de Cidadão", textos_caption)
+        self.assertIn("Formação ATEX (áreas classificadas)", textos_caption)
+        self.assertIn("Zona ATEX", textos_caption)
+        # Não é um campo editável aqui — não deve existir nenhum widget
+        # para Requisitos/Formações neste ecrã (multiselect ou
+        # text_area próprios, distintos de "Descrição dos Trabalhos").
+        self.assertEqual(list(at.multiselect), [])
+        labels_text_area = [t.label for t in at.text_area]
+        self.assertNotIn("Requisitos Adicionais", labels_text_area)
+        self.assertNotIn("Instruções", labels_text_area)
 
 
 if __name__ == "__main__":

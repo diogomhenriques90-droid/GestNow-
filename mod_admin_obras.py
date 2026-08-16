@@ -36,6 +36,20 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
             "DataFecho","Fechada_Por"
         ])
 
+    # Requisitos de acesso por obra — só leitura aqui; edita-se em
+    # Gestão de Acessos › ⚙️ Requisitos de Acesso por Obra
+    # (mod_admin_acessos_obras.py). Não duplicar a edição em dois sítios.
+    try:
+        req_obras_db = load_db("acessos_requisitos_obras.csv", [
+            "ID", "Obra", "Tipo_Obra", "Documentos_Obrigatorios",
+            "Nivel_Seguranca", "Instrucoes", "Atualizado_Em"
+        ], silent=True)
+    except:
+        req_obras_db = pd.DataFrame(columns=[
+            "ID", "Obra", "Tipo_Obra", "Documentos_Obrigatorios",
+            "Nivel_Seguranca", "Instrucoes", "Atualizado_Em"
+        ])
+
     user_nome = st.session_state.get('user', 'Admin')
 
     tab_obras, tab_alocacoes, tab_historico = st.tabs([
@@ -154,6 +168,33 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
 
                         # ── Formulário de edição (campos operacionais) ──
                         if st.session_state.get(f'a_editar_obra_{ob_nome}', False):
+                            # Requisitos de acesso — só leitura; a edição
+                            # fica em Gestão de Acessos › ⚙️ Requisitos de
+                            # Acesso por Obra (não duplicar aqui).
+                            req_match = req_obras_db[req_obras_db['Obra'] == ob_nome] \
+                                if not req_obras_db.empty else pd.DataFrame()
+                            if not req_match.empty:
+                                req_row = req_match.iloc[0]
+                                docs_str = str(req_row.get('Documentos_Obrigatorios', '')).strip()
+                                docs_lista = [d for d in docs_str.split('|') if d]
+                                instrucoes = str(req_row.get('Instrucoes', '')).strip()
+                                st.markdown(
+                                    "**📋 Requisitos de Acesso** _(editar em "
+                                    "Gestão de Acessos › ⚙️ Requisitos de Acesso por Obra)_"
+                                )
+                                st.caption(
+                                    "Formações/Documentos Obrigatórios: " +
+                                    (", ".join(docs_lista) if docs_lista else "—")
+                                )
+                                if instrucoes:
+                                    st.caption(f"Requisitos Adicionais: {instrucoes}")
+                            else:
+                                st.info(
+                                    "📋 Sem requisitos de acesso configurados para esta "
+                                    "obra — configura em Gestão de Acessos › ⚙️ Requisitos "
+                                    "de Acesso por Obra."
+                                )
+
                             with st.form(f"form_editar_obra_{ob_nome}"):
                                 # Responsável de Equipa — só entre quem está
                                 # atualmente alocado a esta obra (evita
