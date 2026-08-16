@@ -325,5 +325,49 @@ class TestAlocacaoPrecoHoraAutoPreenchido(unittest.TestCase):
         self.assertEqual(campo.value, 15.0)
 
 
+def _script_com_obra_e_equipa(obras_records, inst_acessos_records):
+    import streamlit as st
+    import pandas as pd
+    st.session_state.setdefault('_fv', {})
+    st.session_state['user'] = 'Admin'
+    st.session_state[f"a_editar_obra_{obras_records[0]['Obra']}"] = True
+    from mod_admin_obras import render_obras
+    vazio = pd.DataFrame()
+    render_obras(
+        pd.DataFrame(obras_records), vazio, vazio,
+        pd.DataFrame(inst_acessos_records)
+    )
+
+
+_INST_ACESSOS_RECORDS = [
+    {"Obra": "Obra Existente Teste", "Utilizador": "Ana Alocada",
+     "Cargo": "Chefe de Equipa", "Ativo": "Sim"},
+    {"Obra": "Obra Existente Teste", "Utilizador": "Bruno Alocado",
+     "Cargo": "Técnico", "Ativo": "Sim"},
+    {"Obra": "Obra Existente Teste", "Utilizador": "Carla Inativa",
+     "Cargo": "Técnico", "Ativo": "Não"},
+    {"Obra": "Outra Obra", "Utilizador": "Duarte Outra Obra",
+     "Cargo": "Técnico", "Ativo": "Sim"},
+]
+
+
+class TestEditarObraSemResponsavelAtual(unittest.TestCase):
+    """Comportamento ATUAL do ecrã "Editar Obra" — antes da Fase 3
+    acrescentar o campo "Responsável de Equipa". Hoje não existe."""
+
+    def test_nao_existe_campo_responsavel(self):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(
+                _script_com_obra_e_equipa,
+                args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
+                default_timeout=30)
+            at.run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        labels = [w.label for w in at.selectbox]
+        self.assertNotIn("Responsável de Equipa", labels)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
