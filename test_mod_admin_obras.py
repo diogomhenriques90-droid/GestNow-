@@ -519,5 +519,30 @@ class TestRequisitosDeAcessoSoLeitura(unittest.TestCase):
         self.assertNotIn("Instruções", labels_text_area)
 
 
+class TestEditarObraSemContactoClienteAtual(unittest.TestCase):
+    """Comportamento ATUAL do ecrã "Editar Obra" — antes da Fase 5
+    do Painel de Obra (campos operacionais) acrescentar a leitura (só
+    leitura) das Pessoas de Contacto do Cliente, vindas de
+    contactos_clientes.csv (editadas em Faturação › Clientes › Gestão
+    de Clientes, não aqui)."""
+
+    def test_nao_mostra_contacto_do_cliente(self):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
+            at = AppTest.from_function(
+                _script_com_obra_e_equipa,
+                args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
+                default_timeout=30)
+            at.run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown) + \
+                 " ".join(i.value for i in at.info) + \
+                 " ".join(c.value for c in at.caption)
+        self.assertNotIn("Contacto", textos)
+        self.assertNotIn("Pessoas de Contacto", textos)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
