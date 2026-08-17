@@ -474,6 +474,10 @@ def render_fat_clientes(obras_db, registos_db, *_):
         "ID","Fatura_ID","Descricao","Quantidade",
         "Preco_Unit","IVA_Pct","Total"
     ])
+    contactos_db = _load("contactos_clientes.csv", [
+        "ID", "Cliente_ID", "Nome", "Cargo", "Email", "Telefone",
+        "Notas", "Criado_Por", "Data_Criacao"
+    ])
 
     # Empresa config
     try:
@@ -1368,6 +1372,78 @@ def render_fat_clientes(obras_db, registos_db, *_):
                                       "clientes_financeiro.csv", cid_g, nome_g, "")
                             st.success("✅ Cliente actualizado.")
                             st.rerun()
+
+                    # ── Pessoas de Contacto (contactos_clientes.csv) ────
+                    # Ligadas por Cliente_ID (não por nome) — evita a
+                    # divergência que a limpeza de clientes_financeiro.csv
+                    # corrigiu. Um cliente pode ter mais do que uma pessoa.
+                    st.markdown("##### 👥 Pessoas de Contacto")
+                    contactos_cli = contactos_db[
+                        contactos_db['Cliente_ID'].astype(str) == cid_g
+                    ] if not contactos_db.empty else pd.DataFrame()
+
+                    if contactos_cli.empty:
+                        st.caption("Sem pessoas de contacto registadas.")
+                    else:
+                        for _, ct in contactos_cli.iterrows():
+                            ct_id = str(ct.get('ID', ''))
+                            col_ct1, col_ct2 = st.columns([5, 1])
+                            with col_ct1:
+                                linha_ct = ct.get('Nome', '')
+                                if ct.get('Cargo', ''):
+                                    linha_ct += f" — {ct.get('Cargo', '')}"
+                                st.markdown(
+                                    f"<div style='background:#1E293B;border-radius:8px;"
+                                    f"padding:8px 12px;margin-bottom:4px;'>"
+                                    f"<b style='color:#F1F5F9;'>{linha_ct}</b><br>"
+                                    f"<small style='color:#64748B;'>"
+                                    f"📧 {ct.get('Email','') or '—'} · "
+                                    f"📞 {ct.get('Telefone','') or '—'}</small>"
+                                    f"</div>",
+                                    unsafe_allow_html=True
+                                )
+                            with col_ct2:
+                                if st.button("🗑️", key=f"gc_ct_del_{ct_id}",
+                                             help="Remover contacto"):
+                                    upd_ct = contactos_db[
+                                        contactos_db['ID'].astype(str) != ct_id
+                                    ]
+                                    save_db(upd_ct, "contactos_clientes.csv",
+                                            permitir_reducao=True)
+                                    inv("contactos_clientes.csv")
+                                    st.rerun()
+
+                    with st.form(f"gc_ct_form_{cid_g}"):
+                        ct_c1, ct_c2 = st.columns(2)
+                        with ct_c1:
+                            ct_nome = st.text_input("Nome *", key=f"gc_ct_nome_{cid_g}")
+                            ct_cargo = st.text_input("Cargo", key=f"gc_ct_cargo_{cid_g}")
+                        with ct_c2:
+                            ct_email = st.text_input("Email", key=f"gc_ct_email_{cid_g}")
+                            ct_tel = st.text_input("Telefone", key=f"gc_ct_tel_{cid_g}")
+                        if st.form_submit_button("➕ Adicionar Pessoa de Contacto",
+                                                 use_container_width=True):
+                            if not ct_nome.strip():
+                                st.error("❌ Nome obrigatório.")
+                            else:
+                                novo_ct = pd.DataFrame([{
+                                    "ID": str(uuid.uuid4())[:8].upper(),
+                                    "Cliente_ID": cid_g,
+                                    "Nome": ct_nome.strip(),
+                                    "Cargo": ct_cargo.strip(),
+                                    "Email": ct_email.strip(),
+                                    "Telefone": ct_tel.strip(),
+                                    "Notas": "",
+                                    "Criado_Por": user_nome,
+                                    "Data_Criacao": datetime.now().strftime("%d/%m/%Y"),
+                                }])
+                                upd_ct = pd.concat(
+                                    [contactos_db, novo_ct], ignore_index=True
+                                ) if not contactos_db.empty else novo_ct
+                                save_db(upd_ct, "contactos_clientes.csv")
+                                inv("contactos_clientes.csv")
+                                st.success(f"✅ {ct_nome} adicionado(a).")
+                                st.rerun()
 
                     # Eliminação protegida — verifica referências em toda a app
                     refs_g = referencias_cliente(nome_g)
