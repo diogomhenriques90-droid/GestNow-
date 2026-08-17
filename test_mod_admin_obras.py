@@ -19,6 +19,8 @@ from unittest.mock import patch
 import pandas as pd
 from streamlit.testing.v1 import AppTest
 
+import core
+
 _CLIENTES_FINANCEIRO_CSV = (
     "ID,Nome,Activo\nC1,Cliente Real X,Sim\n"
 ).encode("utf-8-sig")
@@ -48,6 +50,7 @@ def _run():
     with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
          patch("core._gcs_read", side_effect=_fake_gcs_read), \
          patch("core._gcs_client", return_value=None):
+        core._cached_load_db.clear()
         at = AppTest.from_function(_script, default_timeout=30)
         at.run()
     return at
@@ -75,6 +78,7 @@ class TestNovaObraDataTermino(unittest.TestCase):
         # sucesso — só válido dentro do wrapper @st.fragment real
         # (mod_admin.py). Nestes testes chama-se render_obras() a direito,
         # por isso o rerun é mockado (o save_db já correu antes dele).
+        core._cached_load_db.clear()
         at = AppTest.from_function(_script, default_timeout=30)
         at.run()
         at.text_input(key="obra_nome").set_value("Obra Teste Fase1").run()
@@ -168,6 +172,7 @@ class TestListaObrasAtivasAtual(unittest.TestCase):
         with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
             cls.at = AppTest.from_function(
                 _script_com_obra, args=(_OBRAS_RECORDS,), default_timeout=30)
             cls.at.run()
@@ -190,6 +195,7 @@ class TestEditarObra(unittest.TestCase):
         with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
             at = AppTest.from_function(
                 _script_com_obra, args=(_OBRAS_RECORDS,), default_timeout=30)
             at.run()
@@ -200,6 +206,7 @@ class TestEditarObra(unittest.TestCase):
         with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
             at = AppTest.from_function(
                 _script_com_obra, args=(_OBRAS_RECORDS,), default_timeout=30)
             at.run()
@@ -234,6 +241,7 @@ class TestEditarObra(unittest.TestCase):
              patch("streamlit.rerun"), \
              patch("mod_admin_obras.save_db") as mock_save:
             mock_save.return_value = True
+            core._cached_load_db.clear()
             at = AppTest.from_function(
                 _script_com_obra, args=(_OBRAS_RECORDS,), default_timeout=30)
             at.run()
@@ -275,6 +283,7 @@ class TestAlocacaoPrecoHoraAutoPreenchido(unittest.TestCase):
         with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
             cls.at = AppTest.from_function(
                 _script_com_obra_e_users,
                 args=(_OBRAS_RECORDS, _USERS_RECORDS),
@@ -296,6 +305,7 @@ class TestAlocacaoPrecoHoraAutoPreenchido(unittest.TestCase):
              patch("streamlit.rerun"), \
              patch("mod_admin_obras.save_db") as mock_save:
             mock_save.return_value = True
+            core._cached_load_db.clear()
             at = AppTest.from_function(
                 _script_com_obra_e_users,
                 args=(_OBRAS_RECORDS, _USERS_RECORDS),
@@ -316,6 +326,7 @@ class TestAlocacaoPrecoHoraAutoPreenchido(unittest.TestCase):
         with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
             at = AppTest.from_function(
                 _script_com_obra_e_users,
                 args=(_OBRAS_RECORDS, users_sem_preco),
@@ -363,6 +374,7 @@ class TestResponsavelDeEquipa(unittest.TestCase):
         with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
             at = AppTest.from_function(
                 _script_com_obra_e_equipa,
                 args=(obras_records, inst_acessos_records),
@@ -407,6 +419,7 @@ class TestResponsavelDeEquipa(unittest.TestCase):
              patch("streamlit.rerun"), \
              patch("mod_admin_obras.save_db") as mock_save:
             mock_save.return_value = True
+            core._cached_load_db.clear()
             at = AppTest.from_function(
                 _script_com_obra_e_equipa,
                 args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
@@ -429,6 +442,7 @@ class TestResponsavelDeEquipa(unittest.TestCase):
              patch("streamlit.rerun"), \
              patch("mod_admin_obras.save_db") as mock_save:
             mock_save.return_value = True
+            core._cached_load_db.clear()
             at = AppTest.from_function(
                 _script_com_obra_e_equipa,
                 args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
@@ -470,6 +484,7 @@ class TestRequisitosDeAcessoSoLeitura(unittest.TestCase):
         with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
             at = AppTest.from_function(
                 _script_com_obra_e_equipa,
                 args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
@@ -484,6 +499,7 @@ class TestRequisitosDeAcessoSoLeitura(unittest.TestCase):
         with patch("mod_admin_obras.load_db", side_effect=_load_db_com_requisitos), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
             at = AppTest.from_function(
                 _script_com_obra_e_equipa,
                 args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),

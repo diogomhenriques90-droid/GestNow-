@@ -21,6 +21,8 @@ from unittest.mock import patch
 
 from streamlit.testing.v1 import AppTest
 
+import core
+
 NOME = "Ana Teste"
 SLUG = hashlib.md5(NOME.encode()).hexdigest()[:8]
 
@@ -88,6 +90,11 @@ def _script():
 
 
 def _run():
+    # load_db() usa @st.cache_data — sem limpar, um ficheiro de teste
+    # corrido antes deste no mesmo processo (ex. test_core.py) pode deixar
+    # em cache um resultado para a mesma (ficheiro, colunas, _v) que aqui é
+    # mockado de forma diferente.
+    core._cached_load_db.clear()
     at = AppTest.from_function(_script, default_timeout=30)
     at.run()
     return at
@@ -478,6 +485,7 @@ class TestCriarColaboradorObraReal(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        core._cached_load_db.clear()
         with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None):
@@ -511,6 +519,7 @@ class TestCriarColaboradorObraReal(unittest.TestCase):
             writes[fn] = content_bytes
             return True
 
+        core._cached_load_db.clear()
         with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None), \
@@ -530,6 +539,7 @@ class TestCriarColaboradorObraReal(unittest.TestCase):
         self.assertIn(b"Cliente Real Y", gravado)
 
     def test_sem_obra_escolhida_bloqueia_criacao(self):
+        core._cached_load_db.clear()
         with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_read", side_effect=_fake_gcs_read), \
              patch("core._gcs_client", return_value=None), \

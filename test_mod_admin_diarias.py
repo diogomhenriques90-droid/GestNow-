@@ -24,6 +24,8 @@ from unittest.mock import patch
 import pandas as pd
 from streamlit.testing.v1 import AppTest
 
+import core
+
 _OBRAS_RECORDS = [{"Obra": "Obra Teste Diarias", "Cliente": "Cliente X", "Ativa": "Ativa"}]
 
 # render_admin_diarias(*args) espera 23 posicionais quando len(args)>=23:
@@ -66,6 +68,7 @@ def _script_com_diarias_config(obras_records, diarias_config_records):
 
 def _run():
     with patch("mod_admin_diarias._gcs_read", return_value=None):
+        core._cached_load_db.clear()
         at = AppTest.from_function(_script, args=(_OBRAS_RECORDS,), default_timeout=30)
         at.run()
     return at
@@ -100,6 +103,7 @@ class TestConfigurarValoresModalidade(unittest.TestCase):
             "Modalidade": "Outro", "Atualizado_Em": "", "Atualizado_Por": "",
         }]
         with patch("mod_admin_diarias._gcs_read", return_value=None):
+            core._cached_load_db.clear()
             at = AppTest.from_function(
                 _script_com_diarias_config,
                 args=(_OBRAS_RECORDS, diarias_config_records),
@@ -120,6 +124,7 @@ class TestConfigurarValoresModalidade(unittest.TestCase):
         with patch("mod_admin_diarias._gcs_read", return_value=None), \
              patch("mod_admin_diarias.save_db") as mock_save:
             mock_save.return_value = True
+            core._cached_load_db.clear()
             at = AppTest.from_function(
                 _script_com_diarias_config,
                 args=(_OBRAS_RECORDS, diarias_config_records),
