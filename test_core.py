@@ -22,10 +22,27 @@ _OBRAS_LISTA_CSV = (
     "Obra Inativa Z,Cliente Z,Inativa\n"
 ).encode("utf-8-sig")
 
+_CLIENTES_FINANCEIRO_CSV = (
+    "ID,Nome,Activo\n"
+    "C1,Cliente X,Sim\n"
+    "C2,Cliente Y,Sim\n"
+).encode("utf-8-sig")
+
+_CONTACTOS_CLIENTES_CSV = (
+    "ID,Cliente_ID,Nome,Cargo,Email,Telefone\n"
+    "CT1,C1,Pessoa Um,Gestor de Projeto,um@x.pt,911111111\n"
+    "CT2,C1,Pessoa Dois,,dois@x.pt,922222222\n"
+    "CT3,C2,Pessoa Outro Cliente,,outro@x.pt,933333333\n"
+).encode("utf-8-sig")
+
 
 def _fake_gcs_read(fn):
     if fn == "obras_lista.csv":
         return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    if fn == "contactos_clientes.csv":
+        return io.BytesIO(_CONTACTOS_CLIENTES_CSV)
     return None
 
 
@@ -79,6 +96,46 @@ class TestGetClienteDaObra(unittest.TestCase):
             cliente = core.get_cliente_da_obra("")
         self.assertEqual(cliente, "")
         mock_read.assert_not_called()
+
+
+class TestGetContactosCliente(unittest.TestCase):
+    """Fase 5 do Painel de Obra (campos operacionais): liga a ficha de
+    Obra às Pessoas de Contacto do Cliente (contactos_clientes.csv),
+    via clientes_financeiro.csv como ponte Nome -> ID -> Cliente_ID."""
+
+    def setUp(self):
+        core._cached_load_db.clear()
+
+    def test_devolve_todos_os_contactos_do_cliente(self):
+        with patch("core._gcs_read", side_effect=_fake_gcs_read):
+            contactos = core.get_contactos_cliente("Cliente X")
+        nomes = sorted(c["Nome"] for c in contactos)
+        self.assertEqual(nomes, ["Pessoa Dois", "Pessoa Um"])
+
+    def test_nao_devolve_contactos_de_outro_cliente(self):
+        with patch("core._gcs_read", side_effect=_fake_gcs_read):
+            contactos = core.get_contactos_cliente("Cliente X")
+        nomes = [c["Nome"] for c in contactos]
+        self.assertNotIn("Pessoa Outro Cliente", nomes)
+
+    def test_cliente_sem_contactos_devolve_lista_vazia(self):
+        with patch("core._gcs_read", side_effect=_fake_gcs_read):
+            contactos = core.get_contactos_cliente("Cliente Sem Registo Algum")
+        self.assertEqual(contactos, [])
+
+    def test_cliente_vazio_devolve_lista_vazia_sem_ler_ficheiros(self):
+        with patch("core._gcs_read", side_effect=_fake_gcs_read) as mock_read:
+            contactos = core.get_contactos_cliente("")
+        self.assertEqual(contactos, [])
+        mock_read.assert_not_called()
+
+    def test_campos_devolvidos(self):
+        with patch("core._gcs_read", side_effect=_fake_gcs_read):
+            contactos = core.get_contactos_cliente("Cliente X")
+        um = next(c for c in contactos if c["Nome"] == "Pessoa Um")
+        self.assertEqual(um["Cargo"], "Gestor de Projeto")
+        self.assertEqual(um["Email"], "um@x.pt")
+        self.assertEqual(um["Telefone"], "911111111")
 
 
 if __name__ == "__main__":

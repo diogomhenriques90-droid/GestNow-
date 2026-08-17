@@ -613,6 +613,44 @@ def get_cliente_da_obra(obra_nome):
     return str(m.iloc[0].get('Cliente', '')).strip() if not m.empty else ""
 
 
+def get_contactos_cliente(cliente_nome):
+    """Devolve as Pessoas de Contacto de um cliente (contactos_clientes.csv),
+    a partir do Nome — a ponte é clientes_financeiro.csv (Nome -> ID),
+    já que contactos_clientes.csv liga por Cliente_ID, não por nome.
+
+    Devolve lista de dicts (Nome, Cargo, Email, Telefone) — vazia se o
+    cliente não existir, não tiver ID, ou não tiver contactos.
+    """
+    cliente_nome = (cliente_nome or "").strip()
+    if not cliente_nome:
+        return []
+    clientes_df = load_db("clientes_financeiro.csv", _CLIENTES_FINANCEIRO_COLS, silent=True)
+    if clientes_df.empty or 'Nome' not in clientes_df.columns:
+        return []
+    m_cli = clientes_df[clientes_df['Nome'].astype(str).str.strip() == cliente_nome]
+    if m_cli.empty:
+        return []
+    cliente_id = str(m_cli.iloc[0].get('ID', '')).strip()
+    if not cliente_id:
+        return []
+    contactos_df = load_db("contactos_clientes.csv", [
+        "ID", "Cliente_ID", "Nome", "Cargo", "Email", "Telefone",
+        "Notas", "Criado_Por", "Data_Criacao"
+    ], silent=True)
+    if contactos_df.empty or 'Cliente_ID' not in contactos_df.columns:
+        return []
+    m_ct = contactos_df[contactos_df['Cliente_ID'].astype(str).str.strip() == cliente_id]
+    return [
+        {
+            "Nome": str(r.get('Nome', '')).strip(),
+            "Cargo": str(r.get('Cargo', '')).strip(),
+            "Email": str(r.get('Email', '')).strip(),
+            "Telefone": str(r.get('Telefone', '')).strip(),
+        }
+        for _, r in m_ct.iterrows()
+    ]
+
+
 def obra_select(label, key, valor_atual=""):
     """Selectbox de obra a partir da fonte canónica (obras_lista.csv, só
     obras Ativas) — sem opção de criar obra nova aqui (usar Gestão de
