@@ -544,5 +544,77 @@ class TestEditarObraSemContactoClienteAtual(unittest.TestCase):
         self.assertNotIn("Pessoas de Contacto", textos)
 
 
+_CONTACTOS_CLIENTES_RECORDS = [
+    {"ID": "CT1", "Cliente_ID": "C1", "Nome": "Miguel Cliente",
+     "Cargo": "Gestor de Projeto", "Email": "miguel@clientex.pt",
+     "Telefone": "911111111", "Notas": "", "Criado_Por": "Admin",
+     "Data_Criacao": "01/01/2026"},
+    {"ID": "CT2", "Cliente_ID": "OUTRO", "Nome": "Pessoa Doutro Cliente",
+     "Cargo": "", "Email": "", "Telefone": "", "Notas": "",
+     "Criado_Por": "Admin", "Data_Criacao": "01/01/2026"},
+]
+
+
+def _fake_gcs_read_com_contactos(fn):
+    if fn == "contactos_clientes.csv":
+        import io
+        header = "ID,Cliente_ID,Nome,Cargo,Email,Telefone,Notas,Criado_Por,Data_Criacao\n"
+        linhas = "\n".join(
+            ",".join(str(r[c]) for c in [
+                "ID", "Cliente_ID", "Nome", "Cargo", "Email", "Telefone",
+                "Notas", "Criado_Por", "Data_Criacao"
+            ])
+            for r in _CONTACTOS_CLIENTES_RECORDS
+        )
+        return io.BytesIO((header + linhas + "\n").encode("utf-8-sig"))
+    return _fake_gcs_read(fn)
+
+
+class TestContactoClienteSoLeitura(unittest.TestCase):
+    """Última peça da Fase 5 do Painel de Obra (campos operacionais): o
+    ecrã "Editar Obra" passa a mostrar (só leitura) as Pessoas de
+    Contacto do cliente da obra, vindas de contactos_clientes.csv via
+    core.get_contactos_cliente — sem duplicar a edição, que continua em
+    Faturação › Clientes › Gestão de Clientes (mesmo princípio das
+    Fases 2 e 4)."""
+
+    def test_sem_contactos_registados_mostra_aviso(self):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
+            at = AppTest.from_function(
+                _script_com_obra_e_equipa,
+                args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
+                default_timeout=30)
+            at.run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos_info = " ".join(i.value for i in at.info)
+        self.assertIn("Sem pessoas de contacto registadas", textos_info)
+        self.assertIn("Gestão de Clientes", textos_info)
+
+    def test_com_contactos_mostra_nome_e_dados_do_cliente_certo(self):
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_com_contactos), \
+             patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
+            at = AppTest.from_function(
+                _script_com_obra_e_equipa,
+                args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
+                default_timeout=30)
+            at.run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos_caption = " ".join(c.value for c in at.caption)
+        self.assertIn("Miguel Cliente", textos_caption)
+        self.assertIn("Gestor de Projeto", textos_caption)
+        self.assertIn("miguel@clientex.pt", textos_caption)
+        # Contacto de outro cliente (Cliente_ID diferente) não aparece.
+        self.assertNotIn("Pessoa Doutro Cliente", textos_caption)
+        # Não é um campo editável aqui.
+        labels_text_input = [t.label for t in at.text_input]
+        self.assertNotIn("Nome", labels_text_input)
+        self.assertNotIn("Email", labels_text_input)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -4,7 +4,8 @@ import uuid
 from datetime import datetime, date
 from core import (save_db, inv, load_db, cliente_select,
                   registar_cliente_do_select, lista_rh_select,
-                  registar_valor_lista_rh, set_funcao_categoria)
+                  registar_valor_lista_rh, set_funcao_categoria,
+                  get_contactos_cliente)
 
 RESPONSAVEL_OPTS = ["", "CPS", "Cliente", "Outro"]
 RESPONSAVEL_EQUIPA_VAZIO = "— Nenhum —"
@@ -193,6 +194,32 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     "📋 Sem requisitos de acesso configurados para esta "
                                     "obra — configura em Gestão de Acessos › ⚙️ Requisitos "
                                     "de Acesso por Obra."
+                                )
+
+                            # Contacto do Cliente — só leitura; a edição fica
+                            # em Faturação › Clientes › Gestão de Clientes
+                            # (não duplicar aqui).
+                            contactos_cliente = get_contactos_cliente(ob_cli)
+                            if contactos_cliente:
+                                st.markdown(
+                                    "**👤 Contacto do Cliente** _(editar em "
+                                    "Faturação › Clientes › Gestão de Clientes)_"
+                                )
+                                for ct in contactos_cliente:
+                                    linha = ct["Nome"]
+                                    if ct["Cargo"]:
+                                        linha += f" — {ct['Cargo']}"
+                                    detalhes = " · ".join(
+                                        v for v in [ct["Email"], ct["Telefone"]] if v
+                                    )
+                                    if detalhes:
+                                        linha += f" ({detalhes})"
+                                    st.caption(linha)
+                            else:
+                                st.info(
+                                    "👤 Sem pessoas de contacto registadas para este "
+                                    "cliente — regista em Faturação › Clientes › "
+                                    "Gestão de Clientes."
                                 )
 
                             with st.form(f"form_editar_obra_{ob_nome}"):
