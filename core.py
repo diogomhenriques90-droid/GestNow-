@@ -587,6 +587,90 @@ def cliente_select(label, key, valor_atual=""):
     return sel, False
 
 
+# ── OBRAS — seleção a partir da fonte canónica (obras_lista.csv) ──────────────
+OBRA_VAZIA_OPT = "— Selecionar —"
+
+def get_obras_opts(incluir_inativas=False):
+    """Lista ordenada de nomes de obra (fonte: obras_lista.csv)."""
+    df = load_db("obras_lista.csv", ["Obra", "Cliente", "Ativa"], silent=True)
+    if df.empty or 'Obra' not in df.columns:
+        return []
+    if not incluir_inativas and 'Ativa' in df.columns:
+        df = df[df['Ativa'].astype(str).str.strip() == 'Ativa']
+    return sorted({n.strip() for n in df['Obra'].astype(str) if n.strip()})
+
+
+def get_cliente_da_obra(obra_nome):
+    """Devolve o Cliente de `obra_nome` em obras_lista.csv, ou "" se a obra
+    não existir (ou obra_nome estiver vazio)."""
+    obra_nome = (obra_nome or "").strip()
+    if not obra_nome:
+        return ""
+    df = load_db("obras_lista.csv", ["Obra", "Cliente"], silent=True)
+    if df.empty or 'Obra' not in df.columns:
+        return ""
+    m = df[df['Obra'].astype(str).str.strip() == obra_nome]
+    return str(m.iloc[0].get('Cliente', '')).strip() if not m.empty else ""
+
+
+def get_contactos_cliente(cliente_nome):
+    """Devolve as Pessoas de Contacto de um cliente (contactos_clientes.csv),
+    a partir do Nome — a ponte é clientes_financeiro.csv (Nome -> ID),
+    já que contactos_clientes.csv liga por Cliente_ID, não por nome.
+
+    Devolve lista de dicts (Nome, Cargo, Email, Telefone) — vazia se o
+    cliente não existir, não tiver ID, ou não tiver contactos.
+    """
+    cliente_nome = (cliente_nome or "").strip()
+    if not cliente_nome:
+        return []
+    clientes_df = load_db("clientes_financeiro.csv", _CLIENTES_FINANCEIRO_COLS, silent=True)
+    if clientes_df.empty or 'Nome' not in clientes_df.columns:
+        return []
+    m_cli = clientes_df[clientes_df['Nome'].astype(str).str.strip() == cliente_nome]
+    if m_cli.empty:
+        return []
+    cliente_id = str(m_cli.iloc[0].get('ID', '')).strip()
+    if not cliente_id:
+        return []
+    contactos_df = load_db("contactos_clientes.csv", [
+        "ID", "Cliente_ID", "Nome", "Cargo", "Email", "Telefone",
+        "Notas", "Criado_Por", "Data_Criacao"
+    ], silent=True)
+    if contactos_df.empty or 'Cliente_ID' not in contactos_df.columns:
+        return []
+    m_ct = contactos_df[contactos_df['Cliente_ID'].astype(str).str.strip() == cliente_id]
+    return [
+        {
+            "Nome": str(r.get('Nome', '')).strip(),
+            "Cargo": str(r.get('Cargo', '')).strip(),
+            "Email": str(r.get('Email', '')).strip(),
+            "Telefone": str(r.get('Telefone', '')).strip(),
+        }
+        for _, r in m_ct.iterrows()
+    ]
+
+
+def obra_select(label, key, valor_atual=""):
+    """Selectbox de obra a partir da fonte canónica (obras_lista.csv, só
+    obras Ativas) — sem opção de criar obra nova aqui (usar Gestão de
+    Obras para isso).
+
+    Devolve o nome da obra escolhida, ou "" se nada estiver selecionado.
+    Um valor antigo que já não conste da lista (ex. obra entretanto
+    fechada) é acrescentado em runtime, para não se perder o que já
+    estava gravado.
+    """
+    opts = get_obras_opts()
+    display = [OBRA_VAZIA_OPT] + list(opts)
+    valor_atual = (valor_atual or "").strip()
+    if valor_atual and valor_atual not in display:
+        display.append(valor_atual)
+    idx = display.index(valor_atual) if valor_atual in display else 0
+    sel = st.selectbox(label, display, index=idx, key=key)
+    return "" if sel == OBRA_VAZIA_OPT else sel
+
+
 def registar_novo_cliente(nome, nif="", email="", telefone="", morada="",
                           sector="", origem="Manual", criado_por="", notas=""):
     """Adiciona um cliente novo a clientes_financeiro.csv (fonte canónica).
@@ -945,7 +1029,9 @@ def _cached_load_all(_versions):
     obras = load_db("obras_lista.csv", [
         "Obra", "Codigo", "Cliente", "Local", "Ativa",
         "Latitude", "Longitude", "Raio_Validacao",
-        "DataInicio", "DataFim", "TipoObra", "AssinaturaObrigatoria", "Logo_b64"
+        "DataInicio", "DataFim", "TipoObra", "AssinaturaObrigatoria", "Logo_b64",
+        "Alojamento", "Viatura", "Ferramentas", "EPIs",
+        "Descricao_Trabalhos", "Plataforma", "Responsavel_Equipa"
     ])
 
     frentes = load_db("frentes_lista.csv", [
@@ -1019,7 +1105,7 @@ def _cached_load_all(_versions):
     ])
 
     diarias_config = load_db("diarias_config.csv", [
-        "Obra", "Valor_Diaria", "Atualizado_Em", "Atualizado_Por"
+        "Obra", "Valor_Diaria", "Modalidade", "Atualizado_Em", "Atualizado_Por"
     ])
 
     diarias_faltas = load_db("diarias_faltas.csv", [

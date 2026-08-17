@@ -9,6 +9,7 @@ from core import (
     hp, _gcs_read, _gcs_write_binary, _gcs_read_binary,
     _fill_contrato_template, ICONS, logger,
     cliente_select, registar_cliente_do_select,
+    obra_select, get_cliente_da_obra,
     lista_rh_select, registar_valor_lista_rh, set_funcao_categoria
 )
 
@@ -831,12 +832,13 @@ def render_admin_rh(*args):
                 st.markdown("**Dados da Obra** *(obrigatório para contrato)*")
                 c3, c4 = st.columns(2)
                 with c3:
-                    novo_local  = st.text_input("Local da Obra *",
-                        key="nc_local",
-                        placeholder="Ex: Refinaria de Sines")
+                    novo_local  = obra_select("Local da Obra *", "nc_local")
                 with c4:
-                    novo_cliente, novo_cliente_novo = cliente_select(
-                        "Cliente *", "nc_cliente")
+                    # Cliente deriva-se sempre da Obra escolhida
+                    # (obras_lista.csv) — não é uma escolha independente.
+                    st.text_input("Cliente *",
+                        value=get_cliente_da_obra(novo_local) or "—",
+                        disabled=True, key="nc_cliente")
 
                 st.markdown("**Dados opcionais**")
                 c5, c6 = st.columns(2)
@@ -873,7 +875,8 @@ def render_admin_rh(*args):
                 if not novo_pwd.strip() or len(novo_pwd.strip()) < 4:
                     erros.append("Password (mínimo 4 caracteres)")
                 if not novo_local.strip():  erros.append("Local da Obra")
-                if not novo_cliente.strip():erros.append("Cliente")
+                novo_cliente = get_cliente_da_obra(novo_local)
+                if not novo_cliente:         erros.append("Cliente (a Obra escolhida não tem Cliente associado)")
 
                 if erros:
                     st.error(f"❌ Campos obrigatórios em falta: {', '.join(erros)}")
@@ -885,9 +888,6 @@ def render_admin_rh(*args):
                     else:
                         novo_id  = str(uuid.uuid4())[:8].upper()
                         pwd_hash = hp(novo_pwd.strip())
-
-                        if novo_cliente_novo:
-                            registar_cliente_do_select(novo_cliente, "nc_cliente")
 
                         novo_row = {
                             "ID": novo_id,
@@ -902,7 +902,7 @@ def render_admin_rh(*args):
                             "PrecoHora": str(novo_preco),
                             "PrecoHoraStatus": "",
                             "Local_Obra": novo_local.strip(),
-                            "Cliente_Obra": novo_cliente.strip(),
+                            "Cliente_Obra": novo_cliente,
                             "PDFs_Validados": "Não",
                             "Perfil_Completo": "",
                             "Contrato_Gerado": "",
@@ -1199,12 +1199,18 @@ def render_admin_rh(*args):
                         value=_vg("PrecoHora"), key=f"gi_preco_{_slug_gi}")
                     _gi_salb   = st.text_input("Salário Base (€)",
                         value=_vrh_prof("Salario_Base"), key=f"gi_salb_{_slug_gi}")
-                    _gi_local  = st.text_input("Local de Obra",
-                        value=_vg("Local_Obra"), key=f"gi_local_{_slug_gi}")
+                    _gi_local  = obra_select("Local de Obra",
+                        f"gi_local_{_slug_gi}", _vg("Local_Obra"))
                     _gi_local_trab = st.text_input("Local de Trabalho",
                         value=_vrh_prof("Local_Trabalho"), key=f"gi_localtrab_{_slug_gi}")
-                    _gi_cliente, _gi_cliente_novo = cliente_select(
-                        "Cliente", f"gi_cliente_{_slug_gi}", _vg("Cliente_Obra"))
+                    # Cliente deixou de ser escolha independente — deriva-se
+                    # sempre da Obra selecionada (obras_lista.csv), para não
+                    # divergir dela. Mostra o cliente da Obra já gravada;
+                    # atualiza ao gravar com a Obra recém-escolhida.
+                    st.text_input("Cliente",
+                        value=get_cliente_da_obra(_vg("Local_Obra")) or "—",
+                        disabled=True, key=f"gi_cliente_{_slug_gi}",
+                        help="Vem da Obra selecionada — para mudar, escolhe outra Obra.")
                 with _gc2:
                     _gi_camisola = st.text_input("Tamanho Camisola",
                         value=_vg("Tamanho_Camisola"), key=f"gi_camisola_{_slug_gi}")
@@ -1244,12 +1250,9 @@ def render_admin_rh(*args):
 
                 if st.form_submit_button("💾 Guardar Profissional",
                                          use_container_width=True, type="primary"):
-                    if _gi_cliente_novo:
-                        registar_cliente_do_select(
-                            _gi_cliente, f"gi_cliente_{_slug_gi}")
                     if _save_gi({
                         "PrecoHora": _gi_preco, "Local_Obra": _gi_local,
-                        "Cliente_Obra": _gi_cliente,
+                        "Cliente_Obra": get_cliente_da_obra(_gi_local),
                         "Tamanho_Camisola": _gi_camisola, "Tamanho_Calca": _gi_calca,
                         "Tamanho_Botas": _gi_botas,
                         "Contrato_Gerado": _gi_ct_ger, "Contrato_Data": _gi_ct_ger_data,

@@ -1,10 +1,26 @@
 import streamlit as st
 import pandas as pd
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from core import (save_db, inv, load_db, cliente_select,
                   registar_cliente_do_select, lista_rh_select,
-                  registar_valor_lista_rh, set_funcao_categoria)
+                  registar_valor_lista_rh, set_funcao_categoria,
+                  get_contactos_cliente)
+
+RESPONSAVEL_OPTS = ["", "CPS", "Cliente", "Outro"]
+RESPONSAVEL_EQUIPA_VAZIO = "— Nenhum —"
+
+
+def _parse_data_pt(s):
+    """'dd/mm/aaaa' -> date, ou None se vazio/inválido."""
+    s = str(s or "").strip()
+    if not s:
+        return None
+    try:
+        return datetime.strptime(s, "%d/%m/%Y").date()
+    except ValueError:
+        return None
+
 
 def render_obras(obras_db, frentes_db, users, inst_acessos_db):
     st.markdown("### 🏗️ Gestão de Obras")
@@ -19,6 +35,20 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
         obras_historico = pd.DataFrame(columns=[
             "Obra","Cliente","TipoObra","Local","DataInicio",
             "DataFecho","Fechada_Por"
+        ])
+
+    # Requisitos de acesso por obra — só leitura aqui; edita-se em
+    # Gestão de Acessos › ⚙️ Requisitos de Acesso por Obra
+    # (mod_admin_acessos_obras.py). Não duplicar a edição em dois sítios.
+    try:
+        req_obras_db = load_db("acessos_requisitos_obras.csv", [
+            "ID", "Obra", "Tipo_Obra", "Documentos_Obrigatorios",
+            "Nivel_Seguranca", "Instrucoes", "Atualizado_Em"
+        ], silent=True)
+    except:
+        req_obras_db = pd.DataFrame(columns=[
+            "ID", "Obra", "Tipo_Obra", "Documentos_Obrigatorios",
+            "Nivel_Seguranca", "Instrucoes", "Atualizado_Em"
         ])
 
     user_nome = st.session_state.get('user', 'Admin')
@@ -46,6 +76,8 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 local    = st.text_input("Localização", key="obra_local")
                 cod      = st.text_input("Código Obra", key="obra_cod",
                                           placeholder="Ex: SINES-001")
+                data_fim = st.date_input("Data de Término Prevista",
+                    value=None, key="obra_data_fim")
 
                 if st.form_submit_button(
                     "💾 Criar Obra",
@@ -67,6 +99,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                             "Local":      local.strip(),
                             "Ativa":        "Ativa",
                             "DataInicio":   datetime.now().strftime("%d/%m/%Y"),
+                            "DataFim":      data_fim.strftime("%d/%m/%Y") if data_fim else "",
                             "Orcamento_ID": "",
                         }])
                         obras_db = pd.concat(
@@ -116,8 +149,15 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
 
                         col_ed, col_del = st.columns([3, 1])
                         with col_ed:
-                            # Editar cliente/local inline
-                            pass
+                            if st.button(
+                                "✏️ Editar",
+                                key=f"editar_obra_{ob_nome}",
+                                use_container_width=True,
+                                help="Editar dados operacionais da obra"
+                            ):
+                                chave_editar = f'a_editar_obra_{ob_nome}'
+                                st.session_state[chave_editar] = \
+                                    not st.session_state.get(chave_editar, False)
                         with col_del:
                             if st.button(
                                 "🗄️ Fechar",
@@ -126,6 +166,157 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                 help="Fechar obra e mover para histórico"
                             ):
                                 st.session_state[f'confirmar_fechar_{ob_nome}'] = True
+
+                        # ── Formulário de edição (campos operacionais) ──
+                        if st.session_state.get(f'a_editar_obra_{ob_nome}', False):
+                            # Requisitos de acesso — só leitura; a edição
+                            # fica em Gestão de Acessos › ⚙️ Requisitos de
+                            # Acesso por Obra (não duplicar aqui).
+                            req_match = req_obras_db[req_obras_db['Obra'] == ob_nome] \
+                                if not req_obras_db.empty else pd.DataFrame()
+                            if not req_match.empty:
+                                req_row = req_match.iloc[0]
+                                docs_str = str(req_row.get('Documentos_Obrigatorios', '')).strip()
+                                docs_lista = [d for d in docs_str.split('|') if d]
+                                instrucoes = str(req_row.get('Instrucoes', '')).strip()
+                                st.markdown(
+                                    "**📋 Requisitos de Acesso** _(editar em "
+                                    "Gestão de Acessos › ⚙️ Requisitos de Acesso por Obra)_"
+                                )
+                                st.caption(
+                                    "Formações/Documentos Obrigatórios: " +
+                                    (", ".join(docs_lista) if docs_lista else "—")
+                                )
+                                if instrucoes:
+                                    st.caption(f"Requisitos Adicionais: {instrucoes}")
+                            else:
+                                st.info(
+                                    "📋 Sem requisitos de acesso configurados para esta "
+                                    "obra — configura em Gestão de Acessos › ⚙️ Requisitos "
+                                    "de Acesso por Obra."
+                                )
+
+                            # Contacto do Cliente — só leitura; a edição fica
+                            # em Faturação › Clientes › Gestão de Clientes
+                            # (não duplicar aqui).
+                            contactos_cliente = get_contactos_cliente(ob_cli)
+                            if contactos_cliente:
+                                st.markdown(
+                                    "**👤 Contacto do Cliente** _(editar em "
+                                    "Faturação › Clientes › Gestão de Clientes)_"
+                                )
+                                for ct in contactos_cliente:
+                                    linha = ct["Nome"]
+                                    if ct["Cargo"]:
+                                        linha += f" — {ct['Cargo']}"
+                                    detalhes = " · ".join(
+                                        v for v in [ct["Email"], ct["Telefone"]] if v
+                                    )
+                                    if detalhes:
+                                        linha += f" ({detalhes})"
+                                    st.caption(linha)
+                            else:
+                                st.info(
+                                    "👤 Sem pessoas de contacto registadas para este "
+                                    "cliente — regista em Faturação › Clientes › "
+                                    "Gestão de Clientes."
+                                )
+
+                            with st.form(f"form_editar_obra_{ob_nome}"):
+                                # Responsável de Equipa — só entre quem está
+                                # atualmente alocado a esta obra (evita
+                                # escrever um nome à mão desalinhado da
+                                # equipa real). Um valor antigo que já não
+                                # esteja alocado é preservado na lista, para
+                                # não se perder o que estava gravado.
+                                equipa_obra = []
+                                if not inst_acessos_db.empty and \
+                                   {'Obra', 'Utilizador', 'Ativo'} <= set(inst_acessos_db.columns):
+                                    equipa_obra = sorted(set(
+                                        inst_acessos_db.loc[
+                                            (inst_acessos_db['Obra'] == ob_nome) &
+                                            (inst_acessos_db['Ativo'] == 'Sim'),
+                                            'Utilizador'
+                                        ].astype(str)
+                                    ))
+                                resp_atual = str(ob.get('Responsavel_Equipa', '')).strip()
+                                resp_opts = [RESPONSAVEL_EQUIPA_VAZIO] + equipa_obra
+                                if resp_atual and resp_atual not in resp_opts:
+                                    resp_opts.append(resp_atual)
+                                ed_responsavel = st.selectbox(
+                                    "Responsável de Equipa", resp_opts,
+                                    index=resp_opts.index(resp_atual) if resp_atual in resp_opts else 0,
+                                    key=f"ed_resp_{ob_nome}",
+                                    help="Só lista quem está atualmente alocado a esta obra."
+                                )
+                                if not equipa_obra:
+                                    st.caption("⚠️ Sem colaboradores alocados a esta obra.")
+
+                                ed_c1, ed_c2 = st.columns(2)
+                                with ed_c1:
+                                    ed_data_fim = st.date_input(
+                                        "Data de Término Prevista",
+                                        value=_parse_data_pt(ob.get('DataFim', '')),
+                                        key=f"ed_datafim_{ob_nome}"
+                                    )
+                                    ed_alojamento = st.selectbox(
+                                        "Alojamento", RESPONSAVEL_OPTS,
+                                        index=RESPONSAVEL_OPTS.index(ob.get('Alojamento', ''))
+                                              if ob.get('Alojamento', '') in RESPONSAVEL_OPTS else 0,
+                                        key=f"ed_aloj_{ob_nome}"
+                                    )
+                                    ed_viatura = st.selectbox(
+                                        "Viatura", RESPONSAVEL_OPTS,
+                                        index=RESPONSAVEL_OPTS.index(ob.get('Viatura', ''))
+                                              if ob.get('Viatura', '') in RESPONSAVEL_OPTS else 0,
+                                        key=f"ed_viat_{ob_nome}"
+                                    )
+                                with ed_c2:
+                                    ed_ferramentas = st.selectbox(
+                                        "Ferramentas", RESPONSAVEL_OPTS,
+                                        index=RESPONSAVEL_OPTS.index(ob.get('Ferramentas', ''))
+                                              if ob.get('Ferramentas', '') in RESPONSAVEL_OPTS else 0,
+                                        key=f"ed_ferr_{ob_nome}"
+                                    )
+                                    ed_epis = st.selectbox(
+                                        "EPIs", RESPONSAVEL_OPTS,
+                                        index=RESPONSAVEL_OPTS.index(ob.get('EPIs', ''))
+                                              if ob.get('EPIs', '') in RESPONSAVEL_OPTS else 0,
+                                        key=f"ed_epis_{ob_nome}"
+                                    )
+                                    ed_plataforma = st.text_input(
+                                        "Plataforma",
+                                        value=ob.get('Plataforma', ''),
+                                        key=f"ed_plat_{ob_nome}"
+                                    )
+                                ed_descricao = st.text_area(
+                                    "Descrição dos Trabalhos",
+                                    value=ob.get('Descricao_Trabalhos', ''),
+                                    key=f"ed_desc_{ob_nome}"
+                                )
+
+                                if st.form_submit_button(
+                                    "💾 Guardar Alterações",
+                                    use_container_width=True, type="primary"
+                                ):
+                                    mask_ed = obras_db['Obra'] == ob_nome
+                                    obras_db.loc[mask_ed, 'DataFim'] = \
+                                        ed_data_fim.strftime("%d/%m/%Y") if ed_data_fim else ""
+                                    obras_db.loc[mask_ed, 'Responsavel_Equipa'] = \
+                                        "" if ed_responsavel == RESPONSAVEL_EQUIPA_VAZIO else ed_responsavel
+                                    obras_db.loc[mask_ed, 'Alojamento']  = ed_alojamento
+                                    obras_db.loc[mask_ed, 'Viatura']     = ed_viatura
+                                    obras_db.loc[mask_ed, 'Ferramentas'] = ed_ferramentas
+                                    obras_db.loc[mask_ed, 'EPIs']        = ed_epis
+                                    obras_db.loc[mask_ed, 'Plataforma']  = ed_plataforma
+                                    obras_db.loc[mask_ed, 'Descricao_Trabalhos'] = ed_descricao
+                                    save_db(obras_db, "obras_lista.csv")
+                                    inv("obras_lista.csv")
+                                    from core import _cached_load_all
+                                    _cached_load_all.clear()
+                                    st.session_state[f'a_editar_obra_{ob_nome}'] = False
+                                    st.success(f"✅ Obra '{ob_nome}' atualizada!")
+                                    st.rerun(scope="fragment")
 
                         # Confirmação fechar
                         if st.session_state.get(f'confirmar_fechar_{ob_nome}'):
@@ -218,14 +409,24 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
             u_row_aloc = users[users['Nome'] == tec_aloc].iloc[0]
             cargo_aloc = str(u_row_aloc.get('Cargo', ''))
 
+        preco_hora_default = 15.0
+        if u_row_aloc is not None:
+            try:
+                preco_hora_default = float(str(u_row_aloc.get('PrecoHora', '')).replace(',', '.'))
+            except (ValueError, TypeError):
+                pass
+
         # Função / Categoria Operacional — fonte única em usuarios.csv,
         # sincronizada com RH › Dados Legais (substitui o texto "Cargo: X")
         col3, col4 = st.columns(2)
         with col3:
             preco_hora = st.number_input(
                 "Preço Hora na Obra (€)",
-                min_value=0.0, value=15.0, step=0.5,
-                key="aloc_preco"
+                min_value=0.0, value=preco_hora_default, step=0.5,
+                # Key por colaborador — recria o widget (com o novo valor
+                # por omissão) ao mudar de pessoa, em vez de manter o
+                # que ficou escrito para o colaborador anterior.
+                key=f"aloc_preco_{tec_aloc}"
             )
         with col4:
             fc_f_aloc, fc_f_novo = lista_rh_select(
