@@ -36,7 +36,7 @@ def _texto(at):
     """Junta o texto visível de vários tipos de elemento (títulos, markdown,
     legendas e rótulos de botões) para procurar marcadores de ecrã."""
     partes = []
-    for attr in ("title", "header", "subheader", "markdown", "caption", "text"):
+    for attr in ("title", "header", "subheader", "markdown", "caption", "text", "info"):
         for el in getattr(at, attr, []):
             v = getattr(el, "value", "")
             if v:
@@ -69,6 +69,15 @@ class TestEncaminhamentoAdmin(unittest.TestCase):
     def test_admin_abre_sem_erro(self):
         at = _run("Admin", f"{ICONS['admin']} Admin")
         self.assertFalse(at.exception, msg=str(at.exception))
+
+    def test_dashboard_de_obra_abre(self):
+        # Fase B do Dashboard de Obra (campos operacionais): renomeado
+        # de "🏗️ Painel de Obra" para "📊 Dashboard de Obra" no menu
+        # lateral, para não se confundir com o nome interno do projeto.
+        at = _run("Admin", f"{ICONS['work']} Dashboard de Obra")
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertIn("Sem obras para apresentar", _texto(at))
+        self.assertEqual(ICONS['work'], "📊")
 
 
 class TestEncaminhamentoCliente(unittest.TestCase):
