@@ -44,7 +44,7 @@ ICONS = {
     "search": "🔍", "filter": "🔽", "download": "📥", "upload": "📤",
     "check": "✅", "close": "❌", "warning": "⚠️", "info": "ℹ️",
     "calendar": "📅", "clock": "⏰", "user": "👤", "users": "👥",
-    "settings": "⚙️", "home": "🏠", "work": "🏗️", "tools": "🔧",
+    "settings": "⚙️", "home": "🏠", "work": "📊", "tools": "🔧",
     "equipment": "🔩", "document": "📄", "documents": "📁",
     "chart": "📊", "graph": "📈", "email": "📧", "phone": "📞",
     "location": "📍", "time": "⏱️", "approved": "✅", "rejected": "❌",

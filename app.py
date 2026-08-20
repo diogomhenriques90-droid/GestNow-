@@ -574,9 +574,9 @@ if st.session_state.get('user'):
             _opts_admin = [f"{ICONS['dashboard']} Dashboard", f"{ICONS['admin']} Admin",
                            f"{ICONS['instrumentation']} Instrumentação",
                            f"{ICONS['profile']} Perfil"]
-            # Painel de Obra — mesma condição da barra inferior (super-admin vê sempre)
+            # Dashboard de Obra — mesma condição da barra inferior (super-admin vê sempre)
             if tem_permissao(st.session_state.get('user', ''), 'mod_dashboard_obra'):
-                _opts_admin.append(f"{ICONS['work']} Painel de Obra")
+                _opts_admin.append(f"{ICONS['work']} Dashboard de Obra")
             _opts_admin.append("Logout")
             menu_item = st.radio("Nav", _opts_admin,
                 label_visibility="collapsed", key="sidebar_nav_admin")
@@ -621,9 +621,9 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
     elif tipo == 'Admin':
         nav_options = ["Dashboard","Admin","Instrumentação","Perfil","Logout"]
         nav_icons   = ["graph-up","gear","tools","person","box-arrow-right"]
-        # Painel de Obra — só aparece a Admins com permissão (super-admin vê sempre)
+        # Dashboard de Obra — só aparece a Admins com permissão (super-admin vê sempre)
         if tem_permissao(st.session_state.get('user',''), 'mod_dashboard_obra'):
-            nav_options.insert(4, "Painel de Obra")
+            nav_options.insert(4, "Dashboard de Obra")
             nav_icons.insert(4, "building")
     elif tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
         nav_options = ["Início","Obra","Instrumentação","Perfil","Logout"]
@@ -638,7 +638,7 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
         if   "Admin"          in current_menu: default_index = 1
         elif "Instrumentação" in current_menu: default_index = 2
         elif "Perfil"         in current_menu: default_index = 3
-        elif "Painel de Obra" in current_menu: default_index = 4
+        elif "Dashboard de Obra" in current_menu: default_index = 4
         else:                                  default_index = 0
     elif tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
         if   "Obra"           in current_menu: default_index = 1
@@ -672,7 +672,7 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
         "Dashboard":      f"{ICONS['dashboard']} Dashboard",
         "Admin":          f"{ICONS['admin']} Admin",
         "Perfil":         f"{ICONS['profile']} Perfil",
-        "Painel de Obra": f"{ICONS['work']} Painel de Obra",
+        "Dashboard de Obra": f"{ICONS['work']} Dashboard de Obra",
         "Logout":         "Logout",
     }
 
@@ -869,7 +869,7 @@ else:
             st.markdown(f"# {ICONS['profile']} Perfil do Utilizador")
             from mod_perfil import render_perfil
             render_perfil(*DATA)
-        elif f"{ICONS['work']} Painel de Obra" in menu and \
+        elif f"{ICONS['work']} Dashboard de Obra" in menu and \
                 tem_permissao(user_nome, 'mod_dashboard_obra'):
             from mod_dashboard_obra import render_dashboard_obra
             render_dashboard_obra(*DATA)

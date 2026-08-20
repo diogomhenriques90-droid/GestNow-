@@ -70,13 +70,14 @@ class TestEncaminhamentoAdmin(unittest.TestCase):
         at = _run("Admin", f"{ICONS['admin']} Admin")
         self.assertFalse(at.exception, msg=str(at.exception))
 
-    def test_painel_de_obra_abre(self):
-        # Comportamento ATUAL — antes da Fase B do Dashboard de Obra
-        # (campos operacionais) renomear "🏗️ Painel de Obra" para
-        # "📊 Dashboard de Obra" no menu lateral (5 sítios em app.py).
-        at = _run("Admin", f"{ICONS['work']} Painel de Obra")
+    def test_dashboard_de_obra_abre(self):
+        # Fase B do Dashboard de Obra (campos operacionais): renomeado
+        # de "🏗️ Painel de Obra" para "📊 Dashboard de Obra" no menu
+        # lateral, para não se confundir com o nome interno do projeto.
+        at = _run("Admin", f"{ICONS['work']} Dashboard de Obra")
         self.assertFalse(at.exception, msg=str(at.exception))
         self.assertIn("Sem obras para apresentar", _texto(at))
+        self.assertEqual(ICONS['work'], "📊")
 
 
 class TestEncaminhamentoCliente(unittest.TestCase):
