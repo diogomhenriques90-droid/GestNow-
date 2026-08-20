@@ -179,26 +179,60 @@ def _run(obras_records=None, inst_acessos_records=None, diarias_config_records=N
     return at
 
 
-class TestDetalheSemCamposOperacionaisAtual(unittest.TestCase):
-    """Comportamento ATUAL da vista de detalhe ("Ver detalhe →") — antes
-    da Fase A do Dashboard de Obra (campos operacionais): nenhum destes
-    campos (já gravados noutros ecrãs) é mostrado aqui ainda."""
+class TestCamposOperacionaisSoLeitura(unittest.TestCase):
+    """Fase A do Dashboard de Obra (campos operacionais): a vista de
+    detalhe ("Ver detalhe →") passa a mostrar, só leitura, os campos já
+    gravados noutros ecrãs — Responsável de Equipa, Modalidade da
+    Diária, Alojamento/Viatura/Ferramentas/EPIs, Descrição dos
+    Trabalhos, Requisitos Adicionais e Contacto do Cliente. A edição
+    continua a viver só em Produção → Obras e Faturação → Clientes."""
 
     def test_sem_erro(self):
         at = _run()
         self.assertFalse(at.exception, msg=str(at.exception))
 
-    def test_nao_mostra_campos_operacionais(self):
+    def test_mostra_todos_os_campos_operacionais_preenchidos(self):
         at = _run()
         textos = " ".join(m.value for m in at.markdown) + \
                  " ".join(i.value for i in at.info) + \
                  " ".join(c.value for c in at.caption)
-        self.assertNotIn("Ana Responsável", textos)
-        self.assertNotIn("Corrida Semanal", textos)
-        self.assertNotIn("Andaime 6m", textos)
-        self.assertNotIn("Manutenção de instrumentação", textos)
-        self.assertNotIn("Zona ATEX", textos)
+        self.assertIn("Ana Responsável", textos)
+        self.assertIn("Corrida Semanal", textos)
+        self.assertIn("CPS", textos)          # Alojamento
+        self.assertIn("Andaime 6m", textos)   # Plataforma
+        self.assertIn("Manutenção de instrumentação", textos)  # Descrição
+        self.assertIn("Zona ATEX", textos)    # Requisitos Adicionais
+        self.assertIn("Miguel Contacto", textos)
+        self.assertIn("miguel@cliente.pt", textos)
+
+    def test_obra_sem_campos_preenchidos_nao_mostra_secoes_vazias(self):
+        obra_vazia = [{
+            "Obra": "Obra Dashboard Teste", "Cliente": "Cliente Sem Dados",
+            "Local": "Sines", "Localizacao": "", "Ativa": "Ativa",
+            "DataInicio": "01/01/2026", "DataFim": "",
+        }]
+        at = _run(obras_records=obra_vazia, inst_acessos_records=[],
+                  diarias_config_records=[], gcs_read=lambda fn: None)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        titulos_grupo = [m.value for m in at.markdown
+                          if '<p class="dob-group">' in m.value]
+        self.assertFalse(any("Logística" in t for t in titulos_grupo))
+        self.assertFalse(any("Descrição dos Trabalhos" in t for t in titulos_grupo))
+        self.assertFalse(any("Requisitos Adicionais" in t for t in titulos_grupo))
+        textos_info = " ".join(i.value for i in at.info)
+        self.assertIn("Sem pessoas de contacto registadas", textos_info)
+
+    def test_contacto_do_cliente_nao_mistura_com_outro_cliente(self):
+        # Cliente da obra não tem contactos (só "Cliente Dashboard Teste"
+        # tem, no fixture de contactos_clientes.csv) — confirma que a
+        # ligação é por Cliente_ID e não aparece nada indevido.
+        obra_outro_cliente = [{**_OBRAS_RECORDS[0], "Cliente": "Outro Cliente Qualquer"}]
+        at = _run(obras_records=obra_outro_cliente)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
         self.assertNotIn("Miguel Contacto", textos)
+        textos_info = " ".join(i.value for i in at.info)
+        self.assertIn("Sem pessoas de contacto registadas", textos_info)
 
 
 if __name__ == "__main__":

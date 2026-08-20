@@ -14,6 +14,7 @@ ESPAÇO RESERVADO "—" — honestidade visual, sem inventar dados.
 """
 import streamlit as st
 import pandas as pd
+from core import load_db, get_contactos_cliente
 
 # ── Tokens de estética (claro, plano, moderno — sem gradientes/néon) ─────────
 _TEXT   = "#1F2A44"
@@ -163,6 +164,12 @@ def _render_detalhe(obra_nome, obras_db, inst_acessos_db, diarias_config_db):
     # Equipa (inst_acessos: Obra == alvo E Ativo == 'Sim') — Função vem de Cargo,
     # NUNCA de join por nome ao usuarios.csv (gerou duplicados no passado).
     st.markdown('<p class="dob-group">Equipa alocada</p>', unsafe_allow_html=True)
+    resp_equipa = _nz(row.get("Responsavel_Equipa", ""))
+    if resp_equipa:
+        st.markdown(
+            f'<div class="ob-line">👤 <span class="k">Responsável de Equipa:</span> '
+            f'{_esc(resp_equipa)}</div>', unsafe_allow_html=True,
+        )
     ia = inst_acessos_db if inst_acessos_db is not None else pd.DataFrame()
     if not ia.empty and "Obra" in ia.columns and "Ativo" in ia.columns:
         act = ia[(ia["Obra"].astype(str).str.strip() == alvo)
@@ -188,7 +195,8 @@ def _render_detalhe(obra_nome, obras_db, inst_acessos_db, diarias_config_db):
             "Colaborador", "Função", "Data alocação", "VH Colaborador (€/h)"])
         st.dataframe(df_eq, use_container_width=True, hide_index=True)
 
-    # Diária (valor) — só se existir linha em diarias_config para a obra
+    # Diária (valor + modalidade) — só se existir linha em diarias_config
+    # para a obra
     if (diarias_config_db is not None and not diarias_config_db.empty
             and "Obra" in diarias_config_db.columns):
         dd = diarias_config_db[diarias_config_db["Obra"].astype(str).str.strip() == alvo]
@@ -198,6 +206,81 @@ def _render_detalhe(obra_nome, obras_db, inst_acessos_db, diarias_config_db):
                 f'{_money(dd.iloc[0].get("Valor_Diaria", ""))}</div>',
                 unsafe_allow_html=True,
             )
+            modalidade = _nz(dd.iloc[0].get("Modalidade", ""))
+            if modalidade:
+                st.markdown(
+                    f'<div class="ob-line">🔁 <span class="k">Modalidade da Diária:</span> '
+                    f'{_esc(modalidade)}</div>', unsafe_allow_html=True,
+                )
+
+    # Logística (Alojamento/Viatura/Ferramentas/EPIs/Plataforma) — campos
+    # operacionais gravados em Produção → Obras → Editar Obra. Só leitura
+    # aqui; a edição continua lá.
+    logistica = [
+        ("🏨 Alojamento", row.get("Alojamento", "")),
+        ("🚗 Viatura", row.get("Viatura", "")),
+        ("🔧 Ferramentas", row.get("Ferramentas", "")),
+        ("🦺 EPIs", row.get("EPIs", "")),
+        ("🏗️ Plataforma", row.get("Plataforma", "")),
+    ]
+    logistica_preenchida = [(k, _nz(v)) for k, v in logistica if _nz(v)]
+    if logistica_preenchida:
+        st.markdown('<p class="dob-group">Logística</p>', unsafe_allow_html=True)
+        h3 = ['<div class="ob-card">']
+        for label, valor in logistica_preenchida:
+            h3.append(
+                f'<div class="ob-line">{label}: {_esc(valor)}</div>'
+            )
+        h3.append("</div>")
+        st.markdown("".join(h3), unsafe_allow_html=True)
+
+    # Descrição dos Trabalhos — texto livre gravado em Editar Obra.
+    descricao = _nz(row.get("Descricao_Trabalhos", ""))
+    if descricao:
+        st.markdown('<p class="dob-group">Descrição dos Trabalhos</p>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="ob-card"><div class="ob-line">{_esc(descricao)}</div></div>',
+            unsafe_allow_html=True,
+        )
+
+    # Requisitos Adicionais — vem de acessos_requisitos_obras.csv
+    # (Instrucoes), configurado em Produção → Acessos → Requisitos por
+    # Obra. Só o campo de texto livre — a lista de Documentos
+    # Obrigatórios/Formações fica para uma fase futura.
+    req_obras_db = load_db("acessos_requisitos_obras.csv", [
+        "ID", "Obra", "Tipo_Obra", "Documentos_Obrigatorios",
+        "Nivel_Seguranca", "Instrucoes", "Atualizado_Em"
+    ], silent=True)
+    requisitos = ""
+    if not req_obras_db.empty and "Obra" in req_obras_db.columns:
+        req_match = req_obras_db[req_obras_db["Obra"].astype(str).str.strip() == alvo]
+        if not req_match.empty:
+            requisitos = _nz(req_match.iloc[0].get("Instrucoes", ""))
+    if requisitos:
+        st.markdown('<p class="dob-group">Requisitos Adicionais</p>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="ob-card"><div class="ob-line">{_esc(requisitos)}</div></div>',
+            unsafe_allow_html=True,
+        )
+
+    # Contacto do Cliente — via core.get_contactos_cliente (Fase 5 do
+    # Painel de Obra), ligado por Cliente_ID, nunca por nome.
+    contactos_cliente = get_contactos_cliente(_nz(row.get("Cliente", "")))
+    st.markdown('<p class="dob-group">Contacto do Cliente</p>', unsafe_allow_html=True)
+    if contactos_cliente:
+        h4 = ['<div class="ob-card">']
+        for ct in contactos_cliente:
+            linha = _esc(ct["Nome"])
+            if ct["Cargo"]:
+                linha += f" — {_esc(ct['Cargo'])}"
+            detalhes = " · ".join(_esc(v) for v in [ct["Email"], ct["Telefone"]] if v)
+            if detalhes:
+                linha += f" ({detalhes})"
+            h4.append(f'<div class="ob-line">{linha}</div>')
+        h4.append("</div>")
+        st.markdown("".join(h4), unsafe_allow_html=True)
+    else:
+        st.info("Sem pessoas de contacto registadas para este cliente.")
 
 
 def render_dashboard_obra(*args):
