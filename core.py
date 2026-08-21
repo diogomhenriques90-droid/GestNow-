@@ -20,6 +20,10 @@ from google.api_core.exceptions import NotFound as _GCSNotFound
 # =============================================================================
 # DESIGN SYSTEM
 # =============================================================================
+# COLORS — paleta ESCURA legada. Mantida tal como está (não a mexer) porque
+# mod_voice_learning.py ainda a lê diretamente e ainda não foi migrado para
+# THEME — fazer isso agora escureceria/desalinharia esse ecrã sem ser essa a
+# fase em que está previsto tocar-lhe. Remover quando esse módulo migrar.
 COLORS = {
     "primary":       "#0F172A",
     "primary_light": "#1E293B",
@@ -33,6 +37,25 @@ COLORS = {
     "border_glass":  "rgba(255,255,255,0.2)",
     "text_primary":  "#F8FAFC",
     "text_secondary":"#94A3B8",
+}
+
+# THEME — fonte única de verdade da identidade visual nova (Fase 1). Os
+# valores de cor têm de bater certo com .streamlit/config.toml — ver
+# test_core.py: TestTemaCentral. GLOBAL_CSS e render_card_html/
+# render_badge_html leem só daqui; nenhum módulo deve voltar a escrever
+# hexadecimais à mão para estes conceitos.
+THEME = {
+    "background":     "#F7F9FB",
+    "surface":         "#FFFFFF",
+    "border":          "#E6E9EF",
+    "text":            "#1E293B",
+    "text_secondary":  "#5A6478",
+    "accent":          "#0E7C86",
+    "accent_hover":    "#0B6570",
+    "success":         "#15803D",
+    "warning":         "#B45309",
+    "error":           "#B91C1C",
+    "radius":          "12px",
 }
 
 ICONS = {
@@ -1188,10 +1211,10 @@ def canvas_to_b64(image_data):
 # PWA & METADATA
 # =============================================================================
 def inject_pwa_meta():
-    st.markdown("""
+    st.markdown(f"""
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0F172A">
+    <meta name="theme-color" content="{THEME['background']}">
     <meta name="description" content="GESTNOW - Gestão de Instrumentação Industrial">
     <link rel="manifest" href="/app/static/manifest.json">
     <link rel="icon" type="image/png" href="/app/static/icone_cps_192.png">
@@ -1281,83 +1304,165 @@ REGRAS_OURO = [
 # =============================================================================
 # CSS GLOBAL
 # =============================================================================
-GLOBAL_CSS = """
-:root {
-    --primary: #0F172A; --primary-light: #1E293B;
-    --accent: #3B82F6; --accent-hover: #60A5FA;
-    --success: #10B981; --warning: #F59E0B;
-    --error: #EF4444; --info: #8B5CF6;
-    --text-primary: #FFFFFF; --text-secondary: #94A3B8;
-    --text-dark: #1E293B; --text-light: #F8FAFC;
-    --bg-white: #FFFFFF; --bg-light: #F8FAFC; --bg-dark: #0F172A;
-}
-.stApp {
-    background: linear-gradient(135deg, var(--primary) 0%, #1a1a2e 100%);
-    color: var(--text-primary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
+GLOBAL_CSS = f"""
+:root {{
+    --bg: {THEME['background']}; --surface: {THEME['surface']};
+    --border: {THEME['border']};
+    --text: {THEME['text']}; --text-secondary: {THEME['text_secondary']};
+    --accent: {THEME['accent']}; --accent-hover: {THEME['accent_hover']};
+    --success: {THEME['success']}; --warning: {THEME['warning']};
+    --error: {THEME['error']};
+    --radius: {THEME['radius']};
+}}
+.stApp {{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+}}
 .stTextInput > div > div > input,
 .stNumberInput > div > div > input,
-.stTextArea > div > div > textarea {
-    background: var(--bg-white) !important;
-    color: var(--text-dark) !important;
-    border: 1px solid rgba(0,0,0,0.3) !important;
+.stTextArea > div > div > textarea {{
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
     font-weight: 500;
-}
+}}
 .stTextInput label, .stNumberInput label, .stTextArea label,
 .stDateInput label, .stTimeInput label, .stSelectbox label,
-.stMultiSelect label, .stRadio label, .stCheckbox label {
-    color: var(--text-light) !important;
+.stMultiSelect label, .stRadio label, .stCheckbox label {{
+    color: var(--text) !important;
     font-weight: 600;
-}
-.stSelectbox > div > div > div, .stMultiSelect > div > div > div {
-    background: var(--bg-white) !important;
-    color: var(--text-dark) !important;
-    border: 1px solid rgba(0,0,0,0.3) !important;
-}
-[data-baseweb="select"] * { color: #111827 !important; }
-[data-baseweb="menu"] { background: #FFFFFF !important; }
-[data-baseweb="menu"] * { color: #111827 !important; background: #FFFFFF !important; }
-[data-baseweb="popover"] { background: #FFFFFF !important; }
-[data-baseweb="popover"] * { color: #111827 !important; }
-ul[role="listbox"] { background: #FFFFFF !important; }
-ul[role="listbox"] li { color: #111827 !important; }
-ul[role="listbox"] li:hover { background: #F1F5F9 !important; }
-.stDataFrame { background: var(--bg-white) !important; color: var(--text-dark) !important; }
-.stDataFrame td, .stDataFrame th { color: var(--text-dark) !important; background: var(--bg-white) !important; }
-section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%) !important;
-}
-section[data-testid="stSidebar"] *, section[data-testid="stSidebar"] label {
-    color: var(--text-light) !important;
-}
-.dash-card, .rp-card, .metric-card {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 16px; padding: 20px; margin-bottom: 16px;
-}
-.dash-card *, .rp-card *, .metric-card * { color: var(--text-primary) !important; }
-.stButton > button {
-    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-    color: white !important; border: none;
-    border-radius: 12px; padding: 10px 24px; font-weight: 600;
-}
-.status-pending    { color: var(--warning) !important; font-weight: 600; }
-.status-ok         { color: var(--success) !important; font-weight: 600; }
-.status-calibrated { color: var(--info)    !important; font-weight: 600; }
-.status-installed  { color: var(--accent)  !important; font-weight: 600; }
-.status-completed  { color: var(--success) !important; font-weight: 700; }
-.status-rejected   { color: var(--error)   !important; font-weight: 600; }
-[data-testid="stMetric"] {
-    background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.2));
-    border: 2px solid rgba(59,130,246,0.5); border-radius: 12px; padding: 15px;
-}
-[data-testid="stMetricValue"] { color: #60A5FA !important; }
-[data-testid="stMetricLabel"] { color: #94A3B8 !important; }
+}}
+.stSelectbox > div > div > div, .stMultiSelect > div > div > div {{
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}}
+[data-baseweb="select"] * {{ color: var(--text) !important; }}
+[data-baseweb="menu"] {{ background: var(--surface) !important; }}
+[data-baseweb="menu"] * {{ color: var(--text) !important; background: var(--surface) !important; }}
+[data-baseweb="popover"] {{ background: var(--surface) !important; }}
+[data-baseweb="popover"] * {{ color: var(--text) !important; }}
+ul[role="listbox"] {{ background: var(--surface) !important; }}
+ul[role="listbox"] li {{ color: var(--text) !important; }}
+ul[role="listbox"] li:hover {{ background: var(--bg) !important; }}
+.stDataFrame {{
+    background: var(--surface) !important; color: var(--text) !important;
+    border: 1px solid var(--border) !important; border-radius: var(--radius);
+}}
+.stDataFrame td, .stDataFrame th {{ color: var(--text) !important; background: var(--surface) !important; }}
+.dash-card, .rp-card, .metric-card, .gn-card {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 18px 16px; margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(16,24,40,0.05);
+}}
+.dash-card *, .rp-card *, .metric-card * {{ color: var(--text) !important; }}
+.stButton > button {{
+    background: var(--accent); color: white !important; border: none;
+    border-radius: var(--radius); padding: 10px 24px; font-weight: 600;
+}}
+.stButton > button:hover {{ background: var(--accent-hover); }}
+.status-pending    {{ color: var(--warning) !important; font-weight: 600; }}
+.status-ok         {{ color: var(--success) !important; font-weight: 600; }}
+.status-calibrated {{ color: var(--accent)  !important; font-weight: 600; }}
+.status-installed  {{ color: var(--accent)  !important; font-weight: 600; }}
+.status-completed  {{ color: var(--success) !important; font-weight: 700; }}
+.status-rejected   {{ color: var(--error)   !important; font-weight: 600; }}
+[data-testid="stMetric"] {{
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 15px;
+}}
+[data-testid="stMetricValue"] {{ color: var(--accent) !important; }}
+[data-testid="stMetricLabel"] {{ color: var(--text-secondary) !important; }}
+
+/* ── Badge partilhado (gn-badge) ── */
+.gn-badge {{
+    display: inline-block; font-size: 0.72rem; font-weight: 700;
+    padding: 2px 10px; border-radius: 999px;
+}}
+.gn-badge-success {{ background: rgba(21,128,61,0.12);  color: var(--success); }}
+.gn-badge-warning {{ background: rgba(180,83,9,0.12);   color: var(--warning); }}
+.gn-badge-error   {{ background: rgba(185,28,28,0.12);  color: var(--error); }}
+.gn-badge-info    {{ background: rgba(14,124,134,0.12); color: var(--accent); }}
+.gn-badge-neutral {{ background: #EEF0F3; color: var(--text-secondary); }}
+
+/* ── Cartão partilhado (gn-card) ── */
+.gn-card-title {{ font-weight: 700; font-size: 1.0rem; color: var(--text); margin: 0; }}
+.gn-card-sub   {{ font-size: 0.82rem; color: var(--text-secondary); margin: 2px 0 8px; }}
+.gn-card-grid  {{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px;
+    border-top: 1px solid var(--bg); padding-top: 10px; margin-top: 8px;
+}}
+.gn-card-label {{
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-secondary);
+}}
+.gn-card-value {{ font-size: 0.82rem; font-weight: 600; color: var(--text); }}
 """
 
 def inject_global_css():
     st.markdown(f"<style>{GLOBAL_CSS}</style>", unsafe_allow_html=True)
+
+
+# =============================================================================
+# COMPONENTES PARTILHADOS — cartão / badge (Fase 1 da Identidade Visual)
+# =============================================================================
+_BADGE_TONES = {"success", "warning", "error", "info", "neutral"}
+
+
+def escape_html(v):
+    """Escapa <, > para uso seguro dentro de HTML injetado via st.markdown."""
+    return (str(v) if v is not None else "").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def render_badge_html(label, tone="neutral"):
+    """Devolve o HTML de uma badge (pílula) na tonalidade semântica pedida.
+    tone: 'success' | 'warning' | 'error' | 'info' | 'neutral' (por omissão)."""
+    tone = tone if tone in _BADGE_TONES else "neutral"
+    return f'<span class="gn-badge gn-badge-{tone}">{escape_html(label)}</span>'
+
+
+def render_badge(label, tone="neutral"):
+    """Desenha uma badge diretamente (wrapper de render_badge_html + st.markdown)."""
+    st.markdown(render_badge_html(label, tone), unsafe_allow_html=True)
+
+
+def render_card_html(title, subtitle="", badge=None, badge_tone="neutral",
+                      fields=None, footer=""):
+    """Devolve o HTML de um cartão (fundo branco, borda e raio do THEME),
+    para os módulos deixarem de colar o seu próprio HTML de cartão.
+
+    fields: lista de tuplos (label, valor) mostrados numa grelha de 2 colunas
+    (mesmo padrão usado em mod_dashboard_obra.py)."""
+    parts = ['<div class="gn-card">']
+    parts.append('<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">')
+    parts.append(f'<p class="gn-card-title">{escape_html(title)}</p>')
+    if badge:
+        parts.append(render_badge_html(badge, badge_tone))
+    parts.append('</div>')
+    if subtitle:
+        parts.append(f'<p class="gn-card-sub">{escape_html(subtitle)}</p>')
+    if fields:
+        parts.append('<div class="gn-card-grid">')
+        for label, valor in fields:
+            parts.append(
+                f'<div><p class="gn-card-label">{escape_html(label)}</p>'
+                f'<p class="gn-card-value">{escape_html(valor)}</p></div>'
+            )
+        parts.append('</div>')
+    if footer:
+        parts.append(f'<p class="gn-card-sub" style="margin-top:8px;">{escape_html(footer)}</p>')
+    parts.append('</div>')
+    return "".join(parts)
+
+
+def render_card(title, subtitle="", badge=None, badge_tone="neutral",
+                 fields=None, footer=""):
+    """Desenha um cartão diretamente (wrapper de render_card_html + st.markdown)."""
+    st.markdown(
+        render_card_html(title, subtitle, badge, badge_tone, fields, footer),
+        unsafe_allow_html=True
+    )
 
 # =============================================================================
 # AUDIT TRAIL

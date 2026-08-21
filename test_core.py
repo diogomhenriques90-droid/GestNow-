@@ -10,10 +10,14 @@ Não tocam em GCS real — `_gcs_read` é mockado com um CSV fixo em memória.
 Correr:  python -m unittest test_core -v
 """
 import io
+import os
+import tomllib
 import unittest
 from unittest.mock import patch
 
 import core
+
+_CONFIG_TOML_PATH = os.path.join(os.path.dirname(__file__), ".streamlit", "config.toml")
 
 _OBRAS_LISTA_CSV = (
     "Obra,Cliente,Ativa\n"
@@ -136,6 +140,124 @@ class TestGetContactosCliente(unittest.TestCase):
         self.assertEqual(um["Cargo"], "Gestor de Projeto")
         self.assertEqual(um["Email"], "um@x.pt")
         self.assertEqual(um["Telefone"], "911111111")
+
+
+class TestTemaCentral(unittest.TestCase):
+    """Fase 1 da Identidade Visual: .streamlit/config.toml passa a ser a
+    fonte de verdade do tema — os valores têm de bater certo com
+    core.THEME, para as duas fontes nunca voltarem a divergir em silêncio
+    (era exatamente isto que acontecia antes: config.toml definia um tema
+    claro que o GLOBAL_CSS anulava com !important)."""
+
+    @classmethod
+    def setUpClass(cls):
+        with open(_CONFIG_TOML_PATH, "rb") as f:
+            cls.cfg = tomllib.load(f)["theme"]
+
+    def test_base_claro(self):
+        self.assertEqual(self.cfg["base"], "light")
+
+    def test_cores_batem_certo_com_theme(self):
+        self.assertEqual(self.cfg["primaryColor"], core.THEME["accent"])
+        self.assertEqual(self.cfg["backgroundColor"], core.THEME["background"])
+        self.assertEqual(self.cfg["secondaryBackgroundColor"], core.THEME["surface"])
+        self.assertEqual(self.cfg["textColor"], core.THEME["text"])
+        self.assertEqual(self.cfg["borderColor"], core.THEME["border"])
+        self.assertEqual(self.cfg["greenColor"], core.THEME["success"])
+        self.assertEqual(self.cfg["orangeColor"], core.THEME["warning"])
+        self.assertEqual(self.cfg["redColor"], core.THEME["error"])
+
+    def test_raio_centralizado(self):
+        self.assertEqual(self.cfg["baseRadius"], core.THEME["radius"])
+        self.assertEqual(self.cfg["buttonRadius"], core.THEME["radius"])
+
+    def test_sidebar_clara(self):
+        self.assertEqual(self.cfg["sidebar"]["backgroundColor"], core.THEME["surface"])
+        self.assertEqual(self.cfg["sidebar"]["textColor"], core.THEME["text"])
+
+    def test_theme_color_pwa_bate_certo(self):
+        # inject_pwa_meta() usa THEME['background'] — confirma que não há
+        # um hexadecimal solto e desalinhado a repetir a cor à parte.
+        with patch("streamlit.markdown") as mock_md:
+            core.inject_pwa_meta()
+        html = mock_md.call_args[0][0]
+        self.assertIn(f'content="{core.THEME["background"]}"', html)
+
+
+class TestGlobalCssSemContradicao(unittest.TestCase):
+    """Fase 1 da Identidade Visual: o GLOBAL_CSS deixa de forçar um fundo
+    escuro em cima do tema claro do config.toml (o !important que hoje o
+    anula) e deixa de forçar a barra lateral escura via CSS — isso passa
+    a ser feito pelo [theme.sidebar] nativo do Streamlit."""
+
+    def test_stapp_nao_forca_fundo_escuro(self):
+        self.assertNotIn("#0F172A", core.GLOBAL_CSS)
+        self.assertNotIn("#1a1a2e", core.GLOBAL_CSS)
+
+    def test_sidebar_deixa_de_ser_forcada_via_css(self):
+        self.assertNotIn('data-testid="stSidebar"', core.GLOBAL_CSS)
+
+    def test_cores_vem_todas_do_theme(self):
+        for chave in ("background", "surface", "border", "text",
+                      "text_secondary", "accent", "accent_hover",
+                      "success", "warning", "error", "radius"):
+            self.assertIn(core.THEME[chave], core.GLOBAL_CSS)
+
+
+class TestEscapeHtml(unittest.TestCase):
+    def test_escapa_angulares(self):
+        self.assertEqual(core.escape_html("<script>"), "&lt;script&gt;")
+
+    def test_none_vira_vazio(self):
+        self.assertEqual(core.escape_html(None), "")
+
+    def test_numero_vira_string(self):
+        self.assertEqual(core.escape_html(42), "42")
+
+
+class TestRenderBadgeHtml(unittest.TestCase):
+    def test_tom_valido_aplica_classe_certa(self):
+        html = core.render_badge_html("Pendente", "warning")
+        self.assertIn("gn-badge-warning", html)
+        self.assertIn("Pendente", html)
+
+    def test_tom_invalido_cai_em_neutral(self):
+        html = core.render_badge_html("X", "cor-que-nao-existe")
+        self.assertIn("gn-badge-neutral", html)
+
+    def test_escapa_label(self):
+        html = core.render_badge_html("<b>X</b>", "error")
+        self.assertNotIn("<b>", html)
+        self.assertIn("&lt;b&gt;", html)
+
+
+class TestRenderCardHtml(unittest.TestCase):
+    def test_titulo_e_subtitulo(self):
+        html = core.render_card_html("Obra Teste", subtitle="Sines")
+        self.assertIn("Obra Teste", html)
+        self.assertIn("Sines", html)
+        self.assertIn("gn-card-title", html)
+
+    def test_sem_badge_nao_desenha_badge(self):
+        html = core.render_card_html("Obra Teste")
+        self.assertNotIn("gn-badge", html)
+
+    def test_com_badge(self):
+        html = core.render_card_html("Obra Teste", badge="Ativa", badge_tone="success")
+        self.assertIn("gn-badge-success", html)
+        self.assertIn("Ativa", html)
+
+    def test_fields_em_grelha(self):
+        html = core.render_card_html(
+            "Obra Teste", fields=[("Cliente", "Cliente X"), ("Entrada", "08:00")])
+        self.assertIn("gn-card-grid", html)
+        self.assertIn("Cliente", html)
+        self.assertIn("Cliente X", html)
+        self.assertIn("08:00", html)
+
+    def test_sem_fields_nao_desenha_grelha(self):
+        html = core.render_card_html("Obra Teste")
+        self.assertNotIn("gn-card-grid", html)
 
 
 if __name__ == "__main__":
