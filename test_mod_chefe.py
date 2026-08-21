@@ -1,10 +1,9 @@
 """
-Testes do módulo do Chefe de Equipa (mod_chefe.py).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro,
-com e sem dados — antes da Fase 2 da Identidade Visual migrar este
-módulo (o que tem mais cores à mão da app, 247) para o THEME central
-(core.py) e as funções partilhadas render_card()/render_badge().
+Testes do módulo do Chefe de Equipa (mod_chefe.py) — Fase 2 da
+Identidade Visual: migração para o THEME central (core.py) e as
+funções partilhadas render_card()/render_badge(), em vez do HTML de
+cartão/badge próprio que existia antes (247 cores à mão, a mais de
+qualquer módulo da app).
 
 Não tocam em GCS real: `core._gcs_read` é mockado com um CSV fixo em
 memória. `render_chefe` é invocado diretamente (sem passar por
@@ -100,11 +99,11 @@ def _run(obras_records=None, registos_records=None, inst_acessos_records=None,
 
 
 class TestRenderChefeSemErro(unittest.TestCase):
-    """Smoke test do comportamento atual — o ecrã renderiza sem erro,
-    com e sem dados. Cobre todos os separadores (Equipa, Validar Horas,
-    Meu Ponto, Folha de Ponto, HSE, Pedidos) porque st.tabs() desenha o
-    conteúdo de todos os separadores de uma vez, independente de qual
-    está selecionado."""
+    """Smoke test — o ecrã continua a renderizar sem erro depois da
+    migração para o THEME central. Cobre todos os separadores (Equipa,
+    Validar Horas, Meu Ponto, Folha de Ponto, HSE, Pedidos) porque
+    st.tabs() desenha o conteúdo de todos os separadores de uma vez,
+    independente de qual está selecionado."""
 
     def test_sem_erro_com_dados(self):
         at = _run()
@@ -114,6 +113,78 @@ class TestRenderChefeSemErro(unittest.TestCase):
         at = _run(obras_records=[], registos_records=[],
                    inst_acessos_records=[], req_fer_records=[])
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 2 da Identidade Visual: mod_chefe.py lê as suas cores de
+    core.THEME — nunca mais hexadecimais soltos a duplicar avisos/
+    cinzentos, e o fundo escuro forçado (.stApp) desaparece."""
+
+    def test_nao_forca_fundo_escuro(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        css = " ".join(m.value for m in at.markdown if "<style>" in m.value)
+        self.assertNotIn(".stApp", css)
+        self.assertNotIn("#0F172A", css)
+        self.assertNotIn("#1a1a2e", css)
+
+    def test_css_usa_theme(self):
+        at = _run()
+        css = " ".join(m.value for m in at.markdown if "<style>" in m.value)
+        for chave in ("surface", "border", "text", "text_secondary", "accent"):
+            self.assertIn(core.THEME[chave], css)
+
+    def test_corpo_usa_theme_para_estados(self):
+        # success/warning aparecem no corpo do ecrã (cartões, não no
+        # bloco <style> — ex. "Sem horas pendentes!", legenda de estado).
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn(core.THEME["success"], textos)
+        self.assertIn(core.THEME["warning"], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        # As duas duplicações originais (#64748B e #94A3B8) deixam de
+        # aparecer — só o cinzento único do THEME.
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_um_so_aviso_e_um_so_erro(self):
+        # As duplicações de aviso (#F59E0B / #F97316) e o vermelho usado
+        # como acento decorativo (#DC2626) deixam de aparecer.
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#F59E0B", textos)
+        self.assertNotIn("#F97316", textos)
+        self.assertNotIn("#DC2626", textos)
+
+    def test_dot_color_vem_do_theme(self):
+        import mod_chefe
+        self.assertEqual(mod_chefe._DOT_COLOR["0"], core.THEME["warning"])
+        self.assertEqual(mod_chefe._DOT_COLOR["1"], core.THEME["success"])
+        self.assertEqual(mod_chefe._DOT_COLOR["2"], core.THEME["accent"])
+        self.assertEqual(mod_chefe._DOT_COLOR["-1"], core.THEME["error"])
+
+
+class TestPedidosUsaRenderCard(unittest.TestCase):
+    """A lista de Pedidos (aba "📦 Pedidos") passa a usar
+    core.render_card()/render_badge() em vez de HTML de cartão próprio."""
+
+    def test_pedido_aparece_com_badge_de_estado(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn("gn-card", textos)
+        self.assertIn("gn-badge", textos)
+        self.assertIn("Chave de fendas", textos)
+        self.assertIn("Pendente", textos)
+
+    def test_sem_pedidos_mostra_aviso(self):
+        at = _run(req_fer_records=[])
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertIn("Sem pedidos", " ".join(i.value for i in at.info))
 
 
 if __name__ == "__main__":

@@ -11,16 +11,19 @@ import time
 
 from core import (
     save_db, inv, fh, sl, load_db,
-    ICONS, COLORS, TIPOS_FRENTE, REGRAS_OURO,
+    ICONS, THEME, TIPOS_FRENTE, REGRAS_OURO,
     log_audit, criar_notificacao, process_and_compress_image,
-    hp, _load_users_cached
+    hp, _load_users_cached, render_card, render_badge, escape_html
 )
 from translations import t
 
 # ── Constantes visuais ────────────────────────────────────────────────────────
+# Cores vêm de THEME (core.py) — fonte única da paleta; nunca hexadecimais
+# soltos aqui. "Faturação"/"Pago" não são estados de sucesso/aviso/erro, por
+# isso usam o acento e o cinzento secundário, respetivamente.
 _DOT_COLOR = {
-    "0":  "#F97316", "1":  "#10B981", "2":  "#3B82F6",
-    "3":  "#6B7280", "4":  "#6B7280", "-1": "#EF4444",
+    "0":  THEME["warning"], "1": THEME["success"], "2": THEME["accent"],
+    "3":  THEME["text_secondary"], "4": THEME["text_secondary"], "-1": THEME["error"],
 }
 _DOT_LABEL = {
     "0": "Pendente", "1": "Validado", "2": "Faturação",
@@ -352,158 +355,159 @@ def render_chefe(*args):
     hoje       = date.today()
 
     # ── CSS ───────────────────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .stApp { background:#0F172A !important; }
-    .main .block-container { padding-top:0.5rem !important; }
-    h1,h2,h3,h4,h5,h6 { color:#F1F5F9 !important; }
-    p,div,span { color:#CBD5E1; }
+    .main .block-container {{ padding-top:0.5rem !important; }}
+    h1,h2,h3,h4,h5,h6 {{ color:{THEME['text']} !important; }}
+    p,div,span {{ color:{THEME['text_secondary']}; }}
 
     /* ── Tabs ── */
-    .stTabs [data-baseweb="tab-list"] {
-        background:#1E293B !important;
-        border-bottom:2px solid #334155 !important; gap:0 !important;
-    }
-    .stTabs [data-baseweb="tab"] {
-        color:#64748B !important; font-size:0.76rem !important;
+    .stTabs [data-baseweb="tab-list"] {{
+        background:{THEME['surface']} !important;
+        border-bottom:2px solid {THEME['border']} !important; gap:0 !important;
+    }}
+    .stTabs [data-baseweb="tab"] {{
+        color:{THEME['text_secondary']} !important; font-size:0.76rem !important;
         padding:10px 6px !important; background:transparent !important;
-    }
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        color:#DC2626 !important; font-weight:700 !important;
-        border-bottom:3px solid #DC2626 !important;
-    }
+    }}
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {{
+        color:{THEME['accent']} !important; font-weight:700 !important;
+        border-bottom:3px solid {THEME['accent']} !important;
+    }}
 
     /* ── Botões gerais ── */
-    .stButton>button {
-        border-radius:10px !important; font-weight:600 !important;
+    .stButton>button {{
+        border-radius:{THEME['radius']} !important; font-weight:600 !important;
         height:40px !important; font-size:0.85rem !important;
-    }
-    .stButton>button[kind="primary"] {
-        background:#DC2626 !important; color:white !important; border:none !important;
-    }
-    .stButton>button[kind="secondary"] {
-        background:#1E293B !important; color:#CBD5E1 !important;
-        border:1px solid #334155 !important;
-    }
+    }}
+    .stButton>button[kind="primary"] {{
+        background:{THEME['accent']} !important; color:white !important; border:none !important;
+    }}
+    .stButton>button[kind="secondary"] {{
+        background:{THEME['surface']} !important; color:{THEME['text_secondary']} !important;
+        border:1px solid {THEME['border']} !important;
+    }}
 
     /* ── Botões calendário (pequenos, circulares) ── */
-    .cal-week [data-testid="stHorizontalBlock"] .stButton>button {
+    .cal-week [data-testid="stHorizontalBlock"] .stButton>button {{
         border-radius:50% !important; padding:0 !important;
         height:36px !important; min-height:36px !important;
         width:36px !important; font-size:0.82rem !important;
-    }
+    }}
 
-    /* ── INPUTS — FUNDO BRANCO ── */
+    /* ── Inputs ── */
     .stTextInput label, .stSelectbox label, .stNumberInput label,
-    .stTextArea label, .stDateInput label, .stRadio label, .stCheckbox label {
-        color:#CBD5E1 !important; font-size:0.82rem !important;
+    .stTextArea label, .stDateInput label, .stRadio label, .stCheckbox label {{
+        color:{THEME['text_secondary']} !important; font-size:0.82rem !important;
         font-weight:500 !important;
-    }
+    }}
     .stTextInput>div>div>input,
     .stNumberInput>div>div>input,
-    .stTextArea>div>div>textarea {
-        background:#FFFFFF !important; color:#1E293B !important;
-        border:1px solid #CBD5E1 !important; border-radius:10px !important;
-    }
-    .stSelectbox>div>div>div {
-        background:#FFFFFF !important; color:#1E293B !important;
-        border:1px solid #CBD5E1 !important;
-    }
+    .stTextArea>div>div>textarea {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important; border-radius:{THEME['radius']} !important;
+    }}
+    .stSelectbox>div>div>div {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important;
+    }}
     /* Dropdown list options */
-    [data-baseweb="popover"] li {
-        background:#FFFFFF !important; color:#1E293B !important;
-    }
-    [data-baseweb="popover"] li:hover {
-        background:#F1F5F9 !important;
-    }
-    .stDateInput>div>div>input {
-        background:#FFFFFF !important; color:#1E293B !important;
-        border:1px solid #CBD5E1 !important; border-radius:10px !important;
-    }
+    [data-baseweb="popover"] li {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+    }}
+    [data-baseweb="popover"] li:hover {{
+        background:{THEME['background']} !important;
+    }}
+    .stDateInput>div>div>input {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important; border-radius:{THEME['radius']} !important;
+    }}
 
     /* ── Expander ── */
-    .streamlit-expanderHeader {
-        background:#1E293B !important; color:#F1F5F9 !important;
-        border-radius:10px !important;
-    }
+    .streamlit-expanderHeader {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important; border-radius:{THEME['radius']} !important;
+    }}
 
     /* ── Ponto cards ── */
-    .ponto-card {
-        background:#1E3A4A; border-radius:14px;
+    .ponto-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:{THEME['radius']};
         padding:16px 18px; margin-bottom:10px;
-        box-shadow:0 2px 8px rgba(0,0,0,0.3);
-    }
-    .ponto-card-header {
+        box-shadow:0 1px 3px rgba(16,24,40,0.05);
+    }}
+    .ponto-card-header {{
         display:flex; justify-content:space-between;
         align-items:flex-start; margin-bottom:10px;
-    }
-    .ponto-card-title { font-weight:700; color:#F1F5F9; font-size:0.95rem; margin:0; }
-    .ponto-card-horas { font-weight:900; color:#F1F5F9; font-size:1.2rem; }
-    .ponto-card-status {
+    }}
+    .ponto-card-title {{ font-weight:700; color:{THEME['text']}; font-size:0.95rem; margin:0; }}
+    .ponto-card-horas {{ font-weight:900; color:{THEME['text']}; font-size:1.2rem; }}
+    .ponto-card-status {{
         font-size:0.72rem; font-weight:600; padding:2px 8px;
         border-radius:10px; display:inline-block; margin-top:2px;
-    }
-    .ponto-card-grid {
+    }}
+    .ponto-card-grid {{
         display:grid; grid-template-columns:1fr 1fr; gap:6px 16px;
-        border-top:1px solid rgba(255,255,255,0.08);
+        border-top:1px solid {THEME['background']};
         padding-top:10px; margin-top:4px;
-    }
-    .ponto-card-label {
-        color:#64748B; font-size:0.72rem; font-weight:600;
+    }}
+    .ponto-card-label {{
+        color:{THEME['text_secondary']}; font-size:0.72rem; font-weight:600;
         text-transform:uppercase; letter-spacing:0.05em;
-    }
-    .ponto-card-value { color:#CBD5E1; font-size:0.85rem; font-weight:500; }
-    .total-horas-bar {
+    }}
+    .ponto-card-value {{ color:{THEME['text_secondary']}; font-size:0.85rem; font-weight:500; }}
+    .total-horas-bar {{
         display:flex; justify-content:space-between; align-items:center;
-        padding:12px 4px 8px; border-bottom:1px solid #1E293B; margin-bottom:12px;
-    }
-    .total-horas-label { color:#64748B; font-size:0.82rem; font-weight:600; }
-    .total-horas-value { color:#DC2626; font-size:1.05rem; font-weight:900; }
+        padding:12px 4px 8px; border-bottom:1px solid {THEME['border']}; margin-bottom:12px;
+    }}
+    .total-horas-label {{ color:{THEME['text_secondary']}; font-size:0.82rem; font-weight:600; }}
+    .total-horas-value {{ color:{THEME['accent']}; font-size:1.05rem; font-weight:900; }}
 
     /* ── Validação card ── */
-    .val-card {
-        background:#1E293B; border-radius:14px;
+    .val-card {{
+        background:{THEME['surface']}; border-radius:{THEME['radius']};
         padding:0; margin-bottom:16px;
-        border:1px solid #334155; overflow:hidden;
-    }
-    .val-card-header {
-        background:#162032; padding:14px 18px;
+        border:1px solid {THEME['border']}; overflow:hidden;
+    }}
+    .val-card-header {{
+        background:{THEME['background']}; padding:14px 18px;
         display:flex; justify-content:space-between; align-items:center;
-        border-bottom:1px solid #334155;
-    }
-    .val-reg-row {
+        border-bottom:1px solid {THEME['border']};
+    }}
+    .val-reg-row {{
         display:flex; justify-content:space-between; align-items:center;
-        padding:10px 18px; border-bottom:1px solid rgba(255,255,255,0.04);
-    }
-    .val-reg-row:last-child { border-bottom:none; }
-    .val-reg-info { flex:1; }
-    .val-reg-data { color:#64748B; font-size:0.72rem; font-weight:600;
-                    text-transform:uppercase; }
-    .val-reg-desc { color:#F1F5F9; font-size:0.88rem; font-weight:500;
-                    margin:2px 0; }
-    .val-reg-meta { color:#64748B; font-size:0.75rem; }
-    .val-reg-horas { color:#F59E0B; font-weight:900; font-size:1rem;
-                     white-space:nowrap; margin:0 16px; }
+        padding:10px 18px; border-bottom:1px solid {THEME['background']};
+    }}
+    .val-reg-row:last-child {{ border-bottom:none; }}
+    .val-reg-info {{ flex:1; }}
+    .val-reg-data {{ color:{THEME['text_secondary']}; font-size:0.72rem; font-weight:600;
+                    text-transform:uppercase; }}
+    .val-reg-desc {{ color:{THEME['text']}; font-size:0.88rem; font-weight:500;
+                    margin:2px 0; }}
+    .val-reg-meta {{ color:{THEME['text_secondary']}; font-size:0.75rem; }}
+    .val-reg-horas {{ color:{THEME['warning']}; font-weight:900; font-size:1rem;
+                     white-space:nowrap; margin:0 16px; }}
 
     /* ── Histórico mensal ── */
-    .hist-day-cell {
-        background:#1E293B; border-radius:8px; padding:8px 6px;
+    .hist-day-cell {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:8px; padding:8px 6px;
         text-align:center; margin:3px;
-    }
-    .hist-day-num { font-size:0.75rem; color:#64748B; font-weight:600; }
-    .hist-day-h { font-size:0.85rem; font-weight:900; }
+    }}
+    .hist-day-num {{ font-size:0.75rem; color:{THEME['text_secondary']}; font-weight:600; }}
+    .hist-day-h {{ font-size:0.85rem; font-weight:900; }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── Cabeçalho ─────────────────────────────────────────────────────────────
     st.markdown(f"""
     <div style="text-align:center;padding:20px;
-        background:linear-gradient(135deg,#1E293B,#0F172A);
-        border-radius:16px;margin-bottom:20px;
-        border:1px solid rgba(255,255,255,0.1);">
+        background:{THEME['surface']};
+        border-radius:{THEME['radius']};margin-bottom:20px;
+        border:1px solid {THEME['border']};box-shadow:0 1px 3px rgba(16,24,40,0.05);">
         <div style="font-size:2rem;margin-bottom:6px;">👷</div>
-        <div style="font-size:1.3rem;font-weight:800;color:#F8FAFC;">{user_nome}</div>
-        <div style="font-size:0.85rem;color:#94A3B8;">{cargo_user} | {user_tipo}</div>
+        <div style="font-size:1.3rem;font-weight:800;color:{THEME['text']};">{escape_html(user_nome)}</div>
+        <div style="font-size:0.85rem;color:{THEME['text_secondary']};">{escape_html(cargo_user)} | {escape_html(user_tipo)}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -560,20 +564,21 @@ def render_chefe(*args):
                 Aprovados =('Status',      lambda x: (x == '1').sum()),
             ).reset_index()
             for _, row in resumo.iterrows():
-                cor = "#10B981" if row['Pendentes'] == 0 else "#F59E0B"
+                cor = THEME["success"] if row['Pendentes'] == 0 else THEME["warning"]
                 st.markdown(f"""
-                <div style="background:rgba(255,255,255,0.05);padding:14px;
-                    border-radius:12px;margin-bottom:8px;border-left:4px solid {cor};">
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
+                    padding:14px;border-radius:{THEME['radius']};margin-bottom:8px;
+                    border-left:4px solid {cor};box-shadow:0 1px 3px rgba(16,24,40,0.05);">
                     <div style="display:flex;justify-content:space-between;">
                         <div>
-                            <b style="color:#F8FAFC;">👤 {row['Técnico']}</b>
-                            <div style="color:#94A3B8;font-size:0.82rem;">
+                            <b style="color:{THEME['text']};">👤 {escape_html(row['Técnico'])}</b>
+                            <div style="color:{THEME['text_secondary']};font-size:0.82rem;">
                                 {row['Registos']} registos · {fh(row['Horas'])} totais
                             </div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="color:#10B981;font-size:0.82rem;">✅ {row['Aprovados']} aprovados</div>
-                            <div style="color:#F59E0B;font-size:0.82rem;">⏳ {row['Pendentes']} pendentes</div>
+                            <div style="color:{THEME['success']};font-size:0.82rem;">✅ {row['Aprovados']} aprovados</div>
+                            <div style="color:{THEME['warning']};font-size:0.82rem;">⏳ {row['Pendentes']} pendentes</div>
                         </div>
                     </div>
                 </div>""", unsafe_allow_html=True)
@@ -632,15 +637,16 @@ def render_chefe(*args):
             if not df_pend.empty:
                 # Barra acções globais
                 st.markdown(f"""
-                <div style="background:#1E293B;border-radius:12px;padding:14px 18px;
+                <div style="background:{THEME['surface']};border-radius:{THEME['radius']};padding:14px 18px;
                     margin-bottom:16px;display:flex;align-items:center;
-                    justify-content:space-between;border:1px solid #334155;">
+                    justify-content:space-between;border:1px solid {THEME['border']};
+                    box-shadow:0 1px 3px rgba(16,24,40,0.05);">
                     <div>
-                        <span style="color:#F1F5F9;font-weight:700;font-size:0.95rem;">
+                        <span style="color:{THEME['text']};font-weight:700;font-size:0.95rem;">
                             ⏳ {len(df_pend)} registo(s) aguardam validação
                         </span><br>
-                        <span style="color:#64748B;font-size:0.78rem;">
-                            {len(df_pend['Técnico'].unique())} técnico(s) · 
+                        <span style="color:{THEME['text_secondary']};font-size:0.78rem;">
+                            {len(df_pend['Técnico'].unique())} técnico(s) ·
                             {fh(df_pend['Horas_Total'].sum())} no total
                         </span>
                     </div>
@@ -698,19 +704,19 @@ def render_chefe(*args):
                       <div class="val-card-header">
                         <div style="display:flex;align-items:center;gap:12px;">
                           <div style="width:40px;height:40px;border-radius:50%;
-                            background:#DC2626;display:flex;align-items:center;
+                            background:{THEME['accent']};display:flex;align-items:center;
                             justify-content:center;font-weight:900;color:white;
-                            font-size:1rem;flex-shrink:0;">{ini_t}</div>
+                            font-size:1rem;flex-shrink:0;">{escape_html(ini_t)}</div>
                           <div>
-                            <div style="color:#F1F5F9;font-weight:700;font-size:0.95rem;">
-                              👤 {tecnico}
+                            <div style="color:{THEME['text']};font-weight:700;font-size:0.95rem;">
+                              👤 {escape_html(tecnico)}
                             </div>
-                            <div style="color:#64748B;font-size:0.75rem;">
+                            <div style="color:{THEME['text_secondary']};font-size:0.75rem;">
                               {len(regs_t)} registo(s) · {fh(total_h_t)} pendentes
                             </div>
                           </div>
                         </div>
-                        <div style="color:#F59E0B;font-size:1.3rem;font-weight:900;">
+                        <div style="color:{THEME['warning']};font-size:1.3rem;font-weight:900;">
                           {fh(total_h_t)}
                         </div>
                       </div>
@@ -807,14 +813,14 @@ def render_chefe(*args):
                     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
             else:
-                st.markdown("""
+                st.markdown(f"""
                 <div style="text-align:center;padding:60px 20px;
-                    background:#1E293B;border-radius:16px;border:1px solid #334155;">
+                    background:{THEME['surface']};border-radius:{THEME['radius']};border:1px solid {THEME['border']};">
                     <div style="font-size:3rem;margin-bottom:12px;">✅</div>
-                    <p style="color:#10B981;font-weight:700;font-size:1.1rem;margin:0;">
+                    <p style="color:{THEME['success']};font-weight:700;font-size:1.1rem;margin:0;">
                         Sem horas pendentes!
                     </p>
-                    <p style="color:#64748B;font-size:0.85rem;margin:6px 0 0;">
+                    <p style="color:{THEME['text_secondary']};font-size:0.85rem;margin:6px 0 0;">
                         Todos os registos estão validados.
                     </p>
                 </div>""", unsafe_allow_html=True)
@@ -883,50 +889,50 @@ def render_chefe(*args):
                 # Header mês
                 ini_t = tec_sel[:1].upper()
                 st.markdown(f"""
-                <div style="background:linear-gradient(135deg,#1E293B,#162032);
-                    border-radius:16px;padding:20px 24px;margin:16px 0;
-                    border:1px solid #334155;">
+                <div style="background:{THEME['surface']};
+                    border-radius:{THEME['radius']};padding:20px 24px;margin:16px 0;
+                    border:1px solid {THEME['border']};box-shadow:0 1px 3px rgba(16,24,40,0.05);">
                     <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
                         <div style="width:48px;height:48px;border-radius:50%;
-                            background:#DC2626;display:flex;align-items:center;
+                            background:{THEME['accent']};display:flex;align-items:center;
                             justify-content:center;font-weight:900;color:white;
-                            font-size:1.2rem;">{ini_t}</div>
+                            font-size:1.2rem;">{escape_html(ini_t)}</div>
                         <div>
-                            <div style="color:#F1F5F9;font-weight:800;font-size:1.1rem;">
-                                {tec_sel}
+                            <div style="color:{THEME['text']};font-weight:800;font-size:1.1rem;">
+                                {escape_html(tec_sel)}
                             </div>
-                            <div style="color:#DC2626;font-weight:600;font-size:0.9rem;">
+                            <div style="color:{THEME['text_secondary']};font-weight:600;font-size:0.9rem;">
                                 {mes_nome} {int(ano_sel)}
                             </div>
                         </div>
                     </div>
                     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-                        <div style="background:#0F172A;border-radius:10px;padding:12px;
+                        <div style="background:{THEME['background']};border-radius:10px;padding:12px;
                             text-align:center;">
-                            <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                            <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                                 text-transform:uppercase;">Total Horas</div>
-                            <div style="color:#DC2626;font-size:1.6rem;font-weight:900;">
+                            <div style="color:{THEME['text']};font-size:1.6rem;font-weight:900;">
                                 {fh(total_h_m)}</div>
                         </div>
-                        <div style="background:#0F172A;border-radius:10px;padding:12px;
+                        <div style="background:{THEME['background']};border-radius:10px;padding:12px;
                             text-align:center;">
-                            <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                            <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                                 text-transform:uppercase;">Dias Trabalhados</div>
-                            <div style="color:#F1F5F9;font-size:1.6rem;font-weight:900;">
+                            <div style="color:{THEME['text']};font-size:1.6rem;font-weight:900;">
                                 {dias_trabalhados}</div>
                         </div>
-                        <div style="background:#0F172A;border-radius:10px;padding:12px;
+                        <div style="background:{THEME['background']};border-radius:10px;padding:12px;
                             text-align:center;">
-                            <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                            <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                                 text-transform:uppercase;">Média/Dia</div>
-                            <div style="color:#3B82F6;font-size:1.6rem;font-weight:900;">
+                            <div style="color:{THEME['accent']};font-size:1.6rem;font-weight:900;">
                                 {fh(media_dia)}</div>
                         </div>
-                        <div style="background:#0F172A;border-radius:10px;padding:12px;
+                        <div style="background:{THEME['background']};border-radius:10px;padding:12px;
                             text-align:center;">
-                            <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                            <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                                 text-transform:uppercase;">Validados</div>
-                            <div style="color:#10B981;font-size:1.6rem;font-weight:900;">
+                            <div style="color:{THEME['success']};font-size:1.6rem;font-weight:900;">
                                 {n_val}</div>
                         </div>
                     </div>
@@ -963,8 +969,7 @@ def render_chefe(*args):
                     dias_header = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
                     header_html = "<div style='display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;'>"
                     for dh in dias_header:
-                        eh_fim = dh in ('Dom','Sáb')
-                        header_html += f"<div style='text-align:center;font-size:0.68rem;font-weight:700;color:{'#EF4444' if eh_fim else '#64748B'};padding:4px 0;'>{dh}</div>"
+                        header_html += f"<div style='text-align:center;font-size:0.68rem;font-weight:700;color:{THEME['text_secondary']};padding:4px 0;'>{dh}</div>"
                     header_html += "</div>"
 
                     # Células do calendário
@@ -979,37 +984,37 @@ def render_chefe(*args):
                         if tem_reg:
                             h_dia  = mapa_dia[dia]['h']
                             st_dia = mapa_dia[dia]['status']
-                            cor    = _DOT_COLOR.get(st_dia, '#6B7280')
+                            cor    = _DOT_COLOR.get(st_dia, THEME['text_secondary'])
                             h_str  = fh(h_dia)
                             cells_html += f"""
                             <div style="background:{cor}22;border:1px solid {cor};
                                 border-radius:8px;padding:6px 4px;text-align:center;">
-                                <div style="font-size:0.7rem;color:#94A3B8;font-weight:600;">{dia}</div>
+                                <div style="font-size:0.7rem;color:{THEME['text_secondary']};font-weight:600;">{dia}</div>
                                 <div style="font-size:0.82rem;font-weight:900;color:{cor};">{h_str}</div>
                             </div>"""
                         else:
-                            bg = "rgba(239,68,68,0.05)" if fim_s else "rgba(255,255,255,0.02)"
+                            bg = THEME['background'] if fim_s else THEME['surface']
                             cells_html += f"""
-                            <div style="background:{bg};border:1px solid #1E293B;
+                            <div style="background:{bg};border:1px solid {THEME['border']};
                                 border-radius:8px;padding:6px 4px;text-align:center;">
-                                <div style="font-size:0.7rem;color:{'#EF444444' if fim_s else '#334155'};font-weight:600;">{dia}</div>
-                                <div style="font-size:0.6rem;color:#1E293B;">—</div>
+                                <div style="font-size:0.7rem;color:{THEME['text_secondary']};font-weight:600;">{dia}</div>
+                                <div style="font-size:0.6rem;color:{THEME['text_secondary']};">—</div>
                             </div>"""
                     cells_html += "</div>"
 
                     st.markdown(header_html + cells_html, unsafe_allow_html=True)
 
                     # Legenda
-                    st.markdown("""
+                    st.markdown(f"""
                     <div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;">
-                        <span style="font-size:0.72rem;color:#64748B;">
-                            <span style="color:#F97316;">●</span> Pendente</span>
-                        <span style="font-size:0.72rem;color:#64748B;">
-                            <span style="color:#10B981;">●</span> Validado</span>
-                        <span style="font-size:0.72rem;color:#64748B;">
-                            <span style="color:#3B82F6;">●</span> Faturação</span>
-                        <span style="font-size:0.72rem;color:#64748B;">
-                            <span style="color:#EF4444;">●</span> Rejeitado</span>
+                        <span style="font-size:0.72rem;color:{THEME['text_secondary']};">
+                            <span style="color:{_DOT_COLOR['0']};">●</span> Pendente</span>
+                        <span style="font-size:0.72rem;color:{THEME['text_secondary']};">
+                            <span style="color:{_DOT_COLOR['1']};">●</span> Validado</span>
+                        <span style="font-size:0.72rem;color:{THEME['text_secondary']};">
+                            <span style="color:{_DOT_COLOR['2']};">●</span> Faturação</span>
+                        <span style="font-size:0.72rem;color:{THEME['text_secondary']};">
+                            <span style="color:{_DOT_COLOR['-1']};">●</span> Rejeitado</span>
                     </div>""", unsafe_allow_html=True)
 
                     # ── Breakdown por obra ─────────────────────────────────────
@@ -1023,20 +1028,20 @@ def render_chefe(*args):
                     for _, br in breakdown.iterrows():
                         pct = int(br['Horas'] / total_br * 100) if total_br > 0 else 0
                         st.markdown(f"""
-                        <div style="background:#1E293B;border-radius:10px;
+                        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;
                             padding:12px 16px;margin-bottom:8px;">
                             <div style="display:flex;justify-content:space-between;
                                 align-items:center;margin-bottom:6px;">
-                                <span style="color:#F1F5F9;font-weight:600;
-                                    font-size:0.88rem;">🏭 {br['Obra']}</span>
-                                <span style="color:#DC2626;font-weight:900;">
+                                <span style="color:{THEME['text']};font-weight:600;
+                                    font-size:0.88rem;">🏭 {escape_html(br['Obra'])}</span>
+                                <span style="color:{THEME['accent']};font-weight:900;">
                                     {fh(br['Horas'])}</span>
                             </div>
-                            <div style="background:#0F172A;border-radius:4px;height:6px;">
-                                <div style="background:#DC2626;width:{pct}%;
+                            <div style="background:{THEME['background']};border-radius:4px;height:6px;">
+                                <div style="background:{THEME['accent']};width:{pct}%;
                                     height:6px;border-radius:4px;"></div>
                             </div>
-                            <div style="color:#64748B;font-size:0.72rem;margin-top:4px;">
+                            <div style="color:{THEME['text_secondary']};font-size:0.72rem;margin-top:4px;">
                                 {br['Registos']} registo(s) · {pct}% do mês
                             </div>
                         </div>""", unsafe_allow_html=True)
@@ -1065,10 +1070,10 @@ def render_chefe(*args):
                 else:
                     st.markdown(f"""
                     <div style="text-align:center;padding:50px 20px;
-                        background:#1E293B;border-radius:16px;
-                        border:1px solid #334155;margin-top:16px;">
+                        background:{THEME['surface']};border-radius:16px;
+                        border:1px solid {THEME['border']};margin-top:16px;">
                         <div style="font-size:3rem;margin-bottom:12px;opacity:0.3;">📅</div>
-                        <p style="color:#475569;font-size:0.9rem;margin:0;">
+                        <p style="color:{THEME['text_secondary']};font-size:0.9rem;margin:0;">
                             Sem registos para {mes_nome} {int(ano_sel)}
                         </p>
                     </div>""", unsafe_allow_html=True)
@@ -1126,8 +1131,8 @@ def render_chefe(*args):
             with col_mes:
                 st.markdown(
                     f"<div style='text-align:center;padding:6px 0;'>"
-                    f"<p style='color:#F1F5F9;font-weight:700;font-size:0.88rem;margin:0 0 2px;'>Meu Ponto</p>"
-                    f"<p style='color:#DC2626;font-weight:900;font-size:1.05rem;margin:0;'>{mes_label} {ano_label}</p>"
+                    f"<p style='color:{THEME['text']};font-weight:700;font-size:0.88rem;margin:0 0 2px;'>Meu Ponto</p>"
+                    f"<p style='color:{THEME['accent']};font-weight:900;font-size:1.05rem;margin:0;'>{mes_label} {ano_label}</p>"
                     f"</div>", unsafe_allow_html=True)
             with col_foto:
                 col_next, col_img = st.columns([1,1])
@@ -1141,7 +1146,7 @@ def render_chefe(*args):
                             st.markdown(
                                 f"<img src='data:image/jpeg;base64,{foto_b64}' "
                                 f"style='width:34px;height:34px;border-radius:50%;"
-                                f"object-fit:cover;border:2px solid #DC2626;margin-top:2px;'>",
+                                f"object-fit:cover;border:2px solid {THEME['accent']};margin-top:2px;'>",
                                 unsafe_allow_html=True)
                         except: pass
 
@@ -1149,10 +1154,9 @@ def render_chefe(*args):
             letras_cols = st.columns(7)
             for col, d in zip(letras_cols, dias_sem):
                 with col:
-                    dl    = _DIAS_LETRA[(d.weekday()+1) % 7]
-                    fim_s = (d.weekday()+1) % 7 in (0,6)
+                    dl = _DIAS_LETRA[(d.weekday()+1) % 7]
                     st.markdown(
-                        f"<p style='text-align:center;color:{'#EF4444' if fim_s else '#64748B'};"
+                        f"<p style='text-align:center;color:{THEME['text_secondary']};"
                         f"font-size:0.6rem;font-weight:700;margin:0;text-transform:uppercase;'>{dl}</p>",
                         unsafe_allow_html=True)
 
@@ -1178,13 +1182,13 @@ def render_chefe(*args):
             st.markdown("</div>", unsafe_allow_html=True)
 
             st.markdown(
-                "<div style='display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:4px 0 8px;'>"
-                "<span style='font-size:0.62rem;color:#64748B;'><span style='color:#F97316;'>●</span> Pendente</span>"
-                "<span style='font-size:0.62rem;color:#64748B;'><span style='color:#10B981;'>●</span> Validado</span>"
-                "<span style='font-size:0.62rem;color:#64748B;'><span style='color:#3B82F6;'>●</span> Faturação</span>"
-                "<span style='font-size:0.62rem;color:#64748B;'><span style='color:#6B7280;'>●</span> Pago</span>"
-                "</div>", unsafe_allow_html=True)
-            st.markdown("<hr style='border:none;border-top:1px solid #1E293B;margin:4px 0 10px;'>",
+                f"<div style='display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:4px 0 8px;'>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'><span style='color:{_DOT_COLOR['0']};'>●</span> Pendente</span>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'><span style='color:{_DOT_COLOR['1']};'>●</span> Validado</span>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'><span style='color:{_DOT_COLOR['2']};'>●</span> Faturação</span>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'><span style='color:{_DOT_COLOR['3']};'>●</span> Pago</span>"
+                f"</div>", unsafe_allow_html=True)
+            st.markdown(f"<hr style='border:none;border-top:1px solid {THEME['border']};margin:4px 0 10px;'>",
                         unsafe_allow_html=True)
 
             data_sel    = st.session_state.data_consulta_ch
@@ -1196,7 +1200,7 @@ def render_chefe(*args):
             with col_data:
                 prefix = "📍 Hoje" if eh_hoje_sel else dia_letra_d
                 st.markdown(
-                    f"<p style='color:#F1F5F9;font-weight:700;font-size:0.92rem;margin:0;'>"
+                    f"<p style='color:{THEME['text']};font-weight:700;font-size:0.92rem;margin:0;'>"
                     f"{prefix}, {data_sel.day} de {mes_nome_d}</p>",
                     unsafe_allow_html=True)
             with col_fab:
@@ -1233,7 +1237,7 @@ def render_chefe(*args):
                     unsafe_allow_html=True)
                 for _, r in regs_dia.iterrows():
                     s_str   = str(r.get('Status','0'))
-                    dot_c   = _DOT_COLOR.get(s_str,'#6B7280')
+                    dot_c   = _DOT_COLOR.get(s_str, THEME['text_secondary'])
                     dot_l   = _DOT_LABEL.get(s_str,'Pendente')
                     turnos  = str(r.get('Turnos',''))
                     obra    = str(r.get('Obra',''))
@@ -1268,16 +1272,16 @@ def render_chefe(*args):
                         f"<div style='text-align:right;'><p class='ponto-card-label'>Saída</p>"
                         f"<p class='ponto-card-value'><b>{saida_str if saida_str else '—'}</b></p></div>"
                         f"</div>"
-                        + (f"<p style='color:#475569;font-size:0.73rem;margin:8px 0 0;"
-                           f"border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;'>"
-                           f"{relat}</p>" if relat else "")
+                        + (f"<p style='color:{THEME['text_secondary']};font-size:0.73rem;margin:8px 0 0;"
+                           f"border-top:1px solid {THEME['background']};padding-top:6px;'>"
+                           f"{escape_html(relat)}</p>" if relat else "")
                         + "</div>", unsafe_allow_html=True)
             else:
                 st.markdown(
-                    "<div style='text-align:center;padding:50px 20px 40px;'>"
-                    "<div style='font-size:3.5rem;margin-bottom:12px;opacity:0.25;'>📋</div>"
-                    "<p style='color:#475569;font-weight:600;margin:0;font-size:0.9rem;'>"
-                    "Sem ponto registado neste dia</p></div>", unsafe_allow_html=True)
+                    f"<div style='text-align:center;padding:50px 20px 40px;'>"
+                    f"<div style='font-size:3.5rem;margin-bottom:12px;opacity:0.25;'>📋</div>"
+                    f"<p style='color:{THEME['text_secondary']};font-weight:600;margin:0;font-size:0.9rem;'>"
+                    f"Sem ponto registado neste dia</p></div>", unsafe_allow_html=True)
 
         # ── Formulário de registo ──────────────────────────────────────────────
         else:
@@ -1462,12 +1466,12 @@ def render_chefe(*args):
 
         # ── PASSO 1: Configurar ───────────────────────────────────────────────
         if st.session_state.fp_step == 'configurar':
-            st.markdown("""
-            <div style="background:#1E293B;border-radius:14px;padding:18px 20px;
-                margin-bottom:16px;border:1px solid #334155;">
-                <div style="color:#F1F5F9;font-weight:700;font-size:0.95rem;
+            st.markdown(f"""
+            <div style="background:{THEME['surface']};border-radius:{THEME['radius']};padding:18px 20px;
+                margin-bottom:16px;border:1px solid {THEME['border']};">
+                <div style="color:{THEME['text']};font-weight:700;font-size:0.95rem;
                     margin-bottom:4px;">⚙️ Passo 1 de 3 — Configurar Folha</div>
-                <div style="color:#64748B;font-size:0.8rem;">
+                <div style="color:{THEME['text_secondary']};font-size:0.8rem;">
                     Seleciona a obra, o período e os técnicos a incluir.
                 </div>
             </div>""", unsafe_allow_html=True)
@@ -1519,13 +1523,14 @@ def render_chefe(*args):
             if not regs_fp.empty:
                 periodo_str = f"{sem_ini.strftime('%d/%m/%Y')} a {sem_fim.strftime('%d/%m/%Y')}"
                 st.markdown(f"""
-                <div style="background:rgba(16,185,129,0.08);border-radius:10px;
-                    padding:14px 18px;margin:12px 0;border-left:3px solid #10B981;">
-                    <div style="color:#10B981;font-weight:700;font-size:0.88rem;">
+                <div style="background:{THEME['surface']};border-radius:10px;
+                    padding:14px 18px;margin:12px 0;
+                    border:1px solid {THEME['border']};border-left:3px solid {THEME['success']};">
+                    <div style="color:{THEME['success']};font-weight:700;font-size:0.88rem;">
                         ✅ {len(regs_fp)} registos encontrados · {fh(total_preview)} totais
                     </div>
-                    <div style="color:#64748B;font-size:0.78rem;margin-top:4px;">
-                        {len(tec_sel_fp)} técnico(s) · {obra_fp} · {periodo_str}
+                    <div style="color:{THEME['text_secondary']};font-size:0.78rem;margin-top:4px;">
+                        {len(tec_sel_fp)} técnico(s) · {escape_html(obra_fp)} · {periodo_str}
                     </div>
                 </div>""", unsafe_allow_html=True)
 
@@ -1550,12 +1555,12 @@ def render_chefe(*args):
 
         # ── PASSO 2: Preview ──────────────────────────────────────────────────
         elif st.session_state.fp_step == 'preview':
-            st.markdown("""
-            <div style="background:#1E293B;border-radius:14px;padding:18px 20px;
-                margin-bottom:16px;border:1px solid #334155;">
-                <div style="color:#F1F5F9;font-weight:700;font-size:0.95rem;
+            st.markdown(f"""
+            <div style="background:{THEME['surface']};border-radius:{THEME['radius']};padding:18px 20px;
+                margin-bottom:16px;border:1px solid {THEME['border']};">
+                <div style="color:{THEME['text']};font-weight:700;font-size:0.95rem;
                     margin-bottom:4px;">👁️ Passo 2 de 3 — Preview da Folha</div>
-                <div style="color:#64748B;font-size:0.8rem;">
+                <div style="color:{THEME['text_secondary']};font-size:0.8rem;">
                     Verifica os dados. Depois escolhe como queres assinar.
                 </div>
             </div>""", unsafe_allow_html=True)
@@ -1564,22 +1569,22 @@ def render_chefe(*args):
             st.markdown(f"""
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;
                 gap:10px;margin-bottom:16px;">
-                <div style="background:#1E293B;border-radius:10px;padding:12px;text-align:center;">
-                    <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;padding:12px;text-align:center;">
+                    <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                         text-transform:uppercase;">Obra</div>
-                    <div style="color:#F1F5F9;font-weight:700;font-size:0.88rem;">
-                        {st.session_state.fp_obra}</div>
+                    <div style="color:{THEME['text']};font-weight:700;font-size:0.88rem;">
+                        {escape_html(st.session_state.fp_obra)}</div>
                 </div>
-                <div style="background:#1E293B;border-radius:10px;padding:12px;text-align:center;">
-                    <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;padding:12px;text-align:center;">
+                    <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                         text-transform:uppercase;">Período</div>
-                    <div style="color:#F1F5F9;font-weight:700;font-size:0.82rem;">
+                    <div style="color:{THEME['text']};font-weight:700;font-size:0.82rem;">
                         {st.session_state.fp_periodo}</div>
                 </div>
-                <div style="background:#1E293B;border-radius:10px;padding:12px;text-align:center;">
-                    <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;padding:12px;text-align:center;">
+                    <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                         text-transform:uppercase;">Total Horas</div>
-                    <div style="color:#DC2626;font-weight:900;font-size:1.1rem;">
+                    <div style="color:{THEME['accent']};font-weight:900;font-size:1.1rem;">
                         {fh(st.session_state.fp_total_h)}</div>
                 </div>
             </div>""", unsafe_allow_html=True)
@@ -1610,14 +1615,14 @@ def render_chefe(*args):
 
             col_dig, col_man = st.columns(2)
             with col_dig:
-                st.markdown("""
-                <div style="background:rgba(59,130,246,0.08);border-radius:12px;
-                    padding:14px;border:1px solid rgba(59,130,246,0.3);
+                st.markdown(f"""
+                <div style="background:{THEME['surface']};border-radius:12px;
+                    padding:14px;border:1px solid {THEME['border']};border-top:3px solid {THEME['accent']};
                     text-align:center;margin-bottom:8px;">
                     <div style="font-size:1.5rem;">✍️</div>
-                    <div style="color:#3B82F6;font-weight:700;font-size:0.88rem;">
+                    <div style="color:{THEME['accent']};font-weight:700;font-size:0.88rem;">
                         Assinatura Digital</div>
-                    <div style="color:#64748B;font-size:0.75rem;margin-top:4px;">
+                    <div style="color:{THEME['text_secondary']};font-size:0.75rem;margin-top:4px;">
                         Confirma o nome e aprova online. Gera selo de autenticidade.
                     </div>
                 </div>""", unsafe_allow_html=True)
@@ -1629,14 +1634,14 @@ def render_chefe(*args):
                     st.rerun()
 
             with col_man:
-                st.markdown("""
-                <div style="background:rgba(16,185,129,0.08);border-radius:12px;
-                    padding:14px;border:1px solid rgba(16,185,129,0.3);
+                st.markdown(f"""
+                <div style="background:{THEME['surface']};border-radius:12px;
+                    padding:14px;border:1px solid {THEME['border']};border-top:3px solid {THEME['success']};
                     text-align:center;margin-bottom:8px;">
                     <div style="font-size:1.5rem;">🖊️</div>
-                    <div style="color:#10B981;font-weight:700;font-size:0.88rem;">
+                    <div style="color:{THEME['success']};font-weight:700;font-size:0.88rem;">
                         Assinatura Manual</div>
-                    <div style="color:#64748B;font-size:0.75rem;margin-top:4px;">
+                    <div style="color:{THEME['text_secondary']};font-size:0.75rem;margin-top:4px;">
                         Descarrega, imprime, assina e faz upload da folha assinada.
                     </div>
                 </div>""", unsafe_allow_html=True)
@@ -1656,19 +1661,19 @@ def render_chefe(*args):
         # ── PASSO 3: Assinar ──────────────────────────────────────────────────
         elif st.session_state.fp_step == 'assinar':
 
-            st.markdown("""
-            <div style="background:#1E293B;border-radius:14px;padding:18px 20px;
-                margin-bottom:16px;border:1px solid #334155;">
-                <div style="color:#F1F5F9;font-weight:700;font-size:0.95rem;
+            st.markdown(f"""
+            <div style="background:{THEME['surface']};border-radius:{THEME['radius']};padding:18px 20px;
+                margin-bottom:16px;border:1px solid {THEME['border']};">
+                <div style="color:{THEME['text']};font-weight:700;font-size:0.95rem;
                     margin-bottom:4px;">🔏 Passo 3 de 3 — Assinar e Submeter</div>
             </div>""", unsafe_allow_html=True)
 
             # ── Modo Digital ──────────────────────────────────────────────────
             if st.session_state.fp_modo_assin == 'digital':
-                st.markdown("""
-                <div style="background:rgba(59,130,246,0.08);border-radius:12px;
-                    padding:16px 18px;border-left:3px solid #3B82F6;margin-bottom:16px;">
-                    <p style="color:#93C5FD;font-size:0.85rem;margin:0;">
+                st.markdown(f"""
+                <div style="background:{THEME['surface']};border-radius:12px;
+                    padding:16px 18px;border:1px solid {THEME['border']};border-left:3px solid {THEME['accent']};margin-bottom:16px;">
+                    <p style="color:{THEME['text']};font-size:0.85rem;margin:0;">
                         ℹ️ A assinatura digital consiste na confirmação do teu nome completo
                         e aprovação explícita do conteúdo da folha.
                         É gerado um selo único com timestamp e hash de autenticidade.
@@ -1689,13 +1694,13 @@ def render_chefe(*args):
                         "são correctos. Autorizo a sua submissão.",
                         key="fp_aceito_check")
                     st.markdown(f"""
-                    <div style="background:#0F172A;border-radius:8px;padding:12px 16px;
+                    <div style="background:{THEME['background']};border:1px solid {THEME['border']};border-radius:8px;padding:12px 16px;
                         margin:10px 0;font-size:0.8rem;">
-                        <span style="color:#64748B;">Folha: </span>
-                        <span style="color:#F1F5F9;font-weight:600;">
-                            {st.session_state.fp_obra} · {st.session_state.fp_periodo}</span><br>
-                        <span style="color:#64748B;">Total: </span>
-                        <span style="color:#DC2626;font-weight:700;">
+                        <span style="color:{THEME['text_secondary']};">Folha: </span>
+                        <span style="color:{THEME['text']};font-weight:600;">
+                            {escape_html(st.session_state.fp_obra)} · {st.session_state.fp_periodo}</span><br>
+                        <span style="color:{THEME['text_secondary']};">Total: </span>
+                        <span style="color:{THEME['accent']};font-weight:700;">
                             {fh(st.session_state.fp_total_h)}</span>
                     </div>""", unsafe_allow_html=True)
 
@@ -1758,12 +1763,12 @@ def render_chefe(*args):
 
             # ── Modo Manual ───────────────────────────────────────────────────
             else:
-                st.markdown("""
-                <div style="background:#1E293B;border-radius:12px;padding:14px 18px;
-                    margin-bottom:16px;border-left:3px solid #10B981;">
-                    <p style="color:#6EE7B7;font-size:0.85rem;margin:0 0 8px;font-weight:700;">
+                st.markdown(f"""
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:12px;padding:14px 18px;
+                    margin-bottom:16px;border-left:3px solid {THEME['success']};">
+                    <p style="color:{THEME['success']};font-size:0.85rem;margin:0 0 8px;font-weight:700;">
                         📋 Instruções:</p>
-                    <p style="color:#94A3B8;font-size:0.82rem;margin:0;">
+                    <p style="color:{THEME['text_secondary']};font-size:0.82rem;margin:0;">
                         1. Descarrega a folha no passo anterior (Preview)<br>
                         2. Imprime e faz assinar pelo cliente / representante<br>
                         3. Fotografa ou digitaliza a folha assinada<br>
@@ -1841,22 +1846,22 @@ def render_chefe(*args):
                           else "Assinatura Manual")
             st.markdown(f"""
             <div style="text-align:center;padding:40px 20px;
-                background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(16,185,129,0.05));
-                border-radius:20px;border:2px solid rgba(16,185,129,0.3);margin:10px 0;">
+                background:{THEME['surface']};
+                border-radius:20px;border:2px solid {THEME['success']};margin:10px 0;">
                 <div style="font-size:3rem;margin-bottom:16px;">✅</div>
-                <h3 style="color:#10B981;margin:0 0 8px;">Folha Submetida com Sucesso!</h3>
-                <p style="color:#94A3B8;font-size:0.9rem;margin:0 0 20px;">
+                <h3 style="color:{THEME['success']};margin:0 0 8px;">Folha Submetida com Sucesso!</h3>
+                <p style="color:{THEME['text_secondary']};font-size:0.9rem;margin:0 0 20px;">
                     {modo_label} · #{st.session_state.fp_folha_id}
                 </p>
-                <div style="background:#0F172A;border-radius:12px;padding:14px 20px;
-                    font-family:monospace;font-size:0.82rem;color:#10B981;
+                <div style="background:{THEME['background']};border:1px solid {THEME['border']};border-radius:12px;padding:14px 20px;
+                    font-family:monospace;font-size:0.82rem;color:{THEME['text']};
                     display:inline-block;">
-                    📋 {st.session_state.fp_obra}<br>
+                    📋 {escape_html(st.session_state.fp_obra)}<br>
                     📅 {st.session_state.fp_periodo}<br>
                     ⏱️ {fh(st.session_state.fp_total_h)}<br>
                     🔒 #{st.session_state.fp_folha_id}
                 </div>
-                <p style="color:#64748B;font-size:0.78rem;margin:16px 0 0;">
+                <p style="color:{THEME['text_secondary']};font-size:0.78rem;margin:16px 0 0;">
                     O Admin foi notificado. A folha está visível em Faturação → Folhas de Ponto.
                 </p>
             </div>""", unsafe_allow_html=True)
@@ -1945,6 +1950,8 @@ def render_chefe(*args):
 
         sub_f, sub_e, sub_m = st.tabs(["🔧 Ferramentas","🦺 EPIs","📦 Materiais"])
 
+        _TOM_STATUS_PEDIDO = {"Pendente": "warning", "Aprovado": "success", "Rejeitado": "error"}
+
         def _mostrar_pedidos(df):
             if df.empty:
                 st.info("📋 Sem pedidos.")
@@ -1955,23 +1962,14 @@ def render_chefe(*args):
                 st.success("✅ Sem pedidos da equipa.")
                 return
             for _, ped in df_eq.iterrows():
-                cor = {"Pendente":"#F59E0B","Aprovado":"#10B981",
-                       "Rejeitado":"#EF4444"}.get(ped.get('Status','Pendente'),"#6B7280")
-                st.markdown(f"""
-                <div style="background:rgba(255,255,255,0.05);border-left:4px solid {cor};
-                     padding:12px;border-radius:8px;margin-bottom:8px;">
-                    <b style="color:#F8FAFC;">
-                        {ped.get('Descricao', ped.get('Item','N/A'))}
-                    </b><br>
-                    <small style="color:#94A3B8;">
-                        {ped.get('Solicitante','N/A')} |
-                        {ped.get('Obra','N/A')} |
-                        {ped.get('Data','N/A')}
-                    </small><br>
-                    <small style="color:{cor};font-weight:bold;">
-                        {ped.get('Status','Pendente')}
-                    </small>
-                </div>""", unsafe_allow_html=True)
+                status = ped.get('Status', 'Pendente')
+                render_card(
+                    title=str(ped.get('Descricao', ped.get('Item', 'N/A'))),
+                    subtitle=f"{ped.get('Solicitante','N/A')} | "
+                             f"{ped.get('Obra','N/A')} | {ped.get('Data','N/A')}",
+                    badge=status,
+                    badge_tone=_TOM_STATUS_PEDIDO.get(status, "neutral"),
+                )
 
         with sub_f: _mostrar_pedidos(req_fer_db)
         with sub_e: _mostrar_pedidos(req_epi_db)
