@@ -1,11 +1,9 @@
 """
-Testes do ecrã de login (mod_login.py).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 2 da Identidade Visual dar a este ecrã (o primeiro que
-qualquer pessoa vê) o mesmo polimento e tema claro dos restantes,
-mantendo o logótipo da CPS exatamente como está (mesmo ficheiro,
-sem alterações de cor/forma/proporção).
+Testes do ecrã de login (mod_login.py) — Fase 2 da Identidade Visual:
+o primeiro ecrã que qualquer pessoa vê passa a ter o mesmo tema claro
+e polimento dos restantes (cartão em torno do formulário, THEME
+central), mantendo o logótipo da CPS exatamente como estava (mesmo
+ficheiro, sem alterações de cor/forma/proporção).
 
 Não tocam em GCS real: `mod_login._gcs_read` é mockado (devolve None
 por omissão — não há tentativa de login nestes testes).
@@ -55,6 +53,33 @@ class TestRenderLoginSemErro(unittest.TestCase):
         labels = [t.label for t in at.tabs]
         self.assertIn("🔑 Password", labels)
         self.assertIn("🔢 PIN", labels)
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 2 da Identidade Visual: o ecrã de login lê as suas cores
+    de core.THEME, já não força fundo escuro, e o formulário passa a
+    aparecer dentro de um cartão (antes flutuava direto no fundo)."""
+
+    def test_nao_forca_fundo_escuro(self):
+        at = _run()
+        css = " ".join(m.value for m in at.markdown if "<style>" in m.value)
+        self.assertNotIn(".stApp", css)
+        self.assertNotIn("#0F172A", css)
+        self.assertNotIn("#1E293B", css)
+
+    def test_cartao_de_login_usa_theme(self):
+        at = _run()
+        css = " ".join(m.value for m in at.markdown if "<style>" in m.value)
+        self.assertIn(".login-card", css)
+        for chave in ("surface", "border", "radius", "text_secondary"):
+            self.assertIn(core.THEME[chave], css)
+
+    def test_ligacao_usa_acento(self):
+        at = _run()
+        html = " ".join(m.value for m in at.markdown)
+        self.assertIn(core.THEME["accent"], html)
+        self.assertNotIn("#3B82F6", html)
+        self.assertNotIn("#64748B", html)
 
 
 if __name__ == "__main__":

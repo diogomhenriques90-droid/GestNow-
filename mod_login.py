@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import io, base64
 from datetime import datetime
-from core import cp, _gcs_read, inv
+from core import cp, _gcs_read, inv, THEME
 
 def _load_users_fresh():
     """Lê usuarios.csv SEMPRE do GCS sem cache, com strip de todos os valores."""
@@ -39,29 +39,48 @@ def render_login():
         if key not in st.session_state:
             st.session_state[key] = 0
 
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    #MainMenu {visibility: hidden;}
-    footer     {visibility: hidden;}
-    header     {visibility: hidden;}
-    .stApp {
-        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-        background-attachment: fixed;
-    }
+    #MainMenu {{visibility: hidden;}}
+    footer     {{visibility: hidden;}}
+    header     {{visibility: hidden;}}
     /* Fix para evitar flicker no segundo attempt */
-    .stAlert { animation: none !important; }
+    .stAlert {{ animation: none !important; }}
+
+    .login-wrap .block-container {{
+        max-width: 460px; margin: 0 auto; padding-top: 6vh;
+    }}
+    .login-card {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
+        border-radius: {THEME['radius']};
+        box-shadow: 0 1px 3px rgba(16,24,40,0.05), 0 8px 24px rgba(16,24,40,0.06);
+        padding: 32px 28px 24px;
+        margin-top: 8px;
+    }}
+    .login-subtitle {{
+        text-align: center; color: {THEME['text_secondary']};
+        font-size: 0.9rem; margin: 0 0 20px;
+    }}
     </style>
     """, unsafe_allow_html=True)
+
+    st.markdown("<div class='login-wrap'>", unsafe_allow_html=True)
 
     with open("assets/logo_cps_tema_escuro.png", "rb") as _f:
         _logo_b64 = base64.b64encode(_f.read()).decode()
     st.markdown(
-        f"<div style='display:flex;justify-content:center;margin:8px 0 40px 0;'>"
+        f"<div style='display:flex;justify-content:center;margin:8px 0 4px 0;'>"
         f"<img src='data:image/png;base64,{_logo_b64}' alt='CPS Smart Solutions' "
         f"style='width:min(380px,80vw);height:auto;'/></div>",
         unsafe_allow_html=True
     )
+    st.markdown(
+        "<p class='login-subtitle'>Gestão de Instrumentação Industrial</p>",
+        unsafe_allow_html=True
+    )
 
+    st.markdown("<div class='login-card'>", unsafe_allow_html=True)
     tab_pwd, tab_pin = st.tabs(["🔑 Password", "🔢 PIN"])
 
     # ═══════════════════════════════════════════════════════════════
@@ -143,14 +162,14 @@ def render_login():
 
         st.divider()
         st.markdown(
-            "<p style='text-align:center; color:#64748B; font-size:0.85rem;'>"
-            "Esqueceste a password? Contacta o administrador.</p>",
+            f"<p style='text-align:center; color:{THEME['text_secondary']}; font-size:0.85rem;'>"
+            f"Esqueceste a password? Contacta o administrador.</p>",
             unsafe_allow_html=True
         )
         st.markdown(
-            "<p style='text-align:center; font-size:0.8rem;'>"
-            "<a href='/?page=criar_admin' style='color:#3B82F6;'>"
-            "🔧 Criar utilizador Admin</a></p>",
+            f"<p style='text-align:center; font-size:0.8rem;'>"
+            f"<a href='/?page=criar_admin' style='color:{THEME['accent']};'>"
+            f"🔧 Criar utilizador Admin</a></p>",
             unsafe_allow_html=True
         )
 
@@ -210,3 +229,5 @@ def render_login():
                             st.error(f"❌ Utilizador '{u_pin_clean}' não encontrado.")
                         else:
                             st.error("❌ PIN incorreto.")
+
+    st.markdown("</div></div>", unsafe_allow_html=True)
