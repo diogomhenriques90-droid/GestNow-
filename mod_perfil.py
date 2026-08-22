@@ -7,7 +7,7 @@ import pandas as pd
 import json
 from datetime import datetime, timedelta
 
-from core import save_db, inv, load_db, fh, hp, cp, log_audit, ICONS
+from core import save_db, inv, load_db, fh, hp, cp, log_audit, ICONS, THEME
 
 
 def render_perfil(*args):
@@ -47,12 +47,12 @@ def render_perfil(*args):
     # Header
     st.markdown(f"""
     <div style="text-align:center;padding:30px 20px;
-        background:linear-gradient(135deg,#1E293B,#0F172A);
-        border-radius:20px;margin-bottom:25px;
-        border:1px solid rgba(255,255,255,0.1);">
+        background:{THEME['surface']};
+        border-radius:{THEME['radius']};margin-bottom:25px;
+        border:1px solid {THEME['border']};">
         <div style="font-size:3rem;margin-bottom:10px;">👤</div>
-        <div style="font-size:1.8rem;font-weight:800;color:#F8FAFC;">{user_nome}</div>
-        <div style="font-size:1rem;color:#94A3B8;">{cargo} | {user_tipo}</div>
+        <div style="font-size:1.8rem;font-weight:800;color:{THEME['text']};">{user_nome}</div>
+        <div style="font-size:1rem;color:{THEME['text_secondary']};">{cargo} | {user_tipo}</div>
     </div>
     """, unsafe_allow_html=True)
 

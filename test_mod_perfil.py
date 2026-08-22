@@ -1,9 +1,7 @@
 """
-Testes do módulo de Perfil do Utilizador (mod_perfil.py).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 3 da Identidade Visual migrar este módulo para o THEME
-central (core.py).
+Testes do módulo de Perfil do Utilizador (mod_perfil.py) — Fase 3 da
+Identidade Visual: migração para o THEME central (core.py), em vez de
+hexadecimais soltos.
 
 Não tocam em GCS real: `mod_perfil.load_db` é mockado diretamente
 (devolve um DataFrame com um utilizador de teste).
@@ -89,6 +87,26 @@ class TestRenderPerfilSemErro(unittest.TestCase):
     def test_sem_erro_utilizador_nao_encontrado(self):
         at = _run(load_db_fn=_fake_load_db_sem_user)
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_perfil.py lê as suas cores de
+    core.THEME — nunca mais hexadecimais soltos, sem fundo escuro
+    forçado no cabeçalho do perfil."""
+
+    def test_header_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
+        self.assertNotIn("#F8FAFC", textos)
+        self.assertNotIn("#94A3B8", textos)
 
 
 if __name__ == "__main__":
