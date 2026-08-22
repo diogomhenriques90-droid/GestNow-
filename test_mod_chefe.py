@@ -98,6 +98,65 @@ def _run(obras_records=None, registos_records=None, inst_acessos_records=None,
     return at
 
 
+def _script_data_ja_datetime(obras_records, registos_records, inst_acessos_records):
+    # core.py._cached_load_all já converte registos_db['Data'] para
+    # datetime64 antes de o passar a render_chefe — ao contrário de
+    # _script() (que usa strings), este script reproduz fielmente essa
+    # forma real dos dados, para apanhar bugs que só existem quando a
+    # coluna chega já convertida (ver KPI "Horas Mês").
+    import streamlit as st
+    import pandas as pd
+    st.session_state.setdefault('_fv', {})
+    st.session_state['user']  = 'Chefe Teste'
+    st.session_state['tipo']  = 'Chefe de Equipa'
+    st.session_state['cargo'] = 'Chefe de Equipa'
+    from mod_chefe import render_chefe
+    vazio = pd.DataFrame()
+    registos_df = pd.DataFrame(registos_records)
+    registos_df['Data'] = pd.to_datetime(
+        registos_df['Data'], dayfirst=True, errors='coerce'
+    ).astype('datetime64[s]')
+    args = [
+        vazio, pd.DataFrame(obras_records), vazio, registos_df,
+        vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio,
+        vazio, vazio, vazio, vazio, vazio, vazio, vazio,
+        pd.DataFrame(inst_acessos_records),
+    ]
+    render_chefe(*args)
+
+
+class TestKpiHorasMesComDataJaConvertida(unittest.TestCase):
+    """Defesa: core.py._cached_load_all já converte registos_db['Data']
+    para datetime64 antes de chegar a mod_chefe.py — este teste
+    reproduz essa forma real dos dados (não strings) para o cálculo
+    de "Horas Mês" (KPI do topo), que em produção rebentou com
+    "TypeError: Invalid comparison between dtype=datetime64[s] and
+    date" (comparação de datetime64 com um datetime.date puro).
+
+    Não consegui reproduzir localmente a versão exata do pandas que
+    causa o erro (a instalação local tolera .dt.date em
+    datetime64[s]; requirements.txt fixa só "pandas>=2.2.0", sem
+    limite superior, por isso produção pode ter resolvido para uma
+    versão diferente da local). Reproduzi isoladamente a mensagem de
+    erro exata comparando datetime64 diretamente com datetime.date
+    (sem passar por .dt.date) — confirma o mecanismo. A correção
+    (comparar com pd.Timestamp em vez de datetime.date) elimina essa
+    classe de erro em qualquer versão do pandas, por isso mantenho
+    este teste como proteção mesmo sem conseguir vê-lo falhar aqui."""
+
+    def test_horas_mes_nao_rebenta_com_data_datetime64(self):
+        core._cached_load_db.clear()
+        core._load_users_cached.clear()
+        with patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(
+                _script_data_ja_datetime,
+                args=(_OBRAS_RECORDS, _REGISTOS_RECORDS, _INST_ACESSOS_RECORDS),
+                default_timeout=30)
+            at.run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+
+
 class TestRenderChefeSemErro(unittest.TestCase):
     """Smoke test — o ecrã continua a renderizar sem erro depois da
     migração para o THEME central. Cobre todos os separadores (Equipa,

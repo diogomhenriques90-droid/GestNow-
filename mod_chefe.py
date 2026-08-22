@@ -530,7 +530,7 @@ def render_chefe(*args):
     if not regs_equipa.empty:
         regs_mes = regs_equipa[
             pd.to_datetime(regs_equipa['Data'], dayfirst=True, errors='coerce'
-            ).dt.date >= inicio_mes
+            ) >= pd.Timestamp(inicio_mes)
         ]
         horas_mes = pd.to_numeric(regs_mes['Horas_Total'], errors='coerce'
                                   ).fillna(0).sum()
