@@ -69,6 +69,17 @@ class TestLogotipoVarianteClara(unittest.TestCase):
         self.assertIn("logo_cps_transparente.png", src)
 
 
+class TestSemSubtituloSobLogo(unittest.TestCase):
+    """A frase "Gestão de Instrumentação Industrial" por baixo do
+    logótipo foi removida — fica só o logótipo."""
+
+    def test_frase_ja_nao_aparece(self):
+        at = _run()
+        html = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("Gestão de Instrumentação Industrial", html)
+        self.assertNotIn("login-subtitle", html)
+
+
 class TestTemaClaroAplicado(unittest.TestCase):
     """Fase 2 da Identidade Visual: o ecrã de login lê as suas cores
     de core.THEME, já não força fundo escuro, e o formulário passa a
@@ -85,8 +96,13 @@ class TestTemaClaroAplicado(unittest.TestCase):
         at = _run()
         css = " ".join(m.value for m in at.markdown if "<style>" in m.value)
         self.assertIn(".login-card", css)
-        for chave in ("surface", "border", "radius", "text_secondary"):
+        for chave in ("surface", "border", "radius"):
             self.assertIn(core.THEME[chave], css)
+        # text_secondary já não aparece no <style> (a única regra que
+        # o usava, .login-subtitle, foi removida) — continua a
+        # aparecer no corpo do ecrã (ex. rodapé de ligações).
+        html = " ".join(m.value for m in at.markdown)
+        self.assertIn(core.THEME["text_secondary"], html)
 
     def test_ligacao_usa_acento(self):
         at = _run()

@@ -58,10 +58,6 @@ def render_login():
         padding: 32px 28px 24px;
         margin-top: 8px;
     }}
-    .login-subtitle {{
-        text-align: center; color: {THEME['text_secondary']};
-        font-size: 0.9rem; margin: 0 0 20px;
-    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -73,10 +69,6 @@ def render_login():
         f"<div style='display:flex;justify-content:center;margin:8px 0 4px 0;'>"
         f"<img src='data:image/png;base64,{_logo_b64}' alt='CPS Smart Solutions' "
         f"style='width:min(380px,80vw);height:auto;'/></div>",
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        "<p class='login-subtitle'>Gestão de Instrumentação Industrial</p>",
         unsafe_allow_html=True
     )
 
