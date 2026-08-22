@@ -1,10 +1,8 @@
 """
-Testes do módulo de Reporting Executivo (mod_fat_reporting.py).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 2 da Identidade Visual migrar este módulo (188 cores à
-mão) para o THEME central (core.py) e as funções partilhadas
-render_card()/render_badge().
+Testes do módulo de Reporting Executivo (mod_fat_reporting.py) — Fase
+2 da Identidade Visual: migração para o THEME central (core.py), em
+vez de hexadecimais soltos (188 no ficheiro, o segundo com mais na
+app).
 
 Fora de âmbito, de propósito (Fase 4): as cores dos gráficos Plotly
 (_grafico_*) e do PDF executivo (_gerar_pdf_executivo, reportlab) —
@@ -92,6 +90,51 @@ class TestRenderFatReportingSemErro(unittest.TestCase):
     def test_sem_erro_sem_dados(self):
         at = _run(obras_records=[], registos_records=[], faturas_records=[])
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 2 da Identidade Visual: mod_fat_reporting.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, e os cartões de KPI/cenários/regras usam as
+    cores de estado únicas (verde/âmbar/vermelho) só quando há mesmo
+    um estado a comunicar."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        css = " ".join(m.value for m in at.markdown if "<style>" in m.value)
+        for chave in ("surface", "border", "text", "text_secondary"):
+            self.assertIn(core.THEME[chave], css)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        # #1E293B continua a aparecer — é agora THEME['text'] (texto
+        # escuro sobre fundo claro), não um fundo. Os fundos escuros
+        # antigos (#0F172A, #334155) é que têm de ter desaparecido.
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
+        self.assertNotIn("#334155", textos)
+
+    def test_score_saude_usa_theme(self):
+        # _calcular_score_saude devolve THEME['success']/['warning']/
+        # ['error'] consoante o score — não os hexadecimais próprios
+        # que tinha antes.
+        import mod_fat_reporting
+        _, cor, _ = mod_fat_reporting._calcular_score_saude({
+            "margem_pct": 25, "fat_vencidas": 0, "autonomia": 5, "conc_cli": 10,
+        })
+        self.assertEqual(cor, core.THEME["success"])
+        _, cor, _ = mod_fat_reporting._calcular_score_saude({
+            "margem_pct": 5, "fat_vencidas": 10, "autonomia": 0, "conc_cli": 90,
+        })
+        self.assertEqual(cor, core.THEME["error"])
 
 
 if __name__ == "__main__":
