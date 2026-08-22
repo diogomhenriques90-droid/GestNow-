@@ -41,8 +41,9 @@ class TestRenderLoginSemErro(unittest.TestCase):
         self.assertFalse(at.exception, msg=str(at.exception))
 
     def test_logo_continua_presente(self):
-        # O logótipo (mesmo ficheiro, sem alterações) continua a
-        # aparecer via <img> em base64.
+        # O logótipo (o desenho em si, inalterado) continua a aparecer
+        # via <img> em base64 — só o ficheiro/variante pode mudar
+        # (ver TestLogotipoVarianteClara), nunca o logótipo em si.
         at = _run()
         html = " ".join(m.value for m in at.markdown)
         self.assertIn("data:image/png;base64,", html)
@@ -53,6 +54,19 @@ class TestRenderLoginSemErro(unittest.TestCase):
         labels = [t.label for t in at.tabs]
         self.assertIn("🔑 Password", labels)
         self.assertIn("🔢 PIN", labels)
+
+
+class TestLogotipoVarianteClara(unittest.TestCase):
+    """Fase 2 da Identidade Visual: com o ecrã de login claro, o
+    logótipo passa a usar a variante já preparada para fundo claro
+    ("transparente" — texto em cinza-escuro) em vez de "tema_escuro"
+    (texto branco, invisível em fundo claro)."""
+
+    def test_usa_variante_clara(self):
+        with open("mod_login.py", encoding="utf-8") as f:
+            src = f.read()
+        self.assertNotIn("logo_cps_tema_escuro.png", src)
+        self.assertIn("logo_cps_transparente.png", src)
 
 
 class TestTemaClaroAplicado(unittest.TestCase):

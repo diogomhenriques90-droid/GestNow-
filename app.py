@@ -28,7 +28,7 @@ st.set_page_config(
     }
 )
 
-st.logo("assets/logo_cps_tema_escuro.png",
+st.logo("assets/logo_cps_transparente.png",
         icon_image="assets/icone_cps_192.png", size="large")
 
 inject_pwa_meta()
@@ -526,7 +526,7 @@ def _render_validacao_obrigatoria(user_nome):
 # =============================================================================
 if st.session_state.get('user'):
     with st.sidebar:
-        with open("assets/logo_cps_tema_escuro.png", "rb") as _f:
+        with open("assets/logo_cps_transparente.png", "rb") as _f:
             _logo_sb_b64 = base64.b64encode(_f.read()).decode()
         st.markdown(
             f"<div style='display:flex;justify-content:center;margin:8px 0 20px 0;'>"

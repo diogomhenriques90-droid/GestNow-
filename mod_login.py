@@ -67,7 +67,7 @@ def render_login():
 
     st.markdown("<div class='login-wrap'>", unsafe_allow_html=True)
 
-    with open("assets/logo_cps_tema_escuro.png", "rb") as _f:
+    with open("assets/logo_cps_transparente.png", "rb") as _f:
         _logo_b64 = base64.b64encode(_f.read()).decode()
     st.markdown(
         f"<div style='display:flex;justify-content:center;margin:8px 0 4px 0;'>"

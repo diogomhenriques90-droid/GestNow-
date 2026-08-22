@@ -80,6 +80,22 @@ class TestEncaminhamentoAdmin(unittest.TestCase):
         self.assertEqual(ICONS['work'], "📊")
 
 
+class TestLogotipoNaBarraLateral(unittest.TestCase):
+    """Fase 2 da Identidade Visual: com a barra lateral e a área de
+    trabalho claras, o logótipo passa a usar a variante já preparada
+    para fundo claro ("transparente" — texto em cinza-escuro) em vez
+    da variante "tema_escuro" (texto branco, invisível em fundo
+    claro). Afeta os 2 sítios em app.py: st.logo() (mecanismo nativo
+    do Streamlit) e o logótipo embutido manualmente logo a seguir,
+    dentro do bloco da barra lateral."""
+
+    def test_usa_variante_clara_nos_2_sitios(self):
+        with open("app.py", encoding="utf-8") as f:
+            src = f.read()
+        self.assertNotIn("logo_cps_tema_escuro.png", src)
+        self.assertEqual(src.count("logo_cps_transparente.png"), 2)
+
+
 class TestEncaminhamentoCliente(unittest.TestCase):
     def test_portal_cliente_abre(self):
         at = _run("Cliente", f"{ICONS['dashboard']} Portal", user="Cliente Teste")
