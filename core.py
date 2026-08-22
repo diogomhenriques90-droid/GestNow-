@@ -1362,6 +1362,12 @@ ul[role="listbox"] li:hover {{ background: var(--bg) !important; }}
     border-radius: var(--radius); padding: 10px 24px; font-weight: 600;
 }}
 .stButton > button:hover {{ background: var(--accent-hover); }}
+/* O rótulo do botão vem embrulhado num p/div interno do Streamlit;
+   sem isto, uma regra genérica de cor de texto de um módulo (ex.
+   "p, div, span com cor") ganha ao branco herdado do botão, porque
+   uma cor especificada diretamente no elemento vence sempre uma cor
+   apenas herdada — mesmo sendo o botão a usar !important. */
+.stButton > button * {{ color: inherit !important; }}
 .status-pending    {{ color: var(--warning) !important; font-weight: 600; }}
 .status-ok         {{ color: var(--success) !important; font-weight: 600; }}
 .status-calibrated {{ color: var(--accent)  !important; font-weight: 600; }}

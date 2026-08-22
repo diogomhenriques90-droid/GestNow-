@@ -204,6 +204,21 @@ class TestGlobalCssSemContradicao(unittest.TestCase):
             self.assertIn(core.THEME[chave], core.GLOBAL_CSS)
 
 
+class TestBotaoLabelHerdaCorDoBotao(unittest.TestCase):
+    """O rótulo de qualquer st.button() vem embrulhado num <p>/<div>
+    interno do Streamlit. Sem uma regra central a forçar herança, uma
+    regra de módulo tão simples como "p, div, span { color: ... }"
+    (usada em mais de um ecrã para o texto secundário) ganha ao branco
+    do botão primário, porque uma cor especificada diretamente no
+    elemento vence sempre uma cor apenas herdada — mesmo com
+    !important do lado do botão. Isto causou um botão "Registar Ponto"
+    com texto escuro sobre fundo de acento (contraste insuficiente)."""
+
+    def test_regra_central_existe(self):
+        self.assertIn(".stButton > button * ", core.GLOBAL_CSS)
+        self.assertIn("color: inherit !important", core.GLOBAL_CSS)
+
+
 class TestEscapeHtml(unittest.TestCase):
     def test_escapa_angulares(self):
         self.assertEqual(core.escape_html("<script>"), "&lt;script&gt;")
