@@ -1,9 +1,7 @@
 """
-Testes do Dashboard Executivo CFO (mod_fat_dashboard.py).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 2 da Identidade Visual migrar este módulo para o THEME
-central (core.py).
+Testes do Dashboard Executivo CFO (mod_fat_dashboard.py) — Fase 2 da
+Identidade Visual: migração para o THEME central (core.py), em vez de
+hexadecimais soltos.
 
 Fora de âmbito, de propósito (Fase 4): as cores dos gráficos Plotly
 (_grafico_*, ~10 funções) — não herdam do tema do Streamlit, precisam
@@ -83,6 +81,62 @@ class TestRenderFatDashboardSemErro(unittest.TestCase):
     def test_sem_erro_sem_dados(self):
         at = _run(obras_records=[], registos_records=[], diarias_pag_records=[])
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 2 da Identidade Visual: mod_fat_dashboard.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, sem fundos escuros forçados nos cartões de
+    KPI, alertas, scorecard de obras e Co-Piloto."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        css = " ".join(m.value for m in at.markdown if "<style>" in m.value)
+        for chave in ("surface", "border", "text", "text_secondary"):
+            self.assertIn(core.THEME[chave], css)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertNotIn("#475569", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        # #1E293B continua a aparecer — é agora THEME['text'] (texto
+        # escuro sobre fundo claro), não um fundo. Os fundos escuros
+        # antigos (#0F172A, #334155) é que têm de ter desaparecido do
+        # HTML (continuam a existir dentro dos gráficos Plotly, fora
+        # de âmbito na Fase 2).
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
+        self.assertNotIn("#334155", textos)
+
+    def test_rag_cor_usa_theme(self):
+        import mod_fat_dashboard
+        self.assertEqual(mod_fat_dashboard._rag_cor(80)[0], core.THEME["success"])
+        self.assertEqual(mod_fat_dashboard._rag_cor(50)[0], core.THEME["warning"])
+        self.assertEqual(mod_fat_dashboard._rag_cor(20)[0], core.THEME["error"])
+
+    def test_alertas_usam_theme(self):
+        import mod_fat_dashboard
+        kpis = {
+            "fat_mes": 0, "fat_mes_ant": 0, "trend_fat": 0, "a_receber": 0,
+            "a_pagar": 0, "custos_mes": 0, "margem_pct": 25,
+            "faturas_vencidas": 1, "cash_flow_prev": -100,
+        }
+        vazio = pd.DataFrame()
+        alertas = mod_fat_dashboard._gerar_alertas(
+            kpis, vazio, vazio, vazio, vazio, vazio
+        )
+        cores = {a["cor"] for a in alertas}
+        self.assertTrue(cores.issubset({
+            core.THEME["error"], core.THEME["warning"],
+            core.THEME["accent"], core.THEME["success"],
+        }))
 
 
 if __name__ == "__main__":
