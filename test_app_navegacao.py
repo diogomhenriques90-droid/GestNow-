@@ -85,15 +85,25 @@ class TestLogotipoNaBarraLateral(unittest.TestCase):
     trabalho claras, o logótipo passa a usar a variante já preparada
     para fundo claro ("transparente" — texto em cinza-escuro) em vez
     da variante "tema_escuro" (texto branco, invisível em fundo
-    claro). Afeta os 2 sítios em app.py: st.logo() (mecanismo nativo
-    do Streamlit) e o logótipo embutido manualmente logo a seguir,
-    dentro do bloco da barra lateral."""
+    claro).
 
-    def test_usa_variante_clara_nos_2_sitios(self):
+    O logótipo aparece só uma vez, via st.logo() (mecanismo nativo do
+    Streamlit, cobre também o caso da barra colapsada) — o segundo
+    logótipo, que estava embutido manualmente logo a seguir dentro do
+    bloco da barra lateral, foi removido por ser redundante (os dois
+    empilhados ocupavam quase metade da barra antes da navegação)."""
+
+    def test_usa_variante_clara_um_so_sitio(self):
         with open("app.py", encoding="utf-8") as f:
             src = f.read()
         self.assertNotIn("logo_cps_tema_escuro.png", src)
-        self.assertEqual(src.count("logo_cps_transparente.png"), 2)
+        self.assertEqual(src.count("logo_cps_transparente.png"), 1)
+        self.assertIn('st.logo("assets/logo_cps_transparente.png"', src)
+
+    def test_logotipo_embutido_manualmente_foi_removido(self):
+        with open("app.py", encoding="utf-8") as f:
+            src = f.read()
+        self.assertNotIn("_logo_sb_b64", src)
 
 
 class TestEncaminhamentoCliente(unittest.TestCase):

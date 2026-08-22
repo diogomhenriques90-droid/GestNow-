@@ -526,15 +526,10 @@ def _render_validacao_obrigatoria(user_nome):
 # =============================================================================
 if st.session_state.get('user'):
     with st.sidebar:
-        with open("assets/logo_cps_transparente.png", "rb") as _f:
-            _logo_sb_b64 = base64.b64encode(_f.read()).decode()
-        st.markdown(
-            f"<div style='display:flex;justify-content:center;margin:8px 0 20px 0;'>"
-            f"<img src='data:image/png;base64,{_logo_sb_b64}' alt='CPS Smart Solutions' "
-            f"style='width:min(220px,95%);height:auto;'/></div>",
-            unsafe_allow_html=True
-        )
-
+        # Logótipo mostrado só via st.logo() (topo da barra lateral,
+        # já cobre também o caso da barra colapsada) — o segundo
+        # logótipo embutido aqui manualmente foi removido por ser
+        # redundante (Identidade Visual, Fase 2).
         st.markdown(f"""
         <div style="padding:12px;background:rgba(255,255,255,0.05);
             border-radius:12px;margin-bottom:16px;">
