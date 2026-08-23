@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import uuid
 from datetime import datetime, timedelta, date
-from core import save_db, inv, load_db
+from core import save_db, inv, load_db, THEME
 
 def render_planeamento():
     st.markdown("### 📋 Planeamento e Engenharia")
@@ -137,18 +137,18 @@ def render_planeamento():
                     h_reais = float(pac.get('Horas_Reais',0) or 0)
                     pct     = round(h_reais/h_plan*100,0) if h_plan > 0 else 0
                     cor_s   = {
-                        "Em Curso":"#3B82F6","Concluído":"#10B981",
-                        "Suspenso":"#EF4444","Planeado":"#F59E0B"
-                    }.get(pac.get('Status',''),"#6B7280")
+                        "Em Curso":THEME['accent'],"Concluído":THEME['success'],
+                        "Suspenso":THEME['error'],"Planeado":THEME['warning']
+                    }.get(pac.get('Status',''),THEME['text_secondary'])
 
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:8px;"
                         f"border-left:4px solid {cor_s};'>"
-                        f"<b style='color:#F1F5F9;'>{pac.get('Descricao','')[:50]}</b>"
+                        f"<b style='color:{THEME['text']};'>{pac.get('Descricao','')[:50]}</b>"
                         f"<span style='float:right;color:{cor_s};font-size:0.8rem;'>"
                         f"{pac.get('Status','')}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{pac.get('Obra','')} · {pac.get('Frente','')} · "
                         f"{h_reais:.0f}h/{h_plan:.0f}h ({pct:.0f}%) · "
                         f"{pac.get('Data_Inicio','')}→{pac.get('Data_Fim','')}"
@@ -241,18 +241,18 @@ def render_planeamento():
                 ).iterrows():
                     ms_id  = ms.get('ID','')
                     cor_ms = {
-                        "Concluído":"#10B981",
-                        "Em Risco": "#EF4444",
-                        "Pendente": "#F59E0B"
-                    }.get(ms.get('Status',''),"#6B7280")
+                        "Concluído":THEME['success'],
+                        "Em Risco": THEME['error'],
+                        "Pendente": THEME['warning']
+                    }.get(ms.get('Status',''),THEME['text_secondary'])
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:8px;"
                         f"border-left:4px solid {cor_ms};'>"
-                        f"<b style='color:#F1F5F9;'>{ms.get('Descricao','')}</b>"
+                        f"<b style='color:{THEME['text']};'>{ms.get('Descricao','')}</b>"
                         f"<span style='float:right;color:{cor_ms};'>"
                         f"{ms.get('Status','')}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{ms.get('Obra','')} · {ms.get('Data_Alvo','')} · "
                         f"{ms.get('Responsavel','')}</small></div>",
                         unsafe_allow_html=True

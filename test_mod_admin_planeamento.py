@@ -1,9 +1,7 @@
 """
-Testes do módulo Planeamento e Engenharia (mod_admin_planeamento.py).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 3 da Identidade Visual migrar este módulo para o THEME
-central (core.py).
+Testes do módulo Planeamento e Engenharia (mod_admin_planeamento.py)
+— Fase 3 da Identidade Visual: migração para o THEME central
+(core.py), em vez de hexadecimais soltos.
 
 Não tocam em GCS real: `mod_admin_planeamento.load_db` é mockado
 diretamente (devolve DataFrames de teste, consoante o ficheiro
@@ -24,11 +22,19 @@ _PACOTES_RECORDS = [{
     "Descricao": "Instalação de instrumentos", "Horas_Plan": "40",
     "Horas_Reais": "20", "Data_Inicio": "01/01/2026", "Data_Fim": "31/01/2026",
     "Status": "Em Curso", "Criado_Por": "Admin",
+}, {
+    "ID": "P2", "Obra": "Obra Teste", "Frente": "Frente B",
+    "Descricao": "Calibração concluída", "Horas_Plan": "10",
+    "Horas_Reais": "10", "Data_Inicio": "01/01/2026", "Data_Fim": "05/01/2026",
+    "Status": "Concluído", "Criado_Por": "Admin",
 }]
 
 _MILESTONES_RECORDS = [{
     "ID": "M1", "Obra": "Obra Teste", "Descricao": "Entrega Fase 1",
     "Data_Alvo": "15/02/2026", "Responsavel": "Ana Teste", "Status": "Pendente",
+}, {
+    "ID": "M2", "Obra": "Obra Teste", "Descricao": "Comissionamento em risco",
+    "Data_Alvo": "01/03/2026", "Responsavel": "Ana Teste", "Status": "Em Risco",
 }]
 
 _DESENHOS_RECORDS = [{
@@ -81,6 +87,33 @@ class TestRenderPlaneamentoSemErro(unittest.TestCase):
     def test_sem_erro_sem_dados(self):
         at = _run(load_db_fn=_fake_load_db_vazio)
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_admin_planeamento.py lê as
+    suas cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, sem fundos escuros forçados nos cartões de
+    pacote de trabalho e de milestone."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "success", "warning", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#6B7280", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
 
 
 if __name__ == "__main__":
