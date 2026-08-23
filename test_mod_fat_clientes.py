@@ -172,5 +172,98 @@ class TestPessoasDeContacto(unittest.TestCase):
         self.assertNotIn("Pessoa Errada", textos)
 
 
+# ─────────────────────────────────────────────────────────────────
+# Fase 3 da Identidade Visual — cobertura de ecrã completo
+# ─────────────────────────────────────────────────────────────────
+# Bloqueia o comportamento atual dos restantes separadores (Emitir
+# Fatura, Histórico, Aging, Contratos, Notas de Crédito) antes de
+# migrar mod_fat_clientes.py para o THEME central. Não altera nem
+# reescreve nada dos testes acima (Gestão de Clientes / Pessoas de
+# Contacto) — apenas acrescenta cobertura em falta.
+#
+# Fora de âmbito, de propósito (Fase 4, mesmo critério de sempre): os
+# 4 gráficos Plotly (Pipeline de Faturas, Aging Detalhado, Timeline
+# por Cliente) e o PDF de fatura (reportlab).
+
+import core
+
+_OBRAS_RECORDS_FULL = [{"Obra": "Obra Clientes Teste", "Ativa": "Ativa"}]
+
+_FATURAS_CLI_RECORDS_FULL = [
+    {"ID": "F1", "Numero": "FT 2026/1", "Tipo": "FT",
+     "Data_Emissao": "01/01/2026", "Data_Vencimento": "31/01/2026",
+     "Cliente": "Cliente Teste", "NIF_Cliente": "123456789",
+     "Morada_Cliente": "", "Obra": "Obra Clientes Teste",
+     "Subtotal": "1000", "IVA": "230", "Total": "1230",
+     "Estado": "Vencida", "Notas": "", "PDF_b64": "",
+     "Enviada_Em": "", "Paga_Em": ""},
+    {"ID": "F2", "Numero": "FT 2026/2", "Tipo": "FT",
+     "Data_Emissao": "01/02/2026", "Data_Vencimento": "03/03/2026",
+     "Cliente": "Cliente Teste", "NIF_Cliente": "123456789",
+     "Morada_Cliente": "", "Obra": "Obra Clientes Teste",
+     "Subtotal": "2000", "IVA": "460", "Total": "2460",
+     "Estado": "Paga", "Notas": "", "PDF_b64": "",
+     "Enviada_Em": "", "Paga_Em": "05/03/2026"},
+]
+
+_CONTRATOS_RECORDS_FULL = [
+    {"ID": "CT1", "Cliente": "Cliente Teste", "Obra": "Obra Clientes Teste",
+     "Valor_Total": "50000", "Valor_Faturado": "20000",
+     "Retencao_Pct": "5", "Valor_Retido": "2500",
+     "Data_Inicio": "01/01/2026", "Data_Fim": "31/12/2026",
+     "Data_Libertacao": "15/09/2026", "Estado": "Ativo"},
+]
+
+
+def _fake_load_db_full(fn, cols, silent=False):
+    mapa = {
+        "clientes_financeiro.csv": _CLIENTES_RECORDS,
+        "faturas_clientes.csv": _FATURAS_CLI_RECORDS_FULL,
+        "contratos_financeiro.csv": _CONTRATOS_RECORDS_FULL,
+    }
+    if fn in mapa:
+        return pd.DataFrame(mapa[fn])
+    return pd.DataFrame(columns=cols)
+
+
+def _fake_load_db_full_vazio(fn, cols, silent=False):
+    return pd.DataFrame(columns=cols)
+
+
+def _script_full(obras_records):
+    import streamlit as st
+    import pandas as pd
+    st.session_state.setdefault('_fv', {})
+    st.session_state['user'] = 'Admin'
+    from mod_fat_clientes import render_fat_clientes
+    render_fat_clientes(pd.DataFrame(obras_records), pd.DataFrame())
+
+
+def _run_full(load_db_fn=_fake_load_db_full):
+    core._cached_load_db.clear()
+    with patch("mod_fat_clientes.load_db", side_effect=load_db_fn), \
+         patch("core._gcs_read", return_value=None), \
+         patch("core._gcs_client", return_value=None):
+        at = AppTest.from_function(
+            _script_full, args=(_OBRAS_RECORDS_FULL,), default_timeout=30)
+        at.run()
+    return at
+
+
+class TestRenderFatClientesEcraCompletoSemErro(unittest.TestCase):
+    """Smoke test — o ecrã renderiza sem erro, com e sem dados. Cobre
+    os 6 separadores (Emitir Fatura, Histórico, Clientes, Aging,
+    Contratos, Notas de Crédito) porque st.tabs() desenha o conteúdo
+    de todos de uma vez."""
+
+    def test_sem_erro_com_dados(self):
+        at = _run_full()
+        self.assertFalse(at.exception, msg=str(at.exception))
+
+    def test_sem_erro_sem_dados(self):
+        at = _run_full(load_db_fn=_fake_load_db_full_vazio)
+        self.assertFalse(at.exception, msg=str(at.exception))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
