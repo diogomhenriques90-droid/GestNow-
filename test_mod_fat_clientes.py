@@ -204,6 +204,14 @@ _FATURAS_CLI_RECORDS_FULL = [
      "Subtotal": "2000", "IVA": "460", "Total": "2460",
      "Estado": "Paga", "Notas": "", "PDF_b64": "",
      "Enviada_Em": "", "Paga_Em": "05/03/2026"},
+    # Estado "Em Análise" — exercita o ramo "warning" de cor_estado.
+    {"ID": "F3", "Numero": "FT 2026/3", "Tipo": "FT",
+     "Data_Emissao": "10/08/2026", "Data_Vencimento": "10/09/2026",
+     "Cliente": "Cliente Teste", "NIF_Cliente": "123456789",
+     "Morada_Cliente": "", "Obra": "Obra Clientes Teste",
+     "Subtotal": "500", "IVA": "115", "Total": "615",
+     "Estado": "Em Análise", "Notas": "", "PDF_b64": "",
+     "Enviada_Em": "", "Paga_Em": ""},
 ]
 
 _CONTRATOS_RECORDS_FULL = [
@@ -263,6 +271,36 @@ class TestRenderFatClientesEcraCompletoSemErro(unittest.TestCase):
     def test_sem_erro_sem_dados(self):
         at = _run_full(load_db_fn=_fake_load_db_full_vazio)
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_fat_clientes.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, sem fundos escuros forçados."""
+
+    def test_css_usa_theme(self):
+        at = _run_full()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "warning", "success", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run_full()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertNotIn("#475569", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run_full()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("background:#1E293B", textos)
+        self.assertNotIn("background: #1E293B", textos)
+        self.assertNotIn("background:#0F172A", textos)
+        self.assertNotIn("#F1F5F9", textos)
 
 
 if __name__ == "__main__":

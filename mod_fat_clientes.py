@@ -16,7 +16,7 @@ from reportlab.lib.units import cm
 from core import (save_db, inv, load_db, log_audit, criar_notificacao,
                   registar_novo_cliente, referencias_cliente,
                   migrar_clientes_existentes, _norm_nome_cliente,
-                  _CLIENTES_FINANCEIRO_COLS)
+                  _CLIENTES_FINANCEIRO_COLS, THEME)
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -494,24 +494,25 @@ def render_fat_clientes(obras_db, registos_db, *_):
     user_nome = st.session_state.get('user', 'Admin')
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .fat-card {
-        background: #1E293B;
+    .fat-card {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
         border-radius: 12px;
         padding: 14px 16px;
         margin-bottom: 8px;
-        border-left: 4px solid #3B82F6;
+        border-left: 4px solid {THEME['accent']};
         transition: transform 0.15s;
-    }
-    .fat-card:hover { transform: translateX(3px); }
-    .estado-badge {
+    }}
+    .fat-card:hover {{ transform: translateX(3px); }}
+    .estado-badge {{
         display: inline-block;
         padding: 3px 10px;
         border-radius: 20px;
         font-size: 0.72rem;
         font-weight: 700;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -546,10 +547,10 @@ def render_fat_clientes(obras_db, registos_db, *_):
             tipo_cod = tipo_doc[:2]
             num_auto = _proximo_numero(faturas_cli, tipo_cod)
             st.markdown(
-                f"<div style='background:rgba(59,130,246,0.1);"
-                f"border:1px solid #3B82F6;border-radius:8px;"
+                f"<div style='background:rgba(14,124,134,0.08);"
+                f"border:1px solid {THEME['accent']};border-radius:8px;"
                 f"padding:10px;margin-bottom:12px;'>"
-                f"<b style='color:#3B82F6;'>Número: {num_auto}</b>"
+                f"<b style='color:{THEME['accent']};'>Número: {num_auto}</b>"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -652,7 +653,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
 
             for i, linha in enumerate(linhas_atuais):
                 st.markdown(
-                    f"<p style='color:#64748B;font-size:0.75rem;"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
                     f"margin:4px 0;'>Linha {i+1}</p>",
                     unsafe_allow_html=True
                 )
@@ -696,7 +697,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 iva_total      += iva_l
 
                 st.markdown(
-                    f"<p style='text-align:right;color:#3B82F6;"
+                    f"<p style='text-align:right;color:{THEME['accent']};"
                     f"font-size:0.8rem;margin:0 0 6px;'>"
                     f"= €{sub_l:.2f} + IVA €{iva_l:.2f}"
                     f"</p>",
@@ -730,25 +731,26 @@ def render_fat_clientes(obras_db, registos_db, *_):
             # Totais
             total_geral = subtotal_total + iva_total
             st.markdown(
-                f"<div style='background:#1E293B;border-radius:10px;"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
+                f"border-radius:10px;"
                 f"padding:14px;margin:12px 0;'>"
                 f"<div style='display:flex;justify-content:space-between;'>"
-                f"<span style='color:#94A3B8;'>Subtotal</span>"
-                f"<span style='color:#F1F5F9;"
+                f"<span style='color:{THEME['text_secondary']};'>Subtotal</span>"
+                f"<span style='color:{THEME['text']};"
                 f"font-weight:700;'>€{subtotal_total:.2f}</span>"
                 f"</div>"
                 f"<div style='display:flex;justify-content:space-between;"
                 f"margin-top:4px;'>"
-                f"<span style='color:#94A3B8;'>IVA</span>"
-                f"<span style='color:#F1F5F9;"
+                f"<span style='color:{THEME['text_secondary']};'>IVA</span>"
+                f"<span style='color:{THEME['text']};"
                 f"font-weight:700;'>€{iva_total:.2f}</span>"
                 f"</div>"
                 f"<div style='display:flex;justify-content:space-between;"
-                f"margin-top:8px;border-top:1px solid #334155;"
+                f"margin-top:8px;border-top:1px solid {THEME['border']};"
                 f"padding-top:8px;'>"
-                f"<span style='color:#3B82F6;font-size:1.1rem;"
+                f"<span style='color:{THEME['accent']};font-size:1.1rem;"
                 f"font-weight:900;'>TOTAL</span>"
-                f"<span style='color:#3B82F6;font-size:1.2rem;"
+                f"<span style='color:{THEME['accent']};font-size:1.2rem;"
                 f"font-weight:900;'>€{total_geral:.2f}</span>"
                 f"</div></div>",
                 unsafe_allow_html=True
@@ -917,13 +919,13 @@ def render_fat_clientes(obras_db, registos_db, *_):
         with col_prev:
             st.markdown("#### 👀 Pré-visualização")
             st.markdown(
-                "<div style='background:#F8FAFC;border:1px solid #E2E8F0;"
-                "border-radius:12px;padding:20px;color:#1E293B;'>"
-                f"<div style='border-bottom:3px solid #3B82F6;"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
+                f"border-radius:12px;padding:20px;color:{THEME['text']};'>"
+                f"<div style='border-bottom:3px solid {THEME['accent']};"
                 f"padding-bottom:12px;margin-bottom:12px;'>"
-                f"<h3 style='color:#1E293B;margin:0;'>"
+                f"<h3 style='color:{THEME['text']};margin:0;'>"
                 f"{empresa.get('nome','')}</h3>"
-                f"<small style='color:#64748B;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"NIF: {empresa.get('nif','')} | "
                 f"{empresa.get('morada','')}</small>"
                 f"</div>",
@@ -935,17 +937,17 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 f"<div style='display:grid;"
                 f"grid-template-columns:1fr 1fr;"
                 f"gap:8px;margin-bottom:12px;'>"
-                f"<div style='background:#EFF6FF;"
+                f"<div style='background:rgba(14,124,134,0.08);"
                 f"border-radius:8px;padding:10px;'>"
-                f"<small style='color:#3B82F6;font-weight:700;'>"
+                f"<small style='color:{THEME['accent']};font-weight:700;'>"
                 f"NÚMERO</small><br>"
-                f"<b style='color:#1E293B;'>{num_prev}</b>"
+                f"<b style='color:{THEME['text']};'>{num_prev}</b>"
                 f"</div>"
-                f"<div style='background:#F0FDF4;"
+                f"<div style='background:rgba(21,128,61,0.08);"
                 f"border-radius:8px;padding:10px;'>"
-                f"<small style='color:#10B981;font-weight:700;'>"
+                f"<small style='color:{THEME['success']};font-weight:700;'>"
                 f"VENCIMENTO</small><br>"
-                f"<b style='color:#1E293B;'>"
+                f"<b style='color:{THEME['text']};'>"
                 f"{date.today() + timedelta(days=30)}"
                 f"</b></div></div>"
                 f"</div>",
@@ -966,9 +968,9 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         f"justify-content:space-between;"
                         f"padding:4px 0;border-bottom:"
                         f"1px solid rgba(0,0,0,0.05);'>"
-                        f"<small style='color:#374151;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{linha['Descricao'][:40]}</small>"
-                        f"<small style='color:#1E293B;"
+                        f"<small style='color:{THEME['text']};"
                         f"font-weight:700;'>"
                         f"€{sub_p:.2f}</small></div>",
                         unsafe_allow_html=True
@@ -976,7 +978,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
 
             st.markdown(
                 f"<div style='text-align:right;margin-top:12px;"
-                f"font-size:1.2rem;font-weight:900;color:#3B82F6;'>"
+                f"font-size:1.2rem;font-weight:900;color:{THEME['accent']};'>"
                 f"TOTAL: €{total_prev:.2f}</div>",
                 unsafe_allow_html=True
             )
@@ -1048,12 +1050,12 @@ def render_fat_clientes(obras_db, registos_db, *_):
 
             # Lista de faturas
             cor_estado = {
-                'Paga':       '#10B981',
-                'Enviada':    '#3B82F6',
-                'Emitida':    '#8B5CF6',
-                'Vencida':    '#EF4444',
-                'Rascunho':   '#64748B',
-                'Em Análise': '#F59E0B',
+                'Paga':       THEME['success'],
+                'Enviada':    THEME['accent'],
+                'Emitida':    THEME['accent'],
+                'Vencida':    THEME['error'],
+                'Rascunho':   THEME['text_secondary'],
+                'Em Análise': THEME['warning'],
             }
 
             for _, fat in df_show.sort_values(
@@ -1062,7 +1064,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 fat_id = fat.get('ID','')
                 total_f = float(fat.get('Total', 0) or 0)
                 estado  = fat.get('Estado','')
-                cor_f   = cor_estado.get(estado, '#6B7280')
+                cor_f   = cor_estado.get(estado, THEME['text_secondary'])
                 dias_v  = _dias_vencimento(
                     fat.get('Data_Vencimento','')
                 )
@@ -1073,13 +1075,13 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     if estado not in ['Paga','Anulada','Rascunho']:
                         if dias_v > 0:
                             venc_txt = (
-                                f"<span style='color:#EF4444;"
+                                f"<span style='color:{THEME['error']};"
                                 f"font-size:0.72rem;'>"
                                 f"⚠️ Vencida há {dias_v} dias</span>"
                             )
                         elif dias_v > -7:
                             venc_txt = (
-                                f"<span style='color:#F59E0B;"
+                                f"<span style='color:{THEME['warning']};"
                                 f"font-size:0.72rem;'>"
                                 f"⏰ Vence em breve</span>"
                             )
@@ -1091,18 +1093,18 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         f"justify-content:space-between;"
                         f"align-items:flex-start;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.9rem;'>"
                         f"{fat.get('Numero','')} — "
                         f"{fat.get('Cliente','')}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{fat.get('Obra','')} · "
                         f"Emissão: {fat.get('Data_Emissao','')} · "
                         f"Venc.: {fat.get('Data_Vencimento','')}"
                         f"</small><br>{venc_txt}"
                         f"</div>"
                         f"<div style='text-align:right;'>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:1.05rem;'>"
                         f"€{total_f:,.2f}</b><br>"
                         f"<span class='estado-badge' "
@@ -1176,7 +1178,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     v, m = _validar_nif(cli_nif)
                     st.markdown(
                         f"<small style='color:"
-                        f"{'#10B981' if v else '#EF4444'};'>"
+                        f"{THEME['success'] if v else THEME['error']};'>"
                         f"{m}</small>",
                         unsafe_allow_html=True
                     )
@@ -1258,21 +1260,22 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     limite_cli = limite_cli if pd.notna(limite_cli) else 0
 
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:14px;"
                         f"margin-bottom:8px;"
-                        f"border-left:3px solid #3B82F6;'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"border-left:3px solid {THEME['accent']};'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"{cli.get('Nome','')}</b>"
-                        f"<span style='float:right;color:#10B981;"
+                        f"<span style='float:right;color:{THEME['success']};"
                         f"font-weight:700;'>"
                         f"€{vol_cli:,.2f} faturado</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"NIF: {cli.get('NIF','')} · "
                         f"{cli.get('Condicoes_Pagamento',30)} dias · "
                         f"Limite: €{limite_cli:,.0f}"
                         f"</small><br>"
-                        f"<small style='color:#475569;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"📧 {cli.get('Email','')} · "
                         f"📞 {cli.get('Telefone','')}"
                         f"</small></div>",
@@ -1393,10 +1396,11 @@ def render_fat_clientes(obras_db, registos_db, *_):
                                 if ct.get('Cargo', ''):
                                     linha_ct += f" — {ct.get('Cargo', '')}"
                                 st.markdown(
-                                    f"<div style='background:#1E293B;border-radius:8px;"
+                                    f"<div style='background:{THEME['surface']};"
+                                    f"border:1px solid {THEME['border']};border-radius:8px;"
                                     f"padding:8px 12px;margin-bottom:4px;'>"
-                                    f"<b style='color:#F1F5F9;'>{linha_ct}</b><br>"
-                                    f"<small style='color:#64748B;'>"
+                                    f"<b style='color:{THEME['text']};'>{linha_ct}</b><br>"
+                                    f"<small style='color:{THEME['text_secondary']};'>"
                                     f"📧 {ct.get('Email','') or '—'} · "
                                     f"📞 {ct.get('Telefone','') or '—'}</small>"
                                     f"</div>",
@@ -1551,19 +1555,19 @@ def render_fat_clientes(obras_db, registos_db, *_):
                            if pd.notna(row['Venc_d']) else 0
                     if dias <= 0:
                         escalao = "✅ Não vencida"
-                        cor_a = "#10B981"
+                        cor_a = THEME['success']
                     elif dias <= 30:
                         escalao = "🟡 0-30 dias"
-                        cor_a = "#F59E0B"
+                        cor_a = THEME['warning']
                     elif dias <= 60:
                         escalao = "🟠 31-60 dias"
-                        cor_a = "#F97316"
+                        cor_a = THEME['warning']
                     elif dias <= 90:
                         escalao = "🔴 61-90 dias"
-                        cor_a = "#EF4444"
+                        cor_a = THEME['error']
                     else:
                         escalao = "🆘 +90 dias"
-                        cor_a = "#DC2626"
+                        cor_a = THEME['error']
 
                     aging_rows.append({
                         "Fatura":   row.get('Numero',''),
@@ -1709,14 +1713,14 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         dias_lib = (lib_d.date() - date.today()).days
                         if 0 <= dias_lib <= 30:
                             alerta_lib = (
-                                f"<span style='color:#10B981;"
+                                f"<span style='color:{THEME['success']};"
                                 f"font-size:0.75rem;'>"
                                 f"🔓 Retenção liberta em {dias_lib} dias!"
                                 f"</span>"
                             )
                         elif dias_lib < 0:
                             alerta_lib = (
-                                f"<span style='color:#F59E0B;"
+                                f"<span style='color:{THEME['warning']};"
                                 f"font-size:0.75rem;'>"
                                 f"⚠️ Retenção deveria ter sido libertada"
                                 f"</span>"
@@ -1725,24 +1729,25 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         pass
 
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:14px;"
                         f"margin-bottom:8px;"
-                        f"border-left:4px solid #8B5CF6;'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"border-left:4px solid {THEME['accent']};'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"{ct.get('Obra','')} — {ct.get('Cliente','')}"
                         f"</b>"
-                        f"<span style='float:right;color:#8B5CF6;"
+                        f"<span style='float:right;color:{THEME['accent']};"
                         f"font-weight:700;'>"
                         f"€{val_t:,.2f}</span><br>"
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['background']};"
                         f"border-radius:4px;height:8px;"
                         f"margin:8px 0;'>"
-                        f"<div style='background:#8B5CF6;"
+                        f"<div style='background:{THEME['accent']};"
                         f"width:{min(pct_ex,100):.0f}%;"
                         f"height:8px;border-radius:4px;'>"
                         f"</div></div>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Faturado: €{val_fat:,.2f} ({pct_ex:.1f}%) · "
                         f"Retido: €{val_ret:,.2f} · "
                         f"Libertação: {ct.get('Data_Libertacao','')}"
@@ -1788,7 +1793,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             fat_sel.iloc[0].get('Total', 0) or 0
                         )
                         st.markdown(
-                            f"<small style='color:#3B82F6;'>"
+                            f"<small style='color:{THEME['accent']};'>"
                             f"Valor original: €{val_orig:,.2f}</small>",
                             unsafe_allow_html=True
                         )
