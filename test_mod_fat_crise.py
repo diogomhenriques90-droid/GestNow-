@@ -122,5 +122,40 @@ class TestRenderFatCriseSemErro(unittest.TestCase):
         self.assertFalse(at.exception, msg=str(at.exception))
 
 
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_fat_crise.py lê as suas cores
+    de core.THEME — nunca mais hexadecimais soltos, um só cinzento
+    secundário, sem fundos escuros forçados. As cores dos 5 cenários
+    de Stress Test não têm semântica boa/má — colapsadas num acento
+    único (mesmo critério de mod_admin_formacoes.py). A cor de cada
+    Fonte de Ajuda passa a derivar da urgência (crítica/alta→error,
+    média→warning, baixa→accent) em vez de um hexadecimal fixo por
+    entidade. Os 4 gráficos Plotly e o PDF (reportlab) ficam de
+    fora, de propósito — Fase 4."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "warning", "success", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertNotIn("#475569", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("background:#1E293B", textos)
+        self.assertNotIn("background: #1E293B", textos)
+        self.assertNotIn("#F1F5F9", textos)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
