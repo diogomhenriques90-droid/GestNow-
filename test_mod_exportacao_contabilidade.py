@@ -1,11 +1,9 @@
 """
 Testes do módulo de Exportação para Contabilidade — Eticadata
 (mod_exportacao_contabilidade.py, sub-separador "📤 Export
-Contabilidade" dentro de Admin → Faturação).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 3 da Identidade Visual migrar este módulo para o THEME
-central (core.py).
+Contabilidade" dentro de Admin → Faturação) — Fase 3 da Identidade
+Visual: migração para o THEME central (core.py), em vez de
+hexadecimais soltos.
 
 Fora de âmbito, de propósito: o relatório PDF mensal
 (_gerar_pdf_mensal, reportlab), mesmo critério das outras Fases.
@@ -80,6 +78,34 @@ class TestRenderExportacaoContabilidadeSemErro(unittest.TestCase):
     def test_sem_erro_sem_dados(self):
         at = _run(load_db_fn=_fake_load_db_vazio)
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_exportacao_contabilidade.py
+    lê as suas cores de core.THEME — nunca mais hexadecimais soltos,
+    um só cinzento secundário, sem fundos escuros/em tom forçados no
+    cabeçalho, cartões de preview, caixa de Saldo IVA e cartão do
+    histórico de exports."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "success"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
+        self.assertNotIn("rgba(16,185,129,", textos)
 
 
 if __name__ == "__main__":

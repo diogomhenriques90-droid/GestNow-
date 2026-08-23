@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db
+from core import save_db, inv, load_db, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # PLANO DE CONTAS SNC — PADRÃO (editável pelo TOC)
@@ -736,27 +736,27 @@ def render_exportacao_contabilidade(*_):
                 "Novembro","Dezembro"]
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .cont-card {
-        background:#1E293B; border-radius:10px;
+    .cont-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']}; border-radius:10px;
         padding:12px 16px; margin-bottom:8px;
-    }
-    .conta-row {
+    }}
+    .conta-row {{
         display:flex; justify-content:space-between;
-        padding:5px 0; border-bottom:1px solid #0F172A;
-    }
+        padding:5px 0; border-bottom:1px solid {THEME['border']};
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── Header ────────────────────────────────────────────────────
     st.markdown(
-        "<div style='background:linear-gradient(135deg,#1E293B,#0F172A);"
-        "padding:20px;border-radius:14px;margin-bottom:16px;"
-        "border:1px solid rgba(255,255,255,0.08);'>"
-        "<h2 style='color:#F1F5F9;margin:0;font-size:1.4rem;'>"
+        f"<div style='background:{THEME['surface']};"
+        f"padding:20px;border-radius:14px;margin-bottom:16px;"
+        f"border:1px solid {THEME['border']};'>"
+        f"<h2 style='color:{THEME['text']};margin:0;font-size:1.4rem;'>"
         "📤 Exportação para Contabilidade — Eticadata</h2>"
-        "<p style='color:#64748B;margin:4px 0 0;font-size:0.85rem;'>"
+        f"<p style='color:{THEME['text_secondary']};margin:4px 0 0;font-size:0.85rem;'>"
         f"{empresa.get('nome','')} · "
         "3 formatos: CSV lançamentos · Excel · PDF relatório"
         "</p></div>",
@@ -844,34 +844,26 @@ def render_exportacao_contabilidade(*_):
         }
 
         linhas_preview = [
-            ("🧾 Faturas emitidas a clientes",
-             fat_emitida, "#3B82F6"),
-            ("📥 Compras / Fornecedores",
-             compras_val, "#F59E0B"),
-            ("👥 Salários brutos",
-             sal_val, "#8B5CF6"),
-            ("🏛️ Encargos SS empresa",
-             tsu_e_val, "#8B5CF6"),
-            ("💶 Diárias pagas",
-             diarias_val, "#10B981"),
-            ("📉 Amortizações (estimativa mensal)",
-             amort_val, "#06B6D4"),
-            ("💰 IVA Liquidado",
-             iva_liq, "#EF4444"),
-            ("💰 IVA Dedutível",
-             iva_ded, "#10B981"),
+            ("🧾 Faturas emitidas a clientes", fat_emitida),
+            ("📥 Compras / Fornecedores",      compras_val),
+            ("👥 Salários brutos",             sal_val),
+            ("🏛️ Encargos SS empresa",         tsu_e_val),
+            ("💶 Diárias pagas",                diarias_val),
+            ("📉 Amortizações (estimativa mensal)", amort_val),
+            ("💰 IVA Liquidado",                iva_liq),
+            ("💰 IVA Dedutível",                iva_ded),
         ]
 
         cols_prev = st.columns(4)
-        for i, (label, val, cor) in enumerate(linhas_preview):
+        for i, (label, val) in enumerate(linhas_preview):
             with cols_prev[i%4]:
                 st.markdown(
                     f"<div class='cont-card' "
-                    f"style='border-top:2px solid {cor};'>"
-                    f"<p style='color:#64748B;font-size:0.7rem;"
+                    f"style='border-top:2px solid {THEME['accent']};'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.7rem;"
                     f"margin:0 0 4px;text-transform:uppercase;'>"
                     f"{label}</p>"
-                    f"<b style='color:{cor};"
+                    f"<b style='color:{THEME['accent']};"
                     f"font-size:1.1rem;'>"
                     f"€{val:,.2f}</b>"
                     f"</div>",
@@ -880,9 +872,9 @@ def render_exportacao_contabilidade(*_):
 
         # Saldo IVA
         iva_saldo = round(iva_liq - iva_ded, 2)
-        cor_iva   = "#EF4444" if iva_saldo > 0 else "#10B981"
+        cor_iva   = THEME['error'] if iva_saldo > 0 else THEME['success']
         st.markdown(
-            f"<div style='background:{cor_iva}12;"
+            f"<div style='background:{THEME['surface']};"
             f"border:1px solid {cor_iva};"
             f"border-radius:8px;padding:10px 16px;"
             f"text-align:center;margin:8px 0;'>"
@@ -951,11 +943,11 @@ def render_exportacao_contabilidade(*_):
             n_lanc = len(st.session_state['export_lancamentos'])
 
             st.markdown(
-                f"<div style='background:rgba(16,185,129,0.1);"
-                f"border:1px solid #10B981;"
+                f"<div style='background:{THEME['surface']};"
+                f"border:1px solid {THEME['success']};"
                 f"border-radius:8px;padding:12px;"
                 f"text-align:center;margin-bottom:12px;'>"
-                f"<b style='color:#10B981;'>"
+                f"<b style='color:{THEME['success']};'>"
                 f"✅ {n_lanc} linhas prontas — {mes_n} {ano_n}</b>"
                 f"</div>",
                 unsafe_allow_html=True
@@ -977,7 +969,7 @@ def render_exportacao_contabilidade(*_):
                     key="dl_excel_exp"
                 )
                 st.markdown(
-                    "<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     "Eticadata → Contabilidade → Configuração "
                     "→ Importação de Lançamentos</small>",
                     unsafe_allow_html=True
@@ -996,7 +988,7 @@ def render_exportacao_contabilidade(*_):
                     key="dl_csv_exp"
                 )
                 st.markdown(
-                    "<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     "Alternativa ao Excel — "
                     "mesmo formato, separador ponto e vírgula</small>",
                     unsafe_allow_html=True
@@ -1015,7 +1007,7 @@ def render_exportacao_contabilidade(*_):
                     key="dl_pdf_exp"
                 )
                 st.markdown(
-                    "<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     "Para arquivo e conferência manual pelo TOC</small>",
                     unsafe_allow_html=True
                 )
@@ -1210,7 +1202,7 @@ def render_exportacao_contabilidade(*_):
         with st.form("form_contas_snc"):
             for grupo_nome, campos in grupos.items():
                 st.markdown(
-                    f"<p style='color:#3B82F6;font-weight:700;"
+                    f"<p style='color:{THEME['accent']};font-weight:700;"
                     f"font-size:0.88rem;text-transform:uppercase;"
                     f"margin:12px 0 6px;'>{grupo_nome}</p>",
                     unsafe_allow_html=True
@@ -1356,7 +1348,7 @@ def render_exportacao_contabilidade(*_):
                 mes_h  = str(h.get('Mes',''))
                 ano_h  = str(h.get('Ano',''))
                 eq     = h.get('Equilibrado','')
-                cor_eq = "#10B981" if eq=='Sim' else "#EF4444"
+                cor_eq = THEME['success'] if eq=='Sim' else THEME['error']
                 ic_eq  = "✅" if eq=='Sim' else "⚠️"
 
                 st.markdown(
@@ -1365,9 +1357,9 @@ def render_exportacao_contabilidade(*_):
                     f"<div style='display:flex;"
                     f"justify-content:space-between;'>"
                     f"<div>"
-                    f"<b style='color:#F1F5F9;'>"
+                    f"<b style='color:{THEME['text']};'>"
                     f"📤 {meses_pt2.get(mes_h,mes_h)} {ano_h}</b><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"Gerado em {h.get('Data_Export','')} · "
                     f"{h.get('N_Lancamentos','')} linhas · "
                     f"Por: {h.get('Exportado_Por','')}"
@@ -1376,7 +1368,7 @@ def render_exportacao_contabilidade(*_):
                     f"<div style='text-align:right;'>"
                     f"<span style='color:{cor_eq};'>"
                     f"{ic_eq} {eq}</span><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"D: €{float(h.get('Total_Debito',0) or 0):,.2f} · "
                     f"C: €{float(h.get('Total_Credito',0) or 0):,.2f}"
                     f"</small></div></div></div>",
