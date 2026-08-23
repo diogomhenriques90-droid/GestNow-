@@ -157,16 +157,24 @@ def _grafico_amort_timeline(mapa_anual: list,
         hovertemplate='%{x}<br>Val: €%{y:,.2f}<extra></extra>',
         yaxis='y2'
     ))
-    # Hoje
+    # Hoje — add_vline com annotation_text sobre eixo categórico
+    # (anos como strings) rebenta no Plotly instalado (TypeError em
+    # shapeannotation._mean, que soma as coordenadas x assumindo
+    # valores numéricos). Linha e rótulo têm de ser adicionados em
+    # separado para evitar esse caminho de código.
     hoje_ano = str(date.today().year)
     if hoje_ano in anos:
         fig.add_vline(
             x=hoje_ano,
             line_dash="dash",
             line_color="#F59E0B",
-            line_width=2,
-            annotation_text="Hoje",
-            annotation_font_color="#F59E0B"
+            line_width=2
+        )
+        fig.add_annotation(
+            x=hoje_ano, y=1, yref="paper",
+            text="Hoje", showarrow=False,
+            font={'color': "#F59E0B"},
+            yanchor="bottom"
         )
 
     fig.update_layout(
