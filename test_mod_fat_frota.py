@@ -132,5 +132,57 @@ class TestRenderFatFrotaSemErro(unittest.TestCase):
         self.assertFalse(at.exception, msg=str(at.exception))
 
 
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_fat_frota.py lê as suas cores
+    de core.THEME — nunca mais hexadecimais soltos, um só cinzento
+    secundário, sem fundos escuros forçados. Exceção documentada: as
+    caixas/rótulos "RENTING" (#3B82F6) e "COMPRA" (#8B5CF6) na aba
+    Comparador TCO mantêm-se, a par do gráfico Plotly de comparação
+    logo abaixo, que usa as mesmas 2 cores para as mesmas 2
+    categorias (fora de âmbito, Fase 4)."""
+
+    def test_css_usa_theme(self):
+        at = _run(pre_session_state={
+            "tco_r": {"total_rendas": 12600.0, "custo_seguros": 1890.0,
+                      "custo_manut": 0.0, "total": 14490.0,
+                      "custo_mes": 402.5, "custo_km": 0.24},
+            "tco_c": {"preco_compra": 35000.0, "valor_residual": 7000.0,
+                      "amort_anual": 9333.33, "juros_total": 2887.5,
+                      "manut_total": 2100.0, "seguro_total": 2205.0,
+                      "total": 35192.5, "custo_mes": 977.57,
+                      "custo_km": 0.59},
+            "tco_anos_calc": 3,
+        })
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "warning", "success", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertNotIn("#475569", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("background:#1E293B", textos)
+        self.assertNotIn("background: #1E293B", textos)
+        self.assertNotIn("background:#0F172A", textos)
+        self.assertNotIn("#F1F5F9", textos)
+
+    def test_excecao_renting_compra_preservada(self):
+        # Caixas de config da aba TCO mantêm-se de propósito, a par
+        # do gráfico Plotly de comparação.
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn("#3B82F6", textos)
+        self.assertIn("#8B5CF6", textos)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

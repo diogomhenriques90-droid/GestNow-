@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit
+from core import save_db, inv, load_db, log_audit, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -661,16 +661,16 @@ def render_fat_frota(*_):
 
                     # Cor e alerta
                     if dias_fim <= 0:
-                        cor_r = "#EF4444"
+                        cor_r = THEME['error']
                         alerta_r = "🔴 EXPIRADO"
                     elif dias_fim <= 30:
-                        cor_r = "#EF4444"
+                        cor_r = THEME['error']
                         alerta_r = f"🔴 Expira em {dias_fim} dias!"
                     elif dias_fim <= 60:
-                        cor_r = "#F59E0B"
+                        cor_r = THEME['warning']
                         alerta_r = f"⚠️ Expira em {dias_fim} dias"
                     else:
-                        cor_r = "#10B981"
+                        cor_r = THEME['success']
                         alerta_r = f"✅ {dias_fim} dias restantes"
 
                     # Progresso do contrato
@@ -691,7 +691,8 @@ def render_fat_frota(*_):
                         pct_prog = 0
 
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:12px;padding:14px 16px;"
                         f"margin-bottom:10px;"
                         f"border-left:4px solid {cor_r};'>"
@@ -699,11 +700,11 @@ def render_fat_frota(*_):
                         f"justify-content:space-between;"
                         f"align-items:flex-start;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;font-size:0.95rem;'>"
+                        f"<b style='color:{THEME['text']};font-size:0.95rem;'>"
                         f"🚗 {row.get('Matricula','')} — "
                         f"{row.get('Marca','')} "
                         f"{row.get('Modelo','')}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"🏦 {row.get('Banco','')} · "
                         f"{row.get('Data_Inicio','')} → "
                         f"{row.get('Data_Fim','')} · "
@@ -712,19 +713,19 @@ def render_fat_frota(*_):
                         f"{alerta_r}</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
-                        f"<b style='color:#3B82F6;"
+                        f"<b style='color:{THEME['accent']};"
                         f"font-size:1.1rem;'>"
                         f"€{renda:,.2f}/mês</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Resto: €{total_rest:,.0f}</small>"
                         f"</div></div>"
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['background']};"
                         f"border-radius:4px;height:6px;"
                         f"margin:8px 0 4px;'>"
                         f"<div style='background:{cor_r};"
                         f"width:{pct_prog:.0f}%;height:6px;"
                         f"border-radius:4px;'></div></div>"
-                        f"<small style='color:#475569;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{pct_prog:.0f}% do contrato decorrido · "
                         f"Obra: {row.get('Obra_Alocada','N/A')}"
                         f"</small></div>",
@@ -755,7 +756,7 @@ def render_fat_frota(*_):
                     with col_ra3:
                         if row.get('Obra_Alocada',''):
                             st.markdown(
-                                f"<small style='color:#3B82F6;'>"
+                                f"<small style='color:{THEME['accent']};'>"
                                 f"📍 {row.get('Obra_Alocada','')}"
                                 f"</small>",
                                 unsafe_allow_html=True
@@ -834,7 +835,7 @@ def render_fat_frota(*_):
                 # Preview €/L
                 if cb_lit > 0 and cb_val > 0:
                     st.markdown(
-                        f"<small style='color:#3B82F6;'>"
+                        f"<small style='color:{THEME['accent']};'>"
                         f"💧 €{cb_val/cb_lit:.3f}/litro</small>",
                         unsafe_allow_html=True
                     )
@@ -940,10 +941,10 @@ def render_fat_frota(*_):
 
                     if consumo_100 > 0:
                         st.markdown(
-                            f"<div style='background:rgba(59,130,246,0.1);"
-                            f"border:1px solid #3B82F6;"
+                            f"<div style='background:rgba(14,124,134,0.08);"
+                            f"border:1px solid {THEME['accent']};"
                             f"border-radius:8px;padding:10px;'>"
-                            f"<b style='color:#3B82F6;'>"
+                            f"<b style='color:{THEME['accent']};'>"
                             f"📊 Consumo médio: "
                             f"{consumo_100:.1f}L/100km · "
                             f"€{media_l_eur:.3f}/L</b>"
@@ -1080,15 +1081,24 @@ def render_fat_frota(*_):
             col_tr, col_tc = st.columns(2)
             with col_tr:
                 diff = tco_r['total'] - tco_c['total']
-                cor_r = "#10B981" if tco_r['total'] <= tco_c['total'] \
-                        else "#EF4444"
+                cor_r = THEME['success'] if tco_r['total'] <= tco_c['total'] \
+                        else THEME['error']
+                # Fundo/rótulo "RENTING" mantêm #3B82F6, a par do
+                # gráfico Plotly de comparação TCO logo abaixo, que
+                # usa a mesma cor para a mesma categoria (idem para
+                # #8B5CF6/"COMPRA" no bloco irmão) — fora de âmbito,
+                # Fase 4.
+                mais_barato_r = (
+                    f"<span style='float:right;color:{THEME['success']};'>"
+                    f"✅ MAIS BARATO</span>"
+                ) if tco_r['total'] <= tco_c['total'] else ''
                 st.markdown(
                     f"<div style='background:rgba(59,130,246,0.1);"
                     f"border:2px solid {cor_r};"
                     f"border-radius:12px;padding:16px;'>"
                     f"<b style='color:#3B82F6;"
                     f"font-size:1rem;'>🏦 RENTING</b>"
-                    f"{'<span style=float:right;color:#10B981;>✅ MAIS BARATO</span>' if tco_r['total'] <= tco_c['total'] else ''}"
+                    f"{mais_barato_r}"
                     f"<br><br>",
                     unsafe_allow_html=True
                 )
@@ -1101,20 +1111,20 @@ def render_fat_frota(*_):
                     st.markdown(
                         f"<div style='display:flex;"
                         f"justify-content:space-between;margin:4px 0;'>"
-                        f"<small style='color:#94A3B8;'>{label}</small>"
-                        f"<small style='color:#F1F5F9;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>{label}</small>"
+                        f"<small style='color:{THEME['text']};'>"
                         f"€{val:,.2f}</small></div>",
                         unsafe_allow_html=True
                     )
                 st.markdown(
-                    f"<div style='border-top:1px solid #334155;"
+                    f"<div style='border-top:1px solid {THEME['border']};"
                     f"padding-top:8px;margin-top:8px;"
                     f"display:flex;justify-content:space-between;'>"
-                    f"<b style='color:#F1F5F9;'>TOTAL</b>"
+                    f"<b style='color:{THEME['text']};'>TOTAL</b>"
                     f"<b style='color:{cor_r};"
                     f"font-size:1.1rem;'>"
                     f"€{tco_r['total']:,.2f}</b></div>"
-                    f"<br><small style='color:#64748B;'>"
+                    f"<br><small style='color:{THEME['text_secondary']};'>"
                     f"€{tco_r['custo_mes']:,.2f}/mês · "
                     f"€{tco_r['custo_km']:.4f}/km</small>"
                     f"</div>",
@@ -1122,15 +1132,19 @@ def render_fat_frota(*_):
                 )
 
             with col_tc:
-                cor_c = "#10B981" if tco_c['total'] < tco_r['total'] \
-                        else "#EF4444"
+                cor_c = THEME['success'] if tco_c['total'] < tco_r['total'] \
+                        else THEME['error']
+                mais_barato_c = (
+                    f"<span style='float:right;color:{THEME['success']};'>"
+                    f"✅ MAIS BARATO</span>"
+                ) if tco_c['total'] < tco_r['total'] else ''
                 st.markdown(
                     f"<div style='background:rgba(139,92,246,0.1);"
                     f"border:2px solid {cor_c};"
                     f"border-radius:12px;padding:16px;'>"
                     f"<b style='color:#8B5CF6;"
                     f"font-size:1rem;'>🛒 COMPRA</b>"
-                    f"{'<span style=float:right;color:#10B981;>✅ MAIS BARATO</span>' if tco_c['total'] < tco_r['total'] else ''}"
+                    f"{mais_barato_c}"
                     f"<br><br>",
                     unsafe_allow_html=True
                 )
@@ -1143,25 +1157,25 @@ def render_fat_frota(*_):
                      -tco_c['valor_residual']),
                 ]
                 for label, val in items_c:
-                    cor_item = "#EF4444" if val < 0 else "#F1F5F9"
+                    cor_item = THEME['error'] if val < 0 else THEME['text']
                     st.markdown(
                         f"<div style='display:flex;"
                         f"justify-content:space-between;margin:4px 0;'>"
-                        f"<small style='color:#94A3B8;'>{label}</small>"
+                        f"<small style='color:{THEME['text_secondary']};'>{label}</small>"
                         f"<small style='color:{cor_item};'>"
                         f"{'€' if val>=0 else '-€'}"
                         f"{abs(val):,.2f}</small></div>",
                         unsafe_allow_html=True
                     )
                 st.markdown(
-                    f"<div style='border-top:1px solid #334155;"
+                    f"<div style='border-top:1px solid {THEME['border']};"
                     f"padding-top:8px;margin-top:8px;"
                     f"display:flex;justify-content:space-between;'>"
-                    f"<b style='color:#F1F5F9;'>TOTAL</b>"
+                    f"<b style='color:{THEME['text']};'>TOTAL</b>"
                     f"<b style='color:{cor_c};"
                     f"font-size:1.1rem;'>"
                     f"€{tco_c['total']:,.2f}</b></div>"
-                    f"<br><small style='color:#64748B;'>"
+                    f"<br><small style='color:{THEME['text_secondary']};'>"
                     f"€{tco_c['custo_mes']:,.2f}/mês · "
                     f"€{tco_c['custo_km']:.4f}/km</small>"
                     f"</div>",
@@ -1172,17 +1186,17 @@ def render_fat_frota(*_):
             poupanca = abs(tco_r['total'] - tco_c['total'])
             vencedor = "Renting" if tco_r['total'] <= tco_c['total'] \
                        else "Compra"
-            cor_v = "#10B981"
+            cor_v = THEME['success']
 
             st.markdown(
-                f"<div style='background:rgba(16,185,129,0.1);"
-                f"border:2px solid #10B981;border-radius:12px;"
+                f"<div style='background:rgba(21,128,61,0.08);"
+                f"border:2px solid {THEME['success']};border-radius:12px;"
                 f"padding:16px;margin-top:12px;text-align:center;'>"
-                f"<b style='color:#10B981;font-size:1.1rem;'>"
+                f"<b style='color:{THEME['success']};font-size:1.1rem;'>"
                 f"✅ {vencedor} é mais económico</b><br>"
-                f"<b style='color:#F1F5F9;font-size:1.5rem;'>"
+                f"<b style='color:{THEME['text']};font-size:1.5rem;'>"
                 f"Poupança: €{poupanca:,.2f} em {anos_c} anos</b><br>"
-                f"<small style='color:#94A3B8;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"(€{poupanca/(anos_c*12):,.2f}/mês)</small>"
                 f"</div>",
                 unsafe_allow_html=True
@@ -1190,14 +1204,14 @@ def render_fat_frota(*_):
 
             # Nota fiscal
             st.markdown(
-                "<div style='background:rgba(59,130,246,0.08);"
-                "border-radius:8px;padding:12px;margin-top:8px;'>"
-                "<small style='color:#93C5FD;'>"
-                "📋 <b>Nota fiscal:</b> No renting, a renda é "
-                "dedutível como custo (reduz IRC). Na compra, "
-                "só a amortização e juros são dedutíveis. "
-                "Consulta o teu contabilista para o impacto "
-                "fiscal específico.</small></div>",
+                f"<div style='background:rgba(14,124,134,0.06);"
+                f"border-radius:8px;padding:12px;margin-top:8px;'>"
+                f"<small style='color:{THEME['accent']};'>"
+                f"📋 <b>Nota fiscal:</b> No renting, a renda é "
+                f"dedutível como custo (reduz IRC). Na compra, "
+                f"só a amortização e juros são dedutíveis. "
+                f"Consulta o teu contabilista para o impacto "
+                f"fiscal específico.</small></div>",
                 unsafe_allow_html=True
             )
 
@@ -1301,29 +1315,30 @@ def render_fat_frota(*_):
                 for _, seg in seguros_db.iterrows():
                     dias_s  = _dias_para(seg.get('Data_Fim',''))
                     if dias_s <= 0:
-                        cor_s   = "#EF4444"
+                        cor_s   = THEME['error']
                         alerta_s = "🔴 EXPIRADO"
                     elif dias_s <= 30:
-                        cor_s   = "#EF4444"
+                        cor_s   = THEME['error']
                         alerta_s = f"🔴 Expira em {dias_s} dias!"
                     elif dias_s <= 60:
-                        cor_s   = "#F59E0B"
+                        cor_s   = THEME['warning']
                         alerta_s = f"⚠️ Expira em {dias_s} dias"
                     else:
-                        cor_s   = "#10B981"
+                        cor_s   = THEME['success']
                         alerta_s = f"✅ Válido ({dias_s}d)"
 
                     val_s = float(seg.get('Valor_Anual',0) or 0)
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:12px;"
                         f"margin-bottom:8px;"
                         f"border-left:4px solid {cor_s};'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"{seg.get('Tipo','')[:40]}</b>"
                         f"<span style='float:right;color:{cor_s};'>"
                         f"{alerta_s}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"🏢 {seg.get('Entidade','')} · "
                         f"🚗 {seg.get('Viatura','')} · "
                         f"Apólice: {seg.get('Apolice','')} · "
