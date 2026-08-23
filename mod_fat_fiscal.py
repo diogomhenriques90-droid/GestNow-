@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit
+from core import save_db, inv, load_db, log_audit, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -44,6 +44,12 @@ def _dias_para(data_str: str) -> int:
 
 def _gerar_calendario_fiscal(ano: int) -> list:
     """Gera lista de obrigações fiscais para o ano."""
+    # 'cor' é uma etiqueta decorativa por tipo de obrigação, sem
+    # semântica boa/má (a urgência real está em 'urgencia', usada só
+    # para filtro) — 10 tipos excedem os tons semânticos disponíveis,
+    # colapsados num acento único, mesmo critério de
+    # mod_admin_formacoes.py.
+    cor_tipo = THEME['accent']
     obrigacoes = [
         # IVA — mensal (regime mensal)
         *[{
@@ -53,7 +59,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT",
             "valor_est":None,
             "urgencia": "alta",
-            "cor":      "#3B82F6",
+            "cor":      cor_tipo,
             "cumprida": False
         } for m in range(2, 13)],
         {
@@ -63,7 +69,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT",
             "valor_est":None,
             "urgencia": "alta",
-            "cor":      "#3B82F6",
+            "cor":      cor_tipo,
             "cumprida": False
         },
         {
@@ -73,7 +79,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT",
             "valor_est":None,
             "urgencia": "alta",
-            "cor":      "#3B82F6",
+            "cor":      cor_tipo,
             "cumprida": False
         },
         {
@@ -83,7 +89,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT",
             "valor_est":None,
             "urgencia": "alta",
-            "cor":      "#3B82F6",
+            "cor":      cor_tipo,
             "cumprida": False
         },
         {
@@ -93,7 +99,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT",
             "valor_est":None,
             "urgencia": "crítica",
-            "cor":      "#EF4444",
+            "cor":      cor_tipo,
             "cumprida": False
         },
         {
@@ -103,7 +109,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT",
             "valor_est":None,
             "urgencia": "alta",
-            "cor":      "#EF4444",
+            "cor":      cor_tipo,
             "cumprida": False
         },
         {
@@ -113,7 +119,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT",
             "valor_est":None,
             "urgencia": "alta",
-            "cor":      "#EF4444",
+            "cor":      cor_tipo,
             "cumprida": False
         },
         {
@@ -123,7 +129,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT",
             "valor_est":None,
             "urgencia": "média",
-            "cor":      "#EF4444",
+            "cor":      cor_tipo,
             "cumprida": False
         },
         *[{
@@ -133,7 +139,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT",
             "valor_est":None,
             "urgencia": "alta",
-            "cor":      "#F59E0B",
+            "cor":      cor_tipo,
             "cumprida": False
         } for m in range(2, 13)],
         *[{
@@ -143,7 +149,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "ISS",
             "valor_est":None,
             "urgencia": "alta",
-            "cor":      "#8B5CF6",
+            "cor":      cor_tipo,
             "cumprida": False
         } for m in range(2, 13)],
         *[{
@@ -153,7 +159,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT",
             "valor_est":None,
             "urgencia": "média",
-            "cor":      "#06B6D4",
+            "cor":      cor_tipo,
             "cumprida": False
         } for m in range(2, 13)],
         {
@@ -163,7 +169,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT",
             "valor_est":None,
             "urgencia": "alta",
-            "cor":      "#F59E0B",
+            "cor":      cor_tipo,
             "cumprida": False
         },
         {
@@ -173,7 +179,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT / Município",
             "valor_est":None,
             "urgencia": "média",
-            "cor":      "#10B981",
+            "cor":      cor_tipo,
             "cumprida": False
         },
         {
@@ -183,7 +189,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT",
             "valor_est":None,
             "urgencia": "baixa",
-            "cor":      "#94A3B8",
+            "cor":      cor_tipo,
             "cumprida": False
         },
         {
@@ -193,7 +199,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "Assembleia Geral",
             "valor_est":None,
             "urgencia": "crítica",
-            "cor":      "#DC2626",
+            "cor":      cor_tipo,
             "cumprida": False
         },
         {
@@ -203,7 +209,7 @@ def _gerar_calendario_fiscal(ano: int) -> list:
             "entidade": "AT / IRN",
             "valor_est":None,
             "urgencia": "crítica",
-            "cor":      "#DC2626",
+            "cor":      cor_tipo,
             "cumprida": False
         },
     ]
@@ -755,17 +761,18 @@ def render_fat_fiscal(obras_db, registos_db,
     iva_mes_atual = iva_anual[mes_atual - 1]
     ret_total = _num(faturas_forn,'Retencao_Val')
 
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .fiscal-card {
-        background:#1E293B; border-radius:12px;
+    .fiscal-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:14px 16px; margin-bottom:8px;
-    }
-    .obrig-item {
+    }}
+    .obrig-item {{
         border-radius:8px; padding:10px 14px;
         margin-bottom:6px; border-left:4px solid;
-    }
-    .cumprida { opacity:0.45; }
+    }}
+    .cumprida {{ opacity:0.45; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -857,9 +864,9 @@ def render_fat_fiscal(obras_db, registos_db,
         with col_d1:
             st.markdown(
                 f"<div class='fiscal-card'>"
-                f"<p style='color:#64748B;font-size:0.75rem;margin:0 0 4px;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:0 0 4px;'>"
                 f"IVA LIQUIDADO</p>"
-                f"<b style='color:#EF4444;font-size:1.4rem;'>"
+                f"<b style='color:{THEME['error']};font-size:1.4rem;'>"
                 f"\u20AC{iva_mes_atual['iva_liquidado']:,.2f}</b>"
                 f"</div>",
                 unsafe_allow_html=True
@@ -867,23 +874,23 @@ def render_fat_fiscal(obras_db, registos_db,
         with col_d2:
             st.markdown(
                 f"<div class='fiscal-card'>"
-                f"<p style='color:#64748B;font-size:0.75rem;margin:0 0 4px;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:0 0 4px;'>"
                 f"IVA DEDUTIVEL</p>"
-                f"<b style='color:#10B981;font-size:1.4rem;'>"
+                f"<b style='color:{THEME['success']};font-size:1.4rem;'>"
                 f"\u20AC{iva_mes_atual['iva_dedutivel']:,.2f}</b>"
                 f"</div>",
                 unsafe_allow_html=True
             )
         with col_d3:
-            cor_saldo = "#EF4444" if iva_mes_atual['saldo'] > 0 else "#10B981"
+            cor_saldo = THEME['error'] if iva_mes_atual['saldo'] > 0 else THEME['success']
             label_saldo = 'A PAGAR A AT' if iva_mes_atual['saldo'] > 0 else 'A RECUPERAR DA AT'
             st.markdown(
                 f"<div class='fiscal-card' style='border-left:3px solid {cor_saldo};'>"
-                f"<p style='color:#64748B;font-size:0.75rem;margin:0 0 4px;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:0 0 4px;'>"
                 f"{label_saldo}</p>"
                 f"<b style='color:{cor_saldo};font-size:1.4rem;'>"
                 f"\u20AC{abs(iva_mes_atual['saldo']):,.2f}</b><br>"
-                f"<small style='color:#64748B;'>Prazo: dia 10 do mes seguinte</small>"
+                f"<small style='color:{THEME['text_secondary']};'>Prazo: dia 10 do mes seguinte</small>"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -948,29 +955,29 @@ def render_fat_fiscal(obras_db, registos_db,
 
         with col_irc2:
             st.markdown("#### Resultado")
-            cor_irc = "#10B981" if irc_resultado > 0 else "#64748B"
+            cor_irc = THEME['success'] if irc_resultado > 0 else THEME['text_secondary']
             # FIX: usar .get() para reserva_mensal
             reserva_calc = irc_calc.get('reserva_mensal', 0)
             st.markdown(
                 f"<div class='fiscal-card' style='border-left:4px solid {cor_irc};'>"
                 f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;'>"
-                f"<div><small style='color:#64748B;'>Result. Fiscal</small><br>"
-                f"<b style='color:#F1F5F9;font-size:1.1rem;'>\u20AC{irc_calc['resultado_fiscal']:,.2f}</b></div>"
-                f"<div><small style='color:#64748B;'>IRC (17%)</small><br>"
-                f"<b style='color:#EF4444;font-size:1.1rem;'>\u20AC{irc_calc['irc_taxa_17']:,.2f}</b></div>"
-                f"<div><small style='color:#64748B;'>IRC (21%)</small><br>"
-                f"<b style='color:#EF4444;font-size:1.1rem;'>\u20AC{irc_calc['irc_taxa_21']:,.2f}</b></div>"
-                f"<div><small style='color:#64748B;'>Derrama</small><br>"
-                f"<b style='color:#F59E0B;font-size:1.1rem;'>\u20AC{irc_calc['derrama']:,.2f}</b></div>"
+                f"<div><small style='color:{THEME['text_secondary']};'>Result. Fiscal</small><br>"
+                f"<b style='color:{THEME['text']};font-size:1.1rem;'>\u20AC{irc_calc['resultado_fiscal']:,.2f}</b></div>"
+                f"<div><small style='color:{THEME['text_secondary']};'>IRC (17%)</small><br>"
+                f"<b style='color:{THEME['error']};font-size:1.1rem;'>\u20AC{irc_calc['irc_taxa_17']:,.2f}</b></div>"
+                f"<div><small style='color:{THEME['text_secondary']};'>IRC (21%)</small><br>"
+                f"<b style='color:{THEME['error']};font-size:1.1rem;'>\u20AC{irc_calc['irc_taxa_21']:,.2f}</b></div>"
+                f"<div><small style='color:{THEME['text_secondary']};'>Derrama</small><br>"
+                f"<b style='color:{THEME['warning']};font-size:1.1rem;'>\u20AC{irc_calc['derrama']:,.2f}</b></div>"
                 f"</div>"
-                f"<div style='border-top:1px solid #334155;padding-top:10px;margin-top:10px;"
+                f"<div style='border-top:1px solid {THEME['border']};padding-top:10px;margin-top:10px;"
                 f"display:flex;justify-content:space-between;'>"
-                f"<b style='color:#F1F5F9;font-size:1rem;'>TOTAL A PAGAR</b>"
-                f"<b style='color:#EF4444;font-size:1.3rem;'>\u20AC{irc_calc['total_a_pagar']:,.2f}</b>"
+                f"<b style='color:{THEME['text']};font-size:1rem;'>TOTAL A PAGAR</b>"
+                f"<b style='color:{THEME['error']};font-size:1.3rem;'>\u20AC{irc_calc['total_a_pagar']:,.2f}</b>"
                 f"</div>"
                 f"<div style='margin-top:8px;display:flex;justify-content:space-between;'>"
-                f"<span style='color:#64748B;font-size:0.8rem;'>Taxa efetiva: {irc_calc['taxa_efetiva']:.1f}%</span>"
-                f"<span style='color:#3B82F6;font-size:0.8rem;'>Reservar \u20AC{reserva_calc:,.2f}/mes</span>"
+                f"<span style='color:{THEME['text_secondary']};font-size:0.8rem;'>Taxa efetiva: {irc_calc['taxa_efetiva']:.1f}%</span>"
+                f"<span style='color:{THEME['accent']};font-size:0.8rem;'>Reservar \u20AC{reserva_calc:,.2f}/mes</span>"
                 f"</div></div>",
                 unsafe_allow_html=True
             )
@@ -989,16 +996,16 @@ def render_fat_fiscal(obras_db, registos_db,
         with col_ppc1:
             st.markdown(
                 f"<div class='fiscal-card'>"
-                f"<p style='color:#64748B;font-size:0.75rem;margin:0 0 4px;'>1º PPC — Julho {irc_ano_calc}</p>"
-                f"<b style='color:#3B82F6;font-size:1.2rem;'>\u20AC{irc_calc['pagamentos_conta']['julho']:,.2f}</b>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:0 0 4px;'>1º PPC — Julho {irc_ano_calc}</p>"
+                f"<b style='color:{THEME['accent']};font-size:1.2rem;'>\u20AC{irc_calc['pagamentos_conta']['julho']:,.2f}</b>"
                 f"</div>",
                 unsafe_allow_html=True
             )
         with col_ppc2:
             st.markdown(
                 f"<div class='fiscal-card'>"
-                f"<p style='color:#64748B;font-size:0.75rem;margin:0 0 4px;'>2º PPC — Setembro {irc_ano_calc}</p>"
-                f"<b style='color:#3B82F6;font-size:1.2rem;'>\u20AC{irc_calc['pagamentos_conta']['setembro']:,.2f}</b>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:0 0 4px;'>2º PPC — Setembro {irc_ano_calc}</p>"
+                f"<b style='color:{THEME['accent']};font-size:1.2rem;'>\u20AC{irc_calc['pagamentos_conta']['setembro']:,.2f}</b>"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -1006,8 +1013,8 @@ def render_fat_fiscal(obras_db, registos_db,
             # FIX: usar .get() — reserva_mensal ausente quando resultado <= 0
             st.markdown(
                 f"<div class='fiscal-card'>"
-                f"<p style='color:#64748B;font-size:0.75rem;margin:0 0 4px;'>Reserva Mensal Recomendada</p>"
-                f"<b style='color:#10B981;font-size:1.2rem;'>\u20AC{irc_calc.get('reserva_mensal', 0):,.2f}/mes</b>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:0 0 4px;'>Reserva Mensal Recomendada</p>"
+                f"<b style='color:{THEME['success']};font-size:1.2rem;'>\u20AC{irc_calc.get('reserva_mensal', 0):,.2f}/mes</b>"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -1015,39 +1022,43 @@ def render_fat_fiscal(obras_db, registos_db,
         st.markdown("---")
         st.markdown("#### Beneficios Fiscais Aplicaveis")
 
+        # Todos os benefícios reduzem impostos — nenhum é "mau", pelo
+        # que a cor de destaque é o acento único em vez de cores
+        # arbitrárias por benefício, mesmo critério de
+        # mod_admin_formacoes.py.
         beneficios = [
             {
                 "nome":    "RFAI — Regime Fiscal Apoio Investimento",
                 "desc":    "Deducao de 25% do investimento ao IRC. Para equipamento e software.",
                 "impacto": "Reduz diretamente o IRC a pagar",
-                "cor":     "#10B981"
+                "cor":     THEME['accent']
             },
             {
                 "nome":    "DLRR — Deducao Lucros Retidos",
                 "desc":    "Deducao de 10% dos lucros retidos (maximo 10M/ano).",
                 "impacto": f"Poupanca estimada: \u20AC{round(irc_calc['resultado_fiscal']*0.021,2):,.2f}",
-                "cor":     "#3B82F6"
+                "cor":     THEME['accent']
             },
             {
                 "nome":    "SIFIDE II — I&D",
                 "desc":    "Deducao 32.5-82.5% das despesas em I&D. Aplicavel ao desenvolvimento GESTNOW.",
                 "impacto": "Consultar TOC para elegibilidade",
-                "cor":     "#8B5CF6"
+                "cor":     THEME['accent']
             },
             {
                 "nome":    "Criacao de Emprego",
                 "desc":    "Majoracao 50% dos encargos com jovens ate 35 anos.",
                 "impacto": "Reduz a materia coletavel",
-                "cor":     "#F59E0B"
+                "cor":     THEME['accent']
             },
         ]
 
         for ben in beneficios:
             st.markdown(
-                f"<div style='background:#1E293B;border-radius:8px;padding:12px;"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:8px;padding:12px;"
                 f"margin-bottom:6px;border-left:3px solid {ben['cor']};'>"
-                f"<b style='color:#F1F5F9;font-size:0.88rem;'>{ben['nome']}</b><br>"
-                f"<small style='color:#94A3B8;'>{ben['desc']}</small><br>"
+                f"<b style='color:{THEME['text']};font-size:0.88rem;'>{ben['nome']}</b><br>"
+                f"<small style='color:{THEME['text_secondary']};'>{ben['desc']}</small><br>"
                 f"<small style='color:{ben['cor']};'>💡 {ben['impacto']}</small>"
                 f"</div>",
                 unsafe_allow_html=True
@@ -1192,11 +1203,11 @@ def render_fat_fiscal(obras_db, registos_db,
             prazo_saft = f"05/{mes_num_s+1:02d}/{ano_saft}" \
                          if mes_num_s < 12 else f"05/01/{ano_saft+1}"
             dias_saft = _dias_para(prazo_saft)
-            cor_saft  = "#EF4444" if dias_saft < 5 else "#F59E0B" if dias_saft < 15 else "#10B981"
+            cor_saft  = THEME['error'] if dias_saft < 5 else THEME['warning'] if dias_saft < 15 else THEME['success']
             dias_txt  = "Hoje!" if dias_saft == 0 else f"{dias_saft} dias"
             st.markdown(
-                f"<div style='background:#1E293B;border-radius:10px;padding:12px;text-align:center;'>"
-                f"<small style='color:#64748B;'>Prazo Entrega</small><br>"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;padding:12px;text-align:center;'>"
+                f"<small style='color:{THEME['text_secondary']};'>Prazo Entrega</small><br>"
                 f"<b style='color:{cor_saft};font-size:1rem;'>{prazo_saft}</b><br>"
                 f"<small style='color:{cor_saft};'>{dias_txt}</small></div>",
                 unsafe_allow_html=True
@@ -1252,13 +1263,13 @@ def render_fat_fiscal(obras_db, registos_db,
              bool(st.session_state.get('saft_xml'))),
         ]
         for desc, ok in checklist_saft:
-            cor_ck = "#10B981" if ok else "#F59E0B"
+            cor_ck = THEME['success'] if ok else THEME['warning']
             ic_ck  = "OK" if ok else "Atencao"
             st.markdown(
                 f"<div style='display:flex;align-items:center;padding:4px 0;"
-                f"border-bottom:1px solid #1E293B;'>"
+                f"border-bottom:1px solid {THEME['border']};'>"
                 f"<span style='color:{cor_ck};margin-right:8px;'>{ic_ck}</span>"
-                f"<small style='color:#94A3B8;'>{desc}</small>"
+                f"<small style='color:{THEME['text_secondary']};'>{desc}</small>"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -1319,26 +1330,26 @@ def render_fat_fiscal(obras_db, registos_db,
 
                 if dias_ob < 0:
                     badge = f"{abs(dias_ob)} dias em atraso"
-                    bg    = "rgba(239,68,68,0.1)"
+                    bg    = "rgba(185,28,28,0.08)"
                 elif dias_ob == 0:
                     badge = "HOJE"
-                    bg    = "rgba(239,68,68,0.15)"
+                    bg    = "rgba(185,28,28,0.12)"
                 elif dias_ob <= 7:
                     badge = f"{dias_ob} dias"
-                    bg    = "rgba(239,68,68,0.1)"
+                    bg    = "rgba(185,28,28,0.08)"
                 elif dias_ob <= 15:
                     badge = f"{dias_ob} dias"
-                    bg    = "rgba(245,158,11,0.1)"
+                    bg    = "rgba(180,83,9,0.08)"
                 else:
                     badge = f"{dias_ob} dias"
-                    bg    = "rgba(30,41,59,0.8)"
+                    bg    = THEME['background']
 
                 ob_key   = f"cumprida_{ob['data']}_{ob['tipo']}"
                 cumprida = st.session_state.get(ob_key, False)
 
                 col_ob1, col_ob2 = st.columns([6,1])
                 with col_ob1:
-                    cor_texto = '#64748B' if cumprida else '#F1F5F9'
+                    cor_texto = THEME['text_secondary'] if cumprida else THEME['text']
                     st.markdown(
                         f"<div class='obrig-item {'cumprida' if cumprida else ''}' "
                         f"style='background:{bg};border-left-color:{cor_ob};'>"
@@ -1346,7 +1357,7 @@ def render_fat_fiscal(obras_db, registos_db,
                         f"<div>"
                         f"<b style='color:{cor_texto};font-size:0.88rem;'>"
                         f"{ob['descricao']}</b><br>"
-                        f"<small style='color:#64748B;'>Entidade: {ob['entidade']} · {ob['data']}</small>"
+                        f"<small style='color:{THEME['text_secondary']};'>Entidade: {ob['entidade']} · {ob['data']}</small>"
                         f"</div>"
                         f"<span style='color:{cor_ob};font-weight:700;font-size:0.8rem;'>{badge}</span>"
                         f"</div></div>",
@@ -1437,14 +1448,14 @@ def render_fat_fiscal(obras_db, registos_db,
             prazo_ss = f"10/{mes_num_ss+1:02d}/{ano_ss}" \
                        if mes_num_ss < 12 else f"10/01/{ano_ss+1}"
             dias_ss = _dias_para(prazo_ss)
-            cor_ss  = "#EF4444" if dias_ss < 3 else "#F59E0B" if dias_ss < 10 else "#10B981"
+            cor_ss  = THEME['error'] if dias_ss < 3 else THEME['warning'] if dias_ss < 10 else THEME['success']
             atraso_txt = f"  {dias_ss} dias" if dias_ss >= 0 else "  EM ATRASO!"
 
             st.markdown(
                 f"<div style='background:{cor_ss}12;border:1px solid {cor_ss};"
                 f"border-radius:8px;padding:12px;margin:12px 0;'>"
                 f"<b style='color:{cor_ss};'>Prazo DRI {mes_ss} {ano_ss}: {prazo_ss}{atraso_txt}</b><br>"
-                f"<small style='color:#94A3B8;'>Total a pagar: \u20AC{tot_ss:,.2f} ate dia 20 do mes seguinte</small>"
+                f"<small style='color:{THEME['text_secondary']};'>Total a pagar: \u20AC{tot_ss:,.2f} ate dia 20 do mes seguinte</small>"
                 f"</div>",
                 unsafe_allow_html=True
             )
