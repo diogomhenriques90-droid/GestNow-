@@ -1,9 +1,7 @@
 """
-Testes do módulo Gestão de Frota (mod_admin_frota.py).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 3 da Identidade Visual migrar este módulo para o THEME
-central (core.py).
+Testes do módulo Gestão de Frota (mod_admin_frota.py) — Fase 3 da
+Identidade Visual: migração para o THEME central (core.py), em vez de
+hexadecimais soltos.
 
 Não tocam em GCS real: `mod_admin_frota.load_db` é mockado
 diretamente (devolve DataFrames de teste, consoante o ficheiro
@@ -35,6 +33,10 @@ _AVARIAS_RECORDS = [{
     "ID": "AV1", "Data": "01/01/2026", "Matricula": "AA-00-AA",
     "Descricao": "Pneu furado", "Urgencia": "Alta", "Valor_Est": "80",
     "Status": "Pendente", "Registado_Por": "Admin",
+}, {
+    "ID": "AV2", "Data": "02/01/2026", "Matricula": "AA-00-AA",
+    "Descricao": "Revisão às 40.000km", "Urgencia": "Baixa", "Valor_Est": "150",
+    "Status": "Em Reparação", "Registado_Por": "Admin",
 }]
 
 
@@ -82,6 +84,34 @@ class TestRenderFrotaSemErro(unittest.TestCase):
     def test_sem_erro_sem_dados(self):
         at = _run(load_db_fn=_fake_load_db_vazio)
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_admin_frota.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, sem fundos escuros forçados nos cartões de
+    viatura e de avaria."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "success", "warning", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertNotIn("#6B7280", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
 
 
 if __name__ == "__main__":

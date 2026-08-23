@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import uuid, base64
 from datetime import datetime, date
-from core import save_db, inv, load_db
+from core import save_db, inv, load_db, THEME
 
 def render_frota():
     st.markdown("### 🚗 Gestão de Frota")
@@ -137,18 +137,18 @@ def render_frota():
                 for _, v in frota_db.iterrows():
                     vid    = v.get('ID','')
                     cor_sv = {
-                        "Ativa":"#10B981",
-                        "Inativa":"#6B7280",
-                        "Em Manutenção":"#EF4444"
-                    }.get(v.get('Status',''),"#6B7280")
+                        "Ativa":THEME['success'],
+                        "Inativa":THEME['text_secondary'],
+                        "Em Manutenção":THEME['error']
+                    }.get(v.get('Status',''),THEME['text_secondary'])
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:8px;"
                         f"border-left:4px solid {cor_sv};'>"
-                        f"<b style='color:#F1F5F9;'>🚗 {v.get('Matricula','')}</b>"
+                        f"<b style='color:{THEME['text']};'>🚗 {v.get('Matricula','')}</b>"
                         f"<span style='float:right;color:{cor_sv};'>"
                         f"{v.get('Status','')}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{v.get('Marca','')} {v.get('Modelo','')} · "
                         f"{v.get('Tipo','')} · {v.get('Condutor','')} · "
                         f"€ {float(v.get('Custo_Mensal',0) or 0):.2f}/mês"
@@ -346,24 +346,24 @@ def render_frota():
                 for _, av in avarfrota_db.iterrows():
                     avid    = av.get('ID','')
                     cor_av  = {
-                        "Pendente":"#F59E0B",
-                        "Em Reparação":"#3B82F6",
-                        "Resolvido":"#10B981"
-                    }.get(av.get('Status',''),"#6B7280")
+                        "Pendente":THEME['warning'],
+                        "Em Reparação":THEME['accent'],
+                        "Resolvido":THEME['success']
+                    }.get(av.get('Status',''),THEME['text_secondary'])
                     cor_urg = {
-                        "Crítica":"#DC2626","Alta":"#EF4444",
-                        "Média":"#F59E0B","Baixa":"#10B981"
-                    }.get(av.get('Urgencia',''),"#6B7280")
+                        "Crítica":THEME['error'],"Alta":THEME['error'],
+                        "Média":THEME['warning'],"Baixa":THEME['success']
+                    }.get(av.get('Urgencia',''),THEME['text_secondary'])
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:8px;"
                         f"border-left:4px solid {cor_urg};'>"
-                        f"<b style='color:#F1F5F9;'>🚗 {av.get('Matricula','')}</b>"
+                        f"<b style='color:{THEME['text']};'>🚗 {av.get('Matricula','')}</b>"
                         f"<span style='float:right;color:{cor_av};'>"
                         f"{av.get('Status','')}</span><br>"
-                        f"<small style='color:#94A3B8;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{av.get('Descricao','')[:60]}</small><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{av.get('Data','')} · "
                         f"<span style='color:{cor_urg};'>{av.get('Urgencia','')}</span>"
                         f" · € {float(av.get('Valor_Est',0) or 0):.2f}"
