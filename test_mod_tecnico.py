@@ -27,7 +27,7 @@ import core
 _USER_TECNICO = {
     "Nome": "Ana Teste", "Tipo": "Técnico", "Cargo": "Instrumentista",
     "Foto": "", "PDFs_Validados": "Sim", "PDFs_Validacao_Data": "01/01/2026",
-    "PrecoHoraStatus": "Aceite", "PrecoHora": "15.0",
+    "PrecoHoraStatus": "Recusado", "PrecoHora": "15.0",
     "PrecoHoraData": "01/01/2026", "Campos_Bloqueados": "[]",
     "Telefone": "912345678", "NIF": "123456789",
     "Data_Nascimento": "01/01/1990", "Morada": "Rua Teste",
@@ -121,6 +121,45 @@ class TestRenderTecnicoSemErro(unittest.TestCase):
     def test_sem_erro_sem_dados(self):
         at = _run(user_record=None, obras_records=[], registos_records=[])
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_tecnico.py lê as suas cores de
+    core.THEME — nunca mais hexadecimais soltos, um só cinzento
+    secundário, sem fundos escuros forçados. Decisão do utilizador
+    (2026-08-23): o fundo global `.stApp` deixa de ser forçado a
+    escuro e o vermelho de marca #DC2626 foi substituído por
+    THEME['accent'] — não há mais um tema à parte para o Técnico."""
+
+    def test_css_usa_theme(self):
+        at = _run(user_record=_USER_TECNICO)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("background", "surface", "border", "text",
+                      "text_secondary", "accent", "warning", "success",
+                      "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run(user_record=_USER_TECNICO)
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertNotIn("#475569", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run(user_record=_USER_TECNICO)
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("background:#0F172A", textos)
+        self.assertNotIn("background: #0F172A", textos)
+        self.assertNotIn("background:#1E293B", textos)
+        self.assertNotIn("#F1F5F9", textos)
+
+    def test_vermelho_de_marca_substituido(self):
+        at = _run(user_record=_USER_TECNICO)
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#DC2626", textos)
 
 
 if __name__ == "__main__":

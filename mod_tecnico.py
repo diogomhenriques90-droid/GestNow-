@@ -9,16 +9,16 @@ from core import (
     save_db, inv, fh, sl, load_db, canvas_to_b64,
     ICONS, COLORS, TIPOS_FRENTE, REGRAS_OURO,
     log_audit, criar_notificacao, process_and_compress_image,
-    _gcs_read, hp, _load_users_cached
+    _gcs_read, hp, _load_users_cached, THEME
 )
 
 _DOT_COLOR = {
-    "0":  "#F97316",
-    "1":  "#10B981",
-    "2":  "#3B82F6",
-    "3":  "#6B7280",
-    "4":  "#6B7280",
-    "-1": "#EF4444",
+    "0":  THEME['warning'],
+    "1":  THEME['success'],
+    "2":  THEME['accent'],
+    "3":  THEME['text_secondary'],
+    "4":  THEME['text_secondary'],
+    "-1": THEME['error'],
 }
 _DOT_LABEL = {
     "0":  "Pendente",
@@ -76,143 +76,143 @@ def render_tecnico(*args):
     st.session_state['show_reg_form'] = False
 
     # ── CSS global ────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .stApp { background:#0F172A !important; }
-    .main .block-container { padding-top:0.5rem !important; }
-    h1,h2,h3,h4,h5,h6 { color:#F1F5F9 !important; }
-    p,div,span { color:#CBD5E1; }
+    .stApp {{ background:{THEME['background']} !important; }}
+    .main .block-container {{ padding-top:0.5rem !important; }}
+    h1,h2,h3,h4,h5,h6 {{ color:{THEME['text']} !important; }}
+    p,div,span {{ color:{THEME['text']}; }}
 
     /* Tabs */
-    .stTabs [data-baseweb="tab-list"] {
-        background:#1E293B !important;
-        border-bottom:2px solid #334155 !important;
+    .stTabs [data-baseweb="tab-list"] {{
+        background:{THEME['surface']} !important;
+        border-bottom:2px solid {THEME['border']} !important;
         gap:0 !important;
-    }
-    .stTabs [data-baseweb="tab"] {
-        color:#64748B !important; font-size:0.76rem !important;
+    }}
+    .stTabs [data-baseweb="tab"] {{
+        color:{THEME['text_secondary']} !important; font-size:0.76rem !important;
         padding:10px 6px !important; background:transparent !important;
-    }
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        color:#DC2626 !important; font-weight:700 !important;
-        border-bottom:3px solid #DC2626 !important;
-    }
+    }}
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {{
+        color:{THEME['accent']} !important; font-weight:700 !important;
+        border-bottom:3px solid {THEME['accent']} !important;
+    }}
 
     /* Botões */
-    .stButton>button {
+    .stButton>button {{
         border-radius:12px !important; font-weight:600 !important;
         height:44px !important;
-    }
-    .stButton>button[kind="primary"] {
-        background:#DC2626 !important; color:white !important;
+    }}
+    .stButton>button[kind="primary"] {{
+        background:{THEME['accent']} !important; color:white !important;
         border:none !important;
-    }
-    .stButton>button[kind="secondary"] {
-        background:#1E293B !important; color:#CBD5E1 !important;
-        border:1px solid #334155 !important;
-    }
+    }}
+    .stButton>button[kind="secondary"] {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important;
+    }}
 
     /* Inputs */
     .stTextInput label,.stSelectbox label,.stNumberInput label,
-    .stTextArea label,.stRadio label,.stCheckbox label {
-        color:#CBD5E1 !important; font-size:0.82rem !important;
+    .stTextArea label,.stRadio label,.stCheckbox label {{
+        color:{THEME['text']} !important; font-size:0.82rem !important;
         font-weight:500 !important;
-    }
+    }}
     .stTextInput>div>div>input,
     .stNumberInput>div>div>input,
-    .stTextArea>div>div>textarea {
-        background:#1E293B !important; color:#F1F5F9 !important;
-        border:1px solid #334155 !important; border-radius:10px !important;
-    }
-    .stSelectbox>div>div>div {
-        background:#1E293B !important; color:#F1F5F9 !important;
-        border:1px solid #334155 !important;
-    }
+    .stTextArea>div>div>textarea {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important; border-radius:10px !important;
+    }}
+    .stSelectbox>div>div>div {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important;
+    }}
 
     /* Calendário — botões circulares */
-    [data-testid="stHorizontalBlock"] .stButton>button {
+    [data-testid="stHorizontalBlock"] .stButton>button {{
         border-radius:50% !important; padding:0 !important;
         height:38px !important; min-height:38px !important;
         width:38px !important; font-size:0.82rem !important;
         font-weight:600 !important;
-    }
+    }}
 
-    .streamlit-expanderHeader {
-        background:#1E293B !important; color:#F1F5F9 !important;
+    .streamlit-expanderHeader {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
         border-radius:10px !important;
-    }
+    }}
 
     /* Cards de ponto — estilo Meivworld */
-    .ponto-card {
-        background:#1E3A4A;
+    .ponto-card {{
+        background:{THEME['surface']};
+        border:1px solid {THEME['border']};
         border-radius:14px;
         padding:16px 18px;
         margin-bottom:10px;
-        box-shadow:0 2px 8px rgba(0,0,0,0.3);
-    }
-    .ponto-card-header {
+    }}
+    .ponto-card-header {{
         display:flex;
         justify-content:space-between;
         align-items:flex-start;
         margin-bottom:10px;
-    }
-    .ponto-card-title {
+    }}
+    .ponto-card-title {{
         font-weight:700;
-        color:#F1F5F9;
+        color:{THEME['text']};
         font-size:0.95rem;
         margin:0;
-    }
-    .ponto-card-horas {
+    }}
+    .ponto-card-horas {{
         font-weight:900;
-        color:#F1F5F9;
+        color:{THEME['text']};
         font-size:1.2rem;
-    }
-    .ponto-card-status {
+    }}
+    .ponto-card-status {{
         font-size:0.72rem;
         font-weight:600;
         padding:2px 8px;
         border-radius:10px;
         display:inline-block;
         margin-top:2px;
-    }
-    .ponto-card-grid {
+    }}
+    .ponto-card-grid {{
         display:grid;
         grid-template-columns:1fr 1fr;
         gap:6px 16px;
-        border-top:1px solid rgba(255,255,255,0.08);
+        border-top:1px solid {THEME['border']};
         padding-top:10px;
         margin-top:4px;
-    }
-    .ponto-card-label {
-        color:#64748B;
+    }}
+    .ponto-card-label {{
+        color:{THEME['text_secondary']};
         font-size:0.72rem;
         font-weight:600;
         text-transform:uppercase;
         letter-spacing:0.05em;
-    }
-    .ponto-card-value {
-        color:#CBD5E1;
+    }}
+    .ponto-card-value {{
+        color:{THEME['text']};
         font-size:0.85rem;
         font-weight:500;
-    }
-    .total-horas-bar {
+    }}
+    .total-horas-bar {{
         display:flex;
         justify-content:space-between;
         align-items:center;
         padding:12px 4px 8px;
-        border-bottom:1px solid #1E293B;
+        border-bottom:1px solid {THEME['border']};
         margin-bottom:12px;
-    }
-    .total-horas-label {
-        color:#64748B;
+    }}
+    .total-horas-label {{
+        color:{THEME['text_secondary']};
         font-size:0.82rem;
         font-weight:600;
-    }
-    .total-horas-value {
-        color:#DC2626;
+    }}
+    .total-horas-value {{
+        color:{THEME['accent']};
         font-size:1.05rem;
         font-weight:900;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -267,9 +267,9 @@ def render_tecnico(*args):
             with col_mes:
                 st.markdown(
                     f"<div style='text-align:center;padding:6px 0;'>"
-                    f"<p style='color:#F1F5F9;font-weight:700;font-size:0.88rem;"
+                    f"<p style='color:{THEME['text']};font-weight:700;font-size:0.88rem;"
                     f"margin:0 0 2px;'>Pontos</p>"
-                    f"<p style='color:#DC2626;font-weight:900;font-size:1.05rem;"
+                    f"<p style='color:{THEME['accent']};font-weight:900;font-size:1.05rem;"
                     f"margin:0;'>{mes_label} {ano_label}</p>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -287,7 +287,7 @@ def render_tecnico(*args):
                             st.markdown(
                                 f"<img src='data:image/jpeg;base64,{foto_b64}' "
                                 f"style='width:34px;height:34px;border-radius:50%;"
-                                f"object-fit:cover;border:2px solid #DC2626;"
+                                f"object-fit:cover;border:2px solid {THEME['accent']};"
                                 f"margin-top:2px;'>",
                                 unsafe_allow_html=True
                             )
@@ -299,8 +299,7 @@ def render_tecnico(*args):
             for col, d in zip(letras_cols, dias_sem):
                 with col:
                     dl    = _DIAS_LETRA[(d.weekday() + 1) % 7]
-                    fim_s = (d.weekday() + 1) % 7 in (0, 6)
-                    cor_l = "#475569" if fim_s else "#64748B"
+                    cor_l = THEME['text_secondary']
                     st.markdown(
                         f"<p style='text-align:center;color:{cor_l};"
                         f"font-size:0.6rem;font-weight:700;margin:0;"
@@ -339,22 +338,22 @@ def render_tecnico(*args):
 
             # Legenda
             st.markdown(
-                "<div style='display:flex;gap:12px;justify-content:center;"
-                "flex-wrap:wrap;margin:4px 0 8px;'>"
-                "<span style='font-size:0.62rem;color:#64748B;'>"
-                "<span style='color:#F97316;'>●</span> Pendente</span>"
-                "<span style='font-size:0.62rem;color:#64748B;'>"
-                "<span style='color:#10B981;'>●</span> Validado</span>"
-                "<span style='font-size:0.62rem;color:#64748B;'>"
-                "<span style='color:#3B82F6;'>●</span> Faturação</span>"
-                "<span style='font-size:0.62rem;color:#64748B;'>"
-                "<span style='color:#6B7280;'>●</span> Pago</span>"
-                "</div>",
+                f"<div style='display:flex;gap:12px;justify-content:center;"
+                f"flex-wrap:wrap;margin:4px 0 8px;'>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'>"
+                f"<span style='color:{THEME['warning']};'>●</span> Pendente</span>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'>"
+                f"<span style='color:{THEME['success']};'>●</span> Validado</span>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'>"
+                f"<span style='color:{THEME['accent']};'>●</span> Faturação</span>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'>"
+                f"<span style='color:{THEME['text_secondary']};'>●</span> Pago</span>"
+                f"</div>",
                 unsafe_allow_html=True
             )
 
             st.markdown(
-                "<hr style='border:none;border-top:1px solid #1E293B;margin:4px 0 10px;'>",
+                f"<hr style='border:none;border-top:1px solid {THEME['border']};margin:4px 0 10px;'>",
                 unsafe_allow_html=True
             )
 
@@ -369,7 +368,7 @@ def render_tecnico(*args):
             with col_data:
                 prefix = "📍 Hoje" if eh_hoje_sel else dia_letra
                 st.markdown(
-                    f"<p style='color:#F1F5F9;font-weight:700;"
+                    f"<p style='color:{THEME['text']};font-weight:700;"
                     f"font-size:0.92rem;margin:0;'>"
                     f"{prefix}, {data_sel.day} de {mes_nome}</p>",
                     unsafe_allow_html=True
@@ -421,7 +420,7 @@ def render_tecnico(*args):
                 # ── Cards de ponto — estilo Meivworld ─────────
                 for _, r in regs_dia.iterrows():
                     s_str   = str(r.get('Status', '0'))
-                    dot_c   = _DOT_COLOR.get(s_str, '#6B7280')
+                    dot_c   = _DOT_COLOR.get(s_str, THEME['text_secondary'])
                     dot_l   = _DOT_LABEL.get(s_str, 'Pendente')
                     turnos  = str(r.get('Turnos', ''))
                     obra    = str(r.get('Obra', ''))
@@ -494,8 +493,8 @@ def render_tecnico(*args):
 
                         # Relatorio se existir
                         + (
-                            f"<p style='color:#475569;font-size:0.73rem;"
-                            f"margin:8px 0 0;border-top:1px solid rgba(255,255,255,0.06);"
+                            f"<p style='color:{THEME['text_secondary']};font-size:0.73rem;"
+                            f"margin:8px 0 0;border-top:1px solid {THEME['border']};"
                             f"padding-top:6px;'>{relat}</p>"
                             if relat else ""
                         ) +
@@ -507,12 +506,12 @@ def render_tecnico(*args):
             else:
                 # Estado vazio — estilo Meivworld
                 st.markdown(
-                    "<div style='text-align:center;padding:50px 20px 40px;'>"
-                    "<div style='font-size:3.5rem;margin-bottom:12px;"
-                    "opacity:0.25;'>📋</div>"
-                    "<p style='color:#475569;font-weight:600;margin:0;"
-                    "font-size:0.9rem;'>Sem ponto registado neste dia</p>"
-                    "</div>",
+                    f"<div style='text-align:center;padding:50px 20px 40px;'>"
+                    f"<div style='font-size:3.5rem;margin-bottom:12px;"
+                    f"opacity:0.25;'>📋</div>"
+                    f"<p style='color:{THEME['text_secondary']};font-weight:600;margin:0;"
+                    f"font-size:0.9rem;'>Sem ponto registado neste dia</p>"
+                    f"</div>",
                     unsafe_allow_html=True
                 )
 
@@ -528,31 +527,31 @@ def render_tecnico(*args):
                 foto_html = (
                     f"<img src='data:image/jpeg;base64,{foto_b64}' "
                     f"style='width:44px;height:44px;border-radius:50%;"
-                    f"object-fit:cover;border:2px solid #DC2626;"
+                    f"object-fit:cover;border:2px solid {THEME['accent']};"
                     f"flex-shrink:0;'>"
                 )
             else:
                 cargo_abrev = str(cargo_user)[:1].upper()
                 foto_html = (
                     f"<div style='width:44px;height:44px;border-radius:50%;"
-                    f"background:#DC2626;display:flex;align-items:center;"
+                    f"background:{THEME['accent']};display:flex;align-items:center;"
                     f"justify-content:center;font-weight:900;color:white;"
                     f"font-size:1.1rem;flex-shrink:0;'>{cargo_abrev}</div>"
                 )
 
             st.markdown(
-                f"<div style='background:#1E293B;border-radius:14px;"
+                f"<div style='background:{THEME['surface']};border-radius:14px;"
                 f"padding:14px 16px;margin-bottom:14px;"
-                f"border:1px solid #334155;"
+                f"border:1px solid {THEME['border']};"
                 f"display:flex;align-items:center;gap:14px;'>"
                 f"{foto_html}"
                 f"<div style='flex:1;'>"
-                f"<p style='color:#94A3B8;font-size:0.7rem;margin:0;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.7rem;margin:0;'>"
                 f"Registo de ponto</p>"
-                f"<p style='color:#F1F5F9;font-weight:700;"
+                f"<p style='color:{THEME['text']};font-weight:700;"
                 f"font-size:0.95rem;margin:2px 0 0;'>"
                 f"{user_nome}</p>"
-                f"<p style='color:#DC2626;font-size:0.82rem;"
+                f"<p style='color:{THEME['accent']};font-size:0.82rem;"
                 f"font-weight:600;margin:1px 0 0;'>"
                 f"{data_sel.strftime('%d/%m/%Y')}</p>"
                 f"</div>"
@@ -564,10 +563,10 @@ def render_tecnico(*args):
 
                 # ── Obra ─────────────────────────────────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;"
-                    "font-weight:700;letter-spacing:0.08em;"
-                    "text-transform:uppercase;margin:0 0 6px;'>"
-                    "🏗️ Obra</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;"
+                    f"font-weight:700;letter-spacing:0.08em;"
+                    f"text-transform:uppercase;margin:0 0 6px;'>"
+                    f"🏗️ Obra</p>",
                     unsafe_allow_html=True
                 )
                 obras_lista = []
@@ -589,24 +588,28 @@ def render_tecnico(*args):
                     cod = str(oi.get('Codigo', ''))
                     cli = str(oi.get('Cliente', ''))
                     if cod or cli:
+                        cod_html = (
+                            f"<p style='color:{THEME['accent']};font-size:0.72rem;"
+                            f"margin:2px 0 0;'>{cod}</p>"
+                        ) if cod else ''
                         st.markdown(
-                            f"<div style='background:#0F172A;border-radius:10px;"
+                            f"<div style='background:{THEME['border']};border-radius:10px;"
                             f"padding:10px 14px;margin:-4px 0 10px;"
-                            f"border-left:3px solid #DC2626;'>"
-                            f"<p style='color:#F1F5F9;font-weight:700;"
+                            f"border-left:3px solid {THEME['accent']};'>"
+                            f"<p style='color:{THEME['text']};font-weight:700;"
                             f"font-size:0.82rem;margin:0;'>"
                             f"{cli if cli else obra_sel}</p>"
-                            f"{'<p style=color:#DC2626;font-size:0.72rem;margin:2px 0 0;>' + cod + '</p>' if cod else ''}"
+                            f"{cod_html}"
                             f"</div>",
                             unsafe_allow_html=True
                         )
 
                 # ── Frente ────────────────────────────────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;"
-                    "font-weight:700;letter-spacing:0.08em;"
-                    "text-transform:uppercase;margin:8px 0 6px;'>"
-                    "🔧 Frente de Trabalho</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;"
+                    f"font-weight:700;letter-spacing:0.08em;"
+                    f"text-transform:uppercase;margin:8px 0 6px;'>"
+                    f"🔧 Frente de Trabalho</p>",
                     unsafe_allow_html=True
                 )
                 frente_sel = st.selectbox(
@@ -616,17 +619,17 @@ def render_tecnico(*args):
                 )
 
                 st.markdown(
-                    "<hr style='border:none;border-top:1px solid #1E293B;"
-                    "margin:12px 0;'>",
+                    f"<hr style='border:none;border-top:1px solid {THEME['border']};"
+                    f"margin:12px 0;'>",
                     unsafe_allow_html=True
                 )
 
                 # ── Períodos de trabalho ──────────────────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;"
-                    "font-weight:700;letter-spacing:0.08em;"
-                    "text-transform:uppercase;margin:0 0 8px;'>"
-                    "⏱️ Horas de Trabalho</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;"
+                    f"font-weight:700;letter-spacing:0.08em;"
+                    f"text-transform:uppercase;margin:0 0 8px;'>"
+                    f"⏱️ Horas de Trabalho</p>",
                     unsafe_allow_html=True
                 )
 
@@ -638,8 +641,8 @@ def render_tecnico(*args):
                 ):
                     if idx > 0:
                         st.markdown(
-                            "<hr style='border:none;border-top:1px dashed "
-                            "#1E293B;margin:6px 0;'>",
+                            f"<hr style='border:none;border-top:1px dashed "
+                            f"{THEME['border']};margin:6px 0;'>",
                             unsafe_allow_html=True
                         )
 
@@ -677,7 +680,7 @@ def render_tecnico(*args):
                             "horas":   round(delta, 2)
                         })
                         st.markdown(
-                            f"<p style='text-align:right;color:#DC2626;"
+                            f"<p style='text-align:right;color:{THEME['accent']};"
                             f"font-weight:700;font-size:0.8rem;margin:0 0 4px;'>"
                             f"= {fh(delta)}</p>",
                             unsafe_allow_html=True
@@ -688,14 +691,14 @@ def render_tecnico(*args):
                 # Total acumulado
                 if total_horas > 0:
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin:10px 0;"
                         f"display:flex;justify-content:space-between;"
                         f"align-items:center;'>"
-                        f"<span style='color:#64748B;font-size:0.78rem;"
+                        f"<span style='color:{THEME['text_secondary']};font-size:0.78rem;"
                         f"font-weight:600;text-transform:uppercase;"
                         f"letter-spacing:0.06em;'>Total</span>"
-                        f"<span style='color:#F1F5F9;font-size:1.6rem;"
+                        f"<span style='color:{THEME['text']};font-size:1.6rem;"
                         f"font-weight:900;'>{fh(total_horas)}</span>"
                         f"</div>",
                         unsafe_allow_html=True
@@ -808,10 +811,10 @@ def render_tecnico(*args):
         with tabs[1]:
             st.markdown("### ✅ Primeira Validação de Horas")
             st.markdown(
-                "<p style='color:#64748B;font-size:0.85rem;margin:0 0 16px;'>"
-                "Valida ou rejeita os registos de ponto da tua equipa. "
-                "Apenas registos <b style='color:#F97316;'>Pendentes</b> "
-                "são apresentados.</p>",
+                f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;margin:0 0 16px;'>"
+                f"Valida ou rejeita os registos de ponto da tua equipa. "
+                f"Apenas registos <b style='color:{THEME['warning']};'>Pendentes</b> "
+                f"são apresentados.</p>",
                 unsafe_allow_html=True
             )
 
@@ -905,55 +908,55 @@ def render_tecnico(*args):
             col_k1, col_k2, col_k3 = st.columns(3)
             with col_k1:
                 st.markdown(
-                    f"<div style='background:#1E293B;border-radius:10px;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                     f"padding:12px;text-align:center;"
-                    f"border-top:3px solid #F97316;'>"
-                    f"<p style='color:#64748B;font-size:0.72rem;"
+                    f"border-top:3px solid {THEME['warning']};'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;"
                     f"text-transform:uppercase;margin:0;'>Pendentes</p>"
-                    f"<b style='color:#F97316;font-size:1.6rem;'>"
+                    f"<b style='color:{THEME['warning']};font-size:1.6rem;'>"
                     f"{n_pend}</b>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
             with col_k2:
                 st.markdown(
-                    f"<div style='background:#1E293B;border-radius:10px;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                     f"padding:12px;text-align:center;"
-                    f"border-top:3px solid #3B82F6;'>"
-                    f"<p style='color:#64748B;font-size:0.72rem;"
+                    f"border-top:3px solid {THEME['accent']};'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;"
                     f"text-transform:uppercase;margin:0;'>Horas</p>"
-                    f"<b style='color:#3B82F6;font-size:1.6rem;'>"
+                    f"<b style='color:{THEME['accent']};font-size:1.6rem;'>"
                     f"{fh(h_pend)}</b>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
             with col_k3:
                 st.markdown(
-                    f"<div style='background:#1E293B;border-radius:10px;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                     f"padding:12px;text-align:center;"
-                    f"border-top:3px solid #8B5CF6;'>"
-                    f"<p style='color:#64748B;font-size:0.72rem;"
+                    f"border-top:3px solid {THEME['text_secondary']};'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;"
                     f"text-transform:uppercase;margin:0;'>Técnicos</p>"
-                    f"<b style='color:#8B5CF6;font-size:1.6rem;'>"
+                    f"<b style='color:{THEME['text_secondary']};font-size:1.6rem;'>"
                     f"{tec_pend}</b>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
 
             st.markdown(
-                "<hr style='border:none;border-top:1px solid #1E293B;"
-                "margin:16px 0 12px;'>",
+                f"<hr style='border:none;border-top:1px solid {THEME['border']};"
+                f"margin:16px 0 12px;'>",
                 unsafe_allow_html=True
             )
 
             if pend.empty:
                 st.markdown(
-                    "<div style='text-align:center;padding:40px 20px;'>"
-                    "<div style='font-size:3rem;margin-bottom:12px;"
-                    "opacity:0.25;'>✅</div>"
-                    "<p style='color:#475569;font-weight:600;margin:0;"
-                    "font-size:0.9rem;'>Sem registos pendentes de validação</p>"
-                    "</div>",
+                    f"<div style='text-align:center;padding:40px 20px;'>"
+                    f"<div style='font-size:3rem;margin-bottom:12px;"
+                    f"opacity:0.25;'>✅</div>"
+                    f"<p style='color:{THEME['text_secondary']};font-weight:600;margin:0;"
+                    f"font-size:0.9rem;'>Sem registos pendentes de validação</p>"
+                    f"</div>",
                     unsafe_allow_html=True
                 )
             else:
@@ -961,7 +964,7 @@ def render_tecnico(*args):
                 col_masa1, col_masa2, col_masa3 = st.columns([2, 1, 1])
                 with col_masa1:
                     st.markdown(
-                        f"<p style='color:#94A3B8;font-size:0.82rem;"
+                        f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;"
                         f"margin:10px 0;'>"
                         f"{n_pend} registo(s) para validar</p>",
                         unsafe_allow_html=True
@@ -1057,16 +1060,16 @@ def render_tecnico(*args):
 
                     # Cabeçalho do técnico
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:4px;"
-                        f"border-left:4px solid #8B5CF6;'>"
+                        f"border-left:4px solid {THEME['text_secondary']};'>"
                         f"<div style='display:flex;"
                         f"justify-content:space-between;align-items:center;'>"
-                        f"<b style='color:#F1F5F9;'>👤 {tec}</b>"
-                        f"<span style='color:#DC2626;font-weight:900;"
+                        f"<b style='color:{THEME['text']};'>👤 {tec}</b>"
+                        f"<span style='color:{THEME['accent']};font-weight:900;"
                         f"font-size:1rem;'>{fh(total_tec)}</span>"
                         f"</div>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{n_tec} registo(s) pendente(s)</small>"
                         f"</div>",
                         unsafe_allow_html=True
@@ -1089,28 +1092,28 @@ def render_tecnico(*args):
                         col_rc, col_rv, col_rr = st.columns([5, 1, 1])
                         with col_rc:
                             st.markdown(
-                                f"<div style='background:#0F172A;"
+                                f"<div style='background:{THEME['border']};"
                                 f"border-radius:10px;padding:12px 14px;"
                                 f"margin-bottom:6px;margin-left:12px;"
-                                f"border-left:3px solid #F97316;'>"
+                                f"border-left:3px solid {THEME['warning']};'>"
                                 f"<div style='display:flex;"
                                 f"justify-content:space-between;"
                                 f"align-items:flex-start;'>"
                                 f"<div>"
-                                f"<p style='color:#F1F5F9;font-weight:700;"
+                                f"<p style='color:{THEME['text']};font-weight:700;"
                                 f"font-size:0.88rem;margin:0;'>"
                                 f"{obra_r}</p>"
-                                f"<p style='color:#64748B;font-size:0.75rem;"
+                                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
                                 f"margin:2px 0 0;'>"
                                 f"{frente} · {turnos} · {data_r}</p>"
                                 + (
-                                    f"<p style='color:#475569;"
+                                    f"<p style='color:{THEME['text_secondary']};"
                                     f"font-size:0.72rem;margin:3px 0 0;'>"
                                     f"{relat}</p>"
                                     if relat else ""
                                 ) +
                                 f"</div>"
-                                f"<b style='color:#F1F5F9;"
+                                f"<b style='color:{THEME['text']};"
                                 f"font-size:1rem;white-space:nowrap;"
                                 f"margin-left:12px;'>"
                                 f"{fh(horas)}</b>"
@@ -1245,12 +1248,12 @@ def render_tecnico(*args):
                             rt['Horas_Total'], errors='coerce'
                         ).fillna(0).sum()
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:10px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                             f"padding:12px 16px;margin-bottom:8px;'>"
-                            f"<b style='color:#F1F5F9;'>👤 {tec}</b>"
-                            f"<span style='float:right;color:#DC2626;"
+                            f"<b style='color:{THEME['text']};'>👤 {tec}</b>"
+                            f"<span style='float:right;color:{THEME['accent']};"
                             f"font-weight:900;'>{fh(total)}</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{len(rt)} dia(s)</small>"
                             f"</div>",
                             unsafe_allow_html=True
@@ -1347,13 +1350,13 @@ def render_tecnico(*args):
             with col_v1:
                 pv  = user_data.get('PDFs_Validados', 'Não')
                 pvd = user_data.get('PDFs_Validacao_Data', '')
-                cp_ = "#10B981" if pv == 'Sim' else "#EF4444"
+                cp_ = THEME['success'] if pv == 'Sim' else THEME['error']
                 st.markdown(
-                    f"<div style='background:#1E293B;border:2px solid {cp_};"
+                    f"<div style='background:{THEME['surface']};border:2px solid {cp_};"
                     f"border-radius:10px;padding:12px;text-align:center;'>"
                     f"<b style='color:{cp_};'>"
                     f"{'✅' if pv=='Sim' else '❌'} Documentos</b>"
-                    f"<p style='color:#64748B;font-size:0.73rem;margin:5px 0 0;'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.73rem;margin:5px 0 0;'>"
                     f"{'Em ' + pvd if pv=='Sim' else 'Pendentes'}</p>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -1362,15 +1365,15 @@ def render_tecnico(*args):
                 ps  = user_data.get('PrecoHoraStatus', '')
                 pv_ = user_data.get('PrecoHora', '15.0')
                 pd_ = user_data.get('PrecoHoraData', '')
-                cp2 = ("#10B981" if ps == 'Aceite'
-                       else "#EF4444" if ps == 'Recusado'
-                       else "#F59E0B")
+                cp2 = (THEME['success'] if ps == 'Aceite'
+                       else THEME['error'] if ps == 'Recusado'
+                       else THEME['warning'])
                 ic_ = "✅" if ps == 'Aceite' else "❌" if ps == 'Recusado' else "⏳"
                 st.markdown(
-                    f"<div style='background:#1E293B;border:2px solid {cp2};"
+                    f"<div style='background:{THEME['surface']};border:2px solid {cp2};"
                     f"border-radius:10px;padding:12px;text-align:center;'>"
                     f"<b style='color:{cp2};'>{ic_} \u20AC{pv_}/h</b>"
-                    f"<p style='color:#64748B;font-size:0.73rem;margin:5px 0 0;'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.73rem;margin:5px 0 0;'>"
                     f"{'Aceite em ' + pd_ if ps=='Aceite' else ps if ps else 'Pendente'}"
                     f"</p></div>",
                     unsafe_allow_html=True
@@ -1389,14 +1392,14 @@ def render_tecnico(*args):
             )
             if perfil_incompleto:
                 st.markdown(
-                    "<div style='background:rgba(245,158,11,0.12);"
-                    "border-left:4px solid #F59E0B;border-radius:10px;"
-                    "padding:12px 16px;margin-bottom:14px;'>"
-                    "<b style='color:#FCD34D;'>⚠️ Perfil incompleto</b>"
-                    "<p style='color:#94A3B8;font-size:0.82rem;margin:4px 0 0;'>"
-                    "Por favor preenche os teus dados pessoais e profissionais "
-                    "para activar a tua conta.</p>"
-                    "</div>",
+                    f"<div style='background:{THEME['warning']}1F;"
+                    f"border-left:4px solid {THEME['warning']};border-radius:10px;"
+                    f"padding:12px 16px;margin-bottom:14px;'>"
+                    f"<b style='color:{THEME['warning']};'>⚠️ Perfil incompleto</b>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;margin:4px 0 0;'>"
+                    f"Por favor preenche os teus dados pessoais e profissionais "
+                    f"para activar a tua conta.</p>"
+                    f"</div>",
                     unsafe_allow_html=True
                 )
 
@@ -1404,9 +1407,9 @@ def render_tecnico(*args):
 
                 # ── Secção 1: Dados Pessoais ──────────────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
-                    "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
-                    "👤 Dados Pessoais</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
+                    f"text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
+                    f"👤 Dados Pessoais</p>",
                     unsafe_allow_html=True
                 )
                 c1, c2 = st.columns(2)
@@ -1438,16 +1441,16 @@ def render_tecnico(*args):
                     )
 
                 st.markdown(
-                    "<hr style='border:none;border-top:1px solid #1E293B;"
-                    "margin:10px 0;'>",
+                    f"<hr style='border:none;border-top:1px solid {THEME['border']};"
+                    f"margin:10px 0;'>",
                     unsafe_allow_html=True
                 )
 
                 # ── Secção 2: Morada ──────────────────────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
-                    "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
-                    "🏠 Morada</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
+                    f"text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
+                    f"🏠 Morada</p>",
                     unsafe_allow_html=True
                 )
                 mor_ = st.text_input(
@@ -1476,16 +1479,16 @@ def render_tecnico(*args):
                     )
 
                 st.markdown(
-                    "<hr style='border:none;border-top:1px solid #1E293B;"
-                    "margin:10px 0;'>",
+                    f"<hr style='border:none;border-top:1px solid {THEME['border']};"
+                    f"margin:10px 0;'>",
                     unsafe_allow_html=True
                 )
 
                 # ── Secção 3: Contacto de Emergência ─────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
-                    "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
-                    "🚨 Contacto de Emergência</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
+                    f"text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
+                    f"🚨 Contacto de Emergência</p>",
                     unsafe_allow_html=True
                 )
                 c6, c7 = st.columns(2)
@@ -1508,16 +1511,16 @@ def render_tecnico(*args):
                     )
 
                 st.markdown(
-                    "<hr style='border:none;border-top:1px solid #1E293B;"
-                    "margin:10px 0;'>",
+                    f"<hr style='border:none;border-top:1px solid {THEME['border']};"
+                    f"margin:10px 0;'>",
                     unsafe_allow_html=True
                 )
 
                 # ── Secção 4: Segurança ───────────────────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
-                    "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
-                    "🔐 Segurança</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
+                    f"text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
+                    f"🔐 Segurança</p>",
                     unsafe_allow_html=True
                 )
                 c8, c9 = st.columns(2)
@@ -1535,11 +1538,11 @@ def render_tecnico(*args):
                 )
 
                 st.markdown(
-                    "<div style='background:rgba(59,130,246,0.08);"
-                    "border-radius:8px;padding:10px 14px;margin:8px 0;'>"
-                    "<p style='color:#64748B;font-size:0.75rem;margin:0;'>"
-                    "🔒 Nome, Tipo, Cargo e IBAN são geridos pelo Administrador."
-                    "</p></div>",
+                    f"<div style='background:{THEME['accent']}14;"
+                    f"border-radius:8px;padding:10px 14px;margin:8px 0;'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:0;'>"
+                    f"🔒 Nome, Tipo, Cargo e IBAN são geridos pelo Administrador."
+                    f"</p></div>",
                     unsafe_allow_html=True
                 )
 
@@ -1634,15 +1637,15 @@ def render_tecnico(*args):
                         st.error("Erro ao processar o contrato.")
 
                 st.markdown(
-                    "<div style='background:rgba(59,130,246,0.1);"
-                    "border-radius:10px;padding:14px;margin:12px 0;"
-                    "border-left:3px solid #3B82F6;'>"
-                    "<p style='color:#93C5FD;font-size:0.85rem;margin:0;'>"
-                    "📋 <b>Instruções:</b><br>"
-                    "1. Descarrega o contrato acima<br>"
-                    "2. Imprime e assina à mão<br>"
-                    "3. Fotografa ou digitaliza<br>"
-                    "4. Faz upload abaixo</p></div>",
+                    f"<div style='background:{THEME['accent']}1A;"
+                    f"border-radius:10px;padding:14px;margin:12px 0;"
+                    f"border-left:3px solid {THEME['accent']};'>"
+                    f"<p style='color:{THEME['accent']};font-size:0.85rem;margin:0;'>"
+                    f"📋 <b>Instruções:</b><br>"
+                    f"1. Descarrega o contrato acima<br>"
+                    f"2. Imprime e assina à mão<br>"
+                    f"3. Fotografa ou digitaliza<br>"
+                    f"4. Faz upload abaixo</p></div>",
                     unsafe_allow_html=True
                 )
 
@@ -1696,9 +1699,9 @@ def render_tecnico(*args):
                             st.rerun()
             else:
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.85rem;'>"
-                    "⏳ Contrato ainda não disponível. "
-                    "Será notificado quando estiver pronto.</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;'>"
+                    f"⏳ Contrato ainda não disponível. "
+                    f"Será notificado quando estiver pronto.</p>",
                     unsafe_allow_html=True
                 )
 
@@ -1720,7 +1723,7 @@ def render_tecnico(*args):
                             meus_pag['Valor_Total'], errors='coerce'
                         ).fillna(0).sum()
                         st.markdown(
-                            f"<p style='color:#10B981;font-weight:700;'>"
+                            f"<p style='color:{THEME['success']};font-weight:700;'>"
                             f"Total recebido: \u20AC {total_recebido:.2f}</p>",
                             unsafe_allow_html=True
                         )
@@ -1728,17 +1731,17 @@ def render_tecnico(*args):
                             col_di, col_dr = st.columns([4, 1])
                             with col_di:
                                 st.markdown(
-                                    f"<div style='background:#1E293B;"
+                                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                     f"border-radius:8px;padding:10px;"
                                     f"margin-bottom:5px;'>"
-                                    f"<b style='color:#F1F5F9;font-size:0.85rem;'>"
+                                    f"<b style='color:{THEME['text']};font-size:0.85rem;'>"
                                     f"{dp.get('Semana_Inicio','')} — "
                                     f"{dp.get('Semana_Fim','')}</b>"
-                                    f"<span style='float:right;color:#10B981;"
+                                    f"<span style='float:right;color:{THEME['success']};"
                                     f"font-weight:700;'>"
                                     f"\u20AC {float(dp.get('Valor_Total',0)):.2f}"
                                     f"</span><br>"
-                                    f"<small style='color:#64748B;'>"
+                                    f"<small style='color:{THEME['text_secondary']};'>"
                                     f"{dp.get('Obras','')} · "
                                     f"{dp.get('Dias_Total','')} dia(s) · "
                                     f"{dp.get('Status','')}</small>"
@@ -2033,20 +2036,20 @@ def render_tecnico(*args):
                         sem = False
                         for _, p_ in m_.tail(5).iterrows():
                             cor = {
-                                "Pendente":  "#F97316",
-                                "Aprovado":  "#10B981",
-                                "Rejeitado": "#EF4444"
-                            }.get(p_.get('Status', ''), "#6B7280")
+                                "Pendente":  THEME['warning'],
+                                "Aprovado":  THEME['success'],
+                                "Rejeitado": THEME['error']
+                            }.get(p_.get('Status', ''), THEME['text_secondary'])
                             st.markdown(
-                                f"<div style='background:#1E293B;padding:10px;"
+                                f"<div style='background:{THEME['surface']};padding:10px;"
                                 f"border-radius:9px;margin-bottom:5px;"
                                 f"border-left:3px solid {cor};'>"
-                                f"<span style='color:#F1F5F9;'>"
+                                f"<span style='color:{THEME['text']};'>"
                                 f"{tp_} {str(p_.get(cp4,''))[:40]}</span>"
                                 f"<span style='color:{cor};font-size:0.77rem;"
                                 f"float:right;font-weight:700;'>"
                                 f"{p_.get('Status','')}</span><br>"
-                                f"<small style='color:#475569;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"{p_.get('Data','')}</small></div>",
                                 unsafe_allow_html=True
                             )
