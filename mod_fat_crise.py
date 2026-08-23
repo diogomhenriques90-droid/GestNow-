@@ -795,24 +795,24 @@ def render_fat_crise(obras_db, registos_db,
     hoje      = date.today()
 
     # ── Calcular métricas base ────────────────────────────────────
-    saldo_atual = pd.to_numeric(
+    saldo_atual = float(pd.to_numeric(
         contas_db.get('Saldo', pd.Series()), errors='coerce'
-    ).fillna(0).sum() if not contas_db.empty else 0.0
+    ).fillna(0).sum()) if not contas_db.empty else 0.0
 
     custo_sal_mes = 0.0
     if not rh_db.empty and 'Salario_Base' in rh_db.columns:
-        custo_sal_mes = pd.to_numeric(
+        custo_sal_mes = float(pd.to_numeric(
             rh_db['Salario_Base'], errors='coerce'
-        ).fillna(0).sum() * 1.2375
+        ).fillna(0).sum() * 1.2375)
 
     renda_mes = 0.0
     if not renting_db.empty and 'Valor_Mensal' in renting_db.columns:
         at = renting_db[
             renting_db.get('Estado','') != 'Terminado'
         ] if 'Estado' in renting_db.columns else renting_db
-        renda_mes = pd.to_numeric(
+        renda_mes = float(pd.to_numeric(
             at['Valor_Mensal'], errors='coerce'
-        ).fillna(0).sum()
+        ).fillna(0).sum())
 
     custos_fixos_mes = custo_sal_mes + renda_mes
 
@@ -829,16 +829,16 @@ def render_fat_crise(obras_db, registos_db,
             (fc['Data_d'].dt.month == hoje.month) &
             (fc['Data_d'].dt.year  == hoje.year)
         )
-        fat_mes = fc[mask_m]['Total_Num'].sum()
+        fat_mes = float(fc[mask_m]['Total_Num'].sum())
 
     a_receber = 0.0
     if not faturas_cli.empty and 'Estado' in faturas_cli.columns:
         nao_pagas = faturas_cli[
             ~faturas_cli['Estado'].isin(['Paga','Anulada'])
         ]
-        a_receber = pd.to_numeric(
+        a_receber = float(pd.to_numeric(
             nao_pagas.get('Total',0), errors='coerce'
-        ).fillna(0).sum()
+        ).fillna(0).sum())
 
     autonomia = round(
         saldo_atual / custos_fixos_mes, 1
