@@ -10,7 +10,8 @@ from core import (
     _fill_contrato_template, ICONS, logger,
     cliente_select, registar_cliente_do_select,
     obra_select, get_cliente_da_obra,
-    lista_rh_select, registar_valor_lista_rh, set_funcao_categoria
+    lista_rh_select, registar_valor_lista_rh, set_funcao_categoria,
+    THEME
 )
 
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
@@ -680,26 +681,6 @@ def render_admin_rh(*args):
 
     admin_nome = st.session_state.get('user', 'Admin')
 
-    st.markdown("""
-    <style>
-    [data-baseweb="select"] [role="option"] {
-        color: #111827 !important;
-        background: #FFFFFF !important;
-    }
-    [data-baseweb="menu"] {
-        background: #FFFFFF !important;
-    }
-    [data-baseweb="menu"] li {
-        color: #111827 !important;
-    }
-    .stDownloadButton > button {
-        color: #111827 !important;
-        background: #FFFFFF !important;
-        border: 1px solid #D1D5DB !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     st.markdown("# 👥 Recursos Humanos")
 
     # ── Painel de alertas de validade ─────────────────────────────────
@@ -967,12 +948,12 @@ def render_admin_rh(*args):
                 col_info, col_sel = st.columns([5, 1])
                 with col_info:
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:6px;'>"
-                        f"<b style='color:#F1F5F9;'>{nome_c}</b> "
-                        f"<span style='color:#64748B;font-size:0.8rem;'>"
+                        f"<b style='color:{THEME['text']};'>{nome_c}</b> "
+                        f"<span style='color:{THEME['text_secondary']};font-size:0.8rem;'>"
                         f"· {tipo_c} · {cargo_c}</span><br>"
-                        f"<span style='font-size:0.75rem;color:#94A3B8;'>"
+                        f"<span style='font-size:0.75rem;color:{THEME['text_secondary']};'>"
                         f"PDFs {estado_pdf} &nbsp; Perfil {estado_pfx} &nbsp; "
                         f"IBAN {estado_iban} &nbsp; Contrato {estado_ct}</span>"
                         f"</div>",
@@ -1016,11 +997,11 @@ def render_admin_rh(*args):
 
         # ── Cabeçalho do colaborador ──────────────────────────────
         st.markdown(
-            f"<div style='background:#1E293B;border-radius:14px;"
-            f"padding:16px;margin-bottom:16px;border:1px solid #334155;'>"
-            f"<p style='color:#F1F5F9;font-size:1.2rem;font-weight:900;margin:0;'>"
+            f"<div style='background:{THEME['surface']};border-radius:14px;"
+            f"padding:16px;margin-bottom:16px;border:1px solid {THEME['border']};'>"
+            f"<p style='color:{THEME['text']};font-size:1.2rem;font-weight:900;margin:0;'>"
             f"{nome_sel}</p>"
-            f"<p style='color:#64748B;font-size:0.85rem;margin:3px 0 0;'>"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;margin:3px 0 0;'>"
             f"{row.get('Tipo','')} · {row.get('Cargo','')} · "
             f"{row.get('Local_Obra','')} → {row.get('Cliente_Obra','')}</p>"
             f"</div>",
@@ -1282,9 +1263,9 @@ def render_admin_rh(*args):
                 col_use = c_left if i % 2 == 0 else c_right
                 with col_use:
                     st.markdown(
-                        f"<p style='color:#94A3B8;font-size:0.72rem;"
+                        f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;"
                         f"margin:0;text-transform:uppercase;'>{campo}</p>"
-                        f"<p style='color:#F1F5F9;font-size:0.9rem;"
+                        f"<p style='color:{THEME['text']};font-size:0.9rem;"
                         f"font-weight:600;margin:0 0 10px;'>{valor}</p>",
                         unsafe_allow_html=True
                     )
@@ -1378,9 +1359,9 @@ def render_admin_rh(*args):
         st.markdown("#### 🚫 Remover Colaborador")
 
         st.markdown(
-            "<div style='background:rgba(239,68,68,0.08);border-radius:10px;"
-            "padding:12px 16px;border-left:3px solid #EF4444;margin-bottom:12px;'>"
-            "<p style='color:#FCA5A5;font-size:0.82rem;margin:0;'>"
+            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
+            f"padding:12px 16px;border-left:3px solid {THEME['error']};margin-bottom:12px;'>"
+            f"<p style='color:{THEME['error']};font-size:0.82rem;margin:0;'>"
             "⚠️ <b>Atenção:</b> Estas acções são permanentes ou têm impacto "
             "no acesso do colaborador à plataforma.</p></div>",
             unsafe_allow_html=True
@@ -1390,9 +1371,9 @@ def render_admin_rh(*args):
 
         with col_rm1:
             st.markdown(
-                "<p style='color:#F1F5F9;font-weight:700;margin:0 0 6px;'>"
+                f"<p style='color:{THEME['text']};font-weight:700;margin:0 0 6px;'>"
                 "🗑️ Remover Permanentemente</p>"
-                "<p style='color:#64748B;font-size:0.78rem;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.78rem;'>"
                 "Apaga o colaborador de forma definitiva. "
                 "Registos de horas são mantidos.</p>",
                 unsafe_allow_html=True)
@@ -1445,9 +1426,9 @@ def render_admin_rh(*args):
 
         with col_rm2:
             st.markdown(
-                "<p style='color:#F1F5F9;font-weight:700;margin:0 0 6px;'>"
+                f"<p style='color:{THEME['text']};font-weight:700;margin:0 0 6px;'>"
                 "⛔ Adicionar à Lista Negra</p>"
-                "<p style='color:#64748B;font-size:0.78rem;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.78rem;'>"
                 "Bloqueia o acesso mas mantém o registo. "
                 "Fica vísivel na Lista Negra com observações.</p>",
                 unsafe_allow_html=True)
@@ -1498,17 +1479,17 @@ def render_admin_rh(*args):
                     ln_por  = ln_row.get("Lista_Negra_Por","")
                     ln_obs  = ln_row.get("Lista_Negra_Obs","")
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:8px;"
-                        f"border-left:4px solid #EF4444;'>"
+                        f"border-left:4px solid {THEME['error']};'>"
                         f"<div style='display:flex;justify-content:space-between;"
                         f"align-items:flex-start;'>"
                         f"<div>"
-                        f"<p style='color:#F1F5F9;font-weight:700;margin:0;'>"
+                        f"<p style='color:{THEME['text']};font-weight:700;margin:0;'>"
                         f"⛔ {ln_nome}</p>"
-                        f"<p style='color:#64748B;font-size:0.75rem;margin:2px 0;'>"
+                        f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:2px 0;'>"
                         f"Adicionado por {ln_por} em {ln_data}</p>"
-                        f"<p style='color:#94A3B8;font-size:0.8rem;margin:4px 0 0;'>"
+                        f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;margin:4px 0 0;'>"
                         f"{ln_obs}</p>"
                         f"</div></div></div>",
                         unsafe_allow_html=True
@@ -2739,13 +2720,13 @@ def render_admin_rh(*args):
         col_ps = st.columns(4)
         for col_p, (label, feito, data_p) in zip(col_ps, passos_ct):
             with col_p:
-                cor_p = "#10B981" if feito else "#334155"
+                cor_p = THEME['success'] if feito else THEME['text_secondary']
                 st.markdown(
-                    f"<div style='background:{cor_p}22;border:2px solid {cor_p};"
+                    f"<div style='background:{THEME['surface']};border:2px solid {cor_p};"
                     f"border-radius:10px;padding:10px;text-align:center;'>"
                     f"<p style='color:{cor_p};font-weight:700;"
                     f"font-size:0.8rem;margin:0;'>{label}</p>"
-                    f"<p style='color:#64748B;font-size:0.68rem;margin:3px 0 0;'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;margin:3px 0 0;'>"
                     f"{data_p or '—'}</p>"
                     f"</div>",
                     unsafe_allow_html=True
