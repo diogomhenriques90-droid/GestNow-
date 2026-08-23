@@ -1,9 +1,7 @@
 """
-Testes do módulo de Gestão de Armazém (mod_armazem.py).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 3 da Identidade Visual migrar este módulo para o THEME
-central (core.py).
+Testes do módulo de Gestão de Armazém (mod_armazem.py) — Fase 3 da
+Identidade Visual: migração para o THEME central (core.py), em vez
+de hexadecimais soltos.
 
 Fora de âmbito, de propósito: _badge_status() (dicionário de 5 cores
 de estado) está definida mas nunca é chamada em lado nenhum do render
@@ -129,6 +127,34 @@ class TestRenderArmazemSemErro(unittest.TestCase):
     def test_sem_erro_sem_dados(self):
         at = _run(req_fer_records=[], req_mat_records=[], req_epi_records=[])
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_armazem.py lê as suas cores
+    de core.THEME — nunca mais hexadecimais soltos, um só cinzento
+    secundário, sem fundos escuros/em tom forçados nos cartões de
+    detalhe do pedido, cartões "Aprovado" (EPIs/Ferramentas/
+    Materiais), banner de receção pendente e cartão de detalhe da
+    receção."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary", "accent"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_em_tom_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("rgba(255,255,255,0.05)", textos)
+        self.assertNotIn("rgba(139,92,246,", textos)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from core import save_db, inv, log_audit, criar_notificacao, load_db
+from core import save_db, inv, log_audit, criar_notificacao, load_db, THEME
 
 # Statuses do fluxo completo:
 # Pendente → Aprovado → Enviado → Entregue / Rejeitado
@@ -155,7 +155,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         expanded=True
                     ):
                         st.markdown(
-                            f"<div style='background:rgba(255,255,255,0.05);"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"padding:12px;border-radius:8px;'>"
                             f"<p><b>Solicitante:</b> {ped.get('Solicitante','')}</p>"
                             f"<p><b>Obra:</b> {ped.get('Obra','')}</p>"
@@ -210,16 +210,16 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                     col_i, col_e = st.columns([5,1])
                     with col_i:
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"border-radius:8px;padding:10px 14px;"
                             f"margin-bottom:4px;"
-                            f"border-left:3px solid #3B82F6;'>"
-                            f"<b style='color:#F1F5F9;'>"
+                            f"border-left:3px solid {THEME['accent']};'>"
+                            f"<b style='color:{THEME['text']};'>"
                             f"{ped.get('Item','')} × "
                             f"{ped.get('Quantidade',1)}</b>"
-                            f"<span style='float:right;color:#64748B;'>"
+                            f"<span style='float:right;color:{THEME['text_secondary']};'>"
                             f"{ped.get('Data_Validacao','')}</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"👤 {ped.get('Solicitante','')} · "
                             f"🏗️ {ped.get('Obra','')}</small>"
                             f"</div>",
@@ -289,7 +289,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         expanded=True
                     ):
                         st.markdown(
-                            f"<div style='background:rgba(255,255,255,0.05);"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"padding:12px;border-radius:8px;'>"
                             f"<p><b>Solicitante:</b> "
                             f"{ped.get('Solicitante','')}</p>"
@@ -351,13 +351,13 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                     col_i, col_e = st.columns([5,1])
                     with col_i:
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"border-radius:8px;padding:10px 14px;"
                             f"margin-bottom:4px;"
-                            f"border-left:3px solid #3B82F6;'>"
-                            f"<b style='color:#F1F5F9;'>"
+                            f"border-left:3px solid {THEME['accent']};'>"
+                            f"<b style='color:{THEME['text']};'>"
                             f"{str(ped.get('Descricao',''))[:40]}</b><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"👤 {ped.get('Solicitante','')} · "
                             f"🏗️ {ped.get('Obra','')}</small>"
                             f"</div>",
@@ -433,7 +433,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         expanded=True
                     ):
                         st.markdown(
-                            f"<div style='background:rgba(255,255,255,0.05);"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"padding:12px;border-radius:8px;'>"
                             f"<p><b>Solicitante:</b> "
                             f"{ped.get('Solicitante','')}</p>"
@@ -492,16 +492,16 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                     col_i, col_e = st.columns([5,1])
                     with col_i:
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"border-radius:8px;padding:10px 14px;"
                             f"margin-bottom:4px;"
-                            f"border-left:3px solid #3B82F6;'>"
-                            f"<b style='color:#F1F5F9;'>"
+                            f"border-left:3px solid {THEME['accent']};'>"
+                            f"<b style='color:{THEME['text']};'>"
                             f"{str(ped.get('Descricao',''))[:40]}</b>"
-                            f"<span style='float:right;color:#64748B;'>"
+                            f"<span style='float:right;color:{THEME['text_secondary']};'>"
                             f"{ped.get('Quantidade','')} "
                             f"{ped.get('Unidade','')}</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"👤 {ped.get('Solicitante','')} · "
                             f"🏗️ {ped.get('Obra','')}</small>"
                             f"</div>",
@@ -582,10 +582,10 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
             )
         else:
             st.markdown(
-                f"<div style='background:rgba(139,92,246,0.1);"
-                f"border:1px solid #8B5CF6;border-radius:8px;"
+                f"<div style='background:{THEME['surface']};"
+                f"border:1px solid {THEME['border']};border-left:3px solid {THEME['accent']};border-radius:8px;"
                 f"padding:10px 16px;margin-bottom:12px;'>"
-                f"<b style='color:#8B5CF6;'>"
+                f"<b style='color:{THEME['accent']};'>"
                 f"📬 {len(enviados)} item(s) aguardam confirmação "
                 f"de receção na obra</b>"
                 f"</div>",
@@ -611,17 +611,17 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                     col_r1, col_r2 = st.columns([3,2])
                     with col_r1:
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"border-radius:8px;padding:12px;'>"
-                            f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                            f"<p style='color:{THEME['text']};margin:2px 0;'>"
                             f"<b>Tipo:</b> {tipo}</p>"
-                            f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                            f"<p style='color:{THEME['text']};margin:2px 0;'>"
                             f"<b>Item:</b> {desc}</p>"
-                            f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                            f"<p style='color:{THEME['text']};margin:2px 0;'>"
                             f"<b>Quantidade:</b> {qtd}</p>"
-                            f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                            f"<p style='color:{THEME['text']};margin:2px 0;'>"
                             f"<b>Obra:</b> {obra}</p>"
-                            f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                            f"<p style='color:{THEME['text']};margin:2px 0;'>"
                             f"<b>Solicitante:</b> {tec}</p>"
                             f"</div>",
                             unsafe_allow_html=True
