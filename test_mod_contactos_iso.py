@@ -1,10 +1,7 @@
 """
 Testes do módulo de Rastreabilidade de Contactos ISO 9001:2015 Cl. 8.2
-(mod_contactos_iso.py).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 3 da Identidade Visual migrar este módulo para o THEME
-central (core.py).
+(mod_contactos_iso.py) — Fase 3 da Identidade Visual: migração para
+o THEME central (core.py), em vez de hexadecimais soltos.
 
 Fora de âmbito, de propósito (Fase 4, mesmo critério dos gráficos
 Plotly): os gráficos "Origem por Canal" (pizza) e "Taxa de Follow-up"
@@ -97,6 +94,33 @@ class TestRenderContactosIsoSemErro(unittest.TestCase):
     def test_sem_erro_sem_dados(self):
         at = _run(load_db_fn=_fake_load_db_vazio)
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_contactos_iso.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, sem fundos escuros forçados nos cartões de
+    detalhe do contacto, estado, timeline por cliente e Analytics ISO."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "warning", "success", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
 
 
 if __name__ == "__main__":
