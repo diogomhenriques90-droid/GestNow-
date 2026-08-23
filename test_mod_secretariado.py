@@ -1,10 +1,8 @@
 """
 Testes do módulo de Secretariado (mod_secretariado.py) — validação de
-horas (1ª/2ª), faturação vs folha de ponto, gasóleo e avarias.
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 3 da Identidade Visual migrar este módulo para o THEME
-central (core.py).
+horas (1ª/2ª), faturação vs folha de ponto, gasóleo e avarias — Fase
+3 da Identidade Visual: migração para o THEME central (core.py), em
+vez de hexadecimais soltos.
 
 Fora de âmbito, de propósito: _STATUS_COR (dicionário de 4 cores de
 estado) está definido mas nunca é usado em lado nenhum do render —
@@ -138,6 +136,35 @@ class TestRenderSecretariadoSemErro(unittest.TestCase):
         at = _run(registos_records=[], folhas_records=[],
                    req_mat_records=[], incs_records=[])
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_secretariado.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, sem fundos escuros/em tom forçados nos
+    cartões de 1ª/2ª validação, folha de ponto, comparação App vs
+    Folha, gasóleo e avaria."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "success", "warning", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_em_tom_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
+        self.assertNotIn("rgba(255,255,255,0.05)", textos)
+        self.assertNotIn("rgba(239,68,68,", textos)
 
 
 if __name__ == "__main__":

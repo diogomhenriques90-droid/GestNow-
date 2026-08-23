@@ -14,7 +14,7 @@ import streamlit as st
 import pandas as pd
 import base64, io
 from datetime import datetime, date, timedelta
-from core import save_db, inv, log_audit, criar_notificacao, fh
+from core import save_db, inv, log_audit, criar_notificacao, fh, THEME
 
 _STATUS_COR = {
     "0": "#F97316",
@@ -167,12 +167,12 @@ def render_secretariado(*args):
                     col_i, col_v, col_r = st.columns([5, 1, 1])
                     with col_i:
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:8px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:8px;"
                             f"padding:10px 14px;margin-bottom:4px;'>"
-                            f"<b style='color:#F1F5F9;'>{row.get('Técnico','')}</b>"
-                            f"<span style='float:right;color:#F59E0B;font-weight:700;'>"
+                            f"<b style='color:{THEME['text']};'>{row.get('Técnico','')}</b>"
+                            f"<span style='float:right;color:{THEME['warning']};font-weight:700;'>"
                             f"{fh(row.get('Horas_Total',0))}</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{row.get('Data','')} · {row.get('Obra','')} · "
                             f"{row.get('Frente','')} · {row.get('Turnos','')}"
                             f"</small></div>",
@@ -281,13 +281,13 @@ def render_secretariado(*args):
                     col_i, col_v, col_d = st.columns([5, 1, 1])
                     with col_i:
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:8px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:8px;"
                             f"padding:10px 14px;margin-bottom:4px;"
-                            f"border-left:3px solid #10B981;'>"
-                            f"<b style='color:#F1F5F9;'>{row.get('Técnico','')}</b>"
-                            f"<span style='float:right;color:#3B82F6;font-weight:700;'>"
+                            f"border-left:3px solid {THEME['success']};'>"
+                            f"<b style='color:{THEME['text']};'>{row.get('Técnico','')}</b>"
+                            f"<span style='float:right;color:{THEME['accent']};font-weight:700;'>"
                             f"{fh(row.get('Horas_Total',0))}</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{row.get('Data','')} · {row.get('Obra','')} · "
                             f"{row.get('Turnos','')}</small></div>",
                             unsafe_allow_html=True
@@ -359,15 +359,15 @@ def render_secretariado(*args):
                         resp    = fp.get('Responsavel','')
                         selo    = fp.get('Selo','')
                         status  = fp.get('Status','')
-                        cor_fp  = "#10B981" if status == 'Conferido' else "#F59E0B"
+                        cor_fp  = THEME['success'] if status == 'Conferido' else THEME['warning']
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:10px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                             f"padding:12px 16px;margin-bottom:8px;"
                             f"border-left:4px solid {cor_fp};'>"
-                            f"<b style='color:#F1F5F9;'>📋 {periodo}</b>"
+                            f"<b style='color:{THEME['text']};'>📋 {periodo}</b>"
                             f"<span style='float:right;color:{cor_fp};font-size:0.8rem;'>"
                             f"{status}</span><br>"
-                            f"<small style='color:#64748B;'>Responsável: {resp} · Selo: {selo}</small>"
+                            f"<small style='color:{THEME['text_secondary']};'>Responsável: {resp} · Selo: {selo}</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
@@ -405,13 +405,13 @@ def render_secretariado(*args):
                         col_tn, col_happ, col_hfp, col_diff = st.columns([3,1,1,1])
                         with col_tn:
                             st.markdown(
-                                f"<p style='color:#F1F5F9;font-size:0.88rem;"
+                                f"<p style='color:{THEME['text']};font-size:0.88rem;"
                                 f"padding:8px 0;margin:0;'>{tec_nome}</p>",
                                 unsafe_allow_html=True
                             )
                         with col_happ:
                             st.markdown(
-                                f"<p style='color:#3B82F6;font-size:0.82rem;"
+                                f"<p style='color:{THEME['accent']};font-size:0.82rem;"
                                 f"padding:8px 0;margin:0;'>App: <b>{fh(horas_app)}</b></p>",
                                 unsafe_allow_html=True
                             )
@@ -436,13 +436,13 @@ def render_secretariado(*args):
                                     "Sentido":     "App > Folha" if diff > 0 else "Folha > App"
                                 })
                                 st.markdown(
-                                    f"<p style='color:#EF4444;font-size:0.8rem;"
+                                    f"<p style='color:{THEME['error']};font-size:0.8rem;"
                                     f"padding:8px 0;margin:0;'>⚠️ {fh(abs(diff))}</p>",
                                     unsafe_allow_html=True
                                 )
                             else:
                                 st.markdown(
-                                    "<p style='color:#10B981;font-size:0.8rem;"
+                                    f"<p style='color:{THEME['success']};font-size:0.8rem;"
                                     "padding:8px 0;margin:0;'>✅ OK</p>",
                                     unsafe_allow_html=True
                                 )
@@ -500,13 +500,13 @@ def render_secretariado(*args):
                                 })
                                 with col_d:
                                     st.markdown(
-                                        f"<span style='color:#EF4444;font-weight:700;'>"
+                                        f"<span style='color:{THEME['error']};font-weight:700;'>"
                                         f"⚠️ {fh(abs(diff))}</span>",
                                         unsafe_allow_html=True
                                     )
                                 with col_e:
                                     st.markdown(
-                                        f"<span style='color:#EF4444;'>"
+                                        f"<span style='color:{THEME['error']};'>"
                                         f"{'App > Folha' if diff>0 else 'Folha > App'}"
                                         f"</span>",
                                         unsafe_allow_html=True
@@ -529,7 +529,8 @@ def render_secretariado(*args):
                                 "Sentido": "❌ Só na folha, não na app"
                             })
                             st.markdown(
-                                f"<div style='background:rgba(239,68,68,0.1);"
+                                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
+                                f"border-left:3px solid {THEME['error']};"
                                 f"border-radius:8px;padding:8px;margin-top:4px;'>"
                                 f"⚠️ <b>{nome_ocr}</b> — na folha ({fh(h_ocr)}) "
                                 f"mas <b>sem registo na app</b></div>",
@@ -606,7 +607,7 @@ def render_secretariado(*args):
                             expanded=True
                         ):
                             st.markdown(f"""
-                            <div style="background:rgba(255,255,255,0.05);
+                            <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
                                 padding:15px;border-radius:10px;">
                                 <p><strong>Solicitante:</strong> {ped.get('Solicitante','N/A')}</p>
                                 <p><strong>Obra:</strong> {ped.get('Obra','N/A')}</p>
@@ -693,16 +694,16 @@ def render_secretariado(*args):
                     st.markdown(f"**{len(pend_av)} avaria(s) pendente(s)**")
                     for idx, ped in pend_av.iterrows():
                         ped_id = ped.get('ID', f"AVAR_{idx}")
-                        cor_u  = {"Baixa":"#10B981","Média":"#F59E0B",
-                                  "Alta":"#EF4444","Crítica - Paragem":"#DC2626"}.get(
-                                      ped.get('Urgencia','Média'),"#6B7280")
+                        cor_u  = {"Baixa":THEME['success'],"Média":THEME['warning'],
+                                  "Alta":THEME['error'],"Crítica - Paragem":THEME['error']}.get(
+                                      ped.get('Urgencia','Média'),THEME['text_secondary'])
                         with st.expander(
                             f"🔧 {str(ped.get('Equipamento','Equipamento'))[:40]} — "
                             f"{ped.get('Solicitante','N/A')}",
                             expanded=True
                         ):
                             st.markdown(f"""
-                            <div style="background:rgba(255,255,255,0.05);
+                            <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
                                 padding:15px;border-radius:10px;
                                 border-left:4px solid {cor_u};">
                                 <p><strong>Solicitante:</strong> {ped.get('Solicitante','N/A')}</p>
