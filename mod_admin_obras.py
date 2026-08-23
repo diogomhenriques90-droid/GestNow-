@@ -5,7 +5,7 @@ from datetime import datetime, date
 from core import (save_db, inv, load_db, cliente_select,
                   registar_cliente_do_select, lista_rh_select,
                   registar_valor_lista_rh, set_funcao_categoria,
-                  get_contactos_cliente)
+                  get_contactos_cliente, THEME)
 
 RESPONSAVEL_OPTS = ["", "CPS", "Cliente", "Outro"]
 RESPONSAVEL_EQUIPA_VAZIO = "— Nenhum —"
@@ -134,13 +134,13 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                             ])
 
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:10px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                             f"padding:12px 16px;margin-bottom:8px;"
-                            f"border-left:4px solid #10B981;'>"
-                            f"<b style='color:#F1F5F9;'>{ob_nome}</b>"
-                            f"<span style='float:right;color:#10B981;"
+                            f"border-left:4px solid {THEME['success']};'>"
+                            f"<b style='color:{THEME['text']};'>{ob_nome}</b>"
+                            f"<span style='float:right;color:{THEME['success']};"
                             f"font-size:0.8rem;'>✅ Ativa</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{ob_cli} · {ob_tipo} · {ob_loc} · "
                             f"👷 {n_colabs} colaborador(es)</small>"
                             f"</div>",
@@ -528,13 +528,13 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                     col_ci, col_cm = st.columns([4, 1])
                     with col_ci:
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:8px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:8px;"
                             f"padding:10px 14px;margin-bottom:4px;'>"
-                            f"<b style='color:#F1F5F9;'>"
+                            f"<b style='color:{THEME['text']};'>"
                             f"{colab.get('Utilizador','')}</b>"
-                            f"<span style='float:right;color:#3B82F6;'>"
+                            f"<span style='float:right;color:{THEME['accent']};'>"
                             f"€ {colab.get('PrecoHora','')}/h</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{colab.get('Cargo','')} · "
                             f"Desde {colab.get('Data_Aloc','')}"
                             f"</small></div>",
@@ -615,13 +615,13 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 'DataFecho', ascending=False
             ).iterrows():
                 st.markdown(
-                    f"<div style='background:#1E293B;border-radius:10px;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                     f"padding:12px 16px;margin-bottom:8px;"
-                    f"border-left:4px solid #6B7280;'>"
-                    f"<b style='color:#94A3B8;'>{ob_h.get('Obra','')}</b>"
-                    f"<span style='float:right;color:#6B7280;"
+                    f"border-left:4px solid {THEME['text_secondary']};'>"
+                    f"<b style='color:{THEME['text']};'>{ob_h.get('Obra','')}</b>"
+                    f"<span style='float:right;color:{THEME['text_secondary']};"
                     f"font-size:0.8rem;'>⚫ Fechada</span><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"{ob_h.get('Cliente','')} · {ob_h.get('TipoObra','')} · "
                     f"{ob_h.get('Local','')} · "
                     f"Início: {ob_h.get('DataInicio','')} · "

@@ -616,5 +616,61 @@ class TestContactoClienteSoLeitura(unittest.TestCase):
         self.assertNotIn("Email", labels_text_input)
 
 
+_OBRAS_HISTORICO_RECORDS = [{
+    "Obra": "Obra Fechada Teste", "Cliente": "Cliente Antigo", "TipoObra": "Normal",
+    "Local": "Lisboa", "DataInicio": "01/01/2025", "DataFecho": "01/06/2025",
+    "Fechada_Por": "Admin",
+}]
+
+
+def _load_db_com_historico(fn, cols, silent=False):
+    if fn == "obras_historico.csv":
+        return pd.DataFrame(_OBRAS_HISTORICO_RECORDS)
+    return pd.DataFrame(columns=cols)
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_admin_obras.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, sem fundos escuros forçados nos cartões de
+    obra ativa, colaborador alocado e obra fechada (histórico)."""
+
+    def _abrir(self, load_db_fn=_load_db_com_historico):
+        with patch("mod_admin_obras.load_db", side_effect=load_db_fn), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
+            at = AppTest.from_function(
+                _script_com_obra_e_equipa,
+                args=(_OBRAS_RECORDS, _INST_ACESSOS_RECORDS),
+                default_timeout=30)
+            at.run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        return at
+
+    def test_css_usa_theme(self):
+        # Cobre o cartão de obra ativa (Obras), o cartão de
+        # colaborador alocado (Alocações) e o cartão de obra fechada
+        # (Histórico) — todos desenhados de uma vez por st.tabs().
+        at = self._abrir()
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "success", "accent"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = self._abrir()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertNotIn("#6B7280", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = self._abrir()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
