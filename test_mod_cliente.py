@@ -1,9 +1,7 @@
 """
-Testes do Portal do Cliente (mod_cliente.py).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 3 da Identidade Visual migrar este módulo para o THEME
-central (core.py).
+Testes do Portal do Cliente (mod_cliente.py) — Fase 3 da Identidade
+Visual: migração para o THEME central (core.py), em vez de
+hexadecimais soltos.
 
 Não tocam em GCS real: `mod_cliente.load_db` é mockado diretamente
 (devolve DataFrames de teste, consoante o ficheiro pedido).
@@ -39,6 +37,9 @@ _INSTS_RECORDS = [{
 _PUNCH_RECORDS = [{
     "ID": "PU1", "Data": "01/01/2026", "Autor": "Admin", "Tag": "PT-101",
     "Descricao": "Verificar isolamento", "Prioridade": "Alta", "Estado": "Aberto",
+}, {
+    "ID": "PU2", "Data": "02/01/2026", "Autor": "Admin", "Tag": "PT-102",
+    "Descricao": "Cor da tubagem", "Prioridade": "Baixa", "Estado": "Aberto",
 }]
 
 
@@ -98,6 +99,41 @@ class TestRenderClientePortalSemErro(unittest.TestCase):
             return pd.DataFrame(columns=cols)
         at = _run(load_db_fn=_load_sem_obras)
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_cliente.py lê as suas cores de
+    core.THEME — nunca mais hexadecimais soltos, um só cinzento
+    secundário, sem fundos escuros forçados no cabeçalho, cartões
+    (.cliente-card), atividades recentes e punch list."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        css = " ".join(m.value for m in at.markdown if "<style>" in m.value)
+        for chave in ("surface", "border", "accent", "radius"):
+            self.assertIn(core.THEME[chave], css)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertNotIn("#6B7280", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
+        self.assertNotIn("#F8FAFC", textos)
+        self.assertNotIn("rgba(255,255,255,0.05)", textos)
+
+    def test_punch_list_usa_theme(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn(core.THEME["error"], textos)
+        self.assertIn(core.THEME["success"], textos)
 
 
 if __name__ == "__main__":

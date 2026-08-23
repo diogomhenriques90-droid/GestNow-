@@ -8,31 +8,31 @@ import uuid  # ✅ CORRIGIDO — estava em falta
 from datetime import datetime
 from core import (
     load_db, save_db, inv, log_audit, criar_notificacao,
-    gerar_qr_code_data, parse_qr_code_data, render_qr_code_image
+    gerar_qr_code_data, parse_qr_code_data, render_qr_code_image, THEME
 )
 
 @st.fragment
 def render_cliente_portal():
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .cliente-header {
-        background: linear-gradient(135deg, #1E293B, #0F172A);
-        padding: 30px; border-radius: 20px; margin-bottom: 30px;
-        border: 2px solid rgba(59,130,246,0.5);
-    }
-    .cliente-card {
-        background: rgba(59,130,246,0.1);
-        border: 2px solid rgba(59,130,246,0.3);
-        border-radius: 15px; padding: 20px; margin-bottom: 20px;
-    }
+    .cliente-header {{
+        background: {THEME['surface']};
+        padding: 30px; border-radius: {THEME['radius']}; margin-bottom: 30px;
+        border: 1px solid {THEME['border']};
+    }}
+    .cliente-card {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']}; border-left: 3px solid {THEME['accent']};
+        border-radius: {THEME['radius']}; padding: 20px; margin-bottom: 20px;
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class="cliente-header">
-        <h1 style="color:#F8FAFC; margin:0;">🏢 Portal do Cliente</h1>
-        <p style="color:#94A3B8; margin:10px 0 0 0;">Bem-vindo, <strong style="color:#60A5FA">{st.session_state.user}</strong></p>
-        <p style="color:#64748B; margin:5px 0 0 0; font-size:0.9rem;">{datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
+        <h1 style="color:{THEME['text']}; margin:0;">🏢 Portal do Cliente</h1>
+        <p style="color:{THEME['text_secondary']}; margin:10px 0 0 0;">Bem-vindo, <strong style="color:{THEME['accent']}">{st.session_state.user}</strong></p>
+        <p style="color:{THEME['text_secondary']}; margin:5px 0 0 0; font-size:0.9rem;">{datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -123,9 +123,9 @@ def render_cliente_portal():
             if not logs_obra.empty:
                 for _, log in logs_obra.tail(10).iterrows():
                     st.markdown(f"""
-                    <div style="background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin-bottom:10px;">
-                        <small style="color:#64748B;">{log.get('Data','')} {log.get('Hora','')}</small>
-                        <p style="margin:5px 0;color:#F8FAFC;"><strong>{log.get('Acao','')}</strong>: {log.get('Detalhes','')}</p>
+                    <div style="background:{THEME['surface']};border:1px solid {THEME['border']};padding:10px;border-radius:8px;margin-bottom:10px;">
+                        <small style="color:{THEME['text_secondary']};">{log.get('Data','')} {log.get('Hora','')}</small>
+                        <p style="margin:5px 0;color:{THEME['text']};"><strong>{log.get('Acao','')}</strong>: {log.get('Detalhes','')}</p>
                     </div>
                     """, unsafe_allow_html=True)
             else:
@@ -176,7 +176,7 @@ def render_cliente_portal():
                         <p><strong>Tipo:</strong> {inst.get('Tipo','N/A')}</p>
                         <p><strong>Descrição:</strong> {inst.get('Descricao','N/A')}</p>
                         <p><strong>Status:</strong> {status_map.get(inst.get('Status','0'),'N/A')}</p>
-                        <p style="font-family:monospace;font-size:0.8rem;color:#64748B;">QR: {qr_data['short']}</p>
+                        <p style="font-family:monospace;font-size:0.8rem;color:{THEME['text_secondary']};">QR: {qr_data['short']}</p>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -269,16 +269,16 @@ def render_cliente_portal():
 
             if not pf.empty:
                 for _, item in pf.iterrows():
-                    cor = {"Baixa":"#10B981","Média":"#F59E0B","Alta":"#EF4444","Crítica":"#DC2626"}.get(item.get('Prioridade','Média'),"#6B7280")
+                    cor = {"Baixa":THEME['success'],"Média":THEME['warning'],"Alta":THEME['error'],"Crítica":THEME['error']}.get(item.get('Prioridade','Média'),THEME['text_secondary'])
                     st.markdown(f"""
-                    <div style="background:rgba(255,255,255,0.05);border-left:4px solid {cor};
+                    <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-left:4px solid {cor};
                         padding:15px;border-radius:8px;margin-bottom:15px;">
                         <div style="display:flex;justify-content:space-between;">
                             <strong style="color:{cor};">{item.get('Prioridade','Média')} — {item.get('Tag','N/A')}</strong>
-                            <small style="color:#64748B;">{item.get('Data','N/A')}</small>
+                            <small style="color:{THEME['text_secondary']};">{item.get('Data','N/A')}</small>
                         </div>
-                        <p style="margin:10px 0;color:#F8FAFC;">{item.get('Descricao','N/A')}</p>
-                        <small style="color:#94A3B8;">Autor: {item.get('Autor','N/A')} | Estado: {item.get('Estado','Aberto')}</small>
+                        <p style="margin:10px 0;color:{THEME['text']};">{item.get('Descricao','N/A')}</p>
+                        <small style="color:{THEME['text_secondary']};">Autor: {item.get('Autor','N/A')} | Estado: {item.get('Estado','Aberto')}</small>
                     </div>
                     """, unsafe_allow_html=True)
             else:
