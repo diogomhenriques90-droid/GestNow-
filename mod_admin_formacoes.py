@@ -814,7 +814,9 @@ def render_formacoes(users, obras_db, *_):
             n_exp_c    = len(form_colab[
                 form_colab['Dias_N'] < 0
             ]) if not form_colab.empty else 0
-            h_total    = form_colab['Duracao_H'].sum() \
+            h_total    = pd.to_numeric(
+                             form_colab['Duracao_H'], errors='coerce'
+                         ).fillna(0).sum() \
                          if not form_colab.empty and \
                          'Duracao_H' in form_colab.columns else 0
 
