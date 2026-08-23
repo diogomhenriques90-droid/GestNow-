@@ -14,7 +14,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit, criar_notificacao, _gcs_read
+from core import save_db, inv, load_db, log_audit, criar_notificacao, _gcs_read, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # CONSTANTES LEGAIS PORTUGAL 2025
@@ -733,22 +733,22 @@ def render_fat_rh(obras_db, registos_db, *_):
                  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .rh-card {
-        background:#1E293B; border-radius:12px;
+    .rh-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:14px 16px; margin-bottom:8px;
-        border-left:4px solid #8B5CF6;
-    }
-    .custo-breakdown {
-        background:linear-gradient(135deg,
-            rgba(30,41,59,0.9),rgba(15,23,42,0.9));
+        border-left:4px solid {THEME['accent']};
+    }}
+    .custo-breakdown {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
         border-radius:12px; padding:16px; margin-bottom:8px;
-    }
-    .ferias-badge {
+    }}
+    .ferias-badge {{
         display:inline-block; padding:3px 10px;
         border-radius:20px; font-size:0.72rem; font-weight:700;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -878,14 +878,14 @@ def render_fat_rh(obras_db, registos_db, *_):
                     c_prev = _custo_real(rh_sal)
                     lq_prev = _liquido(rh_sal, rh_ec, rh_dep)
                     st.markdown(
-                        f"<div style='background:rgba(59,130,246,0.1);"
-                        f"border:1px solid #3B82F6;border-radius:8px;"
+                        f"<div style='background:rgba(14,124,134,0.08);"
+                        f"border:1px solid {THEME['accent']};border-radius:8px;"
                         f"padding:10px;margin:8px 0;font-size:0.8rem;'>"
-                        f"💰 Custo empresa: <b style='color:#3B82F6;'>"
+                        f"💰 Custo empresa: <b style='color:{THEME['accent']};'>"
                         f"€{c_prev['total']:,.2f}/mês</b> "
                         f"(+{c_prev['pct_acrescimo']:.1f}%)<br>"
                         f"💵 Líquido colaborador: "
-                        f"<b style='color:#10B981;'>"
+                        f"<b style='color:{THEME['success']};'>"
                         f"€{lq_prev['liquido']:,.2f}/mês</b>"
                         f"</div>",
                         unsafe_allow_html=True
@@ -995,7 +995,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                         with col_cd1:
                             st.markdown(
                                 f"<div class='custo-breakdown'>"
-                                f"<p style='color:#94A3B8;"
+                                f"<p style='color:{THEME['text_secondary']};"
                                 f"font-size:0.75rem;font-weight:700;"
                                 f"text-transform:uppercase;margin:0 0 8px;'>"
                                 f"CUSTO EMPRESA</p>",
@@ -1003,17 +1003,17 @@ def render_fat_rh(obras_db, registos_db, *_):
                             )
                             items_custo = [
                                 ("Salário Base", c_real['salario_base'],
-                                 "#3B82F6"),
+                                 THEME['accent']),
                                 ("Sub.Férias (1/12)", c_real['sub_ferias_prov'],
-                                 "#8B5CF6"),
+                                 THEME['accent']),
                                 ("Sub.Natal (1/12)", c_real['sub_natal_prov'],
-                                 "#8B5CF6"),
+                                 THEME['accent']),
                                 ("TSU Empresa", c_real['tsu_empresa'],
-                                 "#EF4444"),
+                                 THEME['error']),
                                 ("Seg.Acidentes", c_real['seg_acid_trabalho'],
-                                 "#F59E0B"),
+                                 THEME['warning']),
                                 ("FCT+FGCT", c_real['fct']+c_real['fgct'],
-                                 "#F59E0B"),
+                                 THEME['warning']),
                             ]
                             for label, val, cor in items_custo:
                                 pct = (val/c_real['total']*100) \
@@ -1022,7 +1022,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                                     f"<div style='display:flex;"
                                     f"justify-content:space-between;"
                                     f"margin-bottom:4px;'>"
-                                    f"<small style='color:#94A3B8;'>"
+                                    f"<small style='color:{THEME['text_secondary']};'>"
                                     f"{label}</small>"
                                     f"<small style='color:{cor};"
                                     f"font-weight:700;'>"
@@ -1032,11 +1032,11 @@ def render_fat_rh(obras_db, registos_db, *_):
                                 )
                             st.markdown(
                                 f"<div style='border-top:"
-                                f"1px solid #334155;padding-top:6px;"
+                                f"1px solid {THEME['border']};padding-top:6px;"
                                 f"margin-top:4px;display:flex;"
                                 f"justify-content:space-between;'>"
-                                f"<b style='color:#F1F5F9;'>TOTAL</b>"
-                                f"<b style='color:#10B981;"
+                                f"<b style='color:{THEME['text']};'>TOTAL</b>"
+                                f"<b style='color:{THEME['success']};"
                                 f"font-size:1.05rem;'>"
                                 f"€{c_real['total']:,.2f}</b></div>"
                                 f"</div>",
@@ -1045,24 +1045,24 @@ def render_fat_rh(obras_db, registos_db, *_):
                         with col_cd2:
                             st.markdown(
                                 f"<div class='custo-breakdown'>"
-                                f"<p style='color:#94A3B8;"
+                                f"<p style='color:{THEME['text_secondary']};"
                                 f"font-size:0.75rem;font-weight:700;"
                                 f"text-transform:uppercase;margin:0 0 8px;'>"
                                 f"RECIBO COLABORADOR</p>",
                                 unsafe_allow_html=True
                             )
                             items_liq = [
-                                ("Salário Bruto", lq['bruto'], "#F1F5F9"),
+                                ("Salário Bruto", lq['bruto'], THEME['text']),
                                 ("TSU (11%)", -lq['tsu_trabalhador'],
-                                 "#EF4444"),
-                                ("IRS (estimado)", -lq['irs'], "#EF4444"),
+                                 THEME['error']),
+                                ("IRS (estimado)", -lq['irs'], THEME['error']),
                             ]
                             for label, val, cor in items_liq:
                                 st.markdown(
                                     f"<div style='display:flex;"
                                     f"justify-content:space-between;"
                                     f"margin-bottom:4px;'>"
-                                    f"<small style='color:#94A3B8;'>"
+                                    f"<small style='color:{THEME['text_secondary']};'>"
                                     f"{label}</small>"
                                     f"<small style='color:{cor};"
                                     f"font-weight:700;'>"
@@ -1072,11 +1072,11 @@ def render_fat_rh(obras_db, registos_db, *_):
                                 )
                             st.markdown(
                                 f"<div style='border-top:"
-                                f"1px solid #334155;padding-top:6px;"
+                                f"1px solid {THEME['border']};padding-top:6px;"
                                 f"margin-top:4px;display:flex;"
                                 f"justify-content:space-between;'>"
-                                f"<b style='color:#F1F5F9;'>LÍQUIDO</b>"
-                                f"<b style='color:#3B82F6;"
+                                f"<b style='color:{THEME['text']};'>LÍQUIDO</b>"
+                                f"<b style='color:{THEME['accent']};"
                                 f"font-size:1.05rem;'>"
                                 f"€{lq['liquido']:,.2f}</b></div>"
                                 f"</div>",
@@ -1177,26 +1177,26 @@ def render_fat_rh(obras_db, registos_db, *_):
 
                 # Totais
                 st.markdown(
-                    f"<div style='background:#1E293B;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                     f"border-radius:10px;padding:14px;"
                     f"display:grid;"
                     f"grid-template-columns:repeat(5,1fr);"
                     f"gap:12px;margin-top:8px;'>"
                     f"<div style='text-align:center;'>"
-                    f"<small style='color:#64748B;'>Massa Salarial</small><br>"
-                    f"<b style='color:#3B82F6;'>€{tot_base:,.2f}</b></div>"
+                    f"<small style='color:{THEME['text_secondary']};'>Massa Salarial</small><br>"
+                    f"<b style='color:{THEME['accent']};'>€{tot_base:,.2f}</b></div>"
                     f"<div style='text-align:center;'>"
-                    f"<small style='color:#64748B;'>Total Bruto</small><br>"
-                    f"<b style='color:#F1F5F9;'>€{tot_bruto:,.2f}</b></div>"
+                    f"<small style='color:{THEME['text_secondary']};'>Total Bruto</small><br>"
+                    f"<b style='color:{THEME['text']};'>€{tot_bruto:,.2f}</b></div>"
                     f"<div style='text-align:center;'>"
-                    f"<small style='color:#64748B;'>Total Líquido</small><br>"
-                    f"<b style='color:#10B981;'>€{tot_liq:,.2f}</b></div>"
+                    f"<small style='color:{THEME['text_secondary']};'>Total Líquido</small><br>"
+                    f"<b style='color:{THEME['success']};'>€{tot_liq:,.2f}</b></div>"
                     f"<div style='text-align:center;'>"
-                    f"<small style='color:#64748B;'>TSU Empresa</small><br>"
-                    f"<b style='color:#EF4444;'>€{tot_tsu_e:,.2f}</b></div>"
+                    f"<small style='color:{THEME['text_secondary']};'>TSU Empresa</small><br>"
+                    f"<b style='color:{THEME['error']};'>€{tot_tsu_e:,.2f}</b></div>"
                     f"<div style='text-align:center;'>"
-                    f"<small style='color:#64748B;'>Custo Total RH</small><br>"
-                    f"<b style='color:#F59E0B;"
+                    f"<small style='color:{THEME['text_secondary']};'>Custo Total RH</small><br>"
+                    f"<b style='color:{THEME['warning']};"
                     f"font-size:1.1rem;'>€{tot_custo:,.2f}</b></div>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -1326,17 +1326,17 @@ def render_fat_rh(obras_db, registos_db, *_):
 
                     # Preview
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:14px;'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"{colab_sel_r}</b> — "
                         f"{mes_rec} {ano_rec}<br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Bruto: €{sal_prev:,.2f} · "
                         f"TSU: -€{lq_pr['tsu_trabalhador']:,.2f} · "
                         f"IRS: -€{lq_pr['irs']:,.2f} · "
                         f"</small>"
-                        f"<b style='color:#3B82F6;'>"
+                        f"<b style='color:{THEME['accent']};'>"
                         f"Líquido: €{lq_pr['liquido']:,.2f}</b>"
                         f"</div>",
                         unsafe_allow_html=True
@@ -1408,7 +1408,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                 if f_ini and f_fim and f_fim >= f_ini:
                     du = _dias_uteis(f_ini, f_fim)
                     st.markdown(
-                        f"<small style='color:#3B82F6;'>"
+                        f"<small style='color:{THEME['accent']};'>"
                         f"📅 {du} dia(s) útil(eis)</small>",
                         unsafe_allow_html=True
                     )
@@ -1489,16 +1489,16 @@ def render_fat_rh(obras_db, registos_db, *_):
                     dias_disponiveis = DIAS_FERIAS_ANO - dias_gozados
                     pct_fer = dias_gozados / DIAS_FERIAS_ANO * 100
 
-                    cor_fer = "#10B981" if dias_disponiveis > 10 \
-                              else "#F59E0B" if dias_disponiveis > 5 \
-                              else "#EF4444"
+                    cor_fer = THEME['success'] if dias_disponiveis > 10 \
+                              else THEME['warning'] if dias_disponiveis > 5 \
+                              else THEME['error']
 
                     # Alerta férias vencidas
                     alerta_ven = ""
                     if dias_disponiveis > 0 and \
                        date.today().month >= 10:
                         alerta_ven = (
-                            f"<span style='color:#EF4444;"
+                            f"<span style='color:{THEME['error']};"
                             f"font-size:0.72rem;'>"
                             f"⚠️ Risco legal: férias por gozar "
                             f"até final do ano</span>"
@@ -1507,16 +1507,16 @@ def render_fat_rh(obras_db, registos_db, *_):
                     st.markdown(
                         f"<div class='rh-card' "
                         f"style='border-left-color:{cor_fer};'>"
-                        f"<b style='color:#F1F5F9;'>{nome_c}</b>"
+                        f"<b style='color:{THEME['text']};'>{nome_c}</b>"
                         f"<span style='float:right;color:{cor_fer};"
                         f"font-weight:700;'>"
                         f"{dias_disponiveis} dias disponíveis</span><br>"
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['background']};"
                         f"border-radius:4px;height:6px;margin:6px 0;'>"
                         f"<div style='background:{cor_fer};"
                         f"width:{pct_fer:.0f}%;height:6px;"
                         f"border-radius:4px;'></div></div>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Gozados: {dias_gozados} / "
                         f"{DIAS_FERIAS_ANO} dias · "
                         f"{pct_fer:.0f}%</small><br>"
@@ -1596,10 +1596,10 @@ def render_fat_rh(obras_db, registos_db, *_):
                                      c['fct'] + c['fgct']
 
                 provisoes_lista = [
-                    ("📅 Sub. Férias (1/12)",   total_prov_m/2, "#8B5CF6"),
-                    ("🎄 Sub. Natal (1/12)",    total_prov_m/2, "#3B82F6"),
-                    ("🏛️ TSU Empresa (23.75%)", total_tsu_emp,  "#EF4444"),
-                    ("🛡️ Seguros+FCT",          total_seg_a,    "#F59E0B"),
+                    ("📅 Sub. Férias (1/12)",   total_prov_m/2, THEME['accent']),
+                    ("🎄 Sub. Natal (1/12)",    total_prov_m/2, THEME['accent']),
+                    ("🏛️ TSU Empresa (23.75%)", total_tsu_emp,  THEME['error']),
+                    ("🛡️ Seguros+FCT",          total_seg_a,    THEME['warning']),
                 ]
                 total_prov_total = sum(v for _,v,_ in provisoes_lista)
 
@@ -1608,8 +1608,8 @@ def render_fat_rh(obras_db, registos_db, *_):
                         f"<div style='display:flex;"
                         f"justify-content:space-between;"
                         f"padding:8px 0;border-bottom:"
-                        f"1px solid #1E293B;'>"
-                        f"<span style='color:#94A3B8;'>{label}</span>"
+                        f"1px solid {THEME['border']};'>"
+                        f"<span style='color:{THEME['text_secondary']};'>{label}</span>"
                         f"<b style='color:{cor};'>&#8364;{val:.2f}</b></div>",
                         unsafe_allow_html=True
                     )
@@ -1617,10 +1617,10 @@ def render_fat_rh(obras_db, registos_db, *_):
                     f"<div style='display:flex;"
                     f"justify-content:space-between;"
                     f"padding:10px 0;border-top:"
-                    f"2px solid #334155;margin-top:4px;'>"
-                    f"<b style='color:#F1F5F9;"
+                    f"2px solid {THEME['border']};margin-top:4px;'>"
+                    f"<b style='color:{THEME['text']};"
                     f"font-size:1rem;'>TOTAL MENSAL</b>"
-                    f"<b style='color:#F59E0B;"
+                    f"<b style='color:{THEME['warning']};"
                     f"font-size:1.1rem;'>"
                     f"€{total_prov_total:,.2f}</b></div>",
                     unsafe_allow_html=True
@@ -1760,13 +1760,13 @@ def render_fat_rh(obras_db, registos_db, *_):
                         for _, colab in rh_ativos.iterrows()
                     )
                     st.markdown(
-                        f"<div style='background:rgba(59,130,246,0.1);"
-                        f"border:1px solid #3B82F6;border-radius:8px;"
+                        f"<div style='background:rgba(14,124,134,0.08);"
+                        f"border:1px solid {THEME['accent']};border-radius:8px;"
                         f"padding:12px;margin:8px 0;'>"
-                        f"<b style='color:#3B82F6;'>"
+                        f"<b style='color:{THEME['accent']};'>"
                         f"DRI {mes_dri} {ano_irs} — "
                         f"Total SS a pagar: €{total_ss:,.2f}</b><br>"
-                        f"<small style='color:#94A3B8;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Prazo: dia 10 do mês seguinte</small>"
                         f"</div>",
                         unsafe_allow_html=True
