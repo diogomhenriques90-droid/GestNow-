@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime, date, timedelta
 from core import (save_db, inv, load_db, log_audit,
                   _gcs_write_bin, _gcs_read_bin,
-                  cliente_select, registar_cliente_do_select)
+                  cliente_select, registar_cliente_do_select, THEME)
 
 # ─────────────────────────────────────────────────────────────
 # HELPERS
@@ -98,11 +98,11 @@ def _score_orc(orc, clientes_db, orc_db):
 
 def _score_badge(score):
     if score >= 65:
-        return "🟢", "#10B981", "Alta"
+        return "🟢", THEME['success'], "Alta"
     elif score >= 40:
-        return "🟡", "#F59E0B", "Média"
+        return "🟡", THEME['warning'], "Média"
     else:
-        return "🔴", "#EF4444", "Baixa"
+        return "🔴", THEME['error'], "Baixa"
 
 
 def _historico_item(item_desc, orc_linhas_db, orc_db):
@@ -134,104 +134,105 @@ def _historico_item(item_desc, orc_linhas_db, orc_db):
 # ─────────────────────────────────────────────────────────────
 
 def _inject_css():
-    st.markdown("""
+    st.markdown(f"""
     <style>
     /* Pipeline Kanban cards */
-    .orc-card {
-        background: #1E293B;
-        border: 1px solid #334155;
+    .orc-card {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
         border-radius: 10px;
         padding: 14px;
         margin-bottom: 10px;
         transition: border-color 0.2s;
-    }
-    .orc-card:hover { border-color: #3B82F6; }
-    .orc-card-title {
-        color: #F1F5F9;
+    }}
+    .orc-card:hover {{ border-color: {THEME['accent']}; }}
+    .orc-card-title {{
+        color: {THEME['text']};
         font-weight: 700;
         font-size: 0.95rem;
         margin: 0 0 4px 0;
-    }
-    .orc-card-sub {
-        color: #64748B;
+    }}
+    .orc-card-sub {{
+        color: {THEME['text_secondary']};
         font-size: 0.78rem;
         margin: 2px 0;
-    }
-    .orc-card-valor {
-        color: #3B82F6;
+    }}
+    .orc-card-valor {{
+        color: {THEME['accent']};
         font-weight: 700;
         font-size: 1.1rem;
         margin-top: 6px;
-    }
+    }}
     /* Estado badge */
-    .badge {
+    .badge {{
         display: inline-block;
         padding: 2px 10px;
         border-radius: 99px;
         font-size: 0.72rem;
         font-weight: 600;
-    }
+    }}
     /* Alerta validade */
-    .alerta-exp {
-        background: rgba(239,68,68,0.12);
-        border: 1px solid #EF4444;
+    .alerta-exp {{
+        background: rgba(185,28,28,0.10);
+        border: 1px solid {THEME['error']};
         border-radius: 8px;
         padding: 8px 14px;
-        color: #FCA5A5;
+        color: {THEME['error']};
         font-size: 0.82rem;
         margin-bottom: 6px;
-    }
-    .alerta-warn {
-        background: rgba(245,158,11,0.12);
-        border: 1px solid #F59E0B;
+    }}
+    .alerta-warn {{
+        background: rgba(180,83,9,0.10);
+        border: 1px solid {THEME['warning']};
         border-radius: 8px;
         padding: 8px 14px;
-        color: #FCD34D;
+        color: {THEME['warning']};
         font-size: 0.82rem;
         margin-bottom: 6px;
-    }
+    }}
     /* Calculadora Tipo B */
-    .calc-box {
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
-        border: 1px solid #334155;
+    .calc-box {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
         border-radius: 12px;
         padding: 20px;
         margin-bottom: 12px;
-    }
-    .calc-total {
-        background: rgba(59,130,246,0.1);
-        border: 2px solid #3B82F6;
+    }}
+    .calc-total {{
+        background: rgba(14,124,134,0.08);
+        border: 2px solid {THEME['accent']};
         border-radius: 12px;
         padding: 16px;
         text-align: center;
-    }
-    .hist-box {
-        background: rgba(59,130,246,0.06);
-        border-left: 3px solid #3B82F6;
+    }}
+    .hist-box {{
+        background: rgba(14,124,134,0.06);
+        border-left: 3px solid {THEME['accent']};
         border-radius: 0 8px 8px 0;
         padding: 8px 12px;
         font-size: 0.78rem;
-        color: #94A3B8;
+        color: {THEME['text_secondary']};
         margin-top: 6px;
-    }
+    }}
     /* KPI mini */
-    .kpi-mini {
-        background: #1E293B;
+    .kpi-mini {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
         border-radius: 10px;
         padding: 14px;
         text-align: center;
-    }
-    .kpi-mini-val {
+    }}
+    .kpi-mini-val {{
         font-size: 1.6rem;
         font-weight: 800;
-        color: #F1F5F9;
+        color: {THEME['text']};
         line-height: 1.1;
-    }
-    .kpi-mini-label {
+    }}
+    .kpi-mini-label {{
         font-size: 0.75rem;
-        color: #64748B;
+        color: {THEME['text_secondary']};
         margin-top: 2px;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -306,12 +307,12 @@ def _tab_cockpit(orc_db, clientes_db):
         </div>""", unsafe_allow_html=True)
     with c3:
         st.markdown(f"""<div class='kpi-mini'>
-            <div class='kpi-mini-val' style='color:#10B981'>{taxa_conv}%</div>
+            <div class='kpi-mini-val' style='color:{THEME['success']}'>{taxa_conv}%</div>
             <div class='kpi-mini-label'>✅ Taxa Conversão</div>
         </div>""", unsafe_allow_html=True)
     with c4:
         st.markdown(f"""<div class='kpi-mini'>
-            <div class='kpi-mini-val' style='color:#10B981'>€{total_ganho:,.0f}</div>
+            <div class='kpi-mini-val' style='color:{THEME['success']}'>€{total_ganho:,.0f}</div>
             <div class='kpi-mini-label'>🏆 Total Ganho</div>
         </div>""", unsafe_allow_html=True)
 
@@ -348,11 +349,11 @@ def _tab_cockpit(orc_db, clientes_db):
     st.markdown("#### 📊 Pipeline por Estado")
 
     estados = [
-        ('Rascunho',   '#6B7280', '📝'),
-        ('Enviado',    '#3B82F6', '📤'),
-        ('Em Revisão', '#8B5CF6', '🔍'),
-        ('Adjudicado', '#10B981', '✅'),
-        ('Rejeitado',  '#EF4444', '❌'),
+        ('Rascunho',   THEME['text_secondary'], '📝'),
+        ('Enviado',    THEME['accent'], '📤'),
+        ('Em Revisão', THEME['warning'], '🔍'),
+        ('Adjudicado', THEME['success'], '✅'),
+        ('Rejeitado',  THEME['error'], '❌'),
     ]
 
     cols = st.columns(len(estados))
@@ -364,7 +365,7 @@ def _tab_cockpit(orc_db, clientes_db):
                 f"<div style='border-top:3px solid {cor};padding-top:8px;'>"
                 f"<div style='color:{cor};font-weight:700;font-size:0.85rem;'>"
                 f"{icon} {estado}</div>"
-                f"<div style='color:#94A3B8;font-size:0.75rem;'>"
+                f"<div style='color:{THEME['text_secondary']};font-size:0.75rem;'>"
                 f"{len(grupo)} orç. | €{val:,.0f}</div></div>",
                 unsafe_allow_html=True
             )
@@ -432,11 +433,11 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
 
     ESTADOS = ['Rascunho', 'Enviado', 'Em Revisão', 'Adjudicado', 'Rejeitado']
     COR_EST = {
-        'Rascunho':   '#6B7280',
-        'Enviado':    '#3B82F6',
-        'Em Revisão': '#8B5CF6',
-        'Adjudicado': '#10B981',
-        'Rejeitado':  '#EF4444',
+        'Rascunho':   THEME['text_secondary'],
+        'Enviado':    THEME['accent'],
+        'Em Revisão': THEME['warning'],
+        'Adjudicado': THEME['success'],
+        'Rejeitado':  THEME['error'],
     }
     MOTIVOS = ['Preço acima do mercado', 'Prazo não adequado',
                'Concorrência', 'Sem resposta do cliente',
@@ -446,7 +447,7 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
         oid   = orc.get('ID', '')
         stat  = orc.get('Status', 'Rascunho')
         total = float(orc.get('Total_Com_Margem', 0) or 0)
-        cor   = COR_EST.get(stat, '#6B7280')
+        cor   = COR_EST.get(stat, THEME['text_secondary'])
         tipo  = orc.get('Tipo', 'A')
         score = _score_orc(orc, clientes_db, orc_db)
         icon_s, cor_s, label_s = _score_badge(score)
@@ -470,15 +471,16 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
 
             with col_l:
                 st.markdown(
-                    f"<div style='background:#1E293B;border-radius:8px;padding:12px;'>"
-                    f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
+                    f"border-radius:8px;padding:12px;'>"
+                    f"<p style='color:{THEME['text']};margin:2px 0;'>"
                     f"<b>Cliente:</b> {orc.get('Cliente','')} &nbsp;|&nbsp; "
                     f"<b>Data:</b> {orc.get('Data','')} &nbsp;|&nbsp; "
                     f"<b>Validade:</b> {orc.get('Validade','')}</p>"
-                    f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                    f"<p style='color:{THEME['text']};margin:2px 0;'>"
                     f"<b>Margem:</b> {orc.get('Margem_Pct',0)}% &nbsp;|&nbsp; "
                     f"<b>Criado por:</b> {orc.get('Criado_Por','')}</p>"
-                    f"<p style='color:#94A3B8;margin:4px 0;font-size:0.82rem;'>"
+                    f"<p style='color:{THEME['text_secondary']};margin:4px 0;font-size:0.82rem;'>"
                     f"{orc.get('Notas','')}</p>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -531,7 +533,7 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
                     f"<div class='calc-total' style='margin-bottom:10px;'>"
                     f"<div style='color:{cor};font-size:1.5rem;font-weight:800;'>"
                     f"€{total:,.2f}</div>"
-                    f"<div style='color:#64748B;font-size:0.75rem;'>{stat}</div>"
+                    f"<div style='color:{THEME['text_secondary']};font-size:0.75rem;'>{stat}</div>"
                     f"<div style='margin-top:6px;font-size:0.8rem;color:{cor_s};'>"
                     f"{icon_s} Prob. {label_s}: {score}%</div>"
                     f"</div>",
@@ -547,11 +549,13 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
                     ("Dormidas",    'Total_Dormidas'),
                     ("Diárias",     'Total_Diarias'),
                 ]
-                html_bd = "<div style='background:#1E293B;border-radius:8px;padding:10px;font-size:0.8rem;'>"
+                html_bd = (f"<div style='background:{THEME['surface']};"
+                           f"border:1px solid {THEME['border']};border-radius:8px;"
+                           f"padding:10px;font-size:0.8rem;'>")
                 for label_b, col_b in breakdown:
                     val_b = float(orc.get(col_b, 0) or 0)
                     if val_b > 0:
-                        html_bd += (f"<p style='color:#64748B;margin:2px 0;'>"
+                        html_bd += (f"<p style='color:{THEME['text_secondary']};margin:2px 0;'>"
                                     f"{label_b}: €{val_b:,.2f}</p>")
                 html_bd += "</div>"
                 st.markdown(html_bd, unsafe_allow_html=True)
@@ -609,8 +613,8 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
 def _modal_criar_obra(orc, oid, orc_db):
     """Modal de validação para criar obra a partir do orçamento adjudicado."""
     st.markdown(
-        "<div style='background:rgba(16,185,129,0.08);border:1px solid #10B981;"
-        "border-radius:10px;padding:16px;margin-top:8px;'>",
+        f"<div style='background:rgba(21,128,61,0.08);border:1px solid {THEME['success']};"
+        f"border-radius:10px;padding:16px;margin-top:8px;'>",
         unsafe_allow_html=True
     )
     st.markdown("#### 🏗️ Validar e Criar Obra")
@@ -888,9 +892,9 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                     with col_i1:
                         st.markdown(
                             f"<div style='padding:6px 0;'>"
-                            f"<span style='color:#F1F5F9;font-size:0.88rem;'>"
+                            f"<span style='color:{THEME['text']};font-size:0.88rem;'>"
                             f"<b>{item.get('Descricao','')}</b></span>"
-                            f"<span style='color:#64748B;font-size:0.76rem;'> · "
+                            f"<span style='color:{THEME['text_secondary']};font-size:0.76rem;'> · "
                             f"{item.get('Categoria','')} · {mins:.0f}min/{item.get('Unidade','un')} "
                             f"· usado {usos}×</span>"
                             f"{hist_html}"
@@ -1006,12 +1010,13 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
 
         col_t1, col_t2 = st.columns(2)
         with col_t1:
-            html_cats = "<div style='background:#1E293B;border-radius:10px;padding:14px;'>"
+            html_cats = (f"<div style='background:{THEME['surface']};"
+                         f"border:1px solid {THEME['border']};border-radius:10px;padding:14px;'>")
             for cat, val in cats_totais.items():
-                html_cats += (f"<p style='color:#94A3B8;margin:3px 0;font-size:0.85rem;'>"
+                html_cats += (f"<p style='color:{THEME['text_secondary']};margin:3px 0;font-size:0.85rem;'>"
                               f"{cat}: €{val:,.2f}</p>")
             if total_horas > 0:
-                html_cats += (f"<p style='color:#F59E0B;margin:6px 0 3px;font-size:0.85rem;'>"
+                html_cats += (f"<p style='color:{THEME['warning']};margin:6px 0 3px;font-size:0.85rem;'>"
                               f"⏱️ Horas estimadas: <b>{total_horas:.1f}h</b></p>")
             html_cats += "</div>"
             st.markdown(html_cats, unsafe_allow_html=True)
@@ -1019,11 +1024,11 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
         with col_t2:
             st.markdown(
                 f"<div class='calc-total'>"
-                f"<p style='color:#64748B;margin:0;font-size:0.85rem;'>"
+                f"<p style='color:{THEME['text_secondary']};margin:0;font-size:0.85rem;'>"
                 f"Sem margem: €{total_sem:,.2f}</p>"
-                f"<div style='color:#3B82F6;font-size:1.8rem;font-weight:800;'>"
+                f"<div style='color:{THEME['accent']};font-size:1.8rem;font-weight:800;'>"
                 f"€{total_com:,.2f}</div>"
-                f"<p style='color:#64748B;margin:0;font-size:0.8rem;'>"
+                f"<p style='color:{THEME['text_secondary']};margin:0;font-size:0.8rem;'>"
                 f"Com margem {no_margem}%</p>"
                 f"</div>",
                 unsafe_allow_html=True
@@ -1268,16 +1273,16 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
     with col_r1:
         st.markdown(
             f"<div class='calc-box'>"
-            f"<p style='color:#94A3B8;margin:3px 0;font-size:0.85rem;'>"
-            f"👥 Mão de Obra: <b style='color:#F1F5F9;'>€{total_mo:,.2f}</b></p>"
-            f"<p style='color:#94A3B8;margin:3px 0;font-size:0.85rem;'>"
-            f"🍽️ Diárias: <b style='color:#F1F5F9;'>€{total_diarias:,.2f}</b></p>"
-            f"<p style='color:#94A3B8;margin:3px 0;font-size:0.85rem;'>"
-            f"🚐 Carrinhas: <b style='color:#F1F5F9;'>€{total_carrinhas:,.2f}</b></p>"
-            f"<p style='color:#94A3B8;margin:3px 0;font-size:0.85rem;'>"
+            f"<p style='color:{THEME['text_secondary']};margin:3px 0;font-size:0.85rem;'>"
+            f"👥 Mão de Obra: <b style='color:{THEME['text']};'>€{total_mo:,.2f}</b></p>"
+            f"<p style='color:{THEME['text_secondary']};margin:3px 0;font-size:0.85rem;'>"
+            f"🍽️ Diárias: <b style='color:{THEME['text']};'>€{total_diarias:,.2f}</b></p>"
+            f"<p style='color:{THEME['text_secondary']};margin:3px 0;font-size:0.85rem;'>"
+            f"🚐 Carrinhas: <b style='color:{THEME['text']};'>€{total_carrinhas:,.2f}</b></p>"
+            f"<p style='color:{THEME['text_secondary']};margin:3px 0;font-size:0.85rem;'>"
             f"🛏️ Dormidas ({total_pessoas}p × {nb_noites}n × €{custo_dorm_unit:.0f}): "
-            f"<b style='color:#F1F5F9;'>€{total_dormidas:,.2f}</b></p>"
-            f"<p style='color:#64748B;margin:6px 0 2px;font-size:0.8rem;'>"
+            f"<b style='color:{THEME['text']};'>€{total_dormidas:,.2f}</b></p>"
+            f"<p style='color:{THEME['text_secondary']};margin:6px 0 2px;font-size:0.8rem;'>"
             f"Total s/ margem: €{total_sem:,.2f}</p>"
             f"</div>",
             unsafe_allow_html=True
@@ -1285,11 +1290,11 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
     with col_r2:
         st.markdown(
             f"<div class='calc-total'>"
-            f"<p style='color:#64748B;margin:0;font-size:0.85rem;'>"
+            f"<p style='color:{THEME['text_secondary']};margin:0;font-size:0.85rem;'>"
             f"Total Proposta</p>"
-            f"<div style='color:#3B82F6;font-size:2rem;font-weight:800;'>"
+            f"<div style='color:{THEME['accent']};font-size:2rem;font-weight:800;'>"
             f"€{total_com:,.2f}</div>"
-            f"<p style='color:#64748B;margin:4px 0 0;font-size:0.8rem;'>"
+            f"<p style='color:{THEME['text_secondary']};margin:4px 0 0;font-size:0.8rem;'>"
             f"Margem {nb_margem}% | {total_pessoas} pessoas | {nb_dias} dias</p>"
             f"</div>",
             unsafe_allow_html=True
@@ -1837,10 +1842,10 @@ def _tab_analytics(orc_db, clientes_db):
                 st.markdown(
                     f"<div style='margin-bottom:6px;'>"
                     f"<div style='display:flex;justify-content:space-between;"
-                    f"color:#F1F5F9;font-size:0.85rem;'>"
+                    f"color:{THEME['text']};font-size:0.85rem;'>"
                     f"<span>{cli}</span><span>€{val:,.0f}</span></div>"
-                    f"<div style='background:#1E293B;border-radius:4px;height:6px;'>"
-                    f"<div style='background:#10B981;width:{pct*100:.0f}%;"
+                    f"<div style='background:{THEME['background']};border-radius:4px;height:6px;'>"
+                    f"<div style='background:{THEME['success']};width:{pct*100:.0f}%;"
                     f"height:6px;border-radius:4px;'></div></div></div>",
                     unsafe_allow_html=True
                 )
