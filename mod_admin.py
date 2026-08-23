@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from core import load_all, inv, ICONS, fh, save_db, tem_permissao, _PERM_COLS, _SUPER_ADMINS
+from core import load_all, inv, ICONS, fh, save_db, tem_permissao, _PERM_COLS, _SUPER_ADMINS, THEME
 from datetime import datetime
 
 # =============================================================================
@@ -368,8 +368,8 @@ def _tab_it():
         if config:
             st.success("✅ SMTP Configurado!")
             st.markdown(
-                f"<div style='background:rgba(16,185,129,0.1);"
-                f"border:2px solid #10B981;border-radius:10px;padding:20px;'>"
+                f"<div style='background:{THEME['surface']};"
+                f"border:2px solid {THEME['success']};border-radius:10px;padding:20px;'>"
                 f"<p><b>Server:</b> {config['server']}</p>"
                 f"<p><b>Porta:</b> {config['port']}</p>"
                 f"<p><b>User:</b> {config['user']}</p>"
@@ -515,7 +515,7 @@ def _fragment_notificacoes():
             st.markdown(
                 f"<div style='text-align:right;'>"
                 f"<span style='font-size:1.5rem;'>🔔</span>"
-                f"<span style='background:#EF4444;color:white;border-radius:50%;"
+                f"<span style='background:{THEME['error']};color:white;border-radius:50%;"
                 f"padding:2px 8px;font-size:0.8rem;margin-left:-10px;'>"
                 f"{n_nao_lidas}</span></div>",
                 unsafe_allow_html=True
@@ -530,17 +530,17 @@ def _fragment_notificacoes():
         notifs_df = get_notificacoes(user_atual, apenas_nao_lidas=True, limite=20)
         if not notifs_df.empty:
             for _, notif in notifs_df.iterrows():
-                cor = {"info":"#3B82F6","warning":"#F59E0B",
-                       "error":"#EF4444","success":"#10B981"}.get(
-                    notif.get('Tipo','info'),"#6B7280"
+                cor = {"info":THEME['accent'],"warning":THEME['warning'],
+                       "error":THEME['error'],"success":THEME['success']}.get(
+                    notif.get('Tipo','info'),THEME['text_secondary']
                 )
                 st.markdown(
-                    f"<div style='background:{cor}22;border-left:4px solid {cor};"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-left:4px solid {cor};"
                     f"padding:15px;border-radius:8px;margin-bottom:10px;'>"
                     f"<strong style='color:{cor};'>{notif.get('Titulo','')}</strong>"
-                    f"<p style='margin:5px 0 0 0;color:#94A3B8;'>"
+                    f"<p style='margin:5px 0 0 0;color:{THEME['text_secondary']};'>"
                     f"{notif.get('Mensagem','')}</p>"
-                    f"<small style='color:#6B7280;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"{notif.get('Data','')} {notif.get('Hora','')}</small>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -558,18 +558,6 @@ def _fragment_notificacoes():
 def render_admin(*args):
     """Hub Principal do Admin — 10 tabs com @st.fragment."""
 
-    st.markdown("""
-    <style>
-    .stMarkdown,.stText,.stDataFrame,label,div,span,p,h1,h2,h3 { color:#F8FAFC !important; }
-    [data-testid="stMetric"] {
-        background:linear-gradient(135deg,rgba(59,130,246,0.3),rgba(96,165,250,0.2));
-        border:2px solid rgba(59,130,246,0.5); border-radius:12px; padding:15px;
-    }
-    [data-testid="stMetricValue"] { color:#60A5FA !important; }
-    [data-testid="stMetricLabel"] { color:#94A3B8 !important; }
-    </style>
-    """, unsafe_allow_html=True)
-
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
      comuns_u_db, req_fer_db, req_mat_db, req_epi_db, avals_db, inst_acessos_db,
@@ -583,14 +571,14 @@ def render_admin(*args):
 
     # ── Header ────────────────────────────────────────────────────
     st.markdown(f"""
-    <div style="background:linear-gradient(135deg,#1E293B,#0F172A);padding:30px;
-        border-radius:20px;margin-bottom:30px;border:1px solid rgba(255,255,255,0.2);">
-        <h1 style="color:#F8FAFC;margin:0;font-size:2.5rem;">⚡ Painel Administrativo</h1>
-        <p style="color:#94A3B8;margin:10px 0 0 0;">
-            Utilizador: <strong style="color:#60A5FA">{st.session_state.user}</strong> |
-            Tipo: <strong style="color:#60A5FA">{st.session_state.tipo}</strong>
+    <div style="background:{THEME['surface']};padding:30px;
+        border-radius:{THEME['radius']};margin-bottom:30px;border:1px solid {THEME['border']};">
+        <h1 style="color:{THEME['text']};margin:0;font-size:2.5rem;">⚡ Painel Administrativo</h1>
+        <p style="color:{THEME['text_secondary']};margin:10px 0 0 0;">
+            Utilizador: <strong style="color:{THEME['accent']}">{st.session_state.user}</strong> |
+            Tipo: <strong style="color:{THEME['accent']}">{st.session_state.tipo}</strong>
         </p>
-        <p style="color:#64748B;margin:5px 0 0 0;font-size:0.9rem;">
+        <p style="color:{THEME['text_secondary']};margin:5px 0 0 0;font-size:0.9rem;">
             Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}
         </p>
     </div>
