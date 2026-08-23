@@ -18,8 +18,9 @@ try:
     gerar_hash_assinatura, render_signature_pad,
     render_connection_indicator, render_offline_banner, sync_data_when_online,
     save_to_local_cache, add_action_to_queue, check_connection_status,
-    gerar_qr_code_data, parse_qr_code_data, render_qr_code_image, render_camera_scanner
-)   
+    gerar_qr_code_data, parse_qr_code_data, render_qr_code_image, render_camera_scanner,
+    THEME
+)
 except ImportError as e:
     st.error(f"Erro ao importar do core.py: {e}")
 
@@ -260,10 +261,10 @@ def render_instrumentacao(*args):
     sync_data_when_online()
     
     st.markdown(f"""
-    <div style="text-align:center; padding:30px 20px; background:linear-gradient(135deg, #1E293B, #0F172A); border-radius:20px; margin-bottom:30px;">
+    <div style="text-align:center; padding:30px 20px; background:{THEME['surface']}; border:1px solid {THEME['border']}; border-radius:{THEME['radius']}; margin-bottom:30px;">
         <div style="font-size:3rem; margin-bottom:10px;">🔧</div>
-        <div style="font-size:1.8rem; font-weight:800; color:#F8FAFC;">{t('instrumentation')}</div>
-        <div style="font-size:1rem; color:#94A3B8;">Gestão de Instrumentação Industrial</div>
+        <div style="font-size:1.8rem; font-weight:800; color:{THEME['text']};">{t('instrumentation')}</div>
+        <div style="font-size:1rem; color:{THEME['text_secondary']};">Gestão de Instrumentação Industrial</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -335,12 +336,12 @@ def render_instrumentacao(*args):
                         st.image(render_qr_code_image(qr_data['short'], size=150), caption=f"QR: {tag_qr_sel}")
                     with col_qr2:
                         st.markdown(f"""
-                        <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:10px;">
+                        <div style="background:{THEME['surface']}; border:1px solid {THEME['border']}; padding:15px; border-radius:10px;">
                             <p><strong>Tag:</strong> {tag_qr_sel}</p>
                             <p><strong>Obra:</strong> {obra_sel}</p>
                             <p><strong>Tipo:</strong> {row_data.get('Tipo', 'N/A')}</p>
                             <p><strong>Status:</strong> {row_data.get('Status', 'N/A')}</p>
-                            <p style="font-family:monospace; font-size:0.8rem; color:#64748B;">Dados: {qr_data['short']}</p>
+                            <p style="font-family:monospace; font-size:0.8rem; color:{THEME['text_secondary']};">Dados: {qr_data['short']}</p>
                         </div>
                         """, unsafe_allow_html=True)
             
@@ -376,8 +377,8 @@ def render_instrumentacao(*args):
                         inst = inst_found.iloc[0]
                         
                         st.markdown(f"""
-                        <div style="background:rgba(59,130,246,0.1); border:2px solid rgba(59,130,246,0.3); border-radius:15px; padding:20px; margin-bottom:20px;">
-                            <h3 style="margin:0 0 15px 0; color:#60A5FA;">🔧 {tag_scan}</h3>
+                        <div style="background:{THEME['surface']}; border:2px solid {THEME['accent']}; border-radius:15px; padding:20px; margin-bottom:20px;">
+                            <h3 style="margin:0 0 15px 0; color:{THEME['accent']};">🔧 {tag_scan}</h3>
                             <p><strong>Tipo:</strong> {inst.get('Tipo', 'N/A')}</p>
                             <p><strong>Descrição:</strong> {inst.get('Descricao', 'N/A')}</p>
                             <p><strong>Status:</strong> {STATUS_INST.get(inst.get('Status', '0'), ('Desconhecido', '', '❓'))[0]}</p>
@@ -502,13 +503,13 @@ def render_instrumentacao(*args):
             if lat and str(lat) != "" and str(lat) != "nan":
                 nav_url = f"https://www.google.com/maps/dir/?api=1&destination={lat},{lon}&travelmode=walking"
                 st.markdown(f"""
-                <div style="background:rgba(255,255,255,0.05); padding:20px; border-radius:15px; border:2px solid #3B82F6; text-align:center;">
-                    <h4 style="color:#F8FAFC; margin-bottom:15px;">📍 {tag_f} no GPS</h4>
+                <div style="background:{THEME['surface']}; padding:20px; border-radius:15px; border:2px solid {THEME['accent']}; text-align:center;">
+                    <h4 style="color:{THEME['text']}; margin-bottom:15px;">📍 {tag_f} no GPS</h4>
                     <a href="{nav_url}" target="_blank" style="text-decoration:none;">
-                        <button style="background:linear-gradient(135deg, #3B82F6, #60A5FA); color:white; border:none; padding:15px 30px; border-radius:10px; font-weight:bold; cursor:pointer; width:100%;">🗺️ Google Maps</button>
+                        <button style="background:{THEME['accent']}; color:white; border:none; padding:15px 30px; border-radius:10px; font-weight:bold; cursor:pointer; width:100%;">🗺️ Google Maps</button>
                     </a>
                     <a href="https://waze.com/ul?ll={lat},{lon}&navigate=yes" target="_blank" style="text-decoration:none;">
-                        <button style="background:#33CCFF; color:white; border:none; padding:15px 30px; border-radius:10px; font-weight:bold; cursor:pointer; width:100%; margin-top:10px;">🚗 Waze</button>
+                        <button style="background:{THEME['accent']}; color:white; border:none; padding:15px 30px; border-radius:10px; font-weight:bold; cursor:pointer; width:100%; margin-top:10px;">🚗 Waze</button>
                     </a>
                 </div>
                 """, unsafe_allow_html=True)

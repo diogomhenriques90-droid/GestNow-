@@ -1,9 +1,7 @@
 """
-Testes do módulo de Instrumentação Industrial (mod_instrumentacao.py).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 3 da Identidade Visual migrar este módulo para o THEME
-central (core.py).
+Testes do módulo de Instrumentação Industrial (mod_instrumentacao.py)
+— Fase 3 da Identidade Visual: migração para o THEME central
+(core.py), em vez de hexadecimais soltos.
 
 Fora de âmbito, de propósito: TIPOS_TAG (dicionário de cores por tipo
 de tag ISA) está definido mas nunca é usado em lado nenhum do render
@@ -106,6 +104,69 @@ class TestRenderInstrumentacaoSemErro(unittest.TestCase):
         }]
         at = _run(obras_records=obras_sem_tipo)
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_instrumentacao.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, sem fundos
+    escuros forçados no cabeçalho, cartão do QR Code (aba Index),
+    cartão do resultado do Scan QR e cartão de navegação GPS (ITR-B)."""
+
+    def test_cabecalho_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
+        self.assertNotIn("#F8FAFC", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#60A5FA", textos)
+
+    def test_gps_card_usa_theme(self):
+        # Instrumento calibrado (Status=2) com GPS registado — aparece
+        # por omissão na aba ITR-B (primeira opção do selectbox).
+        insts_itrb = [{
+            "ID": "I2", "Tag": "PT-102", "Tipo": "Pressão", "Descricao": "Transmissor",
+            "Fabricante": "ABB", "Modelo": "266", "Status": "2",
+            "GPS_Lat": "38.7", "GPS_Lng": "-9.1", "Foto_Local_b64": "",
+            "Assinatura_Calibracao_b64": "", "Assinatura_Instalacao_b64": "",
+            "Hash_Validacao": "",
+        }]
+        def _load_com_itrb(fn, cols, silent=False):
+            if fn.endswith("_index.csv"):
+                return pd.DataFrame(insts_itrb)
+            return pd.DataFrame(columns=cols)
+        at = _run(load_db_fn=_load_com_itrb)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn(core.THEME["accent"], textos)
+        self.assertIn(core.THEME["surface"], textos)
+
+    def test_scan_qr_usa_theme(self):
+        # A interação (set_value + segundo .run()) tem de ficar DENTRO
+        # do "with patch(...)" — _run() fecha o bloco ao devolver `at`,
+        # por isso um .run() a seguir, já fora dele, deixa de ter
+        # load_db mockado (cai no acesso real ao GCS e `insts` fica
+        # vazio, escondendo o cartão sem gerar exceção).
+        core._cached_load_db.clear()
+        with patch("mod_instrumentacao.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", return_value=None), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(
+                _script, args=(_OBRAS_RECORDS, None), default_timeout=30)
+            at.run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+            at.text_input(key="inst_scan_input").set_value(
+                "GN|PT-101|Obra Instrumentação Teste").run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn(core.THEME["accent"], textos)
 
 
 if __name__ == "__main__":
