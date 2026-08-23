@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit
+from core import save_db, inv, load_db, log_audit, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -627,7 +627,7 @@ def render_fat_imobilizado(*_):
     with c4: st.metric("🔒 Cauções",         f"€{caucoes_tot:,.2f}")
     with c5:
         n_alertas = n_seg_exp + n_alv_exp
-        cor_alerta = "#EF4444" if n_alertas > 0 else "#10B981"
+        cor_alerta = THEME['error'] if n_alertas > 0 else THEME['success']
         st.metric(
             "⚠️ Alertas",
             n_alertas,
@@ -718,17 +718,17 @@ def render_fat_imobilizado(*_):
                         i_valor, i_taxa, i_data, i_metodo
                     )
                     st.markdown(
-                        f"<div style='background:rgba(59,130,246,0.1);"
-                        f"border:1px solid #3B82F6;"
+                        f"<div style='background:rgba(14,124,134,0.08);"
+                        f"border:1px solid {THEME['accent']};"
                         f"border-radius:8px;padding:10px;"
                         f"margin:8px 0;'>"
-                        f"<small style='color:#94A3B8;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Amort. anual: "
-                        f"<b style='color:#3B82F6;'>"
+                        f"<b style='color:{THEME['accent']};'>"
                         f"€{amort_calc['amort_anual']:,.2f}</b> · "
                         f"Vida útil: {amort_calc['vida_util']} anos · "
                         f"Val. atual: "
-                        f"<b style='color:#10B981;'>"
+                        f"<b style='color:{THEME['success']};'>"
                         f"€{amort_calc['val_contabil']:,.2f}</b>"
                         f"</small></div>",
                         unsafe_allow_html=True
@@ -827,24 +827,25 @@ def render_fat_imobilizado(*_):
                     ) if vc_a > 0 else 0
                     est_a  = ativo.get('Estado','')
                     cor_a  = {
-                        'Ativo':         '#10B981',
-                        'Em Manutenção': '#F59E0B',
-                        'Abatido':       '#64748B',
-                        'Cedido':        '#3B82F6',
-                    }.get(est_a,'#6B7280')
+                        'Ativo':         THEME['success'],
+                        'Em Manutenção': THEME['warning'],
+                        'Abatido':       THEME['text_secondary'],
+                        'Cedido':        THEME['accent'],
+                    }.get(est_a, THEME['text_secondary'])
 
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:12px;"
                         f"margin-bottom:8px;"
                         f"border-left:4px solid {cor_a};'>"
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.9rem;'>"
                         f"{ativo.get('Descricao','')[:35]}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"📦 {ativo.get('Categoria','')} · "
                         f"#{ativo.get('Numero_Serie','')} · "
                         f"🏭 {ativo.get('Obra_Afeta','')} · "
@@ -852,18 +853,18 @@ def render_fat_imobilizado(*_):
                         f"</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"€{vco_a:,.2f}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"/{vc_a:,.2f} bruto</small>"
                         f"</div></div>"
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['background']};"
                         f"border-radius:3px;height:5px;"
                         f"margin:8px 0 4px;'>"
-                        f"<div style='background:#EF4444;"
+                        f"<div style='background:{THEME['error']};"
                         f"width:{pct_a:.0f}%;height:5px;"
                         f"border-radius:3px;'></div></div>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Amortizado: {pct_a:.0f}% · "
                         f"Taxa: {float(ativo.get('Taxa_Amort',0) or 0):.1f}%/ano · "
                         f"€{float(ativo.get('Amort_Anual',0) or 0):,.2f}/ano"
@@ -1105,43 +1106,44 @@ def render_fat_imobilizado(*_):
                     val_s  = float(seg.get('Valor_Anual',0) or 0)
 
                     if dias_s <= 0:
-                        cor_s   = "#EF4444"
+                        cor_s   = THEME['error']
                         alert_s = "🔴 EXPIRADO"
                     elif dias_s <= 30:
-                        cor_s   = "#EF4444"
+                        cor_s   = THEME['error']
                         alert_s = f"🔴 Expira em {dias_s}d!"
                     elif dias_s <= 60:
-                        cor_s   = "#F59E0B"
+                        cor_s   = THEME['warning']
                         alert_s = f"⚠️ {dias_s} dias"
                     else:
-                        cor_s   = "#10B981"
+                        cor_s   = THEME['success']
                         alert_s = f"✅ {dias_s}d"
 
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:12px;"
                         f"margin-bottom:8px;"
                         f"border-left:4px solid {cor_s};'>"
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.9rem;'>"
                         f"{seg.get('Tipo','')[:40]}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"🏢 {seg.get('Entidade','')} · "
                         f"📋 {seg.get('Apolice','')} · "
                         f"🏭 {seg.get('Obra','')}"
                         f"</small><br>"
-                        f"<small style='color:#94A3B8;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{seg.get('Cobertura','')[:60]}</small><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{seg.get('Data_Inicio','')} → "
                         f"{seg.get('Data_Fim','')}"
                         f"</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"€{val_s:,.2f}/ano</b><br>"
                         f"<span style='color:{cor_s};"
                         f"font-size:0.8rem;font-weight:700;'>"
@@ -1275,46 +1277,47 @@ def render_fat_imobilizado(*_):
                     est_c   = cau.get('Estado','Ativa')
 
                     if est_c == 'Libertada':
-                        cor_c   = "#64748B"
+                        cor_c   = THEME['text_secondary']
                         alert_c = "✅ Libertada"
                     elif dias_c <= 0:
-                        cor_c   = "#10B981"
+                        cor_c   = THEME['success']
                         alert_c = "🔓 Pronta a libertar!"
                     elif dias_c <= 30:
-                        cor_c   = "#10B981"
+                        cor_c   = THEME['success']
                         alert_c = f"🔓 Liberta em {dias_c}d"
                     elif dias_c <= 90:
-                        cor_c   = "#3B82F6"
+                        cor_c   = THEME['accent']
                         alert_c = f"📅 {dias_c} dias"
                     else:
-                        cor_c   = "#F59E0B"
+                        cor_c   = THEME['warning']
                         alert_c = f"🔒 {dias_c} dias"
 
                     col_ci, col_cb = st.columns([5,1])
                     with col_ci:
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};"
+                            f"border:1px solid {THEME['border']};"
                             f"border-radius:10px;padding:12px;"
                             f"margin-bottom:6px;"
                             f"border-left:4px solid {cor_c};'>"
                             f"<div style='display:flex;"
                             f"justify-content:space-between;'>"
                             f"<div>"
-                            f"<b style='color:#F1F5F9;'>"
+                            f"<b style='color:{THEME['text']};'>"
                             f"🔒 {cau.get('Obra','')[:30]}</b><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"🏦 {cau.get('Banco','')} · "
                             f"{cau.get('Tipo_Cauco','')} · "
                             f"Constitução: "
                             f"{cau.get('Data_Constituicao','')}"
                             f"</small><br>"
-                            f"<small style='color:#94A3B8;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"Libertação: "
                             f"{cau.get('Data_Libertacao','')}"
                             f"</small>"
                             f"</div>"
                             f"<div style='text-align:right;'>"
-                            f"<b style='color:#F1F5F9;"
+                            f"<b style='color:{THEME['text']};"
                             f"font-size:1.05rem;'>"
                             f"€{val_c:,.2f}</b><br>"
                             f"<span style='color:{cor_c};"
@@ -1487,23 +1490,28 @@ def render_fat_imobilizado(*_):
                     custo_r = float(al.get('Custo_Renovacao',0) or 0)
 
                     if dias_al <= 0:
-                        cor_al  = "#EF4444"
+                        cor_al  = THEME['error']
                         alert_al= "🔴 EXPIRADO — RENOVAR URGENTE!"
                     elif dias_al <= 30:
-                        cor_al  = "#EF4444"
+                        cor_al  = THEME['error']
                         alert_al= f"🔴 Expira em {dias_al} dias!"
                     elif dias_al <= 60:
-                        cor_al  = "#F59E0B"
+                        cor_al  = THEME['warning']
                         alert_al= f"⚠️ Expira em {dias_al} dias"
                     elif dias_al <= 90:
-                        cor_al  = "#F59E0B"
+                        cor_al  = THEME['warning']
                         alert_al= f"📋 {dias_al} dias"
                     else:
-                        cor_al  = "#10B981"
+                        cor_al  = THEME['success']
                         alert_al= f"✅ {dias_al} dias"
 
+                    notas_html = (
+                        f"<br><small style='color:{THEME['text_secondary']};'>"
+                        + str(al.get('Notas',''))[:80] + "</small>"
+                    ) if al.get('Notas') else ""
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:12px;"
                         f"margin-bottom:8px;"
                         f"border-left:4px solid {cor_al};'>"
@@ -1511,10 +1519,10 @@ def render_fat_imobilizado(*_):
                         f"justify-content:space-between;"
                         f"align-items:flex-start;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.9rem;'>"
                         f"{al.get('Tipo','')[:40]}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Nº {al.get('Numero','')} · "
                         f"{al.get('Entidade','')} · "
                         f"Emissão: {al.get('Data_Emissao','')} · "
@@ -1527,11 +1535,11 @@ def render_fat_imobilizado(*_):
                         f"font-weight:700;"
                         f"font-size:0.8rem;'>"
                         f"{alert_al}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Renovação: €{custo_r:,.2f}"
                         f"</small>"
                         f"</div></div>"
-                        f"{'<br><small style=color:#94A3B8;>' + str(al.get('Notas',''))[:80] + '</small>' if al.get('Notas') else ''}"
+                        f"{notas_html}"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1592,11 +1600,11 @@ def render_fat_imobilizado(*_):
                             errors='coerce'
                         ).fillna(0).sum()
                         st.markdown(
-                            f"<div style='background:rgba(239,68,68,0.1);"
-                            f"border:1px solid #EF4444;"
+                            f"<div style='background:rgba(185,28,28,0.08);"
+                            f"border:1px solid {THEME['error']};"
                             f"border-radius:8px;padding:12px;"
                             f"margin-top:8px;'>"
-                            f"<b style='color:#EF4444;'>"
+                            f"<b style='color:{THEME['error']};'>"
                             f"⚠️ Custo total renovações urgentes "
                             f"(90 dias): "
                             f"€{custo_renov:,.2f}</b>"

@@ -33,6 +33,15 @@ _IMOB_RECORDS = [
      "Taxa_Amort": "20", "Metodo_Amort": "linear", "Amort_Anual": "200",
      "Amort_Acum": "400", "Val_Contabil": "600",
      "Obra_Afeta": "Obra Imob Teste", "Estado": "Ativo", "Notas": ""},
+    # Estado "Em Manutenção" — exercita o ramo "warning" do estado
+    # do ativo.
+    {"ID": "I2", "Descricao": "Carrinha de Serviço",
+     "Categoria": "Viaturas Ligeiras", "Numero_Serie": "SN456",
+     "Valor_Compra": "20000", "Data_Compra": "01/01/2023",
+     "Taxa_Amort": "25", "Metodo_Amort": "linear", "Amort_Anual": "5000",
+     "Amort_Acum": "10000", "Val_Contabil": "10000",
+     "Obra_Afeta": "Obra Imob Teste", "Estado": "Em Manutenção",
+     "Notas": ""},
 ]
 
 _SEGUROS_RECORDS = [
@@ -47,6 +56,12 @@ _CAUCOES_RECORDS = [
      "Valor": "5000", "Data_Constituicao": "01/01/2026",
      "Data_Libertacao": "15/09/2026", "Estado": "Ativa",
      "Tipo_Cauco": "Caução de Boa Execução", "Notas": ""},
+    # Liberta a ~60 dias — exercita o ramo "accent" (nem verde
+    # próximo, nem âmbar distante).
+    {"ID": "C2", "Obra": "Obra Imob Teste 2", "Banco": "CGD",
+     "Valor": "3000", "Data_Constituicao": "01/01/2026",
+     "Data_Libertacao": "22/10/2026", "Estado": "Ativa",
+     "Tipo_Cauco": "Caução de Garantia", "Notas": ""},
 ]
 
 _ALVARAS_RECORDS = [
@@ -115,6 +130,35 @@ class TestRenderFatImobilizadoSemErro(unittest.TestCase):
         # gráfico de timeline + tabela do mapa anual).
         at = _run(pre_session_state={"imob_detail": "I1"})
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_fat_imobilizado.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, sem fundos escuros forçados."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "warning", "success", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("background:#1E293B", textos)
+        self.assertNotIn("background: #1E293B", textos)
+        self.assertNotIn("background:#0F172A", textos)
+        self.assertNotIn("#F1F5F9", textos)
 
 
 if __name__ == "__main__":
