@@ -141,5 +141,45 @@ class TestRenderDeslocacoesSemErro(unittest.TestCase):
         self.assertFalse(at.exception, msg=str(at.exception))
 
 
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_admin_deslocacoes.py lê as
+    suas cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, sem fundos escuros forçados. Exceção
+    documentada no cabeçalho do ficheiro: a mini-barra "■ Bilhetes X%
+    / ■ Dormidas Y%" mantém #3B82F6/#8B5CF6, a par do gráfico Plotly
+    idêntico logo abaixo (fora de âmbito, Fase 4)."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "warning", "success", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertNotIn("#6B7280", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("background:#1E293B", textos)
+        self.assertNotIn("background: #1E293B", textos)
+        self.assertNotIn("background:#0F172A", textos)
+
+    def test_excecao_bilhetes_dormidas_preservada(self):
+        # A barra de progresso Bilhetes/Dormidas mantém-se, de
+        # propósito, igual ao gráfico Plotly adjacente.
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn("#3B82F6", textos)
+        self.assertIn("#8B5CF6", textos)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit, criar_notificacao
+from core import save_db, inv, load_db, log_audit, criar_notificacao, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -32,13 +32,13 @@ def _num(df, col):
 
 def _cor_estado(estado: str) -> tuple:
     return {
-        "Por Comprar":  ("#F59E0B", "🟡"),
-        "Reservado":    ("#3B82F6", "🔵"),
-        "Confirmado":   ("#10B981", "✅"),
-        "Utilizado":    ("#64748B", "✔️"),
-        "Cancelado":    ("#EF4444", "❌"),
-        "Reembolso Pendente": ("#F97316", "💰"),
-    }.get(estado, ("#6B7280", "⚪"))
+        "Por Comprar":  (THEME['warning'], "🟡"),
+        "Reservado":    (THEME['accent'], "🔵"),
+        "Confirmado":   (THEME['success'], "✅"),
+        "Utilizado":    (THEME['text_secondary'], "✔️"),
+        "Cancelado":    (THEME['error'], "❌"),
+        "Reembolso Pendente": (THEME['warning'], "💰"),
+    }.get(estado, (THEME['text_secondary'], "⚪"))
 
 def _dias_para_viagem(data_str: str) -> int:
     try:
@@ -206,9 +206,9 @@ def _render_card_opcao(opcao: dict, idx: int,
     link   = opcao.get('link_reserva','')
 
     cor_canc = (
-        "#10B981" if 'gratuito' in canc.lower() else
-        "#F59E0B" if 'pago'     in canc.lower() else
-        "#EF4444"
+        THEME['success'] if 'gratuito' in canc.lower() else
+        THEME['warning'] if 'pago'     in canc.lower() else
+        THEME['error']
     )
 
     selected = False
@@ -217,31 +217,31 @@ def _render_card_opcao(opcao: dict, idx: int,
        with st.container():
         notas_opcao = opcao.get('notas','') or ''
         notas_html  = (
-            f"<br><small style='color:#94A3B8;'>{notas_opcao}</small>"
+            f"<br><small style='color:{THEME['text_secondary']};'>{notas_opcao}</small>"
             if notas_opcao else ""
         )
 
         st.markdown(
-            f"<div style='background:#1E293B;"
+            f"<div style='background:{THEME['surface']};"
             f"border-radius:12px;padding:16px;"
             f"margin-bottom:8px;"
-            f"border:1px solid rgba(255,255,255,0.08);'>"
+            f"border:1px solid {THEME['border']};'>"
             f"<div style='display:flex;"
             f"justify-content:space-between;"
             f"align-items:flex-start;'>"
             f"<div>"
-            f"<b style='color:#F1F5F9;font-size:1rem;'>"
+            f"<b style='color:{THEME['text']};font-size:1rem;'>"
             f"{ic_tipo} {opcao.get('companhia','')}</b>"
-            f"<span style='background:rgba(59,130,246,0.2);"
-            f"color:#60A5FA;padding:2px 8px;"
+            f"<span style='background:rgba(14,124,134,0.12);"
+            f"color:{THEME['accent']};padding:2px 8px;"
             f"border-radius:10px;font-size:0.72rem;"
             f"font-weight:700;margin-left:8px;'>"
             f"{esc}</span><br>"
-            f"<span style='color:#94A3B8;font-size:0.88rem;'>"
+            f"<span style='color:{THEME['text_secondary']};font-size:0.88rem;'>"
             f"{opcao.get('origem','')} "
-            f"<b style='color:#F1F5F9;'>→</b> "
+            f"<b style='color:{THEME['text']};'>→</b> "
             f"{opcao.get('destino','')}</span><br>"
-            f"<span style='color:#64748B;font-size:0.82rem;'>"
+            f"<span style='color:{THEME['text_secondary']};font-size:0.82rem;'>"
             f"⏱️ {opcao.get('hora_partida','')} → "
             f"{opcao.get('hora_chegada','')} "
             f"({opcao.get('duracao','')}) · "
@@ -249,9 +249,9 @@ def _render_card_opcao(opcao: dict, idx: int,
             f"</span>"
             f"</div>"
             f"<div style='text-align:right;'>"
-            f"<b style='color:#10B981;font-size:1.3rem;'>"
+            f"<b style='color:{THEME['accent']};font-size:1.3rem;'>"
             f"€{preco:.2f}</b><br>"
-            f"<small style='color:#64748B;'>"
+            f"<small style='color:{THEME['text_secondary']};'>"
             f"€{preco_p:.2f}/pax</small><br>"
             f"<span style='color:{cor_canc};"
             f"font-size:0.72rem;'>{canc}</span>"
@@ -457,24 +457,24 @@ def _render_dormidas(obras_db, users):
                 did    = dorm.get('ID','')
                 estado = dorm.get('Estado','')
                 cor_e  = {
-                    'Reservado':'#3B82F6','Confirmado':'#10B981',
-                    'Cancelado':'#EF4444','Concluído':'#64748B'
-                }.get(estado,'#6B7280')
+                    'Reservado':THEME['accent'],'Confirmado':THEME['success'],
+                    'Cancelado':THEME['error'],'Concluído':THEME['text_secondary']
+                }.get(estado, THEME['text_secondary'])
                 total  = float(dorm.get('Total',0) or 0)
 
                 col_di, col_de = st.columns([6,1])
                 with col_di:
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:12px 16px;"
                         f"margin-bottom:6px;"
                         f"border-left:4px solid {cor_e};'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"🏨 {dorm.get('Hotel','')}</b>"
                         f"<span style='float:right;"
-                        f"color:#10B981;font-weight:700;'>"
+                        f"color:{THEME['accent']};font-weight:700;'>"
                         f"€{total:.2f}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"👤 {dorm.get('Colaborador','')} · "
                         f"🏗️ {dorm.get('Obra','')} · "
                         f"📅 {dorm.get('Data_Checkin','')} → "
@@ -571,11 +571,11 @@ def _render_bilhetes(obras_db, users):
             for _, r in prox_lst.head(3).iterrows()
         ])
         st.markdown(
-            f"<div style='background:rgba(59,130,246,0.1);"
-            f"border:1px solid #3B82F6;border-radius:8px;"
+            f"<div style='background:{THEME['surface']};"
+            f"border:1px solid {THEME['accent']};border-radius:8px;"
             f"padding:10px 14px;margin-bottom:8px;'>"
-            f"<b style='color:#3B82F6;'>✈️ Viagens próximas:</b> "
-            f"<span style='color:#94A3B8;'>{msg}</span>"
+            f"<b style='color:{THEME['accent']};'>✈️ Viagens próximas:</b> "
+            f"<span style='color:{THEME['text_secondary']};'>{msg}</span>"
             f"</div>",
             unsafe_allow_html=True
         )
@@ -595,7 +595,7 @@ def _render_bilhetes(obras_db, users):
     with tab_ia:
         st.markdown("#### 🤖 Pesquisa Inteligente de Transporte")
         st.markdown(
-            "<p style='color:#94A3B8;font-size:0.85rem;'>"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;'>"
             "A IA pesquisa opções reais na web (voos, comboios, autocarros) "
             "e apresenta as melhores opções. Selecciona a que queres "
             "e é guardada automaticamente na base de dados."
@@ -737,14 +737,18 @@ def _render_bilhetes(obras_db, users):
                 "Avião":"✈️","Comboio":"🚂","Autocarro":"🚌"
             }.get(params.get('tipo',''),'🚍')
 
+            fonte_html = (
+                f"  ·  <span style='color:{THEME['text_secondary']};font-size:0.8rem;'>{fonte}</span>"
+                if fonte else ""
+            )
             st.markdown(
-                f"<div style='background:rgba(16,185,129,0.1);"
-                f"border:1px solid #10B981;"
+                f"<div style='background:{THEME['surface']};"
+                f"border:1px solid {THEME['success']};"
                 f"border-radius:8px;padding:10px 14px;"
                 f"margin-bottom:12px;'>"
-                f"<b style='color:#10B981;'>"
+                f"<b style='color:{THEME['success']};'>"
                 f"{tipo_ic} {len(resultados)} opção(ões) encontrada(s)</b>"
-                f"{'  ·  <span style=color:#64748B;font-size:0.8rem;>' + fonte + '</span>' if fonte else ''}"
+                f"{fonte_html}"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -785,11 +789,11 @@ def _render_bilhetes(obras_db, users):
 
             st.markdown("---")
             st.markdown(
-                f"<div style='background:rgba(16,185,129,0.1);"
-                f"border:1px solid #10B981;"
+                f"<div style='background:{THEME['surface']};"
+                f"border:1px solid {THEME['success']};"
                 f"border-radius:10px;padding:14px;"
                 f"margin-bottom:12px;'>"
-                f"<b style='color:#10B981;'>✅ Opção seleccionada: "
+                f"<b style='color:{THEME['success']};'>✅ Opção seleccionada: "
                 f"{opcao.get('companhia','')} — "
                 f"{opcao.get('origem','')} → "
                 f"{opcao.get('destino','')} · "
@@ -1176,10 +1180,10 @@ def _render_bilhetes(obras_db, users):
                 dias_b = int(bil.get('dias',999))
 
                 cor_dias_b = (
-                    "#EF4444" if dias_b < 0  else
-                    "#F59E0B" if dias_b <= 3 else
-                    "#3B82F6" if dias_b <= 7 else
-                    "#64748B"
+                    THEME['error'] if dias_b < 0  else
+                    THEME['warning'] if dias_b <= 3 else
+                    THEME['accent'] if dias_b <= 7 else
+                    THEME['text_secondary']
                 )
                 txt_dias = (
                     "PASSADO" if dias_b < 0 else
@@ -1189,14 +1193,14 @@ def _render_bilhetes(obras_db, users):
                 col_bi, col_ba = st.columns([6,1])
                 with col_bi:
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:12px 16px;"
                         f"margin-bottom:6px;"
                         f"border-left:4px solid {cor_e};'>"
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"{ic_t} {bil.get('Companhia','')} — "
                         f"{bil.get('Origem','')} → "
                         f"{bil.get('Destino','')}</b>"
@@ -1205,7 +1209,7 @@ def _render_bilhetes(obras_db, users):
                         f"border-radius:10px;font-size:0.7rem;"
                         f"font-weight:700;margin-left:8px;'>"
                         f"{ic_e} {estado}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"👤 {bil.get('Colaborador','')} · "
                         f"🏗️ {bil.get('Obra','')} · "
                         f"📅 {bil.get('Data_Ida','')} "
@@ -1214,7 +1218,7 @@ def _render_bilhetes(obras_db, users):
                         f"</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
-                        f"<b style='color:#10B981;"
+                        f"<b style='color:{THEME['accent']};"
                         f"font-size:1rem;'>€{preco:.2f}</b><br>"
                         f"<span style='color:{cor_dias_b};"
                         f"font-size:0.78rem;'>{txt_dias}</span>"
@@ -1323,11 +1327,11 @@ def _render_bilhetes(obras_db, users):
                     ).fillna(0).sum()
 
                     st.markdown(
-                        f"<div style='background:rgba(249,115,22,0.1);"
-                        f"border:1px solid #F97316;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['warning']};"
                         f"border-radius:8px;padding:10px 14px;"
                         f"margin-bottom:10px;'>"
-                        f"<b style='color:#F97316;'>"
+                        f"<b style='color:{THEME['warning']};'>"
                         f"💰 Total pendente: "
                         f"€{total_reemb:,.2f} "
                         f"({len(pend_r)} bilhete(s))</b>"
@@ -1356,20 +1360,20 @@ def _render_bilhetes(obras_db, users):
                                     rb.get('Tipo',''),'🚍'
                                 )
                                 st.markdown(
-                                    f"<div style='background:#1E293B;"
+                                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                     f"border-radius:8px;padding:10px;"
                                     f"margin-bottom:4px;display:flex;"
                                     f"justify-content:space-between;'>"
                                     f"<div>"
-                                    f"<small style='color:#F1F5F9;'>"
+                                    f"<small style='color:{THEME['text']};'>"
                                     f"{ic_tr} {rb.get('Origem','')} → "
                                     f"{rb.get('Destino','')}</small><br>"
-                                    f"<small style='color:#64748B;'>"
+                                    f"<small style='color:{THEME['text_secondary']};'>"
                                     f"📅 {rb.get('Data_Ida','')} · "
                                     f"{rb.get('Companhia','')} · "
                                     f"Ref: {rb.get('Referencia','—')}"
                                     f"</small></div>"
-                                    f"<b style='color:#F97316;'>"
+                                    f"<b style='color:{THEME['warning']};'>"
                                     f"€{preco_r:.2f}</b>"
                                     f"</div>",
                                     unsafe_allow_html=True
@@ -1379,10 +1383,10 @@ def _render_bilhetes(obras_db, users):
                             with col_rp1:
                                 st.markdown(
                                     f"<div style='background:"
-                                    f"rgba(249,115,22,0.1);"
+                                    f"{THEME['surface']};border:1px solid {THEME['border']};"
                                     f"border-radius:8px;padding:10px;"
                                     f"text-align:center;'>"
-                                    f"<b style='color:#F97316;'>"
+                                    f"<b style='color:{THEME['warning']};'>"
                                     f"Total a reembolsar: "
                                     f"€{total_c:.2f}</b>"
                                     f"</div>",
@@ -1560,27 +1564,32 @@ def _render_resumo_viagem(obras_db, users):
         pct_d = 100 - pct_b
 
         st.markdown(
-            f"<div style='background:#1E293B;"
+            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
             f"border-radius:12px;padding:14px 16px;"
             f"margin-bottom:8px;'>"
             f"<div style='display:flex;"
             f"justify-content:space-between;'>"
             f"<div>"
-            f"<b style='color:#F1F5F9;'>"
+            f"<b style='color:{THEME['text']};'>"
             f"👤 {r.get('Colaborador','')}</b>"
-            f"<span style='color:#64748B;margin-left:8px;'>"
+            f"<span style='color:{THEME['text_secondary']};margin-left:8px;'>"
             f"🏗️ {r.get('Obra','')}</span><br>"
-            f"<small style='color:#64748B;'>"
+            f"<small style='color:{THEME['text_secondary']};'>"
             f"✈️ {int(r.get('Bilhetes',0))} bilhete(s) "
             f"€{r.get('Custo_Bilhetes',0):,.2f} · "
             f"🏨 {int(r.get('Dormidas',0))} dormida(s) "
             f"€{r.get('Custo_Dormidas',0):,.2f}"
             f"</small>"
             f"</div>"
-            f"<b style='color:#10B981;font-size:1.1rem;'>"
+            f"<b style='color:{THEME['accent']};font-size:1.1rem;'>"
             f"€{tot_r:,.2f}</b>"
             f"</div>"
-            f"<div style='background:#0F172A;"
+            # Barra de duas cores (Bilhetes/Dormidas) — mantém as
+            # mesmas cores do gráfico Plotly logo abaixo (fora de
+            # âmbito, Fase 4), que usa a mesma legenda para os
+            # mesmos dados; migrar só esta prévia deixaria as duas
+            # representações com cores diferentes para o mesmo par.
+            f"<div style='background:{THEME['background']};"
             f"border-radius:3px;height:5px;margin-top:8px;'>"
             f"<div style='background:#3B82F6;width:{pct_b}%;"
             f"height:5px;border-radius:3px;display:inline-block;'>"
