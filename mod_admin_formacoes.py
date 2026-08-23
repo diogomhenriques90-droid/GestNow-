@@ -14,7 +14,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit, criar_notificacao
+from core import save_db, inv, load_db, log_audit, criar_notificacao, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -35,14 +35,14 @@ def _dias_para(data_str: str) -> int:
 
 def _cor_validade(dias: int) -> tuple:
     if dias < 0:
-        return "#EF4444", "🔴", "EXPIRADA"
+        return THEME['error'], "🔴", "EXPIRADA"
     if dias <= 30:
-        return "#EF4444", "🔴", f"{dias}d"
+        return THEME['error'], "🔴", f"{dias}d"
     if dias <= 60:
-        return "#F59E0B", "⚠️", f"{dias}d"
+        return THEME['warning'], "⚠️", f"{dias}d"
     if dias <= 90:
-        return "#F59E0B", "🟡", f"{dias}d"
-    return "#10B981", "✅", f"{dias}d"
+        return THEME['warning'], "🟡", f"{dias}d"
+    return THEME['success'], "✅", f"{dias}d"
 
 def _cor_rag(pct: float) -> str:
     if pct >= 80: return "#10B981"
@@ -331,30 +331,31 @@ def render_formacoes(users, obras_db, *_):
     )
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .form-card {
-        background:#1E293B; border-radius:12px;
+    .form-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:14px 16px; margin-bottom:8px;
         border-left:5px solid;
-    }
-    .form-badge {
+    }}
+    .form-badge {{
         display:inline-block; padding:2px 9px;
         border-radius:20px; font-size:0.7rem; font-weight:700;
-    }
-    .collab-row {
-        background:#0F172A; border-radius:8px;
+    }}
+    .collab-row {{
+        background:{THEME['background']}; border-radius:8px;
         padding:10px 14px; margin-bottom:4px;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     st.markdown("### 🎓 Gestão de Formações")
     st.markdown(
-        "<p style='color:#64748B;font-size:0.82rem;margin:0 0 12px;'>"
-        "ISO 9001:2015 — Cláusula 7.2 Competência · "
-        "Registo, validades, plano anual e custos"
-        "</p>",
+        f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;margin:0 0 12px;'>"
+        f"ISO 9001:2015 — Cláusula 7.2 Competência · "
+        f"Registo, validades, plano anual e custos"
+        f"</p>",
         unsafe_allow_html=True
     )
 
@@ -412,11 +413,11 @@ def render_formacoes(users, obras_db, *_):
                 for _, r in urgentes.head(4).iterrows()
             ])
             st.markdown(
-                f"<div style='background:rgba(239,68,68,0.1);"
-                f"border:1px solid #EF4444;border-radius:8px;"
+                f"<div style='background:rgba(185,28,28,0.08);"
+                f"border:1px solid {THEME['error']};border-radius:8px;"
                 f"padding:10px 14px;margin-bottom:12px;'>"
-                f"<b style='color:#EF4444;'>🚨 Formações urgentes:</b> "
-                f"<span style='color:#94A3B8;'>{msg}</span>"
+                f"<b style='color:{THEME['error']};'>🚨 Formações urgentes:</b> "
+                f"<span style='color:{THEME['text_secondary']};'>{msg}</span>"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -489,7 +490,7 @@ def render_formacoes(users, obras_db, *_):
             df_f = df_f.sort_values('Dias_N', ascending=True)
 
             st.markdown(
-                f"<p style='color:#64748B;font-size:0.82rem;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;'>"
                 f"{len(df_f)} formação(ões)</p>",
                 unsafe_allow_html=True
             )
@@ -500,15 +501,10 @@ def render_formacoes(users, obras_db, *_):
                 cor_v, ic_v, txt_v = _cor_validade(dias_f)
 
                 cat_f  = fr.get('Categoria','')
-                cores_cat = {
-                    'Segurança': '#EF4444',
-                    'Técnica':   '#3B82F6',
-                    'Qualidade': '#10B981',
-                    'Gestão':    '#8B5CF6',
-                    'Línguas':   '#F59E0B',
-                    'Licença':   '#06B6D4',
-                }
-                cor_cat = cores_cat.get(cat_f,'#6B7280')
+                # Etiquetas de categoria sem semântica boa/má —
+                # cor decorativa única (acento), como nos módulos
+                # anteriores com o mesmo padrão de tags arbitrárias.
+                cor_cat = THEME['accent']
 
                 pago   = fr.get('Pago_Por','')
                 ic_pago = "🏢" if pago=='Empresa' else "👤"
@@ -523,14 +519,14 @@ def render_formacoes(users, obras_db, *_):
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.92rem;'>"
                         f"{fr.get('Formacao','')}</b>"
                         f"<span class='form-badge' "
                         f"style='background:{cor_cat}22;"
                         f"color:{cor_cat};margin-left:8px;'>"
                         f"{cat_f}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"👤 {fr.get('Colaborador','')} · "
                         f"🏫 {fr.get('Entidade','')} · "
                         f"📅 {fr.get('Data_Conclusao','')} · "
@@ -543,7 +539,7 @@ def render_formacoes(users, obras_db, *_):
                         f"<span style='color:{cor_v};"
                         f"font-weight:700;'>"
                         f"{ic_v} {txt_v}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Válida até {fr.get('Data_Validade','—')}"
                         f"</small>"
                         f"</div></div>"
@@ -669,9 +665,9 @@ def render_formacoes(users, obras_db, *_):
                     key="nf_validade"
                 )
                 st.markdown(
-                    "<small style='color:#64748B;'>"
-                    "Preenchida automaticamente pelo catálogo "
-                    "— ajusta se necessário.</small>",
+                    f"<small style='color:{THEME['text_secondary']};'>"
+                    f"Preenchida automaticamente pelo catálogo "
+                    f"— ajusta se necessário.</small>",
                     unsafe_allow_html=True
                 )
 
@@ -782,10 +778,10 @@ def render_formacoes(users, obras_db, *_):
     with t_colab:
         st.markdown("#### 👤 Formações por Colaborador")
         st.markdown(
-            "<small style='color:#64748B;'>"
-            "Matriz de competências — ISO 9001 Cláusula 7.2. "
-            "Verde = válida · Amarelo = expira 60d · "
-            "Vermelho = expirada · Cinzento = não tem</small>",
+            f"<small style='color:{THEME['text_secondary']};'>"
+            f"Matriz de competências — ISO 9001 Cláusula 7.2. "
+            f"Verde = válida · Amarelo = expira 60d · "
+            f"Vermelho = expirada · Cinzento = não tem</small>",
             unsafe_allow_html=True
         )
 
@@ -839,15 +835,7 @@ def render_formacoes(users, obras_db, *_):
                     if forms_cat.empty:
                         continue
 
-                    cores_cat = {
-                        'Segurança': '#EF4444',
-                        'Técnica':   '#3B82F6',
-                        'Qualidade': '#10B981',
-                        'Gestão':    '#8B5CF6',
-                        'Línguas':   '#F59E0B',
-                        'Licença':   '#06B6D4',
-                    }
-                    cor_cat_c = cores_cat.get(cat_c,'#6B7280')
+                    cor_cat_c = THEME['accent']
 
                     st.markdown(
                         f"<p style='color:{cor_cat_c};"
@@ -869,10 +857,10 @@ def render_formacoes(users, obras_db, *_):
                         with col_fc1:
                             st.markdown(
                                 f"<div class='collab-row'>"
-                                f"<b style='color:#F1F5F9;"
+                                f"<b style='color:{THEME['text']};"
                                 f"font-size:0.85rem;'>"
                                 f"{fc.get('Formacao','')}</b><br>"
-                                f"<small style='color:#64748B;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"🏫 {fc.get('Entidade','')} · "
                                 f"📅 {fc.get('Data_Conclusao','')} · "
                                 f"⏱️ {fc.get('Duracao_H',0)}h · "
@@ -890,7 +878,7 @@ def render_formacoes(users, obras_db, *_):
                                 f"margin-top:4px;'>"
                                 f"<b style='color:{cor_vc};'>"
                                 f"{ic_vc} {txt_vc}</b><br>"
-                                f"<small style='color:#64748B;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"até {fc.get('Data_Validade','—')}"
                                 f"</small>"
                                 f"</div>",
@@ -947,7 +935,7 @@ def render_formacoes(users, obras_db, *_):
                     if not obrig_falta.empty:
                         st.markdown("---")
                         st.markdown(
-                            f"<p style='color:#EF4444;"
+                            f"<p style='color:{THEME['error']};"
                             f"font-weight:700;font-size:0.82rem;'>"
                             f"❌ Formações obrigatórias em falta "
                             f"({len(obrig_falta)}):</p>",
@@ -956,11 +944,11 @@ def render_formacoes(users, obras_db, *_):
                         for _, of in obrig_falta.iterrows():
                             st.markdown(
                                 f"<div style='background:"
-                                f"rgba(239,68,68,0.08);"
+                                f"rgba(185,28,28,0.06);"
                                 f"border-radius:6px;"
                                 f"padding:6px 10px;"
                                 f"margin-bottom:3px;'>"
-                                f"<small style='color:#EF4444;'>"
+                                f"<small style='color:{THEME['error']};'>"
                                 f"❌ {of.get('Nome','')} — "
                                 f"{of.get('Categoria','')}</small>"
                                 f"</div>",
@@ -1093,10 +1081,10 @@ def render_formacoes(users, obras_db, *_):
                     if pp_filt.empty:
                         continue
                     cor_prior = {
-                        'Alta':  '#EF4444',
-                        'Média': '#F59E0B',
-                        'Baixa': '#10B981'
-                    }.get(prior_p,'#6B7280')
+                        'Alta':  THEME['error'],
+                        'Média': THEME['warning'],
+                        'Baixa': THEME['success']
+                    }.get(prior_p, THEME['text_secondary'])
 
                     st.markdown(
                         f"<p style='color:{cor_prior};"
@@ -1115,28 +1103,29 @@ def render_formacoes(users, obras_db, *_):
                         pid_p  = pp.get('ID','')
                         est_p  = pp.get('Estado','')
                         cor_ep = {
-                            'Planeada':  '#F59E0B',
-                            'Concluída': '#10B981',
-                            'Cancelada': '#EF4444',
-                            'Em Curso':  '#3B82F6'
-                        }.get(est_p,'#6B7280')
+                            'Planeada':  THEME['warning'],
+                            'Concluída': THEME['success'],
+                            'Cancelada': THEME['error'],
+                            'Em Curso':  THEME['accent']
+                        }.get(est_p, THEME['text_secondary'])
 
                         col_pp1, col_pp2 = st.columns([5,1])
                         with col_pp1:
                             st.markdown(
-                                f"<div style='background:#1E293B;"
+                                f"<div style='background:{THEME['surface']};"
+                                f"border:1px solid {THEME['border']};"
                                 f"border-radius:8px;"
                                 f"padding:8px 12px;"
                                 f"margin-bottom:3px;"
                                 f"border-left:3px solid {cor_ep};'>"
-                                f"<b style='color:#F1F5F9;"
+                                f"<b style='color:{THEME['text']};"
                                 f"font-size:0.83rem;'>"
                                 f"{pp.get('Formacao','')}</b>"
                                 f"<span style='float:right;"
                                 f"color:{cor_ep};"
                                 f"font-size:0.72rem;'>"
                                 f"{est_p}</span><br>"
-                                f"<small style='color:#64748B;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"👤 {pp.get('Colaborador','')} · "
                                 f"📅 {pp.get('Data_Prevista','')} · "
                                 f"€{float(pp.get('Custo_Estimado',0) or 0):.2f}"
@@ -1315,18 +1304,19 @@ def render_formacoes(users, obras_db, *_):
                     ):
                         for _, fr in grp_r.iterrows():
                             st.markdown(
-                                f"<div style='background:#1E293B;"
+                                f"<div style='background:{THEME['surface']};"
+                                f"border:1px solid {THEME['border']};"
                                 f"border-radius:8px;padding:10px;"
                                 f"margin-bottom:4px;display:flex;"
                                 f"justify-content:space-between;'>"
                                 f"<div>"
-                                f"<small style='color:#F1F5F9;'>"
+                                f"<small style='color:{THEME['text']};'>"
                                 f"🎓 {fr.get('Formacao','')}</small><br>"
-                                f"<small style='color:#64748B;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"📅 {fr.get('Data_Conclusao','')} · "
                                 f"🏫 {fr.get('Entidade','')}"
                                 f"</small></div>"
-                                f"<b style='color:#F97316;'>"
+                                f"<b style='color:{THEME['warning']};'>"
                                 f"€{float(fr.get('Custo_N',0)):,.2f}"
                                 f"</b></div>",
                                 unsafe_allow_html=True
@@ -1336,10 +1326,10 @@ def render_formacoes(users, obras_db, *_):
                         with col_rp1:
                             st.markdown(
                                 f"<div style='background:"
-                                f"rgba(249,115,22,0.1);"
+                                f"rgba(180,83,9,0.08);"
                                 f"border-radius:8px;padding:10px;"
                                 f"text-align:center;'>"
-                                f"<b style='color:#F97316;'>"
+                                f"<b style='color:{THEME['warning']};'>"
                                 f"Total: €{tot_c:.2f}</b>"
                                 f"</div>",
                                 unsafe_allow_html=True
@@ -1483,15 +1473,7 @@ def render_formacoes(users, obras_db, *_):
                     if grupo.empty:
                         continue
 
-                    cores_cat2 = {
-                        'Segurança': '#EF4444',
-                        'Técnica':   '#3B82F6',
-                        'Qualidade': '#10B981',
-                        'Gestão':    '#8B5CF6',
-                        'Línguas':   '#F59E0B',
-                        'Licença':   '#06B6D4',
-                    }
-                    cor_cg = cores_cat2.get(cat_grupo,'#6B7280')
+                    cor_cg = THEME['accent']
 
                     st.markdown(
                         f"<p style='color:{cor_cg};"
@@ -1513,18 +1495,24 @@ def render_formacoes(users, obras_db, *_):
                             if val_d > 0
                             else "Sem validade"
                         )
+                        obrig_html = (
+                            f"<span style='color:{THEME['error']};"
+                            f"font-size:0.65rem;margin-left:6px;'>"
+                            f"OBRIGATÓRIA</span>"
+                        ) if obrig else ""
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};"
+                            f"border:1px solid {THEME['border']};"
                             f"border-radius:6px;padding:7px 12px;"
                             f"margin-bottom:3px;display:flex;"
                             f"justify-content:space-between;"
                             f"align-items:center;'>"
                             f"<div>"
-                            f"<small style='color:#F1F5F9;'>"
+                            f"<small style='color:{THEME['text']};'>"
                             f"{cit.get('Nome','')}</small>"
-                            f"{'<span style=color:#EF4444;font-size:0.65rem;margin-left:6px;>OBRIGATÓRIA</span>' if obrig else ''}"
+                            f"{obrig_html}"
                             f"</div>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"⏱️ {val_txt}</small>"
                             f"</div>",
                             unsafe_allow_html=True
