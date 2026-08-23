@@ -1,9 +1,14 @@
 """
-Testes da grelha "⚙️ Valor da Diária por Obra" (mod_admin_diarias.py,
-sub-aba de Faturação).
+Testes de mod_admin_diarias.py (sub-aba "💶 Diárias" de Faturação).
 
-Fase 2 do Painel de Obra (campos operacionais): a grelha passa a ter
-também "Modalidade" (Corrida Semanal / Outro), ao lado do valor.
+Fase 2 do Painel de Obra (campos operacionais): a grelha "⚙️ Valor da
+Diária por Obra" passa a ter também "Modalidade" (Corrida Semanal /
+Outro), ao lado do valor.
+
+Fase 3 da Identidade Visual (TestTemaClaroAplicado, mais abaixo):
+migração para o THEME central (core.py), em vez de hexadecimais
+soltos. Fora de âmbito, de propósito: o recibo de ajudas de custo em
+PDF (_gerar_recibo_pdf, reportlab), mesmo critério das outras Fases.
 
 Não tocam em GCS real: `mod_admin_diarias._gcs_read` é mockado (devolve
 None por omissão — usa os fallbacks já existentes no módulo).
@@ -135,6 +140,76 @@ class TestConfigurarValoresModalidade(unittest.TestCase):
         self.assertTrue(mock_save.called)
         df_gravado = mock_save.call_args[0][0]
         self.assertEqual(df_gravado.iloc[0]["Modalidade"], "Outro")
+
+
+_USERS_RECORDS = [{"Nome": "Ana Teste", "Banco_IBAN": "PT50000000000000000000000"}]
+
+_REGISTOS_RECORDS = [{
+    "Técnico": "Ana Teste", "Obra": "Obra Teste Diarias",
+    "Data": "07/01/2026", "Horas_Total": "8", "Status": "1",
+}]
+
+_DIARIAS_FALTAS_RECORDS = [{
+    # Técnico diferente do de _REGISTOS_RECORDS — senão exclui esse
+    # dia do cálculo (mesma Técnico+Data em ambos == falta nesse dia).
+    "ID": "F1", "Data": "07/01/2026", "Técnico": "Bruno Falta",
+    "Obra": "Obra Teste Diarias", "Motivo": "Doença",
+    "Registado_Por": "Admin", "Registado_Em": "07/01/2026",
+}]
+
+_DIARIAS_PAGAMENTOS_RECORDS = [{
+    "ID": "P1", "Semana_Inicio": "2026-01-05", "Semana_Fim": "2026-01-11",
+    "Técnico": "Ana Teste", "Obras": "Obra Teste Diarias", "Dias_Total": "3",
+    "Valor_Total": "36.0", "IBAN": "PT50000000000000000000000",
+    "Status": "Pago", "Data_Pagamento": "12/01/2026", "Pago_Por": "Admin",
+    "Recibo_b64": "",
+}]
+
+
+def _script_completo(obras_records, users_records, registos_records,
+                      diarias_faltas_records, diarias_pagamentos_records):
+    import streamlit as st
+    import pandas as pd
+    st.session_state.setdefault('_fv', {})
+    st.session_state['user'] = 'Admin'
+    # Semana fixa (2026-01-05 a 2026-01-11) — evita depender de
+    # date.today() para que os registos caiam sempre dentro do
+    # período calculado, e dispensa ter de clicar no botão.
+    st.session_state['diarias_ini']  = pd.Timestamp("2026-01-05").date()
+    st.session_state['diarias_fim']  = pd.Timestamp("2026-01-11").date()
+    st.session_state['diarias_calc'] = True
+    from mod_admin_diarias import render_admin_diarias
+    vazio = pd.DataFrame()
+    render_admin_diarias(
+        pd.DataFrame(users_records), pd.DataFrame(obras_records), vazio,
+        pd.DataFrame(registos_records), vazio, vazio, vazio, vazio, vazio,
+        vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio, vazio,
+        vazio, vazio, vazio,
+        pd.DataFrame(diarias_faltas_records),
+        pd.DataFrame(diarias_pagamentos_records),
+    )
+
+
+def _run_completo():
+    with patch("mod_admin_diarias._gcs_read", return_value=None):
+        core._cached_load_db.clear()
+        at = AppTest.from_function(
+            _script_completo,
+            args=(_OBRAS_RECORDS, _USERS_RECORDS, _REGISTOS_RECORDS,
+                  _DIARIAS_FALTAS_RECORDS, _DIARIAS_PAGAMENTOS_RECORDS),
+            default_timeout=30)
+        at.run()
+    return at
+
+
+class TestCartoesAdicionaisSemErro(unittest.TestCase):
+    """Smoke test — cobre os cartões que TestConfigurarValoresModalidade
+    não exercitava: colaborador calculado (Semana Atual), falta
+    injustificada e histórico de pagamento."""
+
+    def test_sem_erro(self):
+        at = _run_completo()
+        self.assertFalse(at.exception, msg=str(at.exception))
 
 
 if __name__ == "__main__":
