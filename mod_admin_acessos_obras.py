@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit, criar_notificacao
+from core import save_db, inv, load_db, log_audit, criar_notificacao, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -34,23 +34,23 @@ def _dias_para(data_str: str) -> int:
 
 def _cor_dias(dias: int) -> tuple:
     if dias < 0:
-        return "#EF4444", "🔴", "EXPIRADO"
+        return THEME['error'], "🔴", "EXPIRADO"
     if dias <= 15:
-        return "#EF4444", "🔴", f"{dias}d"
+        return THEME['error'], "🔴", f"{dias}d"
     if dias <= 30:
-        return "#F59E0B", "🟡", f"{dias}d"
+        return THEME['warning'], "🟡", f"{dias}d"
     if dias <= 60:
-        return "#F59E0B", "⚠️", f"{dias}d"
-    return "#10B981", "🟢", f"{dias}d"
+        return THEME['warning'], "⚠️", f"{dias}d"
+    return THEME['success'], "🟢", f"{dias}d"
 
 def _estado_acesso_cor(estado: str) -> tuple:
     return {
-        "Activo":    ("#10B981", "✅"),
-        "Pendente":  ("#F59E0B", "⏳"),
-        "Expirado":  ("#EF4444", "🔴"),
-        "Suspenso":  ("#EF4444", "⛔"),
-        "Revogado":  ("#64748B", "❌"),
-    }.get(estado, ("#6B7280", "❓"))
+        "Activo":    (THEME['success'], "✅"),
+        "Pendente":  (THEME['warning'], "⏳"),
+        "Expirado":  (THEME['error'], "🔴"),
+        "Suspenso":  (THEME['error'], "⛔"),
+        "Revogado":  (THEME['text_secondary'], "❌"),
+    }.get(estado, (THEME['text_secondary'], "❓"))
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -474,23 +474,24 @@ def render_acessos_obras(users, obras_db, *_):
     ]['Obra'].tolist() if not obras_db.empty else []
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .acesso-card {
-        background:#1E293B; border-radius:12px;
+    .acesso-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:14px 16px; margin-bottom:8px;
         border-left:5px solid;
-    }
-    .doc-item {
+    }}
+    .doc-item {{
         display:flex; justify-content:space-between;
         align-items:center; padding:8px 12px;
         border-radius:8px; margin-bottom:4px;
-        background:#0F172A;
-    }
-    .nivel-badge {
+        background:{THEME['background']};
+    }}
+    .nivel-badge {{
         display:inline-block; padding:3px 10px;
         border-radius:20px; font-size:0.72rem; font-weight:700;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -530,10 +531,10 @@ def render_acessos_obras(users, obras_db, *_):
         docs_urgentes = docs_db[docs_db['Dias_N'] <= 15].sort_values('Dias_N')
         if not docs_urgentes.empty:
             st.markdown(
-                "<div style='background:rgba(239,68,68,0.1);"
-                "border:1px solid #EF4444;border-radius:10px;"
-                "padding:12px 16px;margin-bottom:12px;'>"
-                "<b style='color:#EF4444;'>🚨 Documentos urgentes:</b> " +
+                f"<div style='background:rgba(185,28,28,0.08);"
+                f"border:1px solid {THEME['error']};border-radius:10px;"
+                f"padding:12px 16px;margin-bottom:12px;'>"
+                f"<b style='color:{THEME['error']};'>🚨 Documentos urgentes:</b> " +
                 " · ".join([
                     f"{r['Colaborador']} — {r['Tipo_Doc']} "
                     f"({'EXPIRADO' if r['Dias_N']<0 else str(r['Dias_N'])+'d'})"
@@ -619,13 +620,10 @@ def render_acessos_obras(users, obras_db, *_):
                 cor_df, ic_df, txt_df = _cor_dias(dias_fim)
 
                 nivel  = ac.get('Nivel_Acesso','')
-                cores_nivel = {
-                    'Área Geral':       '#3B82F6',
-                    'Área Restrita':    '#F59E0B',
-                    'Supervisão':       '#8B5CF6',
-                    'Acesso Total':     '#10B981',
-                }
-                cor_nivel = cores_nivel.get(nivel,'#6B7280')
+                # Nível de acesso não tem semântica boa/má — cor
+                # decorativa única (acento), mesmo critério de
+                # mod_admin_formacoes.py para etiquetas de categoria.
+                cor_nivel = THEME['accent']
 
                 # Contar docs do colaborador nesta obra
                 n_docs_colab = 0
@@ -645,7 +643,7 @@ def render_acessos_obras(users, obras_db, *_):
                 motivo_suspensao = ac.get('Motivo_Suspensao', '')
                 if motivo_suspensao:
                     motivo_html = (
-                        "<br><small style='color:#F59E0B;'>"
+                        f"<br><small style='color:{THEME['warning']};'>"
                         + str(motivo_suspensao)
                         + "</small>"
                     )
@@ -666,13 +664,13 @@ def render_acessos_obras(users, obras_db, *_):
                         f"justify-content:space-between;"
                         f"align-items:flex-start;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;font-size:0.95rem;'>"
+                        f"<b style='color:{THEME['text']};font-size:0.95rem;'>"
                         f"{ic_e} {ac.get('Colaborador','')}</b>"
                         f"<span class='nivel-badge' "
                         f"style='background:{cor_nivel}22;"
                         f"color:{cor_nivel};margin-left:8px;'>"
                         f"{nivel}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"🏗️ {ac.get('Obra','')} · "
                         f"📅 {ac.get('Data_Inicio','')} → "
                         f"{ac.get('Data_Fim','')} · "
@@ -683,7 +681,7 @@ def render_acessos_obras(users, obras_db, *_):
                         f"<span style='color:{cor_df};"
                         f"font-weight:700;font-size:0.82rem;'>"
                         f"{ic_df} Validade: {txt_df}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"📄 {n_docs_colab} doc(s) válido(s)"
                         f"{docs_exp_html}"
                         f"</small></div></div>"
@@ -879,11 +877,11 @@ def render_acessos_obras(users, obras_db, *_):
                 instrucoes= req_row.get('Instrucoes','')
 
                 cor_ns = {
-                    'Baixo':  '#10B981',
-                    'Médio':  '#F59E0B',
-                    'Alto':   '#EF4444',
-                    'Crítico':'#DC2626'
-                }.get(nivel_seg,'#6B7280')
+                    'Baixo':  THEME['success'],
+                    'Médio':  THEME['warning'],
+                    'Alto':   THEME['error'],
+                    'Crítico':THEME['error']
+                }.get(nivel_seg, THEME['text_secondary'])
 
                 st.markdown(
                     f"<div style='background:{cor_ns}18;"
@@ -897,28 +895,29 @@ def render_acessos_obras(users, obras_db, *_):
                 )
 
                 st.markdown(
-                    "<p style='color:#94A3B8;font-size:0.8rem;"
-                    "font-weight:700;text-transform:uppercase;"
-                    "margin:8px 0 4px;'>Documentos obrigatórios:</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;"
+                    f"font-weight:700;text-transform:uppercase;"
+                    f"margin:8px 0 4px;'>Documentos obrigatórios:</p>",
                     unsafe_allow_html=True
                 )
                 for doc_r in docs_req:
                     if doc_r.strip():
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};"
+                            f"border:1px solid {THEME['border']};"
                             f"border-radius:6px;padding:6px 10px;"
                             f"margin-bottom:3px;'>"
-                            f"<small style='color:#94A3B8;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"📄 {doc_r.strip()}</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
                 if instrucoes:
                     st.markdown(
-                        f"<div style='background:rgba(59,130,246,0.1);"
+                        f"<div style='background:rgba(14,124,134,0.08);"
                         f"border-radius:8px;padding:10px;"
                         f"margin-top:8px;'>"
-                        f"<small style='color:#93C5FD;'>"
+                        f"<small style='color:{THEME['accent']};'>"
                         f"ℹ️ {instrucoes}</small>"
                         f"</div>",
                         unsafe_allow_html=True
@@ -949,11 +948,12 @@ def render_acessos_obras(users, obras_db, *_):
                         dias_d = _dias_para(d.get('Validade',''))
                         cor_d, ic_d, txt_d = _cor_dias(dias_d)
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};"
+                            f"border:1px solid {THEME['border']};"
                             f"border-radius:6px;padding:6px 10px;"
                             f"margin-bottom:3px;display:flex;"
                             f"justify-content:space-between;'>"
-                            f"<small style='color:#94A3B8;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{d.get('Tipo_Doc','')}</small>"
                             f"<small style='color:{cor_d};'>"
                             f"{ic_d} {txt_d}</small>"
@@ -1111,10 +1111,10 @@ def render_acessos_obras(users, obras_db, *_):
                             f"<div class='doc-item' "
                             f"style='border-left:3px solid {cor_d};'>"
                             f"<div>"
-                            f"<b style='color:#F1F5F9;"
+                            f"<b style='color:{THEME['text']};"
                             f"font-size:0.85rem;'>"
                             f"{doc.get('Tipo_Doc','')}</b><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"👤 {doc.get('Colaborador','')} · "
                             f"🏗️ {doc.get('Obra','')} · "
                             f"Nº {doc.get('Numero_Doc','—')} · "
@@ -1263,9 +1263,9 @@ def render_acessos_obras(users, obras_db, *_):
                         (len(docs_obrig) - len(docs_falta)) /
                         len(docs_obrig) * 100
                     ) if docs_obrig else 100
-                    cor_comp = ("#10B981" if completude >= 80
-                                else "#F59E0B" if completude >= 50
-                                else "#EF4444")
+                    cor_comp = (THEME['success'] if completude >= 80
+                                else THEME['warning'] if completude >= 50
+                                else THEME['error'])
 
                     with st.expander(
                         f"{ic_e} {ac.get('Colaborador','')} "
@@ -1284,19 +1284,20 @@ def render_acessos_obras(users, obras_db, *_):
                                 else 'Por emitir'
                             )
                             st.markdown(
-                                f"<div style='background:#1E293B;"
+                                f"<div style='background:{THEME['surface']};"
+                                f"border:1px solid {THEME['border']};"
                                 f"border-radius:8px;padding:12px;'>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Estado:</b> "
                                 f"<span style='color:{cor_e};'>"
                                 f"{estado}</span></p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Validade acesso:</b> "
                                 f"{ac.get('Data_Inicio','')} → "
                                 f"{ac.get('Data_Fim','')} "
                                 f"<span style='color:{cor_df2};'>"
                                 f"({txt_df2})</span></p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Crachá:</b> "
                                 f"{ac.get('Cracha_Numero','—')} "
                                 f"({cracha_estado})"
@@ -1308,12 +1309,12 @@ def render_acessos_obras(users, obras_db, *_):
                             # Documentos OK
                             if not docs_colab.empty:
                                 st.markdown(
-                                    "<p style='color:#10B981;"
-                                    "font-size:0.78rem;"
-                                    "font-weight:700;"
-                                    "text-transform:uppercase;"
-                                    "margin:8px 0 4px;'>"
-                                    "✅ Documentos válidos:</p>",
+                                    f"<p style='color:{THEME['success']};"
+                                    f"font-size:0.78rem;"
+                                    f"font-weight:700;"
+                                    f"text-transform:uppercase;"
+                                    f"margin:8px 0 4px;'>"
+                                    f"✅ Documentos válidos:</p>",
                                     unsafe_allow_html=True
                                 )
                                 docs_validos = docs_colab[
@@ -1323,11 +1324,11 @@ def render_acessos_obras(users, obras_db, *_):
                                     dias_dv = int(dv.get('Dias_N',999))
                                     cor_dv, _, txt_dv = _cor_dias(dias_dv)
                                     st.markdown(
-                                        f"<div style='background:#0F172A;"
+                                        f"<div style='background:{THEME['background']};"
                                         f"border-radius:5px;padding:4px 8px;"
                                         f"margin-bottom:2px;display:flex;"
                                         f"justify-content:space-between;'>"
-                                        f"<small style='color:#94A3B8;'>"
+                                        f"<small style='color:{THEME['text_secondary']};'>"
                                         f"✓ {dv.get('Tipo_Doc','')}</small>"
                                         f"<small style='color:{cor_dv};'>"
                                         f"{txt_dv}</small>"
@@ -1338,7 +1339,7 @@ def render_acessos_obras(users, obras_db, *_):
                             # Documentos em falta
                             if docs_falta:
                                 st.markdown(
-                                    f"<p style='color:#EF4444;"
+                                    f"<p style='color:{THEME['error']};"
                                     f"font-size:0.78rem;"
                                     f"font-weight:700;"
                                     f"text-transform:uppercase;"
@@ -1350,11 +1351,11 @@ def render_acessos_obras(users, obras_db, *_):
                                 for df_m in docs_falta:
                                     st.markdown(
                                         f"<div style='background:"
-                                        f"rgba(239,68,68,0.1);"
+                                        f"rgba(185,28,28,0.08);"
                                         f"border-radius:5px;"
                                         f"padding:4px 8px;"
                                         f"margin-bottom:2px;'>"
-                                        f"<small style='color:#EF4444;'>"
+                                        f"<small style='color:{THEME['error']};'>"
                                         f"❌ {df_m}</small>"
                                         f"</div>",
                                         unsafe_allow_html=True
@@ -1363,22 +1364,22 @@ def render_acessos_obras(users, obras_db, *_):
                             # Documentos expirados
                             if docs_expirados_c:
                                 st.markdown(
-                                    "<p style='color:#F59E0B;"
-                                    "font-size:0.78rem;"
-                                    "font-weight:700;"
-                                    "text-transform:uppercase;"
-                                    "margin:8px 0 4px;'>"
-                                    "⚠️ Documentos expirados:</p>",
+                                    f"<p style='color:{THEME['warning']};"
+                                    f"font-size:0.78rem;"
+                                    f"font-weight:700;"
+                                    f"text-transform:uppercase;"
+                                    f"margin:8px 0 4px;'>"
+                                    f"⚠️ Documentos expirados:</p>",
                                     unsafe_allow_html=True
                                 )
                                 for de_c in docs_expirados_c:
                                     st.markdown(
                                         f"<div style='background:"
-                                        f"rgba(245,158,11,0.1);"
+                                        f"rgba(180,83,9,0.08);"
                                         f"border-radius:5px;"
                                         f"padding:4px 8px;"
                                         f"margin-bottom:2px;'>"
-                                        f"<small style='color:#F59E0B;'>"
+                                        f"<small style='color:{THEME['warning']};'>"
                                         f"⚠️ {de_c}</small>"
                                         f"</div>",
                                         unsafe_allow_html=True
@@ -1391,13 +1392,13 @@ def render_acessos_obras(users, obras_db, *_):
                                 f"border:1px solid {cor_comp};"
                                 f"border-radius:10px;padding:12px;"
                                 f"text-align:center;'>"
-                                f"<p style='color:#64748B;"
+                                f"<p style='color:{THEME['text_secondary']};"
                                 f"font-size:0.7rem;margin:0 0 4px;'>"
                                 f"DOCUMENTAÇÃO</p>"
                                 f"<b style='color:{cor_comp};"
                                 f"font-size:1.6rem;'>"
                                 f"{completude}%</b><br>"
-                                f"<small style='color:#64748B;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"{len(docs_obrig)-len(docs_falta)}/"
                                 f"{len(docs_obrig)} docs</small>"
                                 f"</div>",
@@ -1507,9 +1508,9 @@ def render_acessos_obras(users, obras_db, *_):
                 )
 
                 st.markdown(
-                    "<p style='color:#94A3B8;font-size:0.8rem;"
-                    "margin:8px 0 4px;'>"
-                    "Documentos obrigatórios:</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;"
+                    f"margin:8px 0 4px;'>"
+                    f"Documentos obrigatórios:</p>",
                     unsafe_allow_html=True
                 )
                 docs_sel = st.multiselect(
@@ -1564,11 +1565,11 @@ def render_acessos_obras(users, obras_db, *_):
                 for _, rq in req_db.iterrows():
                     nivel_rq = rq.get('Nivel_Seguranca','')
                     cor_rq   = {
-                        'Baixo':  '#10B981',
-                        'Médio':  '#F59E0B',
-                        'Alto':   '#EF4444',
-                        'Crítico':'#DC2626',
-                    }.get(nivel_rq,'#6B7280')
+                        'Baixo':  THEME['success'],
+                        'Médio':  THEME['warning'],
+                        'Alto':   THEME['error'],
+                        'Crítico':THEME['error'],
+                    }.get(nivel_rq, THEME['text_secondary'])
 
                     docs_rq = [
                         d.strip() for d in
@@ -1585,7 +1586,7 @@ def render_acessos_obras(users, obras_db, *_):
                         instrucoes_val = rq.get('Instrucoes', '')
                         if instrucoes_val:
                             instrucoes_html = (
-                                "<p style='color:#94A3B8;margin:4px 0;'>"
+                                f"<p style='color:{THEME['text_secondary']};margin:4px 0;'>"
                                 + str(instrucoes_val)
                                 + "</p>"
                             )
@@ -1593,11 +1594,12 @@ def render_acessos_obras(users, obras_db, *_):
                             instrucoes_html = ""
 
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};"
+                            f"border:1px solid {THEME['border']};"
                             f"border-radius:8px;padding:12px;'>"
-                            f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                            f"<p style='color:{THEME['text']};margin:2px 0;'>"
                             f"<b>Tipo:</b> {rq.get('Tipo_Obra','')}</p>"
-                            f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                            f"<p style='color:{THEME['text']};margin:2px 0;'>"
                             f"<b>Nível segurança:</b> "
                             f"<span style='color:{cor_rq};'>"
                             f"{nivel_rq}</span></p>"
@@ -1606,22 +1608,22 @@ def render_acessos_obras(users, obras_db, *_):
                             unsafe_allow_html=True
                         )
                         st.markdown(
-                            "<p style='color:#64748B;"
-                            "font-size:0.75rem;"
-                            "font-weight:700;"
-                            "text-transform:uppercase;"
-                            "margin:8px 0 4px;'>"
-                            "Documentos obrigatórios:</p>",
+                            f"<p style='color:{THEME['text_secondary']};"
+                            f"font-size:0.75rem;"
+                            f"font-weight:700;"
+                            f"text-transform:uppercase;"
+                            f"margin:8px 0 4px;'>"
+                            f"Documentos obrigatórios:</p>",
                             unsafe_allow_html=True
                         )
                         cols_docs = st.columns(2)
                         for i, doc_rq in enumerate(docs_rq):
                             with cols_docs[i%2]:
                                 st.markdown(
-                                    f"<div style='background:#0F172A;"
+                                    f"<div style='background:{THEME['background']};"
                                     f"border-radius:5px;padding:5px 8px;"
                                     f"margin-bottom:3px;'>"
-                                    f"<small style='color:#94A3B8;'>"
+                                    f"<small style='color:{THEME['text_secondary']};'>"
                                     f"📄 {doc_rq}</small>"
                                     f"</div>",
                                     unsafe_allow_html=True
@@ -1653,7 +1655,7 @@ def render_acessos_obras(users, obras_db, *_):
                     "msg":   f"{a.get('Colaborador','')} — "
                              f"{a.get('Obra','')}",
                     "dias":  int(a.get('Dias_Fim',0)),
-                    "cor":   "#F59E0B"
+                    "cor":   THEME['warning']
                 })
 
         # Documentos a expirar
@@ -1667,7 +1669,7 @@ def render_acessos_obras(users, obras_db, *_):
                     "msg":  f"{d.get('Colaborador','')} — "
                             f"{d.get('Tipo_Doc','')}",
                     "dias": int(d.get('Dias_N',0)),
-                    "cor":  "#F59E0B"
+                    "cor":  THEME['warning']
                 })
 
             docs_expirados_all = docs_db[docs_db['Dias_N'] < 0]
@@ -1677,7 +1679,7 @@ def render_acessos_obras(users, obras_db, *_):
                     "msg":  f"{d.get('Colaborador','')} — "
                             f"{d.get('Tipo_Doc','')}",
                     "dias": int(d.get('Dias_N',0)),
-                    "cor":  "#EF4444"
+                    "cor":  THEME['error']
                 })
 
         if not alertas:
@@ -1692,7 +1694,7 @@ def render_acessos_obras(users, obras_db, *_):
                     f"margin-bottom:5px;'>"
                     f"<b style='color:{alerta['cor']};'>"
                     f"{alerta['tipo']}</b> — "
-                    f"<span style='color:#F1F5F9;'>"
+                    f"<span style='color:{THEME['text']};'>"
                     f"{alerta['msg']}</span>"
                     f"<span style='float:right;color:{alerta['cor']};'>"
                     f"{'EXPIRADO' if alerta['dias']<0 else str(alerta['dias'])+'d'}"
