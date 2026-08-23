@@ -32,9 +32,11 @@ import core
 _OBRAS_RECORDS = [{"Obra": "Obra Tesouraria Teste", "Ativa": "Ativa"}]
 
 _CONTAS_RECORDS = [
+    # Saldo baixo de propósito — dá autonomia_meses ~1.6 (entre 1 e
+    # 3), exercitando o ramo "warning" dos indicadores de tesouraria.
     {"ID": "CT1", "Nome": "Conta Principal", "Banco": "CGD",
      "IBAN": "PT50000000000000000000000", "Tipo": "Conta Corrente",
-     "Saldo": "15000", "Data_Saldo": "01/08/2026", "Moeda": "EUR",
+     "Saldo": "3000", "Data_Saldo": "01/08/2026", "Moeda": "EUR",
      "Ativa": "Sim"},
 ]
 
@@ -125,6 +127,36 @@ class TestRenderFatTesourariaSemErro(unittest.TestCase):
     def test_sem_erro_sem_dados(self):
         at = _run(load_db_fn=_fake_load_db_vazio)
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_fat_tesouraria.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, sem fundos escuros forçados."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "warning", "success", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#475569", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("background:#1E293B", textos)
+        self.assertNotIn("background: #1E293B", textos)
+        self.assertNotIn("background:#0F172A", textos)
+        self.assertNotIn("#F1F5F9", textos)
 
 
 if __name__ == "__main__":
