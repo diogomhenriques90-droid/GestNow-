@@ -14,7 +14,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
 from core import (save_db, inv, load_db, log_audit, cliente_select,
-                  registar_novo_cliente, registar_cliente_do_select)
+                  registar_novo_cliente, registar_cliente_do_select, THEME)
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -46,14 +46,20 @@ def _hoje_str():
 # PIPELINE STAGES
 # ─────────────────────────────────────────────────────────────────
 
+# Cores dos stages: prospeto/contactado partilham text_secondary/
+# accent (fases iniciais activas); proposta/negociação partilham
+# warning (ambas "a aguardar decisão do cliente", mesmo critério do
+# âmbar único usado nos outros módulos); ganho/perdido são success/
+# error. 7 estados, 4 tons semânticos disponíveis — reutilização
+# deliberada, não perda de informação (o texto do stage diferencia).
 PIPELINE_STAGES = [
-    {"id": "prospeto",    "nome": "🔍 Prospeto",       "cor": "#64748B", "prob": 10},
-    {"id": "contactado",  "nome": "📞 Contactado",      "cor": "#3B82F6", "prob": 25},
-    {"id": "reuniao",     "nome": "🤝 Reunião Marcada", "cor": "#8B5CF6", "prob": 40},
-    {"id": "proposta",    "nome": "📄 Proposta Enviada","cor": "#F59E0B", "prob": 60},
-    {"id": "negociacao",  "nome": "💬 Negociação",      "cor": "#F97316", "prob": 75},
-    {"id": "ganho",       "nome": "✅ Ganho",            "cor": "#10B981", "prob": 100},
-    {"id": "perdido",     "nome": "❌ Perdido",          "cor": "#EF4444", "prob": 0},
+    {"id": "prospeto",    "nome": "🔍 Prospeto",       "cor": THEME['text_secondary'], "prob": 10},
+    {"id": "contactado",  "nome": "📞 Contactado",      "cor": THEME['accent'], "prob": 25},
+    {"id": "reuniao",     "nome": "🤝 Reunião Marcada", "cor": THEME['accent'], "prob": 40},
+    {"id": "proposta",    "nome": "📄 Proposta Enviada","cor": THEME['warning'], "prob": 60},
+    {"id": "negociacao",  "nome": "💬 Negociação",      "cor": THEME['warning'], "prob": 75},
+    {"id": "ganho",       "nome": "✅ Ganho",            "cor": THEME['success'], "prob": 100},
+    {"id": "perdido",     "nome": "❌ Perdido",          "cor": THEME['error'], "prob": 0},
 ]
 
 STAGE_NOMES = [s["nome"] for s in PIPELINE_STAGES]
@@ -469,32 +475,33 @@ def render_comercial(*_):
                 })
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .com-card {
-        background:#1E293B; border-radius:12px;
+    .com-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:14px 16px; margin-bottom:8px;
-        border-left:4px solid #3B82F6;
+        border-left:4px solid {THEME['accent']};
         transition:transform 0.15s;
-    }
-    .com-card:hover { transform:translateX(3px); }
-    .stage-badge {
+    }}
+    .com-card:hover {{ transform:translateX(3px); }}
+    .stage-badge {{
         display:inline-block; padding:3px 10px;
         border-radius:20px; font-size:0.72rem; font-weight:700;
-    }
-    .alerta-visita {
+    }}
+    .alerta-visita {{
         border-radius:8px; padding:10px 14px;
         margin-bottom:6px; border-left:4px solid;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── Alertas topo ──────────────────────────────────────────────
     if alertas_visitas:
         for av in alertas_visitas:
-            cor_av = "#EF4444" if av['dias'] <= 0 \
-                     else "#F59E0B" if av['dias'] == 1 \
-                     else "#3B82F6"
+            cor_av = THEME['error'] if av['dias'] <= 0 \
+                     else THEME['warning'] if av['dias'] == 1 \
+                     else THEME['accent']
             txt_av = "HOJE" if av['dias'] == 0 \
                      else "AMANHÃ" if av['dias'] == 1 \
                      else f"em {av['dias']} dias" if av['dias'] > 0 \
@@ -721,9 +728,9 @@ def render_comercial(*_):
                     alerta_f = ""
                     if op.get('Stage') not in ['ganho', 'perdido']:
                         if dias_fecho < 0:
-                            alerta_f = "<span style='color:#EF4444;font-size:0.72rem;'>⚠️ Data fecho ultrapassada</span>"
+                            alerta_f = f"<span style='color:{THEME['error']};font-size:0.72rem;'>⚠️ Data fecho ultrapassada</span>"
                         elif dias_fecho <= 14:
-                            alerta_f = f"<span style='color:#F59E0B;font-size:0.72rem;'>⏰ Fecho em {dias_fecho} dias</span>"
+                            alerta_f = f"<span style='color:{THEME['warning']};font-size:0.72rem;'>⏰ Fecho em {dias_fecho} dias</span>"
 
                     col_oi, col_oa = st.columns([5, 1])
                     with col_oi:
@@ -733,16 +740,16 @@ def render_comercial(*_):
                             f"<div style='display:flex;justify-content:space-between;"
                             f"align-items:flex-start;'>"
                             f"<div>"
-                            f"<b style='color:#F1F5F9;font-size:0.9rem;'>"
+                            f"<b style='color:{THEME['text']};font-size:0.9rem;'>"
                             f"{op.get('Nome', '')}</b><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"🏢 {op.get('Cliente', '')} · "
                             f"👤 {op.get('Comercial', '')} · "
                             f"📅 {op.get('Data_Fecho_Est', '')}"
                             f"</small><br>{alerta_f}"
                             f"</div>"
                             f"<div style='text-align:right;'>"
-                            f"<b style='color:#F1F5F9;font-size:1rem;'>"
+                            f"<b style='color:{THEME['text']};font-size:1rem;'>"
                             f"\u20AC{val_op:,.0f}</b><br>"
                             f"<span class='stage-badge' "
                             f"style='background:{stage_inf['cor']}22;"
@@ -775,7 +782,7 @@ def render_comercial(*_):
         if alertas_visitas:
             st.markdown("#### ⚡ Visitas nas Próximas 48h")
             for av in alertas_visitas:
-                cor_av = "#EF4444" if av['dias'] <= 0 else "#F59E0B"
+                cor_av = THEME['error'] if av['dias'] <= 0 else THEME['warning']
                 st.markdown(
                     f"<div class='alerta-visita' "
                     f"style='background:{cor_av}12;"
@@ -913,29 +920,33 @@ def render_comercial(*_):
                     est_v     = vis.get('Estado', 'Agendada')
                     dias_v    = _dias_para(vis.get('Data', ''))
                     cor_v     = {
-                        'Agendada':  '#3B82F6',
-                        'Realizada': '#10B981',
-                        'Cancelada': '#64748B',
-                    }.get(est_v, '#6B7280')
+                        'Agendada':  THEME['accent'],
+                        'Realizada': THEME['success'],
+                        'Cancelada': THEME['text_secondary'],
+                    }.get(est_v, THEME['text_secondary'])
 
                     # Badge data
                     if est_v == 'Agendada':
                         if dias_v < 0:
                             badge_v = "⚠️ EM ATRASO"
-                            cor_badge = "#EF4444"
+                            cor_badge = THEME['error']
                         elif dias_v == 0:
                             badge_v = "🔴 HOJE"
-                            cor_badge = "#EF4444"
+                            cor_badge = THEME['error']
                         elif dias_v == 1:
                             badge_v = "🟡 AMANHÃ"
-                            cor_badge = "#F59E0B"
+                            cor_badge = THEME['warning']
                         else:
                             badge_v = f"📅 em {dias_v}d"
-                            cor_badge = "#3B82F6"
+                            cor_badge = THEME['accent']
                     else:
                         badge_v   = est_v
                         cor_badge = cor_v
 
+                    local_html = (
+                        f"<br><small style='color:{THEME['text_secondary']};'>"
+                        + vis.get('Local', '') + "</small>"
+                    ) if vis.get('Local') else ""
                     col_vi, col_va = st.columns([5, 1])
                     with col_vi:
                         st.markdown(
@@ -944,16 +955,16 @@ def render_comercial(*_):
                             f"<div style='display:flex;"
                             f"justify-content:space-between;'>"
                             f"<div>"
-                            f"<b style='color:#F1F5F9;"
+                            f"<b style='color:{THEME['text']};"
                             f"font-size:0.9rem;'>"
                             f"{vis.get('Cliente', '')}</b><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"📅 {vis.get('Data', '')} "
                             f"às {vis.get('Hora', '')} · "
                             f"{vis.get('Tipo', '')} · "
                             f"👤 {vis.get('Comercial', '')}"
                             f"</small>"
-                            f"{'<br><small style=color:#94A3B8;>' + vis.get('Local','') + '</small>' if vis.get('Local') else ''}"
+                            f"{local_html}"
                             f"</div>"
                             f"<span style='color:{cor_badge};"
                             f"font-weight:700;font-size:0.8rem;'>"
@@ -1126,10 +1137,10 @@ def render_comercial(*_):
                 ).iterrows():
                     pot   = cli.get('Potencial', 'Médio')
                     cor_p = {
-                        'Alto':  '#10B981',
-                        'Médio': '#F59E0B',
-                        'Baixo': '#64748B',
-                    }.get(pot, '#6B7280')
+                        'Alto':  THEME['success'],
+                        'Médio': THEME['warning'],
+                        'Baixo': THEME['text_secondary'],
+                    }.get(pot, THEME['text_secondary'])
 
                     st.markdown(
                         f"<div class='com-card' "
@@ -1137,16 +1148,16 @@ def render_comercial(*_):
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.9rem;'>"
                         f"{cli.get('Nome', '')}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"🏭 {cli.get('Setor', '')} · "
                         f"👤 {cli.get('Contacto', '')} · "
                         f"📅 {cli.get('Data_Angariacao', '')} · "
                         f"🎯 {cli.get('Origem', '')}"
                         f"</small><br>"
-                        f"<small style='color:#475569;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"📧 {cli.get('Email', '')} · "
                         f"📞 {cli.get('Telefone', '')}"
                         f"</small>"
@@ -1243,10 +1254,16 @@ def render_comercial(*_):
                     medalhas = ["🥇", "🥈", "🥉"]
                     for i, row in enumerate(rows_rank[:3]):
                         med = medalhas[i] if i < 3 else "🏅"
+                        # Ouro/Prata/Bronze são uma convenção universal
+                        # de pódio, não cores semânticas da app —
+                        # mantidas literais de propósito (fora do
+                        # THEME), tal como as cores dos gráficos
+                        # Plotly.
                         cor_m = ["#F59E0B", "#94A3B8", "#CD7F32"][i] \
-                                if i < 3 else "#64748B"
+                                if i < 3 else THEME['text_secondary']
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};"
+                            f"border:1px solid {THEME['border']};"
                             f"border-radius:10px;padding:14px;"
                             f"margin-bottom:6px;"
                             f"border-left:4px solid {cor_m};'>"
@@ -1254,9 +1271,9 @@ def render_comercial(*_):
                             f"font-size:1.1rem;'>"
                             f"{med} {row['Comercial']}</b>"
                             f"<span style='float:right;"
-                            f"color:#10B981;font-weight:700;'>"
+                            f"color:{THEME['success']};font-weight:700;'>"
                             f"{row['Val. Ganho']} ganho</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"Ganhos: {row['Ganhos']} · "
                             f"Conversão: {row['Conversão']} · "
                             f"Visitas: {row['Visitas']} · "
@@ -1280,8 +1297,10 @@ def render_comercial(*_):
                 pos   = i + 1
                 med_a = "🥇" if pos == 1 else "🥈" if pos == 2 \
                         else "🥉" if pos == 3 else f"#{pos}"
+                # Ouro/Prata/Bronze mantidas literais — mesmo critério
+                # do ranking de comerciais acima.
                 cor_a = "#F59E0B" if pos == 1 else "#94A3B8" if pos == 2 \
-                        else "#CD7F32" if pos == 3 else "#334155"
+                        else "#CD7F32" if pos == 3 else THEME['border']
 
                 # Calcular alto potencial
                 df_ang_com = clientes_db[
@@ -1292,16 +1311,17 @@ def render_comercial(*_):
                 ]) if 'Potencial' in df_ang_com.columns else 0
 
                 st.markdown(
-                    f"<div style='background:#1E293B;"
+                    f"<div style='background:{THEME['surface']};"
+                    f"border:1px solid {THEME['border']};"
                     f"border-radius:8px;padding:10px 14px;"
                     f"margin-bottom:6px;"
                     f"border-left:3px solid {cor_a};'>"
                     f"<b style='color:{cor_a};'>"
                     f"{med_a} {row_a['Comercial_Resp']}</b>"
                     f"<span style='float:right;"
-                    f"color:#10B981;font-weight:700;'>"
+                    f"color:{THEME['success']};font-weight:700;'>"
                     f"{row_a['N_Clientes']} cliente(s)</span><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"Alto potencial: {n_alto}"
                     f"</small></div>",
                     unsafe_allow_html=True
@@ -1344,9 +1364,9 @@ def render_comercial(*_):
                 st.markdown(
                     f"<div style='display:flex;"
                     f"justify-content:space-between;"
-                    f"padding:6px 0;border-bottom:1px solid #1E293B;'>"
-                    f"<small style='color:#94A3B8;'>{label}</small>"
-                    f"<b style='color:#F1F5F9;'>{val}</b>"
+                    f"padding:6px 0;border-bottom:1px solid {THEME['border']};'>"
+                    f"<small style='color:{THEME['text_secondary']};'>{label}</small>"
+                    f"<b style='color:{THEME['text']};'>{val}</b>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
