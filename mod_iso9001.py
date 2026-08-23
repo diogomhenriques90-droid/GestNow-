@@ -16,7 +16,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit, criar_notificacao
+from core import save_db, inv, load_db, log_audit, criar_notificacao, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -41,9 +41,9 @@ def _dias_para(data_str):
         return 999
 
 def _cor_rag(pct):
-    if pct >= 80: return "#10B981"
-    if pct >= 50: return "#F59E0B"
-    return "#EF4444"
+    if pct >= 80: return THEME['success']
+    if pct >= 50: return THEME['warning']
+    return THEME['error']
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -604,32 +604,34 @@ def render_iso9001(*_):
         taxa_conf = round(conf_i/tot_i*100,1) if tot_i > 0 else 0.0
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .iso-card {
-        background:#1E293B; border-radius:12px;
+    .iso-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:14px 16px; margin-bottom:8px;
-    }
-    .iso-badge {
+    }}
+    .iso-badge {{
         display:inline-block; padding:3px 10px;
         border-radius:20px; font-size:0.72rem; font-weight:700;
-    }
-    .clausula-item {
-        background:#1E293B; border-radius:8px;
+    }}
+    .clausula-item {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:8px;
         padding:10px 14px; margin-bottom:6px;
         border-left:3px solid;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── Header ────────────────────────────────────────────────────
     st.markdown(
-        "<div style='background:linear-gradient(135deg,#1E293B,#0F172A);"
-        "padding:20px;border-radius:14px;margin-bottom:16px;"
-        "border:1px solid rgba(255,255,255,0.08);'>"
-        "<h2 style='color:#F1F5F9;margin:0;font-size:1.5rem;'>"
+        f"<div style='background:{THEME['surface']};"
+        f"padding:20px;border-radius:14px;margin-bottom:16px;"
+        f"border:1px solid {THEME['border']};'>"
+        f"<h2 style='color:{THEME['text']};margin:0;font-size:1.5rem;'>"
         "🏆 ISO 9001:2015 — Sistema de Gestão da Qualidade</h2>"
-        "<p style='color:#64748B;margin:4px 0 0;font-size:0.85rem;'>"
+        f"<p style='color:{THEME['text_secondary']};margin:4px 0 0;font-size:0.85rem;'>"
         f"{empresa.get('nome','')} · Atualizado: "
         f"{datetime.now().strftime('%d/%m/%Y %H:%M')}"
         "</p></div>",
@@ -788,11 +790,11 @@ def render_iso9001(*_):
                     pct   = round(prog/meta*100,1) if meta>0 else 0
                     stat  = obj.get('Status','')
                     cor_s = {
-                        'Atingido':    '#10B981',
-                        'Em Curso':    '#3B82F6',
-                        'Não Atingido':'#EF4444',
-                        'Cancelado':   '#64748B'
-                    }.get(stat,'#6B7280')
+                        'Atingido':    THEME['success'],
+                        'Em Curso':    THEME['accent'],
+                        'Não Atingido':THEME['error'],
+                        'Cancelado':   THEME['text_secondary']
+                    }.get(stat,THEME['text_secondary'])
                     cor_p = _cor_rag(pct)
 
                     st.markdown(
@@ -800,18 +802,18 @@ def render_iso9001(*_):
                         f"style='border-left:3px solid {cor_p};'>"
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.88rem;'>"
                         f"{obj.get('Objetivo','')[:50]}</b>"
                         f"<span class='iso-badge' "
                         f"style='background:{cor_s}22;color:{cor_s};'>"
                         f"{stat}</span>"
                         f"</div>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"📊 {obj.get('Indicador','')} · "
                         f"Meta: {meta} {obj.get('Unidade','')} · "
                         f"Responsável: {obj.get('Responsavel','')}</small>"
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['border']};"
                         f"border-radius:3px;height:6px;margin:8px 0 4px;'>"
                         f"<div style='background:{cor_p};width:{min(pct,100):.0f}%;"
                         f"height:6px;border-radius:3px;'></div></div>"
@@ -903,9 +905,9 @@ def render_iso9001(*_):
                 }
                 score_calc = nivel_map[r_prob] * nivel_map[r_imp]
                 cor_sc = (
-                    "#10B981" if score_calc <= 4  else
-                    "#F59E0B" if score_calc <= 9  else
-                    "#EF4444"
+                    THEME['success'] if score_calc <= 4  else
+                    THEME['warning'] if score_calc <= 9  else
+                    THEME['error']
                 )
                 st.markdown(
                     f"<div style='background:{cor_sc}18;"
@@ -1004,9 +1006,9 @@ def render_iso9001(*_):
                     rid   = ris.get('ID','')
                     score = float(ris.get('Score_N',0))
                     cor_s = (
-                        "#10B981" if score<=4  else
-                        "#F59E0B" if score<=9  else
-                        "#EF4444"
+                        THEME['success'] if score<=4  else
+                        THEME['warning'] if score<=9  else
+                        THEME['error']
                     )
                     ic_t  = "⚠️" if ris.get('Tipo')=='Risco' else "✨"
 
@@ -1020,15 +1022,15 @@ def render_iso9001(*_):
                         with col_ri1:
                             st.markdown(
                                 f"<div class='iso-card'>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Tipo:</b> {ris.get('Tipo','')} · "
                                 f"<b>Processo:</b> {ris.get('Processo','')}</p>"
-                                f"<p style='color:#94A3B8;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text_secondary']};margin:2px 0;'>"
                                 f"{ris.get('Descricao','')}</p>"
-                                f"<p style='color:#3B82F6;margin:2px 0;'>"
+                                f"<p style='color:{THEME['accent']};margin:2px 0;'>"
                                 f"<b>Tratamento:</b> "
                                 f"{ris.get('Tratamento','')}</p>"
-                                f"<p style='color:#64748B;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text_secondary']};margin:2px 0;'>"
                                 f"Responsável: {ris.get('Responsavel','')} · "
                                 f"Prazo: {ris.get('Prazo','')}</p>"
                                 f"</div>",
@@ -1043,7 +1045,7 @@ def render_iso9001(*_):
                                 f"<b style='color:{cor_s};"
                                 f"font-size:1.5rem;'>"
                                 f"{score:.0f}</b><br>"
-                                f"<small style='color:#64748B;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"{ris.get('Probabilidade','')} × "
                                 f"{ris.get('Impacto','')}</small>"
                                 f"</div>",
@@ -1445,12 +1447,12 @@ def render_iso9001(*_):
                         aid    = aud_r.get('ID','')
                         res    = aud_r.get('Resultado','Pendente')
                         cor_r  = {
-                            'Conforme':          '#10B981',
-                            'Conforme c/ Obs.':  '#F59E0B',
-                            'Não Conforme':      '#EF4444',
-                            'Pendente':          '#64748B',
-                            'Suspenso':          '#94A3B8',
-                        }.get(res,'#6B7280')
+                            'Conforme':          THEME['success'],
+                            'Conforme c/ Obs.':  THEME['warning'],
+                            'Não Conforme':      THEME['error'],
+                            'Pendente':          THEME['text_secondary'],
+                            'Suspenso':          THEME['text_secondary'],
+                        }.get(res,THEME['text_secondary'])
 
                         with st.expander(
                             f"🔍 {aud_r.get('Data_Planeada','')} — "
@@ -1460,16 +1462,16 @@ def render_iso9001(*_):
                             st.markdown(
                                 f"<div class='iso-card' "
                                 f"style='border-left:3px solid {cor_r};'>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Auditor:</b> {aud_r.get('Auditor','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Cláusulas:</b> "
                                 f"{aud_r.get('Clausulas','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Âmbito:</b> {aud_r.get('Scope','')}</p>"
-                                f"<p style='color:#94A3B8;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text_secondary']};margin:2px 0;'>"
                                 f"{aud_r.get('Achados','')}</p>"
-                                f"<small style='color:#64748B;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"NCs Abertas: {aud_r.get('NCs_Aber',0)} · "
                                 f"NCs Menores: {aud_r.get('NCs_Men',0)} · "
                                 f"Obs. Positivas: "
@@ -1519,7 +1521,7 @@ def render_iso9001(*_):
             st.markdown("---")
             st.markdown("#### 📝 Conteúdo das Secções")
             st.markdown(
-                "<small style='color:#64748B;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 "Preenche cada secção — os dados dos módulos "
                 "são preenchidos automaticamente onde possível."
                 "</small>",
@@ -1616,26 +1618,26 @@ def render_iso9001(*_):
             indicadores_rev = [
                 ("🔍 Auditorias Realizadas",
                  n_aud_r, f"de {n_aud_ano} planeadas",
-                 "#3B82F6"),
+                 THEME['accent']),
                 ("🔴 NCs Abertas",
                  nc_abertas, "devem ser 0",
-                 "#10B981" if nc_abertas==0 else "#EF4444"),
+                 THEME['success'] if nc_abertas==0 else THEME['error']),
                 ("✅ Taxa Conformidade",
                  f"{taxa_conf:.0f}%", "objetivo ≥ 95%",
-                 "#10B981" if taxa_conf>=95 else "#F59E0B"),
+                 THEME['success'] if taxa_conf>=95 else THEME['warning']),
                 ("🎯 Objetivos Atingidos",
                  f"{n_obj_ok}/{n_obj_tot}",
                  "do plano anual",
-                 "#10B981" if n_obj_ok==n_obj_tot and n_obj_tot>0
-                 else "#F59E0B"),
+                 THEME['success'] if n_obj_ok==n_obj_tot and n_obj_tot>0
+                 else THEME['warning']),
                 ("⚠️ Riscos Altos",
                  n_riscos_altos,
                  "riscos score ≥ 12",
-                 "#10B981" if n_riscos_altos==0 else "#EF4444"),
+                 THEME['success'] if n_riscos_altos==0 else THEME['error']),
                 ("🏭 Fornecedores Avaliados",
                  len(forn_aval_db),
                  "registos este período",
-                 "#3B82F6"),
+                 THEME['accent']),
             ]
 
             cols_rev = st.columns(2)
@@ -1645,12 +1647,12 @@ def render_iso9001(*_):
                         f"<div class='iso-card' "
                         f"style='border-top:3px solid {cor};"
                         f"text-align:center;'>"
-                        f"<p style='color:#64748B;font-size:0.72rem;"
+                        f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;"
                         f"margin:0 0 4px;text-transform:uppercase;'>"
                         f"{label}</p>"
                         f"<b style='color:{cor};"
                         f"font-size:1.4rem;'>{val}</b><br>"
-                        f"<small style='color:#64748B;'>{sub}</small>"
+                        f"<small style='color:{THEME['text_secondary']};'>{sub}</small>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1767,12 +1769,12 @@ def render_iso9001(*_):
                                 }]
                             )
                             st.markdown(
-                                f"<div style='background:rgba(59,130,246,0.08);"
-                                f"border:1px solid #3B82F6;"
+                                f"<div style='background:{THEME['accent']}14;"
+                                f"border:1px solid {THEME['accent']};"
                                 f"border-radius:12px;padding:16px;"
-                                f"color:#E2E8F0;font-size:0.88rem;"
+                                f"color:{THEME['text']};font-size:0.88rem;"
                                 f"line-height:1.7;'>"
-                                f"<b style='color:#3B82F6;'>🤖 Consultor ISO IA</b>"
+                                f"<b style='color:{THEME['accent']};'>🤖 Consultor ISO IA</b>"
                                 f"<br><br>"
                                 f"{resp.content[0].text.replace(chr(10),'<br>')}"
                                 f"</div>",
@@ -1828,7 +1830,7 @@ def render_iso9001(*_):
                 )
 
                 st.markdown(
-                    "<p style='color:#94A3B8;"
+                    f"<p style='color:{THEME['text_secondary']};"
                     "font-size:0.8rem;margin:8px 0 4px;'>"
                     "Avaliação por critério (1=Muito Mau → 5=Excelente):"
                     "</p>",
@@ -1984,9 +1986,9 @@ def render_iso9001(*_):
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"{fa.get('Fornecedor','')}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"🏷️ {fa.get('Categoria','')} · "
                         f"🏗️ {fa.get('Obra','')} · "
                         f"📅 {fa.get('Data_Aval','')}</small>"

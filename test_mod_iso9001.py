@@ -139,5 +139,37 @@ class TestRenderIso9001SemErro(unittest.TestCase):
         self.assertFalse(at.exception, msg=str(at.exception))
 
 
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_iso9001.py lê as suas cores de
+    core.THEME — nunca mais hexadecimais soltos, um só cinzento
+    secundário, sem fundos escuros forçados. O dict `cores_t` (8 tipos
+    de Partes Interessadas) e todas as cores dos 5 gráficos Plotly e
+    do PDF (reportlab) ficam de fora, de propósito — mesmo critério
+    de sempre, Fase 4."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "warning", "success", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("background:#1E293B", textos)
+        self.assertNotIn("background: #1E293B", textos)
+        self.assertNotIn("background:#0F172A", textos)
+        self.assertNotIn("#F1F5F9", textos)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
