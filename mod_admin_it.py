@@ -3,7 +3,7 @@ import pandas as pd
 import zipfile, json, io, base64
 from datetime import datetime, timedelta
 from core import (save_db, inv, _gcs_read, _gcs_write_binary, _gcs_read_binary,
-                  _verificar_alerta_backup, _registar_backup, GCS_BUCKET)
+                  _verificar_alerta_backup, _registar_backup, GCS_BUCKET, THEME)
 
 def render_it():
     """Módulo de Gestão de TI - Custos, Emails, Infraestrutura"""
@@ -46,45 +46,45 @@ def render_it():
             st.markdown("#### 📊 Resumo Mensal", unsafe_allow_html=True)
             
             # Custos fixos
-            st.markdown("""
-            <div style="background:rgba(59,130,246,0.1); padding:15px; border-radius:12px; margin-bottom:10px;">
-                <div style="color:#94A3B8; font-size:0.85rem;">☁️ Cloud Run (GCP)</div>
-                <div style="color:#60A5FA; font-size:1.5rem; font-weight:700;">€ 127.50</div>
-                <div style="color:#64748B; font-size:0.75rem;">2Gi RAM, 2 CPU, 3600s timeout</div>
+            st.markdown(f"""
+            <div style="background:{THEME['surface']}; border:1px solid {THEME['border']}; padding:15px; border-radius:12px; margin-bottom:10px;">
+                <div style="color:{THEME['text_secondary']}; font-size:0.85rem;">☁️ Cloud Run (GCP)</div>
+                <div style="color:{THEME['accent']}; font-size:1.5rem; font-weight:700;">€ 127.50</div>
+                <div style="color:{THEME['text_secondary']}; font-size:0.75rem;">2Gi RAM, 2 CPU, 3600s timeout</div>
             </div>
             """, unsafe_allow_html=True)
-            
-            st.markdown("""
-            <div style="background:rgba(59,130,246,0.1); padding:15px; border-radius:12px; margin-bottom:10px;">
-                <div style="color:#94A3B8; font-size:0.85rem;">🗄️ Cloud Storage (GCS)</div>
-                <div style="color:#60A5FA; font-size:1.5rem; font-weight:700;">€ 12.30</div>
-                <div style="color:#64748B; font-size:0.75rem;">2.3 GB dados + operações</div>
+
+            st.markdown(f"""
+            <div style="background:{THEME['surface']}; border:1px solid {THEME['border']}; padding:15px; border-radius:12px; margin-bottom:10px;">
+                <div style="color:{THEME['text_secondary']}; font-size:0.85rem;">🗄️ Cloud Storage (GCS)</div>
+                <div style="color:{THEME['accent']}; font-size:1.5rem; font-weight:700;">€ 12.30</div>
+                <div style="color:{THEME['text_secondary']}; font-size:0.75rem;">2.3 GB dados + operações</div>
             </div>
             """, unsafe_allow_html=True)
-            
-            st.markdown("""
-            <div style="background:rgba(59,130,246,0.1); padding:15px; border-radius:12px; margin-bottom:10px;">
-                <div style="color:#94A3B8; font-size:0.85rem;">🔐 Domínio & SSL</div>
-                <div style="color:#60A5FA; font-size:1.5rem; font-weight:700;">€ 15.00</div>
-                <div style="color:#64748B; font-size:0.75rem;">gestnow.app + certificados</div>
+
+            st.markdown(f"""
+            <div style="background:{THEME['surface']}; border:1px solid {THEME['border']}; padding:15px; border-radius:12px; margin-bottom:10px;">
+                <div style="color:{THEME['text_secondary']}; font-size:0.85rem;">🔐 Domínio & SSL</div>
+                <div style="color:{THEME['accent']}; font-size:1.5rem; font-weight:700;">€ 15.00</div>
+                <div style="color:{THEME['text_secondary']}; font-size:0.75rem;">gestnow.app + certificados</div>
             </div>
             """, unsafe_allow_html=True)
-            
-            st.markdown("""
-            <div style="background:rgba(59,130,246,0.1); padding:15px; border-radius:12px; margin-bottom:10px;">
-                <div style="color:#94A3B8; font-size:0.85rem;">📦 Licenças Software</div>
-                <div style="color:#60A5FA; font-size:1.5rem; font-weight:700;">€ 45.00</div>
-                <div style="color:#64748B; font-size:0.75rem;">APIs externas, bibliotecas</div>
+
+            st.markdown(f"""
+            <div style="background:{THEME['surface']}; border:1px solid {THEME['border']}; padding:15px; border-radius:12px; margin-bottom:10px;">
+                <div style="color:{THEME['text_secondary']}; font-size:0.85rem;">📦 Licenças Software</div>
+                <div style="color:{THEME['accent']}; font-size:1.5rem; font-weight:700;">€ 45.00</div>
+                <div style="color:{THEME['text_secondary']}; font-size:0.75rem;">APIs externas, bibliotecas</div>
             </div>
             """, unsafe_allow_html=True)
-            
+
             st.divider()
-            
+
             total = 127.50 + 12.30 + 15.00 + 45.00
             st.markdown(f"""
-            <div style="background:linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.2)); padding:20px; border-radius:12px; text-align:center; border:2px solid rgba(59,130,246,0.5);">
-                <div style="color:#94A3B8; font-size:1rem;">Custo Total Mensal</div>
-                <div style="color:#60A5FA; font-size:3rem; font-weight:800;">€ {total:.2f}</div>
+            <div style="background:{THEME['surface']}; padding:20px; border-radius:12px; text-align:center; border:2px solid {THEME['accent']};">
+                <div style="color:{THEME['text_secondary']}; font-size:1rem;">Custo Total Mensal</div>
+                <div style="color:{THEME['accent']}; font-size:3rem; font-weight:800;">€ {total:.2f}</div>
             </div>
             """, unsafe_allow_html=True)
         
@@ -338,10 +338,10 @@ def render_it():
         with tab_api:
             st.markdown("#### 🔑 API Keys e Integrações", unsafe_allow_html=True)
             
-            st.markdown("""
-            <div style="background:rgba(239,68,68,0.1); padding:15px; border-radius:12px; border-left:4px solid #EF4444;">
-                <strong style="color:#F8FAFC;">⚠️ Segurança:</strong>
-                <span style="color:#94A3B8;"> Nunca partilhes API keys publicamente. Rotação recomendada a cada 90 dias.</span>
+            st.markdown(f"""
+            <div style="background:{THEME['surface']}; border:1px solid {THEME['border']}; padding:15px; border-radius:12px; border-left:4px solid {THEME['error']};">
+                <strong style="color:{THEME['text']};">⚠️ Segurança:</strong>
+                <span style="color:{THEME['text_secondary']};"> Nunca partilhes API keys publicamente. Rotação recomendada a cada 90 dias.</span>
             </div>
             """, unsafe_allow_html=True)
             
@@ -497,19 +497,20 @@ def render_it():
                          if ultima_bkp else "Nunca realizado"
 
             cores_status = {
-                'ok':     ("#10B981", "✅", "Backup recente"),
-                'aviso':  ("#F59E0B", "⚠️", "Backup em atraso"),
-                'critico':("#EF4444", "🚨", "CRÍTICO — sem backup recente"),
-                'nunca':  ("#EF4444", "🚨", "Nunca foi feito backup"),
+                'ok':     (THEME['success'], "✅", "Backup recente"),
+                'aviso':  (THEME['warning'], "⚠️", "Backup em atraso"),
+                'critico':(THEME['error'], "🚨", "CRÍTICO — sem backup recente"),
+                'nunca':  (THEME['error'], "🚨", "Nunca foi feito backup"),
             }
-            cor, ic, txt = cores_status.get(status_bkp, ("#6B7280","❓","Desconhecido"))
+            cor, ic, txt = cores_status.get(
+                status_bkp, (THEME['text_secondary'], "❓", "Desconhecido"))
 
             st.markdown(
-                f"<div style='background:{cor}18;border:2px solid {cor};"
+                f"<div style='background:{THEME['surface']};border:2px solid {cor};"
                 f"border-radius:12px;padding:16px;margin-bottom:16px;'>"
                 f"<p style='color:{cor};font-weight:700;font-size:1rem;margin:0;'>"
                 f"{ic} {txt}</p>"
-                f"<p style='color:#94A3B8;font-size:0.82rem;margin:5px 0 0;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;margin:5px 0 0;'>"
                 f"Último backup: <b>{ultima_str}</b></p></div>",
                 unsafe_allow_html=True
             )
@@ -600,11 +601,11 @@ def render_it():
             st.markdown("---")
             st.markdown("#### ⬆️ Restaurar Backup")
             st.markdown(
-                "<div style='background:rgba(239,68,68,0.1);border:2px solid #EF4444;"
-                "border-radius:10px;padding:14px;margin-bottom:12px;'>"
-                "<p style='color:#EF4444;font-weight:700;margin:0;'>"
+                f"<div style='background:{THEME['surface']};border:2px solid {THEME['error']};"
+                f"border-radius:10px;padding:14px;margin-bottom:12px;'>"
+                f"<p style='color:{THEME['error']};font-weight:700;margin:0;'>"
                 "⚠️ ATENÇÃO — Operação Irreversível</p>"
-                "<p style='color:#94A3B8;font-size:0.82rem;margin:5px 0 0;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;margin:5px 0 0;'>"
                 "O restauro substitui TODOS os dados atuais pelos do backup. "
                 "Faz um backup do estado atual ANTES de restaurar.</p></div>",
                 unsafe_allow_html=True
