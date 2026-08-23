@@ -5,7 +5,7 @@ Dashboard Avançado com KPIs, Gráficos e Previsões
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-from core import load_db, inv
+from core import load_db, inv, THEME
 
 def _safe_date_str(val):
     """Converte data para string sem crashar com NaT."""
@@ -58,15 +58,16 @@ def _load_instrumentos_cache(obra_keys_tuple):
 def render_dashboard(*args):
     """Dashboard Avançado com KPIs e Analytics"""
 
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .kpi-card {
-        background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(96,165,250,0.1));
-        border: 2px solid rgba(59,130,246,0.3);
-        border-radius: 15px; padding: 20px; margin-bottom: 15px;
-    }
-    .kpi-value { font-size: 2rem; font-weight: bold; color: #60A5FA; }
-    .kpi-label { color: #94A3B8; font-size: 0.9rem; }
+    .kpi-card {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
+        box-shadow: 0 1px 3px rgba(16,24,40,0.05);
+        border-radius: {THEME['radius']}; padding: 20px; margin-bottom: 15px;
+    }}
+    .kpi-value {{ font-size: 2rem; font-weight: bold; color: {THEME['accent']}; }}
+    .kpi-label {{ color: {THEME['text_secondary']}; font-size: 0.9rem; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -76,11 +77,11 @@ def render_dashboard(*args):
     *_) = args
 
     st.markdown(f"""
-    <div style="background:linear-gradient(135deg,#1E293B,#0F172A);padding:30px;
-        border-radius:20px;margin-bottom:30px;border:1px solid rgba(255,255,255,0.2);">
-        <h1 style="color:#F8FAFC;margin:0;font-size:2.5rem;">📊 Dashboard Executivo</h1>
-        <p style="color:#94A3B8;margin:10px 0 0 0;">Visão geral de produção e KPIs</p>
-        <p style="color:#64748B;margin:5px 0 0 0;font-size:0.9rem;">
+    <div style="background:{THEME['surface']};padding:30px;
+        border-radius:{THEME['radius']};margin-bottom:30px;border:1px solid {THEME['border']};">
+        <h1 style="color:{THEME['text']};margin:0;font-size:2.5rem;">📊 Dashboard Executivo</h1>
+        <p style="color:{THEME['text_secondary']};margin:10px 0 0 0;">Visão geral de produção e KPIs</p>
+        <p style="color:{THEME['text_secondary']};margin:5px 0 0 0;font-size:0.9rem;">
             {datetime.now().strftime('%d/%m/%Y %H:%M')}
         </p>
     </div>
@@ -270,16 +271,16 @@ def render_dashboard(*args):
     with col_p1:
         st.markdown(f"""
         <div class="kpi-card">
-            <h4 style="color:#60A5FA;margin:0 0 15px 0;">📅 Conclusão Prevista</h4>
-            <p style="color:#94A3B8;">Progresso atual: {progresso_geral:.1f}%</p>
-            <p style="color:#F8FAFC;font-size:1.5rem;font-weight:bold;margin:15px 0;">{data_prev}</p>
-            <p style="color:#64748B;font-size:0.85rem;">*Baseado na média dos últimos 30 dias</p>
+            <h4 style="color:{THEME['accent']};margin:0 0 15px 0;">📅 Conclusão Prevista</h4>
+            <p style="color:{THEME['text_secondary']};">Progresso atual: {progresso_geral:.1f}%</p>
+            <p style="color:{THEME['text']};font-size:1.5rem;font-weight:bold;margin:15px 0;">{data_prev}</p>
+            <p style="color:{THEME['text_secondary']};font-size:0.85rem;">*Baseado na média dos últimos 30 dias</p>
         </div>""", unsafe_allow_html=True)
     with col_p2:
         st.markdown(f"""
         <div class="kpi-card">
-            <h4 style="color:#60A5FA;margin:0 0 15px 0;">⚠️ Riscos Detetados</h4>
-            <ul style="color:#94A3B8;margin:0;padding-left:20px;">
+            <h4 style="color:{THEME['accent']};margin:0 0 15px 0;">⚠️ Riscos Detetados</h4>
+            <ul style="color:{THEME['text_secondary']};margin:0;padding-left:20px;">
                 <li>{obras_atrasadas} obra(s) com progresso abaixo de 50%</li>
                 <li>{total_instrumentos - instrumentos_instalados - calibrados_count} instrumento(s) por calibrar</li>
                 <li>{pend_horas}h de validações pendentes</li>
@@ -306,10 +307,10 @@ def render_dashboard(*args):
                     except:
                         horas_v = 0
                     st.markdown(f"""
-                    <div style="background:rgba(16,185,129,0.1);border-left:3px solid #10B981;
+                    <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-left:3px solid {THEME['success']};
                         padding:10px;border-radius:5px;margin-bottom:10px;">
-                        <strong style="color:#10B981;">✅ {val.get('Técnico','N/A')}</strong>
-                        <p style="margin:5px 0 0 0;color:#94A3B8;font-size:0.85rem;">
+                        <strong style="color:{THEME['success']};">✅ {val.get('Técnico','N/A')}</strong>
+                        <p style="margin:5px 0 0 0;color:{THEME['text_secondary']};font-size:0.85rem;">
                             {horas_v:.1f}h em {val.get('Obra','N/A')} | {data_str}
                         </p>
                     </div>""", unsafe_allow_html=True)
@@ -323,10 +324,10 @@ def render_dashboard(*args):
         if instalacoes:
             for i in instalacoes[-5:]:
                 st.markdown(f"""
-                <div style="background:rgba(59,130,246,0.1);border-left:3px solid #3B82F6;
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-left:3px solid {THEME['accent']};
                     padding:10px;border-radius:5px;margin-bottom:10px;">
-                    <strong style="color:#3B82F6;">📍 {i['Tag']}</strong>
-                    <p style="margin:5px 0 0 0;color:#94A3B8;font-size:0.85rem;">
+                    <strong style="color:{THEME['accent']};">📍 {i['Tag']}</strong>
+                    <p style="margin:5px 0 0 0;color:{THEME['text_secondary']};font-size:0.85rem;">
                         {i['Obra']} | {i['Desc']}
                     </p>
                 </div>""", unsafe_allow_html=True)

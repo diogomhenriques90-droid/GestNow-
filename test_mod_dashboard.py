@@ -1,9 +1,7 @@
 """
-Testes do Dashboard Executivo (mod_dashboard.py).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 3 da Identidade Visual migrar este módulo para o THEME
-central (core.py).
+Testes do Dashboard Executivo (mod_dashboard.py) — Fase 3 da
+Identidade Visual: migração para o THEME central (core.py), em vez de
+hexadecimais soltos.
 
 Fora de âmbito, de propósito (Fase 4, mesmo critério dos gráficos
 Plotly): as cores dos 4 st.bar_chart() — são cores de gráfico, não
@@ -105,6 +103,40 @@ class TestRenderDashboardSemErro(unittest.TestCase):
         at = _run(obras_records=[], users_records=[], registos_records=[],
                    incs_records=[], load_db_fn=_fake_load_db_vazio)
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_dashboard.py lê as suas cores
+    de core.THEME — nunca mais hexadecimais soltos, um só cinzento
+    secundário, sem fundos escuros forçados no cabeçalho, cartões KPI
+    (.kpi-card), previsões e atividades recentes."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        css = " ".join(m.value for m in at.markdown if "<style>" in m.value)
+        for chave in ("surface", "border", "accent", "text_secondary"):
+            self.assertIn(core.THEME[chave], css)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
+        self.assertNotIn("#F8FAFC", textos)
+        self.assertNotIn("#60A5FA", textos)
+
+    def test_atividades_recentes_usam_theme(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn(core.THEME["success"], textos)  # última validação
+        self.assertIn(core.THEME["accent"], textos)   # última instalação
 
 
 if __name__ == "__main__":
