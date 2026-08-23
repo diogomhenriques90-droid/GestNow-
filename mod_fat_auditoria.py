@@ -14,7 +14,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit
+from core import save_db, inv, load_db, log_audit, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -668,7 +668,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
                 "gravidade":"Alta",
                 "desc":     f"{len(sem_nif)} fatura(s) sem NIF cliente",
                 "acao":     "Atualizar NIF nas faturas em falta",
-                "cor":      "#EF4444"
+                "cor":      THEME['error']
             })
 
     # 2. Faturas não pagas há mais de 90 dias
@@ -691,7 +691,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
                 "desc":     f"{len(vencidas_90)} fatura(s) vencida(s) >90 dias "
                             f"(€{val:,.2f})",
                 "acao":     "Contactar clientes — risco incobrável",
-                "cor":      "#EF4444"
+                "cor":      THEME['error']
             })
 
     # 3. Pagamentos a fornecedores sem fatura
@@ -705,7 +705,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
                 "gravidade":"Média",
                 "desc":     f"{len(sem_num)} pagamento(s) sem número de fatura",
                 "acao":     "Solicitar fatura ao fornecedor",
-                "cor":      "#F59E0B"
+                "cor":      THEME['warning']
             })
 
     # 4. IBANs alterados recentemente
@@ -725,7 +725,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
                 "gravidade":"Alta",
                 "desc":     f"{len(recentes)} IBAN(s) alterado(s) nos últimos 90 dias",
                 "acao":     "Verificar legitimidade das alterações",
-                "cor":      "#EF4444"
+                "cor":      THEME['error']
             })
 
     # 5. Colaboradores sem ficha RH
@@ -735,7 +735,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
             "gravidade":"Alta",
             "desc":     "Sem fichas RH financeiras registadas",
             "acao":     "Criar fichas no tab RH Financeiro",
-            "cor":      "#EF4444"
+            "cor":      THEME['error']
         })
 
     # 6. Registos sem obra associada
@@ -749,7 +749,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
                 "gravidade":"Média",
                 "desc":     f"{len(sem_obra)} registo(s) de horas sem obra",
                 "acao":     "Associar horas às obras respetivas",
-                "cor":      "#F59E0B"
+                "cor":      THEME['warning']
             })
 
     # 7. Duplicados (mesma fatura, mesmo valor, mesmo dia)
@@ -764,7 +764,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
                 "gravidade":"Alta",
                 "desc":     f"{dupl.sum()} possível(is) fatura(s) duplicada(s)",
                 "acao":     "Verificar manualmente e anular duplicados",
-                "cor":      "#EF4444"
+                "cor":      THEME['error']
             })
 
     return inconsistencias
@@ -1169,29 +1169,30 @@ def render_fat_auditoria(obras_db, registos_db,
     }
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .aud-card {
-        background:#1E293B; border-radius:10px;
+    .aud-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:10px;
         padding:12px 16px; margin-bottom:6px;
-    }
-    .check-item {
+    }}
+    .check-item {{
         display:flex; justify-content:space-between;
         align-items:center; padding:8px 12px;
         border-radius:8px; margin-bottom:4px;
         border-left:3px solid;
-    }
-    .inc-card {
+    }}
+    .inc-card {{
         border-radius:8px; padding:10px 14px;
         margin-bottom:6px; border-left:4px solid;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── KPIs ──────────────────────────────────────────────────────
-    cor_pct = "#10B981" if pct_prep >= 80 \
-              else "#F59E0B" if pct_prep >= 50 \
-              else "#EF4444"
+    cor_pct = THEME['success'] if pct_prep >= 80 \
+              else THEME['warning'] if pct_prep >= 50 \
+              else THEME['error']
 
     c1,c2,c3,c4,c5 = st.columns(5)
     with c1:
@@ -1238,16 +1239,16 @@ def render_fat_auditoria(obras_db, registos_db,
             # Nível de preparação
             if pct_prep >= 80:
                 nivel_txt = "🟢 PRONTO para auditoria"
-                cor_n     = "#10B981"
+                cor_n     = THEME['success']
             elif pct_prep >= 60:
                 nivel_txt = "🟡 Quase pronto — faltam poucos itens"
-                cor_n     = "#F59E0B"
+                cor_n     = THEME['warning']
             elif pct_prep >= 40:
                 nivel_txt = "🟠 Em preparação — ação necessária"
-                cor_n     = "#F97316"
+                cor_n     = THEME['warning']
             else:
                 nivel_txt = "🔴 NÃO pronto — muitos itens em falta"
-                cor_n     = "#EF4444"
+                cor_n     = THEME['error']
 
             st.markdown(
                 f"<div style='background:{cor_n}18;"
@@ -1306,16 +1307,21 @@ def render_fat_auditoria(obras_db, registos_db,
             if item['categoria'] != cat_atual:
                 cat_atual = item['categoria']
                 st.markdown(
-                    f"<p style='color:#3B82F6;"
+                    f"<p style='color:{THEME['accent']};"
                     f"font-weight:700;font-size:0.85rem;"
                     f"margin:12px 0 4px;'>"
                     f"{cat_atual}</p>",
                     unsafe_allow_html=True
                 )
 
-            cor_item = "#10B981" if ok else \
-                       "#EF4444" if item['critico'] else \
-                       "#F59E0B"
+            cor_item = THEME['success'] if ok else \
+                       THEME['error'] if item['critico'] else \
+                       THEME['warning']
+
+            critico_html = (
+                f"<span style='color:{THEME['error']};font-size:0.7rem;"
+                f"margin-left:6px;'>★ CRÍTICO</span>"
+            ) if item['critico'] and not ok else ""
 
             col_ci, col_cb = st.columns([7,1])
             with col_ci:
@@ -1327,12 +1333,12 @@ def render_fat_auditoria(obras_db, registos_db,
                     f"<span style='color:{cor_item};"
                     f"font-size:1rem;margin-right:8px;'>"
                     f"{'✅' if ok else '❌'}</span>"
-                    f"<span style='color:#F1F5F9;"
+                    f"<span style='color:{THEME['text']};"
                     f"font-size:0.85rem;'>"
                     f"{item['item']}</span>"
-                    f"{'<span style=color:#EF4444;font-size:0.7rem;margin-left:6px;>★ CRÍTICO</span>' if item['critico'] and not ok else ''}"
+                    f"{critico_html}"
                     f"</div>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"{'CSV: ' + item['csv'] if item['csv'] else 'Manual'}"
                     f"</small></div>",
                     unsafe_allow_html=True
@@ -1357,11 +1363,11 @@ def render_fat_auditoria(obras_db, registos_db,
             )
             for ic in itens_criticos[:5]:
                 st.markdown(
-                    f"<div style='background:rgba(239,68,68,0.1);"
-                    f"border-left:3px solid #EF4444;"
+                    f"<div style='background:rgba(185,28,28,0.08);"
+                    f"border-left:3px solid {THEME['error']};"
                     f"border-radius:6px;padding:8px 12px;"
                     f"margin-bottom:4px;'>"
-                    f"<small style='color:#EF4444;'>"
+                    f"<small style='color:{THEME['error']};'>"
                     f"❌ {ic['item']}</small>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -1443,10 +1449,10 @@ def render_fat_auditoria(obras_db, registos_db,
                         f"<b style='color:{cor_i};"
                         f"font-size:0.85rem;'>"
                         f"⚠️ {inc['desc']}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Tipo: {inc['tipo']} · "
                         f"Gravidade: {inc['gravidade']}</small><br>"
-                        f"<small style='color:#94A3B8;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"💡 {inc['acao']}</small>"
                         f"</div>",
                         unsafe_allow_html=True
@@ -1525,12 +1531,12 @@ def render_fat_auditoria(obras_db, registos_db,
                             }]
                         )
                         st.markdown(
-                            f"<div style='background:rgba(59,130,246,0.1);"
-                            f"border:1px solid #3B82F6;"
+                            f"<div style='background:rgba(14,124,134,0.08);"
+                            f"border:1px solid {THEME['accent']};"
                             f"border-radius:10px;padding:14px;"
-                            f"color:#E2E8F0;font-size:0.88rem;"
+                            f"color:{THEME['text']};font-size:0.88rem;"
                             f"line-height:1.6;'>"
-                            f"<b style='color:#3B82F6;'>🤖 TOC IA</b><br><br>"
+                            f"<b style='color:{THEME['accent']};'>🤖 TOC IA</b><br><br>"
                             f"{resp.content[0].text.replace(chr(10),'<br>')}"
                             f"</div>",
                             unsafe_allow_html=True
@@ -1659,18 +1665,21 @@ def render_fat_auditoria(obras_db, registos_db,
         cols_pastas = st.columns(3)
         for i, pasta in enumerate(pastas):
             with cols_pastas[i % 3]:
+                # Cor decorativa única (acento) — 12 pastas excedem
+                # os tons semânticos disponíveis, mesmo critério de
+                # mod_admin_formacoes.py para etiquetas de categoria.
                 tem_docs = pasta['n_docs'] > 0
-                cor_p    = pasta['cor'] if tem_docs else "#334155"
+                cor_p    = THEME['accent'] if tem_docs else THEME['border']
                 st.markdown(
                     f"<div class='aud-card' "
                     f"style='border-left:3px solid {cor_p};'>"
-                    f"<p style='color:#64748B;"
+                    f"<p style='color:{THEME['text_secondary']};"
                     f"font-size:0.7rem;margin:0 0 2px;'>"
                     f"PASTA {pasta['num']}</p>"
-                    f"<b style='color:#F1F5F9;"
+                    f"<b style='color:{THEME['text']};"
                     f"font-size:0.85rem;'>"
                     f"{pasta['nome']}</b><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"{pasta['desc']}</small><br>"
                     f"<span style='color:{cor_p};"
                     f"font-size:0.8rem;font-weight:700;'>"
@@ -1922,7 +1931,7 @@ def render_fat_auditoria(obras_db, registos_db,
                  not caucoes_db.empty),
             ]
             for desc, ok in conteudo:
-                cor_c = "#10B981" if ok else "#64748B"
+                cor_c = THEME['success'] if ok else THEME['text_secondary']
                 ic_c  = "✅" if ok else "⚪"
                 st.markdown(
                     f"<div style='display:flex;"
@@ -1930,7 +1939,7 @@ def render_fat_auditoria(obras_db, registos_db,
                     f"padding:3px 0;'>"
                     f"<span style='color:{cor_c};"
                     f"margin-right:6px;'>{ic_c}</span>"
-                    f"<small style='color:#94A3B8;'>{desc}</small>"
+                    f"<small style='color:{THEME['text_secondary']};'>{desc}</small>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
@@ -1975,16 +1984,16 @@ def render_fat_auditoria(obras_db, registos_db,
         # Nota de confidencialidade
         st.markdown("---")
         st.markdown(
-            "<div style='background:rgba(59,130,246,0.08);"
-            "border:1px solid #3B82F6;border-radius:8px;"
-            "padding:12px;'>"
-            "<small style='color:#93C5FD;'>"
-            "📋 <b>Nota:</b> Este dossier foi gerado "
-            "automaticamente pelo GESTNOW v3.0. "
-            "Os dados financeiros são estimativas baseadas nos "
-            "registos do sistema. O TOC/ROC deve confirmar "
-            "com os documentos originais e a contabilidade "
-            "oficial. Documento confidencial — "
-            "uso restrito ao destinatário.</small></div>",
+            f"<div style='background:rgba(14,124,134,0.06);"
+            f"border:1px solid {THEME['accent']};border-radius:8px;"
+            f"padding:12px;'>"
+            f"<small style='color:{THEME['accent']};'>"
+            f"📋 <b>Nota:</b> Este dossier foi gerado "
+            f"automaticamente pelo GESTNOW v3.0. "
+            f"Os dados financeiros são estimativas baseadas nos "
+            f"registos do sistema. O TOC/ROC deve confirmar "
+            f"com os documentos originais e a contabilidade "
+            f"oficial. Documento confidencial — "
+            f"uso restrito ao destinatário.</small></div>",
             unsafe_allow_html=True
         )
