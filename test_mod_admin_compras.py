@@ -1,10 +1,8 @@
 """
 Testes do módulo de Gestão de Compras (mod_admin_compras.py, aba
-"🛒 Compras" dentro de Admin → Armazém).
-
-Bloqueia primeiro o comportamento ATUAL — o ecrã renderiza sem erro —
-antes da Fase 3 da Identidade Visual migrar este módulo para o THEME
-central (core.py).
+"🛒 Compras" dentro de Admin → Armazém) — Fase 3 da Identidade
+Visual: migração para o THEME central (core.py), em vez de
+hexadecimais soltos.
 
 Fora de âmbito, de propósito (Fase 4, mesmo critério dos gráficos
 Plotly): o gráfico de pizza "Compras por Categoria" (Histórico) e o
@@ -41,6 +39,13 @@ _COMPRAS_RECORDS = [
      "Urgencia": "Baixa", "Status": "Aprovado",
      "Data_Aprovacao": "02/01/2026", "Aprovado_Por": "Admin",
      "Numero_Fatura": "", "Notas": "", "Fatura_b64": ""},
+    {"ID": "C3", "Data": "01/01/2026", "Solicitante": "Carla Teste",
+     "Obra": "Obra Compras Teste", "Fornecedor": "Leroy Merlin",
+     "Descricao": "Fita isoladora", "Quantidade": "10", "Unidade": "un",
+     "Valor_Unit": "2", "Total": "20", "Categoria": "Materiais",
+     "Urgencia": "Baixa", "Status": "Pendente",
+     "Data_Aprovacao": "", "Aprovado_Por": "", "Numero_Fatura": "",
+     "Notas": "", "Fatura_b64": ""},
 ]
 
 _OBRAS_RECORDS = [{"Obra": "Obra Compras Teste", "Ativa": "Ativa"}]
@@ -97,6 +102,36 @@ class TestRenderComprasSemErro(unittest.TestCase):
     def test_sem_erro_sem_dados(self):
         at = _run(load_db_fn=_fake_load_db_vazio)
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_admin_compras.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, sem fundos escuros/em tom forçados no banner
+    de pendentes e nos cartões de detalhe/total/notas de cada
+    compra pendente."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "warning", "error", "success"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertNotIn("#6B7280", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_em_tom_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
+        self.assertNotIn("rgba(245,158,11,", textos)
 
 
 if __name__ == "__main__":

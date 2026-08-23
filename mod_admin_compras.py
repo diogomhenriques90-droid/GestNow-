@@ -7,7 +7,7 @@ import streamlit as st
 import pandas as pd
 import uuid
 from datetime import datetime, date
-from core import save_db, inv, load_db, log_audit, criar_notificacao
+from core import save_db, inv, load_db, log_audit, criar_notificacao, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -107,10 +107,10 @@ def render_compras(*_):
                     df_p.get('Total',0), errors='coerce'
                 ).fillna(0).sum()
                 st.markdown(
-                    f"<div style='background:rgba(245,158,11,0.1);"
-                    f"border:1px solid #F59E0B;border-radius:8px;"
+                    f"<div style='background:{THEME['surface']};"
+                    f"border:1px solid {THEME['warning']};border-radius:8px;"
                     f"padding:10px 16px;margin-bottom:12px;'>"
-                    f"<b style='color:#F59E0B;'>"
+                    f"<b style='color:{THEME['warning']};'>"
                     f"{len(df_p)} compra(s) · Total: €{total_pend:,.2f}</b>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -120,8 +120,8 @@ def render_compras(*_):
                     cid    = row.get('ID','')
                     total  = float(row.get('Total',0) or 0)
                     urg    = row.get('Urgencia','Normal')
-                    cor_u  = {"Urgente":"#EF4444","Normal":"#F59E0B",
-                              "Baixa":"#10B981"}.get(urg,"#6B7280")
+                    cor_u  = {"Urgente":THEME['error'],"Normal":THEME['warning'],
+                              "Baixa":THEME['success']}.get(urg,THEME['text_secondary'])
 
                     with st.expander(
                         f"🛒 {str(row.get('Descricao',''))[:45]} — "
@@ -131,35 +131,35 @@ def render_compras(*_):
                         col_d1, col_d2 = st.columns(2)
                         with col_d1:
                             st.markdown(
-                                f"<div style='background:#1E293B;"
+                                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                 f"border-radius:8px;padding:12px;'>"
-                                f"<p style='color:#64748B;font-size:0.75rem;"
+                                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
                                 f"margin:0 0 6px;'>DETALHES</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Solicitante:</b> {row.get('Solicitante','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Obra:</b> {row.get('Obra','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Fornecedor:</b> {row.get('Fornecedor','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Categoria:</b> {row.get('Categoria','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Quantidade:</b> {row.get('Quantidade','')} "
                                 f"{row.get('Unidade','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Valor unit.:</b> €{float(row.get('Valor_Unit',0) or 0):,.2f}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Data:</b> {row.get('Data','')}</p>"
                                 f"</div>",
                                 unsafe_allow_html=True
                             )
                         with col_d2:
                             st.markdown(
-                                f"<div style='background:{cor_u}18;"
+                                f"<div style='background:{THEME['surface']};"
                                 f"border:1px solid {cor_u};"
                                 f"border-radius:8px;padding:12px;"
                                 f"text-align:center;'>"
-                                f"<p style='color:#64748B;font-size:0.75rem;"
+                                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
                                 f"margin:0 0 4px;'>TOTAL</p>"
                                 f"<b style='color:{cor_u};"
                                 f"font-size:1.6rem;'>€{total:,.2f}</b><br>"
@@ -170,10 +170,10 @@ def render_compras(*_):
                             )
                             if row.get('Notas'):
                                 st.markdown(
-                                    f"<div style='background:#1E293B;"
+                                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                     f"border-radius:6px;padding:8px;"
                                     f"margin-top:8px;'>"
-                                    f"<small style='color:#94A3B8;'>"
+                                    f"<small style='color:{THEME['text_secondary']};'>"
                                     f"📝 {row.get('Notas','')}</small>"
                                     f"</div>",
                                     unsafe_allow_html=True
