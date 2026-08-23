@@ -212,5 +212,39 @@ class TestCartoesAdicionaisSemErro(unittest.TestCase):
         self.assertFalse(at.exception, msg=str(at.exception))
 
 
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_admin_diarias.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário, sem fundos escuros forçados nos cartões de
+    colaborador (Semana Atual), preview de custo (Configurar
+    Valores), falta injustificada, histórico de pagamento e caixa
+    informativa SEPA (Empresa)."""
+
+    def test_css_usa_theme(self):
+        at = _run_completo()
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary", "accent"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_falta_usa_theme_error(self):
+        at = _run_completo()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn(core.THEME["error"], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run_completo()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertNotIn("#93C5FD", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run_completo()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#0F172A", textos)
+        self.assertNotIn("#F1F5F9", textos)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

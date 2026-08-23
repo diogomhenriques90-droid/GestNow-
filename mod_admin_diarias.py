@@ -9,7 +9,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
 
-from core import save_db, inv, load_db, log_audit, _gcs_read, fh
+from core import save_db, inv, load_db, log_audit, _gcs_read, fh, THEME
 
 _VALOR_DIARIA_PADRAO = 12.0
 _MIN_HORAS_DIARIA    = 4.0
@@ -501,8 +501,8 @@ def render_admin_diarias(*args):
         periodo_label = (f"{semana_ini.strftime('%d/%m/%Y')} — "
                          f"{semana_fim.strftime('%d/%m/%Y')}")
         st.markdown(
-            f"<p style='color:#94A3B8;font-size:0.85rem;margin:0 0 12px;'>"
-            f"📅 Período: <b style='color:#F1F5F9;'>{periodo_label}</b></p>",
+            f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;margin:0 0 12px;'>"
+            f"📅 Período: <b style='color:{THEME['text']};'>{periodo_label}</b></p>",
             unsafe_allow_html=True
         )
 
@@ -545,12 +545,12 @@ def render_admin_diarias(*args):
                     col_info, col_rec = st.columns([5, 1])
                     with col_info:
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:10px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                             f"padding:12px 16px;margin-bottom:6px;'>"
-                            f"<b style='color:#F1F5F9;'>{row['Técnico']}</b>"
-                            f"<span style='float:right;color:#10B981;"
+                            f"<b style='color:{THEME['text']};'>{row['Técnico']}</b>"
+                            f"<span style='float:right;color:{THEME['accent']};"
                             f"font-weight:900;'>€ {row['Valor_Total']:.2f}</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{row['Obras']} · {row['Dias_Total']} dia(s) · "
                             f"IBAN: {row['IBAN'][:12] + '...' if len(str(row['IBAN'])) > 12 else row['IBAN'] or '❌ Sem IBAN'}"
                             f"</small></div>",
@@ -741,7 +741,7 @@ def render_admin_diarias(*args):
             df_cfg = pd.DataFrame(rows_cfg)
 
             st.markdown(
-                "<p style='color:#94A3B8;font-size:0.82rem;"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;"
                 "margin:0 0 6px;'>"
                 "✏️ Edita directamente na tabela e clica "
                 "<b>💾 Guardar</b>.</p>",
@@ -813,15 +813,15 @@ def render_admin_diarias(*args):
                 # Preview — total semanal estimado por obra
                 total_est = df_editado['€ / Dia'].sum()
                 st.markdown(
-                    f"<div style='background:#1E293B;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                     f"border-radius:8px;padding:10px;"
                     f"text-align:center;'>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"Custo máx. estimado / dia</small><br>"
-                    f"<b style='color:#10B981;"
+                    f"<b style='color:{THEME['accent']};"
                     f"font-size:1.1rem;'>"
                     f"€{total_est:,.2f}</b><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"(todas as obras × 1 técnico)</small>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -905,13 +905,13 @@ def render_admin_diarias(*args):
                 col_fi, col_fd = st.columns([5, 1])
                 with col_fi:
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:8px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:8px;"
                         f"padding:10px 14px;margin-bottom:5px;"
-                        f"border-left:3px solid #EF4444;'>"
-                        f"<b style='color:#F1F5F9;'>{f.get('Técnico','')}</b>"
-                        f"<span style='float:right;color:#64748B;"
+                        f"border-left:3px solid {THEME['error']};'>"
+                        f"<b style='color:{THEME['text']};'>{f.get('Técnico','')}</b>"
+                        f"<span style='float:right;color:{THEME['text_secondary']};"
                         f"font-size:0.8rem;'>{f.get('Data','')}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{f.get('Obra','')} · "
                         f"{f.get('Motivo','') or 'Sem motivo'}"
                         f"</small></div>",
@@ -961,16 +961,16 @@ def render_admin_diarias(*args):
                         col_pi, col_pr = st.columns([4, 1])
                         with col_pi:
                             st.markdown(
-                                f"<div style='background:#1E293B;"
+                                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                 f"border-radius:8px;padding:10px;"
                                 f"margin-bottom:4px;'>"
-                                f"<b style='color:#F1F5F9;'>"
+                                f"<b style='color:{THEME['text']};'>"
                                 f"{p.get('Técnico','')}</b>"
-                                f"<span style='float:right;color:#10B981;"
+                                f"<span style='float:right;color:{THEME['accent']};"
                                 f"font-weight:700;'>"
                                 f"€ {float(p.get('Valor_Total',0) or 0):.2f}"
                                 f"</span><br>"
-                                f"<small style='color:#64748B;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"{p.get('Obras','')} · "
                                 f"{p.get('Dias_Total','')} dia(s)"
                                 f"</small></div>",
@@ -1084,9 +1084,9 @@ def render_admin_diarias(*args):
             )
 
             st.markdown(
-                "<div style='background:rgba(59,130,246,0.1);border-radius:8px;"
-                "padding:12px;margin-top:8px;border-left:3px solid #3B82F6;'>"
-                "<p style='color:#93C5FD;font-size:0.82rem;margin:0;'>"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:8px;"
+                f"padding:12px;margin-top:8px;border-left:3px solid {THEME['accent']};'>"
+                f"<p style='color:{THEME['text']};font-size:0.82rem;margin:0;'>"
                 "ℹ️ <b>Como usar o ficheiro SEPA no Montepio:</b><br>"
                 "1. Descarrega o ficheiro XML no separador 📅 Semana Atual<br>"
                 "2. Abre o Net24 Empresas<br>"
