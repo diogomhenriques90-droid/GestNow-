@@ -12,8 +12,9 @@ pedido).
 
 Correr:  python -m unittest test_mod_admin_dormidas -v
 """
+import json
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pandas as pd
 from streamlit.testing.v1 import AppTest
@@ -82,6 +83,68 @@ class TestRenderDormidasSemErro(unittest.TestCase):
     def test_sem_erro_sem_dados(self):
         at = _run(load_db_fn=_fake_load_db_vazio)
         self.assertFalse(at.exception, msg=str(at.exception))
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_admin_dormidas.py lê as suas
+    cores de core.THEME — nunca mais hexadecimais soltos, um só
+    cinzento secundário. As cores só aparecem nos cartões de hotel
+    sugeridos pela IA — aciona o botão de pesquisa com
+    anthropic.Anthropic mockado (uma sugestão adequada e dentro do
+    orçamento, outra não, de propósito, para exercitar os 3 tons
+    semânticos)."""
+
+    def _run_com_resultados_ia(self):
+        core._cached_load_db.clear()
+        resposta_ia = json.dumps({
+            "local": "Sines, Portugal",
+            "hoteis": [
+                {"nome": "Hotel Teste Adequado", "cidade": "Sines",
+                 "distancia_km": 5, "preco_noite": 60.0, "tipo": "Hotel",
+                 "adequado": True, "motivo": "Bom para trabalhadores",
+                 "total_estimado": 300.0},
+                {"nome": "Hotel Teste Caro", "cidade": "Sines",
+                 "distancia_km": 10, "preco_noite": 150.0, "tipo": "Hotel",
+                 "adequado": False, "motivo": "Muito caro",
+                 "total_estimado": 750.0},
+            ]
+        })
+        mock_resp = MagicMock()
+        mock_resp.content = [MagicMock(text=resposta_ia)]
+
+        with patch("mod_admin_dormidas.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", return_value=None), \
+             patch("core._gcs_client", return_value=None), \
+             patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}), \
+             patch("anthropic.Anthropic") as mock_anthropic:
+            mock_anthropic.return_value.messages.create.return_value = mock_resp
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="pesq_local").set_value("Sines, Portugal")
+            at.button(key="btn_pesq_hotel").click().run()
+        return at
+
+    def test_css_usa_theme(self):
+        at = self._run_com_resultados_ia()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("text_secondary", "accent", "warning",
+                      "success", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = self._run_com_resultados_ia()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#64748B", textos)
+        self.assertNotIn("#94A3B8", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = self._run_com_resultados_ia()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("background:#1E293B", textos)
+        self.assertNotIn("background: #1E293B", textos)
+        self.assertNotIn("#F1F5F9", textos)
 
 
 if __name__ == "__main__":
