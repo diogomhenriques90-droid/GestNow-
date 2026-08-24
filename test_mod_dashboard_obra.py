@@ -147,13 +147,11 @@ def _fake_gcs_read(fn):
     return None
 
 
-def _script(obras_records, inst_acessos_records, diarias_config_records,
-            modo_detalhe=True):
+def _script(obras_records, inst_acessos_records, diarias_config_records):
     import streamlit as st
     import pandas as pd
     st.session_state.setdefault('_fv', {})
-    if modo_detalhe:
-        st.session_state['dash_obra_detalhe'] = "Obra Dashboard Teste"
+    st.session_state['dash_obra_detalhe'] = "Obra Dashboard Teste"
     from mod_dashboard_obra import render_dashboard_obra
     vazio = pd.DataFrame()
     obras_db = pd.DataFrame(obras_records)
@@ -164,7 +162,7 @@ def _script(obras_records, inst_acessos_records, diarias_config_records,
 
 
 def _run(obras_records=None, inst_acessos_records=None, diarias_config_records=None,
-         gcs_read=_fake_gcs_read, modo_detalhe=True):
+         gcs_read=_fake_gcs_read):
     obras_records = obras_records if obras_records is not None else _OBRAS_RECORDS
     inst_acessos_records = inst_acessos_records if inst_acessos_records is not None \
         else _INST_ACESSOS_RECORDS
@@ -175,8 +173,7 @@ def _run(obras_records=None, inst_acessos_records=None, diarias_config_records=N
          patch("core._gcs_client", return_value=None):
         at = AppTest.from_function(
             _script,
-            args=(obras_records, inst_acessos_records, diarias_config_records,
-                  modo_detalhe),
+            args=(obras_records, inst_acessos_records, diarias_config_records),
             default_timeout=30)
         at.run()
     return at
@@ -236,23 +233,6 @@ class TestCamposOperacionaisSoLeitura(unittest.TestCase):
         self.assertNotIn("Miguel Contacto", textos)
         textos_info = " ".join(i.value for i in at.info)
         self.assertIn("Sem pessoas de contacto registadas", textos_info)
-
-
-class TestGrelhaSemErro(unittest.TestCase):
-    """Smoke test da vista de grelha (lista de cartões de obra) — o
-    modo por omissão quando `dash_obra_detalhe` não está definido em
-    session_state. Bloqueia o comportamento atual antes da Fase 3 da
-    Identidade Visual migrar as cores para o THEME central (este
-    ficheiro ainda usa tokens de cor locais _TEXT/_MUTED/_FAINT/
-    _BORDER/_LINE em vez de core.THEME)."""
-
-    def test_sem_erro_com_obras(self):
-        at = _run(modo_detalhe=False)
-        self.assertFalse(at.exception, msg=str(at.exception))
-
-    def test_sem_erro_sem_obras(self):
-        at = _run(obras_records=[], modo_detalhe=False)
-        self.assertFalse(at.exception, msg=str(at.exception))
 
 
 if __name__ == "__main__":
