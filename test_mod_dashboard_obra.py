@@ -255,5 +255,35 @@ class TestGrelhaSemErro(unittest.TestCase):
         self.assertFalse(at.exception, msg=str(at.exception))
 
 
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_dashboard_obra.py deixa de
+    ter os seus próprios tokens de cor locais (_TEXT/_MUTED/_FAINT/
+    _BORDER/_LINE, um palete claro à parte, ligeiramente diferente
+    do resto da app) e passa a ler core.THEME — um só cinzento
+    secundário, tal como todos os outros módulos já migrados."""
+
+    def test_css_usa_theme(self):
+        at = _run(modo_detalhe=False)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary", "success"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_um_so_cinzento_secundario(self):
+        at = _run(modo_detalhe=False)
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#9AA3B2", textos)
+        self.assertNotIn("#6B7280", textos)
+        self.assertIn(core.THEME["text_secondary"], textos)
+
+    def test_sem_tokens_de_cor_locais(self):
+        at = _run(modo_detalhe=False)
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("#1F2A44", textos)
+        self.assertNotIn("#E4F3E9", textos)
+        self.assertNotIn("#2F7D4F", textos)
+        self.assertNotIn("#EEF0F3", textos)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
