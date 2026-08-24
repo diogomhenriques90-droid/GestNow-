@@ -1290,27 +1290,27 @@ def render_chefe(*args):
             if foto_b64 and len(foto_b64) > 100:
                 foto_html = (f"<img src='data:image/jpeg;base64,{foto_b64}' "
                              f"style='width:44px;height:44px;border-radius:50%;"
-                             f"object-fit:cover;border:2px solid #DC2626;flex-shrink:0;'>")
+                             f"object-fit:cover;border:2px solid {THEME['accent']};flex-shrink:0;'>")
             else:
                 ini = str(user_nome)[:1].upper()
                 foto_html = (f"<div style='width:44px;height:44px;border-radius:50%;"
-                             f"background:#DC2626;display:flex;align-items:center;"
+                             f"background:{THEME['accent']};display:flex;align-items:center;"
                              f"justify-content:center;font-weight:900;color:white;"
                              f"font-size:1.1rem;flex-shrink:0;'>{ini}</div>")
 
             st.markdown(
-                f"<div style='background:#1E293B;border-radius:14px;padding:14px 16px;"
-                f"margin-bottom:14px;border:1px solid #334155;"
+                f"<div style='background:{THEME['surface']};border-radius:14px;padding:14px 16px;"
+                f"margin-bottom:14px;border:1px solid {THEME['border']};"
                 f"display:flex;align-items:center;gap:14px;'>"
                 f"{foto_html}<div style='flex:1;'>"
-                f"<p style='color:#94A3B8;font-size:0.7rem;margin:0;'>Registo de ponto</p>"
-                f"<p style='color:#F1F5F9;font-weight:700;font-size:0.95rem;margin:2px 0 0;'>{user_nome}</p>"
-                f"<p style='color:#DC2626;font-size:0.82rem;font-weight:600;margin:1px 0 0;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.7rem;margin:0;'>Registo de ponto</p>"
+                f"<p style='color:{THEME['text']};font-weight:700;font-size:0.95rem;margin:2px 0 0;'>{user_nome}</p>"
+                f"<p style='color:{THEME['accent']};font-size:0.82rem;font-weight:600;margin:1px 0 0;'>"
                 f"{data_sel.strftime('%d/%m/%Y')}</p></div></div>",
                 unsafe_allow_html=True)
 
             with st.form("form_ponto_ch", clear_on_submit=False):
-                st.markdown("<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
+                st.markdown(f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                             "letter-spacing:0.08em;text-transform:uppercase;margin:0 0 6px;'>"
                             "🏗️ Obra</p>", unsafe_allow_html=True)
                 obras_lista = []
@@ -1326,22 +1326,22 @@ def render_chefe(*args):
                     cli = str(oi.get('Cliente',''))
                     if cod or cli:
                         st.markdown(
-                            f"<div style='background:#0F172A;border-radius:10px;"
-                            f"padding:10px 14px;margin:-4px 0 10px;border-left:3px solid #DC2626;'>"
-                            f"<p style='color:#F1F5F9;font-weight:700;font-size:0.82rem;margin:0;'>"
+                            f"<div style='background:{THEME['border']};border-radius:10px;"
+                            f"padding:10px 14px;margin:-4px 0 10px;border-left:3px solid {THEME['accent']};'>"
+                            f"<p style='color:{THEME['text']};font-weight:700;font-size:0.82rem;margin:0;'>"
                             f"{cli if cli else obra_sel}</p>"
-                            + (f"<p style='color:#DC2626;font-size:0.72rem;margin:2px 0 0;'>{cod}</p>" if cod else "")
+                            + (f"<p style='color:{THEME['accent']};font-size:0.72rem;margin:2px 0 0;'>{cod}</p>" if cod else "")
                             + "</div>", unsafe_allow_html=True)
 
-                st.markdown("<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
+                st.markdown(f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                             "letter-spacing:0.08em;text-transform:uppercase;margin:8px 0 6px;'>"
                             "🔧 Frente de Trabalho</p>", unsafe_allow_html=True)
                 frente_sel = st.selectbox("Frente", TIPOS_FRENTE, key="ch_reg_frente",
                                           label_visibility="collapsed")
 
-                st.markdown("<hr style='border:none;border-top:1px solid #1E293B;margin:12px 0;'>",
+                st.markdown(f"<hr style='border:none;border-top:1px solid {THEME['border']};margin:12px 0;'>",
                             unsafe_allow_html=True)
-                st.markdown("<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
+                st.markdown(f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                             "letter-spacing:0.08em;text-transform:uppercase;margin:0 0 8px;'>"
                             "⏱️ Horas de Trabalho</p>", unsafe_allow_html=True)
 
@@ -1350,7 +1350,7 @@ def render_chefe(*args):
 
                 for idx, periodo in enumerate(st.session_state.periodos_trabalho_ch):
                     if idx > 0:
-                        st.markdown("<hr style='border:none;border-top:1px dashed #1E293B;margin:6px 0;'>",
+                        st.markdown(f"<hr style='border:none;border-top:1px dashed {THEME['border']};margin:6px 0;'>",
                                     unsafe_allow_html=True)
                     col_e, col_s = st.columns(2)
                     with col_e:
@@ -1367,7 +1367,7 @@ def render_chefe(*args):
                     if delta > 0:
                         total_horas += delta
                         periodos_validos.append({"entrada": entrada, "saida": saida, "horas": round(delta, 2)})
-                        st.markdown(f"<p style='text-align:right;color:#DC2626;font-weight:700;"
+                        st.markdown(f"<p style='text-align:right;color:{THEME['accent']};font-weight:700;"
                                     f"font-size:0.8rem;margin:0 0 4px;'>= {fh(delta)}</p>",
                                     unsafe_allow_html=True)
                     elif delta < 0:
@@ -1375,11 +1375,11 @@ def render_chefe(*args):
 
                 if total_horas > 0:
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;padding:12px 16px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;padding:12px 16px;"
                         f"margin:10px 0;display:flex;justify-content:space-between;align-items:center;'>"
-                        f"<span style='color:#64748B;font-size:0.78rem;font-weight:600;"
+                        f"<span style='color:{THEME['text_secondary']};font-size:0.78rem;font-weight:600;"
                         f"text-transform:uppercase;letter-spacing:0.06em;'>Total</span>"
-                        f"<span style='color:#F1F5F9;font-size:1.6rem;font-weight:900;'>{fh(total_horas)}</span>"
+                        f"<span style='color:{THEME['text']};font-size:1.6rem;font-weight:900;'>{fh(total_horas)}</span>"
                         f"</div>", unsafe_allow_html=True)
 
                 relatorio = st.text_area("📝 Descrição (opcional)",
