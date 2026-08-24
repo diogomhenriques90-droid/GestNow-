@@ -14,32 +14,39 @@ ESPAÇO RESERVADO "—" — honestidade visual, sem inventar dados.
 """
 import streamlit as st
 import pandas as pd
-from core import load_db, get_contactos_cliente, THEME
+from core import load_db, get_contactos_cliente
+
+# ── Tokens de estética (claro, plano, moderno — sem gradientes/néon) ─────────
+_TEXT   = "#1F2A44"
+_MUTED  = "#5A6478"
+_FAINT  = "#9AA3B2"
+_BORDER = "#E6E9EF"
+_LINE   = "#F2F4F8"
 
 _CSS = f"""
 <style>
-.dob-title {{ font-size: 1.7rem; font-weight: 700; color: {THEME['text']}; margin: 0; }}
-.dob-sub {{ font-size: 0.9rem; color: {THEME['text_secondary']}; margin: 2px 0 0 0; }}
-.dob-group {{ font-size: 1.0rem; font-weight: 600; color: {THEME['text']};
+.dob-title {{ font-size: 1.7rem; font-weight: 700; color: {_TEXT}; margin: 0; }}
+.dob-sub {{ font-size: 0.9rem; color: {_MUTED}; margin: 2px 0 0 0; }}
+.dob-group {{ font-size: 1.0rem; font-weight: 600; color: {_TEXT};
              margin: 14px 0 10px 0; }}
-.ob-card {{ background: {THEME['surface']}; border: 1px solid {THEME['border']}; border-radius: 12px;
+.ob-card {{ background: #FFFFFF; border: 1px solid {_BORDER}; border-radius: 12px;
            padding: 18px 18px 16px 18px; margin-bottom: 18px;
            box-shadow: 0 1px 3px rgba(16,24,40,0.05); }}
 .ob-top {{ display: flex; justify-content: space-between; align-items: flex-start;
           gap: 10px; margin-bottom: 8px; }}
-.ob-name {{ font-weight: 700; font-size: 1.05rem; color: {THEME['text']}; line-height: 1.3; }}
-.ob-loc {{ font-size: 0.82rem; color: {THEME['text_secondary']}; margin: 2px 0 8px 0;
+.ob-name {{ font-weight: 700; font-size: 1.05rem; color: {_TEXT}; line-height: 1.3; }}
+.ob-loc {{ font-size: 0.82rem; color: {_MUTED}; margin: 2px 0 8px 0;
           display: flex; gap: 6px; align-items: center; }}
-.ob-line {{ font-size: 0.86rem; color: {THEME['text_secondary']}; margin: 5px 0;
+.ob-line {{ font-size: 0.86rem; color: {_MUTED}; margin: 5px 0;
            display: flex; gap: 7px; align-items: center; }}
-.ob-line .k {{ color: {THEME['text_secondary']}; }}
+.ob-line .k {{ color: {_FAINT}; }}
 .ob-foot {{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px;
-           margin-top: 10px; padding-top: 10px; border-top: 1px solid {THEME['border']}; }}
+           margin-top: 10px; padding-top: 10px; border-top: 1px solid {_LINE}; }}
 .ob-foot .ob-line {{ margin: 0; }}
 .badge {{ font-size: 0.72rem; font-weight: 600; padding: 3px 11px;
          border-radius: 999px; white-space: nowrap; }}
-.badge.ativa {{ background: {THEME['success']}1F; color: {THEME['success']}; }}
-.badge.inativa {{ background: {THEME['border']}; color: {THEME['text_secondary']}; }}
+.badge.ativa {{ background: #E4F3E9; color: #2F7D4F; }}
+.badge.inativa {{ background: #EEF0F3; color: #6B7280; }}
 </style>
 """
 
@@ -170,7 +177,7 @@ def _render_detalhe(obra_nome, obras_db, inst_acessos_db, diarias_config_db):
     else:
         act = pd.DataFrame()
     st.markdown(
-        f'<div class="ob-line"><b style="color:{THEME["text"]};font-size:1.0rem">{len(act)}</b>'
+        f'<div class="ob-line"><b style="color:{_TEXT};font-size:1.0rem">{len(act)}</b>'
         f'&nbsp; colaborador(es) ativo(s)</div>', unsafe_allow_html=True,
     )
     if act.empty:
