@@ -1008,7 +1008,7 @@ def render_fat_crise(obras_db, registos_db,
     # TAB — SEMÁFORO DE SAÚDE
     # ════════════════════════════════════════════════════════════════
     with t_semaforo:
-        st.markdown("### 🚦 Semáforo de Saúde Financeira")
+        st.markdown("### :material/traffic: Semáforo de Saúde Financeira")
 
         col_g1, col_g2 = st.columns(2)
         with col_g1:
@@ -1031,7 +1031,7 @@ def render_fat_crise(obras_db, registos_db,
         )
 
         # Cards por indicador
-        st.markdown("#### 📊 Detalhe dos Indicadores")
+        st.markdown("#### :material/bar_chart: Detalhe dos Indicadores")
         cols_ind = st.columns(3)
         for i, ind in enumerate(indicadores):
             with cols_ind[i % 3]:
@@ -1077,7 +1077,7 @@ def render_fat_crise(obras_db, registos_db,
         alertas_ativos = [i for i in indicadores if not i['ok']]
         if alertas_ativos:
             st.markdown("---")
-            st.markdown("#### ⚡ Alertas Ativos")
+            st.markdown("#### :material/bolt: Alertas Ativos")
             for al in alertas_ativos:
                 sc_a  = al['score']
                 cor_a = THEME['warning'] if sc_a >= 40 else THEME['error']
@@ -1096,7 +1096,7 @@ def render_fat_crise(obras_db, registos_db,
 
         # Outros alertas operacionais
         st.markdown("---")
-        st.markdown("#### 🔔 Alertas Operacionais")
+        st.markdown("#### :material/notifications: Alertas Operacionais")
 
         alertas_op = []
 
@@ -1186,13 +1186,13 @@ def render_fat_crise(obras_db, registos_db,
                     unsafe_allow_html=True
                 )
         else:
-            st.success("✅ Sem alertas operacionais.")
+            st.success(":material/check_circle: Sem alertas operacionais.")
 
     # ════════════════════════════════════════════════════════════════
     # TAB — STRESS TESTS
     # ════════════════════════════════════════════════════════════════
     with t_stress:
-        st.markdown("### ⚡ Stress Tests — 5 Cenários")
+        st.markdown("### :material/bolt: Stress Tests — 5 Cenários")
         st.info(
             "Cada cenário simula um choque financeiro e calcula "
             "o impacto real no cash flow e saldo da empresa."
@@ -1278,7 +1278,7 @@ def render_fat_crise(obras_db, registos_db,
                         )
                         if res.get('financiamento_nec',0) > 0:
                             st.error(
-                                f"💰 Financiamento necessário: "
+                                f":material/payments: Financiamento necessário: "
                                 f"€{res.get('financiamento_nec',0):,.2f}"
                             )
 
@@ -1404,7 +1404,7 @@ def render_fat_crise(obras_db, registos_db,
     # TAB — SIMULADOR E-SE?
     # ════════════════════════════════════════════════════════════════
     with t_simulador:
-        st.markdown("### 🎛️ Simulador Interativo — E se?")
+        st.markdown("### :material/tune: Simulador Interativo — E se?")
         st.info(
             "Ajusta os sliders e vê o impacto em tempo real "
             "no saldo e na margem da empresa."
@@ -1412,7 +1412,7 @@ def render_fat_crise(obras_db, registos_db,
 
         col_sl1, col_sl2 = st.columns(2)
         with col_sl1:
-            st.markdown("#### 📉 Choques Negativos")
+            st.markdown("#### :material/trending_down: Choques Negativos")
             pct_fat_reduz = st.slider(
                 "Redução de faturação (%)",
                 0, 90, 0, 5, key="sim_fat"
@@ -1432,7 +1432,7 @@ def render_fat_crise(obras_db, registos_db,
             )
 
         with col_sl2:
-            st.markdown("#### 📈 Melhorias")
+            st.markdown("#### :material/trending_up: Melhorias")
             pct_fat_aum = st.slider(
                 "Aumento de faturação (%)",
                 0, 100, 0, 5, key="sim_fat_aum"
@@ -1469,7 +1469,7 @@ def render_fat_crise(obras_db, registos_db,
         ) if cust_sim > 0 else 99.0
 
         st.markdown("---")
-        st.markdown("#### 📊 Resultado da Simulação")
+        st.markdown("#### :material/bar_chart: Resultado da Simulação")
 
         col_r1,col_r2,col_r3,col_r4 = st.columns(4)
         delta_fat  = fat_sim  - fat_mes
@@ -1544,7 +1544,7 @@ def render_fat_crise(obras_db, registos_db,
     # TAB — ALTMAN Z-SCORE
     # ════════════════════════════════════════════════════════════════
     with t_altman:
-        st.markdown("### 📐 Modelo Altman Z-Score")
+        st.markdown("### :material/square_foot: Modelo Altman Z-Score")
         st.info(
             "O Altman Z-Score é um modelo académico validado "
             "que estima a probabilidade de dificuldades financeiras "
@@ -1556,7 +1556,7 @@ def render_fat_crise(obras_db, registos_db,
         col_az1, col_az2 = st.columns(2)
 
         with col_az1:
-            st.markdown("#### 📥 Dados Financeiros")
+            st.markdown("#### :material/download: Dados Financeiros")
             st.markdown(
                 f"<small style='color:{THEME['text_secondary']};'>"
                 f"Preenche com os valores do último balanço. "
@@ -1690,7 +1690,7 @@ def render_fat_crise(obras_db, registos_db,
         )
 
         # Explicação das componentes
-        st.markdown("#### 📋 Interpretação das Componentes")
+        st.markdown("#### :material/assignment: Interpretação das Componentes")
         comp_exp = [
             ("X1 = Capital Circulante / Ativo Total",
              f"{altman.get('x1',0):.4f}",
@@ -1804,7 +1804,7 @@ def render_fat_crise(obras_db, registos_db,
 
         # Calculadora de financiamento rápido
         st.markdown("---")
-        st.markdown("#### 💰 Calculadora de Necessidade de Financiamento")
+        st.markdown("#### :material/payments: Calculadora de Necessidade de Financiamento")
 
         col_calc1, col_calc2 = st.columns(2)
         with col_calc1:
@@ -1851,7 +1851,7 @@ def render_fat_crise(obras_db, registos_db,
     # TAB — PLANO DE CONTINGÊNCIA
     # ════════════════════════════════════════════════════════════════
     with t_contingencia:
-        st.markdown("### 📋 Plano de Contingência")
+        st.markdown("### :material/assignment: Plano de Contingência")
         st.info(
             "Plano automático gerado com base no nível de crise "
             "atual. Pode ser editado e descarregado em PDF "
@@ -1911,7 +1911,7 @@ def render_fat_crise(obras_db, registos_db,
         acoes_nivel = acoes_por_nivel.get(nivel, [])
 
         # Ações editáveis
-        st.markdown(f"#### ⚡ Ações para Nível {nivel}")
+        st.markdown(f"#### :material/bolt: Ações para Nível {nivel}")
 
         acoes_editadas = []
         for i, acao in enumerate(acoes_nivel):
@@ -1985,7 +1985,7 @@ def render_fat_crise(obras_db, registos_db,
 
         # Co-Piloto IA para contingência
         st.markdown("---")
-        st.markdown("#### 🤖 Conselho IA para a Situação Atual")
+        st.markdown("#### :material/smart_toy: Conselho IA para a Situação Atual")
 
         if st.button(
             "🤖 Pedir Análise e Recomendações IA",
@@ -1995,7 +1995,7 @@ def render_fat_crise(obras_db, registos_db,
             import anthropic
             api_key = os.environ.get("ANTHROPIC_API_KEY","")
             if not api_key:
-                st.error("❌ API key não configurada.")
+                st.error(":material/close: API key não configurada.")
             else:
                 ctx_ia = {
                     "nivel":          nivel,
@@ -2045,7 +2045,7 @@ def render_fat_crise(obras_db, registos_db,
                         st.session_state['ia_conselho'] = conselho
                         st.rerun()
                     except Exception as e:
-                        st.error(f"❌ Erro: {e}")
+                        st.error(f":material/close: Erro: {e}")
 
         if st.session_state.get('ia_conselho'):
             st.markdown(

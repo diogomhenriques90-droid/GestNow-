@@ -87,7 +87,7 @@ def render_dashboard(*args):
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### 🔍 Filtros")
+    st.markdown("### :material/search: Filtros")
     col_f1, col_f2, col_f3 = st.columns(3)
     with col_f1:
         obra_filtro = st.multiselect("Obras",
@@ -103,7 +103,7 @@ def render_dashboard(*args):
     st.divider()
 
     # ── KPIs ──────────────────────────────────────────────────────────
-    st.markdown("### 🎯 KPIs Principais")
+    st.markdown("### :material/track_changes: KPIs Principais")
 
     total_obras    = len(obras_db[obras_db['Ativa'] == 'Ativa']) if not obras_db.empty else 0
     total_tecnicos = len(users) if not users.empty else 0
@@ -158,7 +158,7 @@ def render_dashboard(*args):
     st.divider()
 
     # ── Gráficos ───────────────────────────────────────────────────────
-    st.markdown("### 📈 Analytics")
+    st.markdown("### :material/trending_up: Analytics")
 
     tab_g1, tab_g2, tab_g3, tab_g4 = st.tabs([
         "📊 Progresso por Obra",
@@ -175,7 +175,7 @@ def render_dashboard(*args):
             st.bar_chart(df_prog.set_index("Obra")["Progresso (%)"], color="#3B82F6")
             st.dataframe(df_prog, use_container_width=True, hide_index=True)
         else:
-            st.info("📋 Sem dados de instrumentação disponíveis.")
+            st.info(":material/assignment: Sem dados de instrumentação disponíveis.")
 
     # TAB 2 ✅ CORRIGIDO — NaTType
     with tab_g2:
@@ -203,13 +203,13 @@ def render_dashboard(*args):
                 st.bar_chart(horas_semana.set_index("Semana"), color="#10B981")
                 st.dataframe(horas_semana, use_container_width=True, hide_index=True)
             else:
-                st.info("📋 Sem datas válidas nos registos.")
+                st.info(":material/assignment: Sem datas válidas nos registos.")
         else:
-            st.info("📋 Sem registos de horas disponíveis.")
+            st.info(":material/assignment: Sem registos de horas disponíveis.")
 
     # TAB 3
     with tab_g3:
-        st.markdown("### 🔥 Mapa de Incidentes HSE")
+        st.markdown("### :material/local_fire_department: Mapa de Incidentes HSE")
         if not incs_db.empty:
             hse_db = incs_db[incs_db.get('Tipo', '') != 'Avaria'] if 'Tipo' in incs_db.columns else incs_db
             if not hse_db.empty:
@@ -226,13 +226,13 @@ def render_dashboard(*args):
                 cols_show = [c for c in ['Data','Utilizador','Obra','Descricao','Gravidade','Status'] if c in hse_db.columns]
                 st.dataframe(hse_db[cols_show].head(10), use_container_width=True, hide_index=True)
             else:
-                st.success("✅ Sem incidentes HSE!")
+                st.success(":material/check_circle: Sem incidentes HSE!")
         else:
-            st.success("✅ Sem incidentes registados!")
+            st.success(":material/check_circle: Sem incidentes registados!")
 
     # TAB 4
     with tab_g4:
-        st.markdown("### 🏆 Ranking de Produtividade")
+        st.markdown("### :material/emoji_events: Ranking de Produtividade")
         if not registos_db.empty and 'Técnico' in registos_db.columns:
             df_rank = registos_db.copy()
             df_rank['Horas_Total'] = pd.to_numeric(df_rank['Horas_Total'], errors='coerce').fillna(0)
@@ -257,12 +257,12 @@ def render_dashboard(*args):
                 st.markdown("### ⏳ Validações Pendentes")
                 st.dataframe(pendentes, use_container_width=True, hide_index=True)
         else:
-            st.info("📋 Sem dados disponíveis.")
+            st.info(":material/assignment: Sem dados disponíveis.")
 
     st.divider()
 
     # ── Previsões ──────────────────────────────────────────────────────
-    st.markdown("### 🔮 Previsões")
+    st.markdown("### :material/auto_awesome: Previsões")
     data_prev       = (datetime.now() + timedelta(days=max(1, int((100 - progresso_geral) * 3)))).strftime("%d/%m/%Y")
     obras_atrasadas = len([d for d in dados_progresso if d.get('Progresso (%)', 0) < 50])
     pend_horas      = int(registos_db[registos_db['Status'] == '0']['Horas_Total'].sum()) if not registos_db.empty else 0
@@ -290,11 +290,11 @@ def render_dashboard(*args):
     st.divider()
 
     # ── Atividades Recentes ────────────────────────────────────────────
-    st.markdown("### 🕐 Atividades Recentes")
+    st.markdown("### :material/schedule: Atividades Recentes")
     col_a1, col_a2 = st.columns(2)
 
     with col_a1:
-        st.markdown("#### 📋 Últimas Validações")
+        st.markdown("#### :material/assignment: Últimas Validações")
         if not registos_db.empty:
             ult_val = registos_db[registos_db['Status'] == '1'].tail(5)
             if not ult_val.empty:
@@ -320,7 +320,7 @@ def render_dashboard(*args):
             st.info("Sem registos.")
 
     with col_a2:
-        st.markdown("#### 🔧 Últimas Instalações")
+        st.markdown("#### :material/build: Últimas Instalações")
         if instalacoes:
             for i in instalacoes[-5:]:
                 st.markdown(f"""

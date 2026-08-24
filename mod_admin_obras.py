@@ -23,7 +23,7 @@ def _parse_data_pt(s):
 
 
 def render_obras(obras_db, frentes_db, users, inst_acessos_db):
-    st.markdown("### 🏗️ Gestão de Obras")
+    st.markdown("### :material/construction: Gestão de Obras")
 
     # Carregar histórico de obras
     try:
@@ -64,7 +64,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
         col1, col2 = st.columns([1, 2])
 
         with col1:
-            st.markdown("#### ➕ Nova Obra")
+            st.markdown("#### :material/add: Nova Obra")
             with st.form("form_nova_obra"):
                 nome     = st.text_input("Nome da Obra *", key="obra_nome")
                 cliente, cliente_novo = cliente_select("Cliente *", "obra_cliente")
@@ -84,10 +84,10 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                     use_container_width=True, type="primary"
                 ):
                     if not nome.strip() or not cliente.strip():
-                        st.error("❌ Nome e Cliente obrigatórios.")
+                        st.error(":material/close: Nome e Cliente obrigatórios.")
                     elif not obras_db.empty and \
                          nome.strip() in obras_db['Obra'].values:
-                        st.error("❌ Obra já existe.")
+                        st.error(":material/close: Obra já existe.")
                     else:
                         if cliente_novo:
                             registar_cliente_do_select(cliente, "obra_cliente")
@@ -107,17 +107,17 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                         ) if not obras_db.empty else nova
                         save_db(obras_db, "obras_lista.csv")
                         inv("obras_lista.csv")
-                        st.success(f"✅ Obra '{nome}' criada!")
+                        st.success(f":material/check_circle: Obra '{nome}' criada!")
                         st.rerun(scope="fragment")
 
         with col2:
-            st.markdown("#### 🏭 Obras Ativas")
+            st.markdown("#### :material/factory: Obras Ativas")
             if obras_db.empty:
-                st.info("📋 Sem obras.")
+                st.info(":material/assignment: Sem obras.")
             else:
                 ativas = obras_db[obras_db['Ativa'] == 'Ativa']
                 if ativas.empty:
-                    st.info("📋 Sem obras ativas.")
+                    st.info(":material/assignment: Sem obras ativas.")
                 else:
                     for _, ob in ativas.iterrows():
                         ob_nome = ob.get('Obra','')
@@ -191,7 +191,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     st.caption(f"Requisitos Adicionais: {instrucoes}")
                             else:
                                 st.info(
-                                    "📋 Sem requisitos de acesso configurados para esta "
+                                    ":material/assignment: Sem requisitos de acesso configurados para esta "
                                     "obra — configura em Gestão de Acessos › ⚙️ Requisitos "
                                     "de Acesso por Obra."
                                 )
@@ -217,7 +217,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     st.caption(linha)
                             else:
                                 st.info(
-                                    "👤 Sem pessoas de contacto registadas para este "
+                                    ":material/person: Sem pessoas de contacto registadas para este "
                                     "cliente — regista em Faturação › Clientes › "
                                     "Gestão de Clientes."
                                 )
@@ -315,13 +315,13 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     from core import _cached_load_all
                                     _cached_load_all.clear()
                                     st.session_state[f'a_editar_obra_{ob_nome}'] = False
-                                    st.success(f"✅ Obra '{ob_nome}' atualizada!")
+                                    st.success(f":material/check_circle: Obra '{ob_nome}' atualizada!")
                                     st.rerun(scope="fragment")
 
                         # Confirmação fechar
                         if st.session_state.get(f'confirmar_fechar_{ob_nome}'):
                             st.warning(
-                                f"⚠️ Confirmas que queres fechar a obra **{ob_nome}**? "
+                                f":material/warning: Confirmas que queres fechar a obra **{ob_nome}**? "
                                 f"Vai para o histórico."
                             )
                             col_sim, col_nao = st.columns(2)
@@ -366,7 +366,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     st.session_state.pop(
                                         f'confirmar_fechar_{ob_nome}', None
                                     )
-                                    st.success(f"✅ Obra '{ob_nome}' fechada e movida para histórico.")
+                                    st.success(f":material/check_circle: Obra '{ob_nome}' fechada e movida para histórico.")
                                     st.rerun(scope="fragment")
                             with col_nao:
                                 if st.button(
@@ -383,7 +383,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
     # TAB ALOCAÇÕES
     # ════════════════════════════════════════════════════════════════
     with tab_alocacoes:
-        st.markdown("#### 👷 Alocação de Colaboradores")
+        st.markdown("#### :material/engineering: Alocação de Colaboradores")
 
         obras_ativas = obras_db[
             obras_db['Ativa'] == 'Ativa'
@@ -452,7 +452,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                          key=f"aloc_fc_save_{tec_aloc}",
                          use_container_width=True):
                 if (fc_f_novo and not fc_f_aloc) or (fc_c_novo and not fc_c_aloc):
-                    st.error("⚠️ Introduz o novo valor antes de guardar.")
+                    st.error(":material/warning: Introduz o novo valor antes de guardar.")
                 else:
                     if fc_f_novo:
                         fc_f_aloc = registar_valor_lista_rh("funcao", fc_f_aloc)
@@ -461,10 +461,10 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                             "categoria_operacional", fc_c_aloc)
                     if set_funcao_categoria(tec_aloc, funcao=fc_f_aloc,
                                             categoria=fc_c_aloc):
-                        st.success("✅ Função/Categoria Operacional guardadas.")
+                        st.success(":material/check_circle: Função/Categoria Operacional guardadas.")
                         st.rerun(scope="fragment")
                     else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                        st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
 
         if st.button(
             "➕ Alocar Colaborador",
@@ -483,7 +483,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
 
             if ja_alocado:
                 st.warning(
-                    f"⚠️ {tec_aloc} já está alocado à obra {obra_aloc}."
+                    f":material/warning: {tec_aloc} já está alocado à obra {obra_aloc}."
                 )
             else:
                 nova_aloc = pd.DataFrame([{
@@ -499,17 +499,17 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 ) if not inst_acessos_db.empty else nova_aloc
                 save_db(inst_acessos_db, "inst_acessos.csv")
                 inv("inst_acessos.csv")
-                st.success(f"✅ {tec_aloc} alocado à obra {obra_aloc}!")
+                st.success(f":material/check_circle: {tec_aloc} alocado à obra {obra_aloc}!")
                 st.rerun(scope="fragment")
 
         # ── Colaboradores por obra ────────────────────────────────
         st.markdown("---")
-        st.markdown("#### 👥 Colaboradores por Obra")
+        st.markdown("#### :material/group: Colaboradores por Obra")
 
         if not inst_acessos_db.empty and not obras_ativas:
-            st.info("📋 Sem obras ativas.")
+            st.info(":material/assignment: Sem obras ativas.")
         elif inst_acessos_db.empty:
-            st.info("📋 Sem alocações.")
+            st.info(":material/assignment: Sem alocações.")
         else:
             obra_ver = st.selectbox(
                 "Ver colaboradores da obra",
@@ -522,7 +522,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
             ] if not inst_acessos_db.empty else pd.DataFrame()
 
             if colabs_obra.empty:
-                st.info(f"📋 Sem colaboradores em {obra_ver}.")
+                st.info(f":material/assignment: Sem colaboradores em {obra_ver}.")
             else:
                 for _, colab in colabs_obra.iterrows():
                     col_ci, col_cm = st.columns([4, 1])
@@ -574,7 +574,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     f'acao_colab_{colab_idx}', None
                                 )
                                 st.success(
-                                    f"✅ {colab.get('Utilizador','')} "
+                                    f":material/check_circle: {colab.get('Utilizador','')} "
                                     f"movido para {nova_obra_mv}!"
                                 )
                                 st.rerun(scope="fragment")
@@ -597,7 +597,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     f'acao_colab_{colab_idx}', None
                                 )
                                 st.success(
-                                    f"✅ {colab.get('Utilizador','')} "
+                                    f":material/check_circle: {colab.get('Utilizador','')} "
                                     f"removido de {obra_ver}."
                                 )
                                 st.rerun(scope="fragment")
@@ -606,10 +606,10 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
     # TAB HISTÓRICO
     # ════════════════════════════════════════════════════════════════
     with tab_historico:
-        st.markdown("#### 📜 Obras Fechadas")
+        st.markdown("#### :material/history_edu: Obras Fechadas")
 
         if obras_historico.empty:
-            st.info("📋 Sem obras no histórico.")
+            st.info(":material/assignment: Sem obras no histórico.")
         else:
             for _, ob_h in obras_historico.sort_values(
                 'DataFecho', ascending=False
@@ -633,7 +633,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
 
             # Reativar obra do histórico
             st.markdown("---")
-            st.markdown("#### 🔄 Reativar Obra")
+            st.markdown("#### :material/refresh: Reativar Obra")
             obras_hist_lista = obras_historico['Obra'].tolist()
             obra_reativar    = st.selectbox(
                 "Selecionar obra para reativar",
@@ -654,5 +654,5 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 save_db(obras_db,        "obras_lista.csv")
                 save_db(obras_historico, "obras_historico.csv")
                 inv("obras_lista.csv"); inv("obras_historico.csv")
-                st.success(f"✅ Obra '{obra_reativar}' reativada!")
+                st.success(f":material/check_circle: Obra '{obra_reativar}' reativada!")
                 st.rerun(scope="fragment")

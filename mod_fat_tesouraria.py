@@ -748,17 +748,17 @@ def render_fat_tesouraria(obras_db, registos_db,
         )
     elif autonomia_meses < 1:
         st.error(
-            "🔴 Autonomia inferior a 1 mês — "
+            ":material/circle: Autonomia inferior a 1 mês — "
             "ativar plano de contingência!"
         )
     elif autonomia_meses < 3:
         st.warning(
-            f"⚠️ Autonomia de {autonomia_meses:.1f} meses — "
+            f":material/warning: Autonomia de {autonomia_meses:.1f} meses — "
             "monitorizar de perto."
         )
     else:
         st.success(
-            f"✅ Tesouraria saudável — "
+            f":material/check_circle: Tesouraria saudável — "
             f"{autonomia_meses:.1f} meses de autonomia."
         )
 
@@ -778,7 +778,7 @@ def render_fat_tesouraria(obras_db, registos_db,
     # TAB — CASH FLOW 90 DIAS
     # ════════════════════════════════════════════════════════════════
     with t_cf:
-        st.markdown("### 💵 Cash Flow Previsional — 90 Dias")
+        st.markdown("### :material/payments: Cash Flow Previsional — 90 Dias")
 
         # Gráfico principal
         st.plotly_chart(
@@ -793,7 +793,7 @@ def render_fat_tesouraria(obras_db, registos_db,
         )
 
         # Resumo por período
-        st.markdown("#### 📊 Resumo por Período")
+        st.markdown("#### :material/bar_chart: Resumo por Período")
         col_30, col_60, col_90 = st.columns(3)
 
         for col, dias_n, label in [
@@ -838,7 +838,7 @@ def render_fat_tesouraria(obras_db, registos_db,
 
         # Eventos críticos
         st.markdown("---")
-        st.markdown("#### ⚡ Eventos Críticos Previstos")
+        st.markdown("#### :material/bolt: Eventos Críticos Previstos")
 
         eventos_crit = [
             d for d in cf_data
@@ -846,7 +846,7 @@ def render_fat_tesouraria(obras_db, registos_db,
         ][:20]  # top 20 eventos
 
         if not eventos_crit:
-            st.info("📋 Sem eventos financeiros previstos.")
+            st.info(":material/assignment: Sem eventos financeiros previstos.")
         else:
             for ev in eventos_crit:
                 for item in ev['items']:
@@ -907,12 +907,12 @@ def render_fat_tesouraria(obras_db, registos_db,
     # TAB — CONTAS BANCÁRIAS
     # ════════════════════════════════════════════════════════════════
     with t_contas:
-        st.markdown("### 🏦 Contas Bancárias")
+        st.markdown("### :material/account_balance: Contas Bancárias")
 
         col_cform, col_clista = st.columns([1, 2])
 
         with col_cform:
-            st.markdown("#### ➕ Registar Conta")
+            st.markdown("#### :material/add: Registar Conta")
             with st.form("form_conta"):
                 c_nome  = st.text_input(
                     "Nome da Conta *",
@@ -951,7 +951,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                     use_container_width=True, type="primary"
                 ):
                     if not c_nome.strip():
-                        st.error("❌ Nome obrigatório.")
+                        st.error(":material/close: Nome obrigatório.")
                     else:
                         nova_c = pd.DataFrame([{
                             "ID":         str(uuid.uuid4())[:8].upper(),
@@ -978,11 +978,11 @@ def render_fat_tesouraria(obras_db, registos_db,
                             ip=""
                         )
                         inv("contas_bancarias.csv")
-                        st.success(f"✅ Conta {c_nome} guardada!")
+                        st.success(f":material/check_circle: Conta {c_nome} guardada!")
                         st.rerun()
 
         with col_clista:
-            st.markdown("#### 📊 Posição Bancária")
+            st.markdown("#### :material/bar_chart: Posição Bancária")
 
             # Gráfico saldo
             fig_sal = _grafico_saldo_contas(contas_db)
@@ -992,7 +992,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                 )
 
             if contas_db.empty:
-                st.info("📋 Sem contas registadas.")
+                st.info(":material/assignment: Sem contas registadas.")
             else:
                 total_bancos = pd.to_numeric(
                     contas_db.get('Saldo', pd.Series()),
@@ -1061,7 +1061,7 @@ def render_fat_tesouraria(obras_db, registos_db,
     # TAB — RECONCILIAÇÃO BANCÁRIA
     # ════════════════════════════════════════════════════════════════
     with t_rec:
-        st.markdown("### 🔄 Reconciliação Bancária")
+        st.markdown("### :material/refresh: Reconciliação Bancária")
         st.info(
             "Faz upload do extrato bancário (CSV/OFX) ou "
             "regista movimentos manualmente. "
@@ -1071,7 +1071,7 @@ def render_fat_tesouraria(obras_db, registos_db,
         col_rec1, col_rec2 = st.columns([1, 2])
 
         with col_rec1:
-            st.markdown("#### 📤 Upload Extrato")
+            st.markdown("#### :material/upload: Upload Extrato")
 
             upload_ext = st.file_uploader(
                 "Extrato bancário (CSV)",
@@ -1090,7 +1090,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                             on_bad_lines='skip'
                         )
                         st.success(
-                            f"✅ {len(df_ext)} movimentos carregados!"
+                            f":material/check_circle: {len(df_ext)} movimentos carregados!"
                         )
                         st.dataframe(
                             df_ext.head(10),
@@ -1155,14 +1155,14 @@ def render_fat_tesouraria(obras_db, registos_db,
                             save_db(upd_mv, "movimentos_bancarios.csv")
                             inv("movimentos_bancarios.csv")
                             st.success(
-                                f"✅ {len(novos_mv)} movimentos importados!"
+                                f":material/check_circle: {len(novos_mv)} movimentos importados!"
                             )
                             st.rerun()
                     except Exception as e:
-                        st.error(f"❌ Erro ao ler extrato: {e}")
+                        st.error(f":material/close: Erro ao ler extrato: {e}")
 
             st.markdown("---")
-            st.markdown("#### ➕ Registo Manual")
+            st.markdown("#### :material/add: Registo Manual")
 
             with st.form("form_movimento"):
                 if not contas_db.empty:
@@ -1199,7 +1199,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                     use_container_width=True, type="primary"
                 ):
                     if not mv_desc.strip():
-                        st.error("❌ Descrição obrigatória.")
+                        st.error(":material/close: Descrição obrigatória.")
                     else:
                         novo_mv = pd.DataFrame([{
                             "ID":       str(uuid.uuid4())[:8].upper(),
@@ -1219,11 +1219,11 @@ def render_fat_tesouraria(obras_db, registos_db,
                         ) if not movimentos_db.empty else novo_mv
                         save_db(upd_mv2, "movimentos_bancarios.csv")
                         inv("movimentos_bancarios.csv")
-                        st.success("✅ Movimento registado!")
+                        st.success(":material/check_circle: Movimento registado!")
                         st.rerun()
 
         with col_rec2:
-            st.markdown("#### 📊 Movimentos por Conciliar")
+            st.markdown("#### :material/bar_chart: Movimentos por Conciliar")
 
             # Gráfico reconciliação
             fig_rec = _grafico_reconciliacao(movimentos_db)
@@ -1233,7 +1233,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                 )
 
             if movimentos_db.empty:
-                st.info("📋 Sem movimentos registados.")
+                st.info(":material/assignment: Sem movimentos registados.")
             else:
                 # KPIs reconciliação
                 total_mv  = len(movimentos_db)
@@ -1322,7 +1322,7 @@ def render_fat_tesouraria(obras_db, registos_db,
     # TAB — FUNDO DE MANEIO
     # ════════════════════════════════════════════════════════════════
     with t_fm:
-        st.markdown("### 💼 Fundo de Maneio por Obra")
+        st.markdown("### :material/work: Fundo de Maneio por Obra")
         st.info(
             "Dinheiro adiantado ao chefe de equipa para "
             "despesas em obra. "
@@ -1344,7 +1344,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                     obras_db['Ativa'] == 'Ativa'
                 ]['Obra'].tolist()
 
-            st.markdown("#### ➕ Adiantamento")
+            st.markdown("#### :material/add: Adiantamento")
             with st.form("form_fm_adiant"):
                 fm_obra  = st.selectbox(
                     "Obra *",
@@ -1371,7 +1371,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                     use_container_width=True, type="primary"
                 ):
                     if not fm_resp.strip() or fm_adiant <= 0:
-                        st.error("❌ Responsável e valor obrigatórios.")
+                        st.error(":material/close: Responsável e valor obrigatórios.")
                     else:
                         novo_fm = pd.DataFrame([{
                             "ID":           str(uuid.uuid4())[:8].upper(),
@@ -1390,13 +1390,13 @@ def render_fat_tesouraria(obras_db, registos_db,
                         save_db(upd_fm, "fundo_maneio.csv")
                         inv("fundo_maneio.csv")
                         st.success(
-                            f"✅ Adiantamento €{fm_adiant:.2f} "
+                            f":material/check_circle: Adiantamento €{fm_adiant:.2f} "
                             f"para {fm_resp}!"
                         )
                         st.rerun()
 
             st.markdown("---")
-            st.markdown("#### 🧾 Registar Gasto")
+            st.markdown("#### :material/receipt_long: Registar Gasto")
             with st.form("form_fm_gasto"):
                 fm_id_sel = ""
                 if not fm_db.empty:
@@ -1437,10 +1437,10 @@ def render_fat_tesouraria(obras_db, registos_db,
                     use_container_width=True, type="primary"
                 ):
                     if fm_gasto_val <= 0 or not fm_gasto_desc.strip():
-                        st.error("❌ Valor e descrição obrigatórios.")
+                        st.error(":material/close: Valor e descrição obrigatórios.")
                     elif not fm_comp:
                         st.error(
-                            "❌ Comprovativo obrigatório "
+                            ":material/close: Comprovativo obrigatório "
                             "para registar gasto."
                         )
                     else:
@@ -1462,23 +1462,23 @@ def render_fat_tesouraria(obras_db, registos_db,
                             save_db(fm_db, "fundo_maneio.csv")
                             inv("fundo_maneio.csv")
                             st.success(
-                                f"✅ Gasto €{fm_gasto_val:.2f} "
+                                f":material/check_circle: Gasto €{fm_gasto_val:.2f} "
                                 f"registado com comprovativo!"
                             )
                             st.rerun()
 
         with col_fm2:
-            st.markdown("#### 📋 Fundos em Aberto")
+            st.markdown("#### :material/assignment: Fundos em Aberto")
 
             if fm_db.empty:
-                st.info("📋 Sem fundos de maneio registados.")
+                st.info(":material/assignment: Sem fundos de maneio registados.")
             else:
                 em_aberto_show = fm_db[
                     fm_db.get('Estado','') == 'Em Aberto'
                 ] if 'Estado' in fm_db.columns else fm_db
 
                 if em_aberto_show.empty:
-                    st.success("✅ Todos os fundos acertados!")
+                    st.success(":material/check_circle: Todos os fundos acertados!")
                 else:
                     for _, fm_row in em_aberto_show.iterrows():
                         fm_rid   = fm_row.get('ID','')
@@ -1533,7 +1533,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                                 ] = 'Acertado'
                                 save_db(fm_db, "fundo_maneio.csv")
                                 inv("fundo_maneio.csv")
-                                st.success("✅ Fundo acertado!")
+                                st.success(":material/check_circle: Fundo acertado!")
                                 st.rerun()
                         with col_fmb:
                             st.markdown(
@@ -1548,14 +1548,14 @@ def render_fat_tesouraria(obras_db, registos_db,
     # TAB — PREVISÃO IA
     # ════════════════════════════════════════════════════════════════
     with t_ia:
-        st.markdown("### 🤖 Previsão Inteligente de Tesouraria")
+        st.markdown("### :material/smart_toy: Previsão Inteligente de Tesouraria")
         st.info(
             "A IA analisa o cash flow previsto, os padrões "
             "históricos e sugere ações preventivas."
         )
 
         # Indicadores de saúde
-        st.markdown("#### 🩺 Diagnóstico Atual")
+        st.markdown("#### :material/health_and_safety: Diagnóstico Atual")
 
         indicadores = [
             ("🏦 Saldo Atual",

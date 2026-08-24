@@ -291,10 +291,10 @@ def render_inicio(*args):
         if not m_.empty:
             row = m_.iloc[0]
             if row.get('PDFs_Validados', 'Não') != 'Sim':
-                st.warning("📄 Tens documentos obrigatórios por validar.")
+                st.warning(":material/description: Tens documentos obrigatórios por validar.")
             if row.get('PrecoHoraStatus', '') == '':
-                st.warning("💰 Tens o preço hora por aceitar.")
+                st.warning(":material/payments: Tens o preço hora por aceitar.")
             elif row.get('PrecoHoraStatus', '') == 'Recusado':
-                st.error("❌ Preço hora recusado — contacta o administrador.")
+                st.error(":material/close: Preço hora recusado — contacta o administrador.")
     except:
         pass

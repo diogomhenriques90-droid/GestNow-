@@ -106,7 +106,7 @@ def render_contactos_iso(*_):
         (ct_db["Oportunidade_ID"].isna() | (ct_db["Oportunidade_ID"] == "")).sum()
     ) if not ct_db.empty else 0
 
-    st.markdown("### 🔗 Contactos ISO 9001:2015")
+    st.markdown("### :material/link: Contactos ISO 9001:2015")
     c1, c2, c3, c4 = st.columns(4)
     with c1: st.metric("📋 Total Contactos",   n_total)
     with c2: st.metric("🟡 Em Aberto",          n_aberto)
@@ -126,7 +126,7 @@ def render_contactos_iso(*_):
     # ══════════════════════════════════════════════════════════════════════════
     with tab_lista:
         if ct_db.empty:
-            st.info("📋 Sem contactos registados. Usa o tab ➕ Registar Contacto.")
+            st.info(":material/assignment: Sem contactos registados. Usa o tab ➕ Registar Contacto.")
         else:
             col_f1, col_f2, col_f3, col_f4 = st.columns(4)
             with col_f1:
@@ -251,7 +251,7 @@ def render_contactos_iso(*_):
     # TAB 2 — REGISTAR CONTACTO
     # ══════════════════════════════════════════════════════════════════════════
     with tab_novo:
-        st.markdown("#### ➕ Registar Novo Contacto")
+        st.markdown("#### :material/add: Registar Novo Contacto")
 
         st.markdown("**A — Identificação**")
         col_a1, col_a2, col_a3, col_a4 = st.columns(4)
@@ -305,7 +305,7 @@ def render_contactos_iso(*_):
                     key="ct_n_ev_file",
                 )
                 if n_ev_file and n_ev_file.size > 5 * 1024 * 1024:
-                    st.error("❌ Ficheiro excede 5 MB.")
+                    st.error(":material/close: Ficheiro excede 5 MB.")
                     n_ev_file = None
 
         st.markdown("**E — Ligar a Oportunidade (opcional)**")
@@ -327,7 +327,7 @@ def render_contactos_iso(*_):
             if not n_resumo.strip():   erros.append("Resumo")
 
             if erros:
-                st.error(f"❌ Campos obrigatórios em falta: {', '.join(erros)}")
+                st.error(f":material/close: Campos obrigatórios em falta: {', '.join(erros)}")
             else:
                 cid = str(uuid.uuid4())[:8].upper()
 
@@ -347,7 +347,7 @@ def render_contactos_iso(*_):
                     try:
                         ev_path = _upload_evidencia(n_ev_file, cid)
                     except Exception as e:
-                        st.warning(f"⚠️ Upload de evidência falhou: {e}")
+                        st.warning(f":material/warning: Upload de evidência falhou: {e}")
 
                 op_id = ""
                 if n_op != "— Nenhuma —":
@@ -383,17 +383,17 @@ def render_contactos_iso(*_):
                     detalhes=f"{n_cli_nome} | {n_canal} | {n_sentido}", ip="",
                 )
                 inv("com_contactos.csv")
-                st.success(f"✅ Contacto {cid} registado com sucesso!")
+                st.success(f":material/check_circle: Contacto {cid} registado com sucesso!")
                 st.rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     # TAB 3 — TIMELINE POR CLIENTE
     # ══════════════════════════════════════════════════════════════════════════
     with tab_timeline:
-        st.markdown("#### 🔗 Timeline de Rastreabilidade por Cliente")
+        st.markdown("#### :material/link: Timeline de Rastreabilidade por Cliente")
 
         if ct_db.empty:
-            st.info("📋 Sem contactos para mostrar timeline.")
+            st.info(":material/assignment: Sem contactos para mostrar timeline.")
         else:
             clientes_u = sorted(ct_db["Cliente_Nome"].dropna().unique().tolist())
             sel_cli = st.selectbox("Selecionar Cliente", clientes_u, key="ct_tl_cli")
@@ -454,10 +454,10 @@ def render_contactos_iso(*_):
     # TAB 4 — ANALYTICS ISO
     # ══════════════════════════════════════════════════════════════════════════
     with tab_analytics:
-        st.markdown("#### 📊 Analytics ISO 9001:2015")
+        st.markdown("#### :material/bar_chart: Analytics ISO 9001:2015")
 
         if ct_db.empty:
-            st.info("📋 Sem dados suficientes para analytics.")
+            st.info(":material/assignment: Sem dados suficientes para analytics.")
         else:
             import plotly.graph_objects as go
             import plotly.express as px
@@ -531,7 +531,7 @@ def render_contactos_iso(*_):
                     if len(sem_op) > 10:
                         st.caption(f"... e mais {len(sem_op) - 10}")
                 else:
-                    st.success("✅ Todos os contactos têm oportunidade ligada.")
+                    st.success(":material/check_circle: Todos os contactos têm oportunidade ligada.")
 
             with col_kpi2:
                 st.markdown("**⚠️ Contactos sem Evidência**")
@@ -550,4 +550,4 @@ def render_contactos_iso(*_):
                     if len(sem_ev) > 10:
                         st.caption(f"... e mais {len(sem_ev) - 10}")
                 else:
-                    st.success("✅ Todos os contactos têm evidência.")
+                    st.success(":material/check_circle: Todos os contactos têm evidência.")

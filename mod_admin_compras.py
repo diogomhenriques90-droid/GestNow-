@@ -40,7 +40,7 @@ def render_compras(*_):
     user_nome = st.session_state.get('user', 'Admin')
     hoje      = date.today()
 
-    st.markdown("### 🛒 Gestão de Compras")
+    st.markdown("### :material/shopping_cart: Gestão de Compras")
 
     # ── KPIs ──────────────────────────────────────────────────────
     n_pend  = len(compras_db[compras_db['Status'] == 'Pendente']) \
@@ -78,14 +78,14 @@ def render_compras(*_):
     # PENDENTES
     # ════════════════════════════════════════════════════════════════
     with tab_pend:
-        st.markdown("#### 🟠 Compras Pendentes de Aprovação")
+        st.markdown("#### :material/circle: Compras Pendentes de Aprovação")
 
         if compras_db.empty:
-            st.info("📋 Sem compras registadas.")
+            st.info(":material/assignment: Sem compras registadas.")
         else:
             pend = compras_db[compras_db['Status'] == 'Pendente'].copy()
             if pend.empty:
-                st.success("✅ Sem compras pendentes!")
+                st.success(":material/check_circle: Sem compras pendentes!")
             else:
                 # Filtros
                 col_f1, col_f2 = st.columns(2)
@@ -183,7 +183,7 @@ def render_compras(*_):
                         if row.get('Fatura_b64'):
                             fat_str = str(row.get('Fatura_b64',''))
                             if fat_str.startswith('JVBER'):
-                                st.info("📄 Fatura PDF anexada")
+                                st.info(":material/description: Fatura PDF anexada")
                             elif len(fat_str) > 100:
                                 try:
                                     st.image(
@@ -247,7 +247,7 @@ def render_compras(*_):
                                     acao_url="/tecnico"
                                 )
                                 inv("compras.csv")
-                                st.success("✅ Aprovado!")
+                                st.success(":material/check_circle: Aprovado!")
                                 st.rerun()
 
                         with col_r:
@@ -289,14 +289,14 @@ def render_compras(*_):
                                     acao_url="/tecnico"
                                 )
                                 inv("compras.csv")
-                                st.error("❌ Rejeitado.")
+                                st.error(":material/close: Rejeitado.")
                                 st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # NOVA COMPRA
     # ════════════════════════════════════════════════════════════════
     with tab_nova:
-        st.markdown("#### ➕ Registar Nova Compra")
+        st.markdown("#### :material/add: Registar Nova Compra")
 
         obras_ativas = []
         if not obras_db.empty and 'Ativa' in obras_db.columns:
@@ -357,7 +357,7 @@ def render_compras(*_):
 
             nc_total = round(nc_qtd * nc_vunit, 2)
             if nc_total > 0:
-                st.info(f"💰 Total calculado: **€{nc_total:,.2f}**")
+                st.info(f":material/payments: Total calculado: **€{nc_total:,.2f}**")
 
             nc_fatura = st.file_uploader(
                 "Anexar Fatura/Orçamento (opcional)",
@@ -373,7 +373,7 @@ def render_compras(*_):
 
             if submitted:
                 if not nc_desc.strip() or nc_qtd <= 0:
-                    st.error("❌ Descrição e quantidade obrigatórias.")
+                    st.error(":material/close: Descrição e quantidade obrigatórias.")
                 else:
                     # Processar fatura
                     fatura_b64 = ""
@@ -420,7 +420,7 @@ def render_compras(*_):
                     )
                     inv("compras.csv")
                     st.success(
-                        f"✅ Compra registada! "
+                        f":material/check_circle: Compra registada! "
                         f"Total: €{nc_total:,.2f}"
                     )
                     st.rerun()
@@ -429,10 +429,10 @@ def render_compras(*_):
     # HISTÓRICO
     # ════════════════════════════════════════════════════════════════
     with tab_hist:
-        st.markdown("#### 📋 Histórico de Compras")
+        st.markdown("#### :material/assignment: Histórico de Compras")
 
         if compras_db.empty:
-            st.info("📋 Sem compras registadas.")
+            st.info(":material/assignment: Sem compras registadas.")
         else:
             col_hf1, col_hf2, col_hf3 = st.columns(3)
             with col_hf1:
@@ -512,13 +512,13 @@ def render_compras(*_):
                         )
                         st.plotly_chart(fig)
             else:
-                st.info("📋 Sem compras com este filtro.")
+                st.info(":material/assignment: Sem compras com este filtro.")
 
     # ════════════════════════════════════════════════════════════════
     # FORNECEDORES
     # ════════════════════════════════════════════════════════════════
     with tab_forn:
-        st.markdown("#### 🏢 Fornecedores Habituais")
+        st.markdown("#### :material/business: Fornecedores Habituais")
 
         forn_db = _load("fornecedores_compras.csv", [
             "ID","Nome","NIF","Email","Telefone",
@@ -553,7 +553,7 @@ def render_compras(*_):
                     type="primary"
                 ):
                     if not f_nome.strip():
-                        st.error("❌ Nome obrigatório.")
+                        st.error(":material/close: Nome obrigatório.")
                     else:
                         novo_f = pd.DataFrame([{
                             "ID":           str(uuid.uuid4())[:8].upper(),
@@ -571,14 +571,14 @@ def render_compras(*_):
                         ) if not forn_db.empty else novo_f
                         save_db(upd_f, "fornecedores_compras.csv")
                         inv("fornecedores_compras.csv")
-                        st.success(f"✅ {f_nome} adicionado!")
+                        st.success(f":material/check_circle: {f_nome} adicionado!")
                         st.rerun()
 
         with col_fc2:
             st.markdown("##### 📋 Lista de Fornecedores")
             if forn_db.empty:
                 st.info(
-                    "📋 Sem fornecedores registados. "
+                    ":material/assignment: Sem fornecedores registados. "
                     "Adiciona os teus fornecedores habituais."
                 )
             else:

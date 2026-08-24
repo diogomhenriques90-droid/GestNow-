@@ -6,7 +6,7 @@ from core import save_db, inv
 def render_faturacao(faturas_db, obras_db):
     """Módulo de Faturação com Todos os Custos"""
     
-    st.markdown("### 💰 Centro de Faturação", unsafe_allow_html=True)
+    st.markdown("### :material/payments: Centro de Faturação", unsafe_allow_html=True)
     
     if not obras_db.empty:
         cliente = st.selectbox("Selecionar Cliente", obras_db['Cliente'].unique().tolist(), key="fat_cliente")
@@ -25,6 +25,6 @@ def render_faturacao(faturas_db, obras_db):
         
         if st.button("📄 Gerar Fatura PDF", type="primary", use_container_width=True, key="btn_gerar_fat"):
             st.info(f"A processar fatura para {cliente}...")
-            st.success("✅ Fatura gerada!")
+            st.success(":material/check_circle: Fatura gerada!")
     else:
-        st.warning("⚠️ Sem obras disponíveis")
+        st.warning(":material/warning: Sem obras disponíveis")

@@ -794,12 +794,12 @@ def render_fat_rh(obras_db, registos_db, *_):
     # TAB — COLABORADORES (ficha financeira)
     # ════════════════════════════════════════════════════════════════
     with t_colab:
-        st.markdown("### 👤 Fichas Financeiras dos Colaboradores")
+        st.markdown("### :material/person: Fichas Financeiras dos Colaboradores")
 
         col_form_c, col_lista_c = st.columns([1, 2])
 
         with col_form_c:
-            st.markdown("#### ➕ Adicionar/Editar Colaborador")
+            st.markdown("#### :material/add: Adicionar/Editar Colaborador")
 
             # Pré-preencher com utilizadores existentes
             users_lista = users_df['Nome'].tolist() \
@@ -900,7 +900,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                                      'rh_nome',''
                                  )
                     if not nome_final:
-                        st.error("❌ Nome obrigatório.")
+                        st.error(":material/close: Nome obrigatório.")
                     else:
                         # Verificar se já existe
                         existe = not rh_db.empty and \
@@ -953,7 +953,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                         st.rerun()
 
         with col_lista_c:
-            st.markdown("#### 📋 Fichas Registadas")
+            st.markdown("#### :material/assignment: Fichas Registadas")
 
             # Gráficos
             col_gc1, col_gc2 = st.columns(2)
@@ -972,7 +972,7 @@ def render_fat_rh(obras_db, registos_db, *_):
 
             if rh_ativos.empty:
                 st.info(
-                    "📋 Sem fichas financeiras. "
+                    ":material/assignment: Sem fichas financeiras. "
                     "Adiciona colaboradores no formulário."
                 )
             else:
@@ -1090,7 +1090,7 @@ def render_fat_rh(obras_db, registos_db, *_):
     # TAB — MAPA DE REMUNERAÇÕES
     # ════════════════════════════════════════════════════════════════
     with t_mapa:
-        st.markdown("### 💰 Mapa de Remunerações Mensal")
+        st.markdown("### :material/payments: Mapa de Remunerações Mensal")
 
         col_m1, col_m2 = st.columns(2)
         with col_m1:
@@ -1108,7 +1108,7 @@ def render_fat_rh(obras_db, registos_db, *_):
 
         if rh_ativos.empty:
             st.info(
-                "📋 Sem fichas financeiras. "
+                ":material/assignment: Sem fichas financeiras. "
                 "Adiciona no tab 👤 Colaboradores."
             )
         else:
@@ -1221,7 +1221,7 @@ def render_fat_rh(obras_db, registos_db, *_):
     # TAB — RECIBOS DE VENCIMENTO
     # ════════════════════════════════════════════════════════════════
     with t_recibos:
-        st.markdown("### 📄 Recibos de Vencimento")
+        st.markdown("### :material/description: Recibos de Vencimento")
 
         col_r1, col_r2 = st.columns(2)
         with col_r1:
@@ -1238,7 +1238,7 @@ def render_fat_rh(obras_db, registos_db, *_):
         mes_num_r = meses_pt.index(mes_rec) + 1
 
         if rh_ativos.empty:
-            st.info("📋 Sem fichas financeiras para gerar recibos.")
+            st.info(":material/assignment: Sem fichas financeiras para gerar recibos.")
         else:
             # Gerar todos em ZIP
             if st.button(
@@ -1275,7 +1275,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                                 n_gerados += 1
                             except Exception as ex:
                                 st.warning(
-                                    f"⚠️ Erro em "
+                                    f":material/warning: Erro em "
                                     f"{colab.get('Nome','')}: {ex}"
                                 )
 
@@ -1284,7 +1284,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                 st.session_state['recibos_zip_nome'] = (
                     f"recibos_{mes_num_r:02d}_{ano_rec}.zip"
                 )
-                st.success(f"✅ {n_gerados} recibo(s) gerado(s)!")
+                st.success(f":material/check_circle: {n_gerados} recibo(s) gerado(s)!")
                 st.rerun()
 
             if st.session_state.get('recibos_zip'):
@@ -1301,7 +1301,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                 )
 
             st.markdown("---")
-            st.markdown("#### 📄 Recibo Individual")
+            st.markdown("#### :material/description: Recibo Individual")
 
             colab_sel_r = st.selectbox(
                 "Colaborador",
@@ -1377,12 +1377,12 @@ def render_fat_rh(obras_db, registos_db, *_):
     # TAB — FÉRIAS & SUBSÍDIOS
     # ════════════════════════════════════════════════════════════════
     with t_ferias:
-        st.markdown("### 🏖️ Gestão de Férias & Subsídios")
+        st.markdown("### :material/beach_access: Gestão de Férias & Subsídios")
 
         col_f1, col_f2 = st.columns([1, 2])
 
         with col_f1:
-            st.markdown("#### ➕ Marcar Férias")
+            st.markdown("#### :material/add: Marcar Férias")
             with st.form("form_ferias"):
                 colab_lista_f = rh_ativos['Nome'].tolist() \
                                 if not rh_ativos.empty else []
@@ -1432,7 +1432,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     use_container_width=True, type="primary"
                 ):
                     if not f_colab or f_fim < f_ini:
-                        st.error("❌ Dados inválidos.")
+                        st.error(":material/close: Dados inválidos.")
                     else:
                         du2 = _dias_uteis(f_ini, f_fim)
                         nova_fer = pd.DataFrame([{
@@ -1452,13 +1452,13 @@ def render_fat_rh(obras_db, registos_db, *_):
                         save_db(upd_fer, "ferias_db.csv")
                         inv("ferias_db.csv")
                         st.success(
-                            f"✅ Férias marcadas para {f_colab}! "
+                            f":material/check_circle: Férias marcadas para {f_colab}! "
                             f"{du2} dia(s)"
                         )
                         st.rerun()
 
         with col_f2:
-            st.markdown("#### 📊 Calendário de Férias")
+            st.markdown("#### :material/bar_chart: Calendário de Férias")
 
             # Heatmap calendário
             fig_cal = _grafico_ferias_calendario(ferias_db, users_df)
@@ -1467,11 +1467,11 @@ def render_fat_rh(obras_db, registos_db, *_):
                     fig_cal, use_container_width=True
                 )
             else:
-                st.info("📅 Sem férias marcadas.")
+                st.info(":material/calendar_month: Sem férias marcadas.")
 
             # Controlo de dias disponíveis
             if not rh_ativos.empty and not ferias_db.empty:
-                st.markdown("#### 📋 Saldo de Férias")
+                st.markdown("#### :material/assignment: Saldo de Férias")
                 for _, colab in rh_ativos.iterrows():
                     nome_c = colab.get('Nome','')
                     # Dias gozados este ano
@@ -1526,7 +1526,7 @@ def render_fat_rh(obras_db, registos_db, *_):
 
         # Subsídios
         st.markdown("---")
-        st.markdown("#### 💰 Subsídios de Férias e Natal")
+        st.markdown("#### :material/payments: Subsídios de Férias e Natal")
         st.info(
             f"Sub. Férias — pago normalmente em **junho**, "
             f"antes das férias. "
@@ -1561,7 +1561,7 @@ def render_fat_rh(obras_db, registos_db, *_):
     # TAB — PROVISÕES
     # ════════════════════════════════════════════════════════════════
     with t_prov:
-        st.markdown("### 📊 Provisões Obrigatórias")
+        st.markdown("### :material/bar_chart: Provisões Obrigatórias")
         st.info(
             "As provisões são reservas mensais para fazer face "
             "às obrigações futuras — subsídios, TSU, seguros. "
@@ -1569,7 +1569,7 @@ def render_fat_rh(obras_db, registos_db, *_):
         )
 
         if rh_ativos.empty:
-            st.info("📋 Sem fichas para calcular provisões.")
+            st.info(":material/assignment: Sem fichas para calcular provisões.")
         else:
             col_pv1, col_pv2 = st.columns(2)
             with col_pv1:
@@ -1581,7 +1581,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                 )
             with col_pv2:
                 # Resumo provisões do mês
-                st.markdown("#### 📋 Provisões do Mês Atual")
+                st.markdown("#### :material/assignment: Provisões do Mês Atual")
                 total_prov_m  = 0.0
                 total_tsu_emp = 0.0
                 total_seg_a   = 0.0
@@ -1659,7 +1659,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     save_db(upd_prov, "provisoes_db.csv")
                     inv("provisoes_db.csv")
                     st.success(
-                        f"✅ Provisões de "
+                        f":material/check_circle: Provisões de "
                         f"{meses_pt[mes_atual-1]} registadas!"
                     )
                     st.rerun()
@@ -1668,7 +1668,7 @@ def render_fat_rh(obras_db, registos_db, *_):
     # TAB — MAPA IRS/SS ANUAL
     # ════════════════════════════════════════════════════════════════
     with t_irs:
-        st.markdown("### 📋 Mapa Anual IRS / Segurança Social")
+        st.markdown("### :material/assignment: Mapa Anual IRS / Segurança Social")
         st.info(
             "Resumo anual para declaração de rendimentos (IRS) "
             "e declaração de remunerações (SS). "
@@ -1680,7 +1680,7 @@ def render_fat_rh(obras_db, registos_db, *_):
         )
 
         if rh_ativos.empty:
-            st.info("📋 Sem fichas financeiras.")
+            st.info(":material/assignment: Sem fichas financeiras.")
         else:
             rows_irs = []
             for _, colab in rh_ativos.iterrows():

@@ -90,7 +90,7 @@ def render_login():
 
         if submitted:
             if not username or not password:
-                st.warning("⚠️ Preenche o utilizador e a password.")
+                st.warning(":material/warning: Preenche o utilizador e a password.")
             else:
                 # ✅ Strip do input do utilizador antes de comparar
                 username_clean = username.strip()
@@ -101,10 +101,10 @@ def render_login():
 
                 if users.empty:
                     st.error(
-                        "❌ Não foi possível aceder à base de dados. "
+                        ":material/close: Não foi possível aceder à base de dados. "
                         "Tenta novamente em alguns segundos."
                     )
-                    st.info("💡 Se o problema persistir, verifica a ligação à internet.")
+                    st.info(":material/lightbulb: Se o problema persistir, verifica a ligação à internet.")
                 else:
                     # ✅ Comparação com strip nos dois lados
                     user_found  = False
@@ -118,7 +118,7 @@ def render_login():
                             break
 
                     if not user_found:
-                        st.error(f"❌ Utilizador '{username_clean}' não encontrado.")
+                        st.error(f":material/close: Utilizador '{username_clean}' não encontrado.")
                         # Debug: mostrar lista de nomes disponíveis (remover em produção)
                         # with st.expander("🔍 Debug — nomes no sistema"):
                         #     st.write(users['Nome'].tolist())
@@ -127,7 +127,7 @@ def render_login():
 
                         if not pwd_hash:
                             st.error(
-                                "❌ Este utilizador não tem password definida. "
+                                ":material/close: Este utilizador não tem password definida. "
                                 "Contacta o administrador."
                             )
                         elif cp(password_clean, pwd_hash):
@@ -139,16 +139,16 @@ def render_login():
                             st.session_state['menu_selected'] = ''
                             # Limpar contadores de erro
                             st.session_state['login_tentativas'] = 0
-                            st.success("✅ Login bem-sucedido!")
+                            st.success(":material/check_circle: Login bem-sucedido!")
                             st.balloons()
                             st.rerun()
                         else:
-                            st.error("❌ Password incorreta.")
+                            st.error(":material/close: Password incorreta.")
                             tentativas = st.session_state.get('login_tentativas', 0) + 1
                             st.session_state['login_tentativas'] = tentativas
                             if tentativas >= 3:
                                 st.warning(
-                                    "⚠️ Várias tentativas falhadas. "
+                                    ":material/warning: Várias tentativas falhadas. "
                                     "Contacta o administrador para resetar a tua password."
                                 )
 
@@ -181,9 +181,9 @@ def render_login():
 
         if submitted_pin:
             if not u_pin or not pin:
-                st.warning("⚠️ Preenche o utilizador e o PIN.")
+                st.warning(":material/warning: Preenche o utilizador e o PIN.")
             elif len(pin.strip()) != 4 or not pin.strip().isdigit():
-                st.error("❌ O PIN deve ter exatamente 4 dígitos numéricos.")
+                st.error(":material/close: O PIN deve ter exatamente 4 dígitos numéricos.")
             else:
                 u_pin_clean = u_pin.strip()
                 pin_clean   = pin.strip()
@@ -192,7 +192,7 @@ def render_login():
                     users = _load_users_fresh()
 
                 if users.empty:
-                    st.error("❌ Não foi possível aceder à base de dados. Tenta novamente.")
+                    st.error(":material/close: Não foi possível aceder à base de dados. Tenta novamente.")
                 else:
                     # ✅ Comparação com strip nos dois lados
                     if 'Nome' in users.columns and 'PIN' in users.columns:
@@ -210,7 +210,7 @@ def render_login():
                         st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()
                         st.session_state['last_activity'] = datetime.now()
                         st.session_state['menu_selected'] = ''
-                        st.success("✅ Login com PIN bem-sucedido!")
+                        st.success(":material/check_circle: Login com PIN bem-sucedido!")
                         st.rerun()
                     else:
                         # Verificar se o utilizador existe mas o PIN está errado
@@ -218,8 +218,8 @@ def render_login():
                             users['Nome'].str.strip().str.lower() == u_pin_clean.lower()
                         ]
                         if user_existe.empty:
-                            st.error(f"❌ Utilizador '{u_pin_clean}' não encontrado.")
+                            st.error(f":material/close: Utilizador '{u_pin_clean}' não encontrado.")
                         else:
-                            st.error("❌ PIN incorreto.")
+                            st.error(":material/close: PIN incorreto.")
 
     st.markdown("</div></div>", unsafe_allow_html=True)

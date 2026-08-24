@@ -382,7 +382,7 @@ def render_tecnico(*args):
             st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
             if st.session_state.pop('_pt_redirect_msg', False):
-                st.info("📱 O registo de horas é feito na **CPS Ponto**.")
+                st.info(":material/smartphone: O registo de horas é feito na **CPS Ponto**.")
                 st.link_button(
                     "🔗 Abrir CPS Ponto",
                     "https://cps-ponto-773461449136.europe-west1.run.app",
@@ -686,7 +686,7 @@ def render_tecnico(*args):
                             unsafe_allow_html=True
                         )
                     elif delta < 0:
-                        st.warning("⚠️ Saída antes da entrada")
+                        st.warning(":material/warning: Saída antes da entrada")
 
                 # Total acumulado
                 if total_horas > 0:
@@ -743,9 +743,9 @@ def render_tecnico(*args):
 
             if guardar:
                 if total_horas <= 0:
-                    st.error("⚠️ Horas têm de ser superiores a 0.")
+                    st.error(":material/warning: Horas têm de ser superiores a 0.")
                 elif not obra_sel or obra_sel == "Sem obras":
-                    st.error("⚠️ Seleciona uma obra.")
+                    st.error(":material/warning: Seleciona uma obra.")
                 else:
                     regs_atual = (registos_db.copy()
                                   if not registos_db.empty
@@ -809,7 +809,7 @@ def render_tecnico(*args):
         # TAB 1 — PRIMEIRA VALIDAÇÃO (Chefe de Equipa)
         # ════════════════════════════════════════════════════════
         with tabs[1]:
-            st.markdown("### ✅ Primeira Validação de Horas")
+            st.markdown("### :material/check_circle: Primeira Validação de Horas")
             st.markdown(
                 f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;margin:0 0 16px;'>"
                 f"Valida ou rejeita os registos de ponto da tua equipa. "
@@ -1207,7 +1207,7 @@ def render_tecnico(*args):
         # TAB 2 — FOLHA DE PONTO (Chefe)
         # ════════════════════════════════════════════════════
         with tabs[2]:
-            st.markdown("### 📊 Folha de Ponto")
+            st.markdown("### :material/bar_chart: Folha de Ponto")
             st.info("Seleciona a obra e o período para gerar a folha assinada.")
 
             obra_f = st.selectbox(
@@ -1285,23 +1285,23 @@ def render_tecnico(*args):
                             upd = (pd.concat([folhas_db, nova], ignore_index=True)
                                    if not folhas_db.empty else nova)
                             save_db(upd, "folhas_ponto.csv")
-                            st.success(f"✅ Folha #{selo} gerada — {ts}")
+                            st.success(f":material/check_circle: Folha #{selo} gerada — {ts}")
                             inv("folhas_ponto.csv")
                             from core import _cached_load_all
                             _cached_load_all.clear()
                         else:
-                            st.warning("⚠️ Indica o nome do responsável.")
+                            st.warning(":material/warning: Indica o nome do responsável.")
                 else:
                     st.info("Sem registos para este período.")
 
     # ── Tab HSE ───────────────────────────────────────────────────
     with tabs[1 + offset]:
-        st.markdown("### 🛡️ Segurança HSE")
+        st.markdown("### :material/shield: Segurança HSE")
         for ic, tit, des in REGRAS_OURO:
             with st.expander(f"{ic} {tit}"):
                 st.write(des)
         st.divider()
-        st.markdown("### 🚨 Reportar Incidente")
+        st.markdown("### :material/emergency: Reportar Incidente")
         with st.form("hse_form"):
             o_hse = st.selectbox(
                 "Obra",
@@ -1337,14 +1337,14 @@ def render_tecnico(*args):
                     inv("incidentes.csv")
                     from core import _cached_load_all
                     _cached_load_all.clear()
-                    st.success("✅ Alerta HSE enviado!")
+                    st.success(":material/check_circle: Alerta HSE enviado!")
                     st.rerun()
                 else:
-                    st.warning("⚠️ Descreve o incidente.")
+                    st.warning(":material/warning: Descreve o incidente.")
 
     # ── Tab Perfil ────────────────────────────────────────────────
     with tabs[-2]:
-        st.markdown("### 👤 Perfil")
+        st.markdown("### :material/person: Perfil")
         if user_data is not None:
             col_v1, col_v2 = st.columns(2)
             with col_v1:
@@ -1579,17 +1579,17 @@ def render_tecnico(*args):
                                 if chk(pa_.strip(), ph):
                                     if len(pn_.strip()) >= 4:
                                         ul.loc[m, 'Password'] = hp(pn_.strip())
-                                        st.success("🔐 Password atualizada!")
+                                        st.success(":material/lock: Password atualizada!")
                                     else:
-                                        st.error("❌ Mínimo 4 caracteres.")
+                                        st.error(":material/close: Mínimo 4 caracteres.")
                                 else:
-                                    st.error("❌ Password atual incorreta.")
+                                    st.error(":material/close: Password atual incorreta.")
                             if pin_.strip():
                                 if (len(pin_.strip()) == 4
                                         and pin_.strip().isdigit()):
                                     ul.loc[m, 'PIN'] = pin_.strip()
                                 else:
-                                    st.error("❌ PIN: 4 dígitos numéricos.")
+                                    st.error(":material/close: PIN: 4 dígitos numéricos.")
                             save_db(ul, "usuarios.csv")
                             log_audit(
                                 usuario=user_nome,
@@ -1602,23 +1602,23 @@ def render_tecnico(*args):
                             inv("usuarios.csv")
                             from core import _cached_load_all
                             _cached_load_all.clear()
-                            st.success("✅ Perfil atualizado!")
+                            st.success(":material/check_circle: Perfil atualizado!")
                             st.rerun()
 
             # ── Contrato ──────────────────────────────────────
             st.markdown("---")
-            st.markdown("#### 📄 Contrato de Trabalho")
+            st.markdown("#### :material/description: Contrato de Trabalho")
 
             ct_enviado  = user_data.get('Contrato_Enviado', '')  == 'Sim'
             ct_assinado = user_data.get('Contrato_Assinado', '') == 'Sim'
             ct_validado = user_data.get('Contrato_Validado_Admin', '') == 'Sim'
 
             if ct_validado:
-                st.success("✅ Contrato assinado e validado pela empresa.")
+                st.success(":material/check_circle: Contrato assinado e validado pela empresa.")
             elif ct_assinado:
                 st.info("⏳ Assinatura submetida — aguarda validação do RH.")
             elif ct_enviado:
-                st.info("📄 O teu contrato está disponível para assinar.")
+                st.info(":material/description: O teu contrato está disponível para assinar.")
                 ct_b64 = user_data.get('Contrato_b64', '')
                 if ct_b64:
                     try:
@@ -1693,7 +1693,7 @@ def render_tecnico(*args):
                             from core import _cached_load_all
                             _cached_load_all.clear()
                             st.success(
-                                "✅ Assinatura submetida! O RH será notificado."
+                                ":material/check_circle: Assinatura submetida! O RH será notificado."
                             )
                             time.sleep(1)
                             st.rerun()
@@ -1707,7 +1707,7 @@ def render_tecnico(*args):
 
             # ── Histórico de Diárias ──────────────────────────
             st.markdown("---")
-            st.markdown("#### 💶 Histórico de Diárias")
+            st.markdown("#### :material/payments: Histórico de Diárias")
             try:
                 diarias_hist = load_db("diarias_pagamentos.csv", [
                     "ID", "Semana_Inicio", "Semana_Fim", "Técnico",
@@ -1773,11 +1773,11 @@ def render_tecnico(*args):
             except:
                 st.info("Módulo de diárias não disponível.")
         else:
-            st.warning("⚠️ Não foi possível carregar os dados.")
+            st.warning(":material/warning: Não foi possível carregar os dados.")
 
     # ── Tab Pedidos ───────────────────────────────────────────────
     with tabs[-1]:
-        st.markdown("### 📦 Pedidos")
+        st.markdown("### :material/inventory_2: Pedidos")
         s1, s2, s3, s4, s5, s6 = st.tabs([
             "🔧 Ferramentas", "🦺 EPIs", "📦 Materiais",
             "⛽ Gasóleo", "🔧 Avarias", "📋 Os Meus"
@@ -1826,9 +1826,9 @@ def render_tecnico(*args):
                         inv("req_ferramentas.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.success("✅"); st.rerun()
+                        st.success(":material/check_circle:"); st.rerun()
                     else:
-                        st.warning("⚠️ Descreve a ferramenta.")
+                        st.warning(":material/warning: Descreve a ferramenta.")
 
         with s2:
             with st.form("fe"):
@@ -1869,7 +1869,7 @@ def render_tecnico(*args):
                     inv("req_epis.csv")
                     from core import _cached_load_all
                     _cached_load_all.clear()
-                    st.success("✅"); st.rerun()
+                    st.success(":material/check_circle:"); st.rerun()
 
         with s3:
             with st.form("fm"):
@@ -1913,9 +1913,9 @@ def render_tecnico(*args):
                         inv("req_materiais.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.success("✅"); st.rerun()
+                        st.success(":material/check_circle:"); st.rerun()
                     else:
-                        st.warning("⚠️ Descreve o material.")
+                        st.warning(":material/warning: Descreve o material.")
 
         with s4:
             with st.form("fg"):
@@ -1965,9 +1965,9 @@ def render_tecnico(*args):
                         inv("req_materiais.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.success("✅"); st.rerun()
+                        st.success(":material/check_circle:"); st.rerun()
                     else:
-                        st.warning("⚠️ Faz upload do recibo e indica os litros.")
+                        st.warning(":material/warning: Faz upload do recibo e indica os litros.")
 
         with s5:
             with st.form("fa"):
@@ -2018,12 +2018,12 @@ def render_tecnico(*args):
                                if not incs_db.empty else n)
                         save_db(upd, "incidentes.csv")
                         _notif("🔧 Avaria", f"{u_}: {eq_} em {o_}")
-                        inv("incidentes.csv"); st.success("✅"); st.rerun()
+                        inv("incidentes.csv"); st.success(":material/check_circle:"); st.rerun()
                     else:
-                        st.warning("⚠️ Descreve e faz upload da fatura.")
+                        st.warning(":material/warning: Descreve e faz upload da fatura.")
 
         with s6:
-            st.markdown("#### 📋 Os Meus Pedidos")
+            st.markdown("#### :material/assignment: Os Meus Pedidos")
             sem = True
             for db_, tp_, cp4 in [
                 (req_fer_db, "🔧", "Descricao"),
@@ -2054,4 +2054,4 @@ def render_tecnico(*args):
                                 unsafe_allow_html=True
                             )
             if sem:
-                st.info("📋 Ainda não fizeste nenhum pedido.")
+                st.info(":material/assignment: Ainda não fizeste nenhum pedido.")

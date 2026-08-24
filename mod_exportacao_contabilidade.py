@@ -775,7 +775,7 @@ def render_exportacao_contabilidade(*_):
     # TAB — EXPORTAR MÊS
     # ════════════════════════════════════════════════════════════════
     with t_export:
-        st.markdown("### 📤 Exportar Mês para Eticadata")
+        st.markdown("### :material/upload: Exportar Mês para Eticadata")
 
         col_e1, col_e2 = st.columns(2)
         with col_e1:
@@ -795,7 +795,7 @@ def render_exportacao_contabilidade(*_):
 
         # Preview rápido do que vai ser exportado
         st.markdown("---")
-        st.markdown("#### 📊 O que vai ser exportado")
+        st.markdown("#### :material/bar_chart: O que vai ser exportado")
 
         # Calcular totais do mês
         def _fat_mes_val(df, col_data, col_val):
@@ -904,7 +904,7 @@ def render_exportacao_contabilidade(*_):
 
             if not lancamentos:
                 st.warning(
-                    "⚠️ Sem dados para este mês. "
+                    ":material/warning: Sem dados para este mês. "
                     "Verifica se existem faturas, compras ou "
                     "registos de salários."
                 )
@@ -931,7 +931,7 @@ def render_exportacao_contabilidade(*_):
                 st.session_state['export_csv']   = csv_b
                 st.session_state['export_pdf']   = pdf_b
                 st.success(
-                    f"✅ {len(lancamentos)} linhas de lançamentos "
+                    f":material/check_circle: {len(lancamentos)} linhas de lançamentos "
                     f"geradas para {mes_exp} {ano_exp}!"
                 )
                 st.rerun()
@@ -1040,11 +1040,11 @@ def render_exportacao_contabilidade(*_):
     # TAB — PREVIEW LANÇAMENTOS
     # ════════════════════════════════════════════════════════════════
     with t_preview:
-        st.markdown("### 👁️ Preview dos Lançamentos")
+        st.markdown("### :material/visibility: Preview dos Lançamentos")
 
         if not st.session_state.get('export_lancamentos'):
             st.info(
-                "📋 Ainda sem export gerado. "
+                ":material/assignment: Ainda sem export gerado. "
                 "Vai ao tab 📤 Exportar Mês e clica em Gerar."
             )
         else:
@@ -1077,10 +1077,10 @@ def render_exportacao_contabilidade(*_):
 
             # Verificação equilíbrio
             if equilibrado:
-                st.success("✅ Lançamentos equilibrados — Débito = Crédito")
+                st.success(":material/check_circle: Lançamentos equilibrados — Débito = Crédito")
             else:
                 st.error(
-                    f"⚠️ Desequilíbrio de "
+                    f":material/warning: Desequilíbrio de "
                     f"€{abs(tot_deb-tot_cred):,.2f} — "
                     f"verificar antes de importar no Eticadata!"
                 )
@@ -1152,7 +1152,7 @@ def render_exportacao_contabilidade(*_):
     # TAB — PLANO DE CONTAS SNC
     # ════════════════════════════════════════════════════════════════
     with t_contas:
-        st.markdown("### ⚙️ Plano de Contas SNC")
+        st.markdown("### :material/settings: Plano de Contas SNC")
         st.info(
             "Configura as contas SNC a usar nos lançamentos. "
             "O TOC deve confirmar que estas contas existem "
@@ -1225,7 +1225,7 @@ def render_exportacao_contabilidade(*_):
                     _save_contas(contas_editadas)
                     inv()
                     st.success(
-                        "✅ Plano de contas guardado! "
+                        ":material/check_circle: Plano de contas guardado! "
                         "Próximo export usará estas contas."
                     )
                     st.rerun()
@@ -1236,12 +1236,12 @@ def render_exportacao_contabilidade(*_):
                 ):
                     _save_contas(CONTAS_SNC_PADRAO.copy())
                     inv()
-                    st.info("✅ Reposto plano padrão SNC.")
+                    st.info(":material/check_circle: Reposto plano padrão SNC.")
                     st.rerun()
 
         # Tabela resumo atual
         st.markdown("---")
-        st.markdown("#### 📋 Contas Configuradas Atualmente")
+        st.markdown("#### :material/assignment: Contas Configuradas Atualmente")
         rows_c = []
         for key, label in [
             item for grupo in grupos.values() for item in grupo
@@ -1280,7 +1280,7 @@ def render_exportacao_contabilidade(*_):
     # TAB — HISTÓRICO DE EXPORTS
     # ════════════════════════════════════════════════════════════════
     with t_historico:
-        st.markdown("### 📋 Histórico de Exports")
+        st.markdown("### :material/assignment: Histórico de Exports")
 
         # Registar export no histórico
         hist_exp = _load("historico_exports_cont.csv",[
@@ -1336,7 +1336,7 @@ def render_exportacao_contabilidade(*_):
 
         if hist_exp2.empty:
             st.info(
-                "📋 Sem exports anteriores. "
+                ":material/assignment: Sem exports anteriores. "
                 "O histórico é preenchido automaticamente "
                 "após cada exportação."
             )

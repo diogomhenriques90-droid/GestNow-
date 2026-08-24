@@ -312,7 +312,7 @@ def _render_dormidas(obras_db, users):
                  if not obras_db.empty else []
     users_list = users['Nome'].tolist() if not users.empty else []
 
-    st.markdown("### 🏨 Gestão de Dormidas")
+    st.markdown("### :material/hotel: Gestão de Dormidas")
 
     # KPIs
     n_ativas  = len(dormidas_db[
@@ -391,7 +391,7 @@ def _render_dormidas(obras_db, users):
             total_d  = round(n_noites * d_vnoite, 2)
             if total_d > 0:
                 st.info(
-                    f"🌙 {n_noites} noite(s) × €{d_vnoite:.2f} = "
+                    f":material/bedtime: {n_noites} noite(s) × €{d_vnoite:.2f} = "
                     f"**€{total_d:.2f}**"
                 )
 
@@ -401,7 +401,7 @@ def _render_dormidas(obras_db, users):
                 type="primary"
             ):
                 if not d_hotel.strip():
-                    st.error("❌ Hotel obrigatório.")
+                    st.error(":material/close: Hotel obrigatório.")
                 else:
                     nova_d = pd.DataFrame([{
                         "ID":           str(uuid.uuid4())[:8].upper(),
@@ -424,14 +424,14 @@ def _render_dormidas(obras_db, users):
                     save_db(upd,"dormidas.csv")
                     inv("dormidas.csv")
                     st.success(
-                        f"✅ Reserva guardada! "
+                        f":material/check_circle: Reserva guardada! "
                         f"{n_noites} noite(s) · €{total_d:.2f}"
                     )
                     st.rerun()
 
     with tab_lista_d:
         if dormidas_db.empty:
-            st.info("📋 Sem dormidas registadas.")
+            st.info(":material/assignment: Sem dormidas registadas.")
         else:
             col_fl1, col_fl2 = st.columns(2)
             with col_fl1:
@@ -524,7 +524,7 @@ def _render_bilhetes(obras_db, users):
                  if not obras_db.empty else []
     users_list = users['Nome'].tolist() if not users.empty else []
 
-    st.markdown("### 🎫 Gestão de Bilhetes de Viagem")
+    st.markdown("### :material/confirmation_number: Gestão de Bilhetes de Viagem")
 
     # KPIs
     n_conf   = len(bilhetes_db[
@@ -593,7 +593,7 @@ def _render_bilhetes(obras_db, users):
     # SUB-TAB — PESQUISA IA
     # ════════════════════════════════════════════════════════════════
     with tab_ia:
-        st.markdown("#### 🤖 Pesquisa Inteligente de Transporte")
+        st.markdown("#### :material/smart_toy: Pesquisa Inteligente de Transporte")
         st.markdown(
             f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;'>"
             "A IA pesquisa opções reais na web (voos, comboios, autocarros) "
@@ -676,7 +676,7 @@ def _render_bilhetes(obras_db, users):
 
             if pesquisar:
                 if not p_origem.strip() or not p_destino.strip():
-                    st.error("❌ Origem e destino obrigatórios.")
+                    st.error(":material/close: Origem e destino obrigatórios.")
                 else:
                     st.session_state['pesquisa_params'] = {
                         "tipo":       p_tipo,
@@ -758,7 +758,7 @@ def _render_bilhetes(obras_db, users):
 
             if not resultados:
                 st.warning(
-                    "⚠️ Sem resultados encontrados. "
+                    ":material/warning: Sem resultados encontrados. "
                     "Tenta ajustar os parâmetros de pesquisa."
                 )
             else:
@@ -927,7 +927,7 @@ def _render_bilhetes(obras_db, users):
                     )
                     inv("bilhetes_viagem.csv")
                     st.success(
-                        f"✅ Bilhete guardado! "
+                        f":material/check_circle: Bilhete guardado! "
                         f"{g_colab} · "
                         f"{opcao.get('origem','')} → "
                         f"{opcao.get('destino','')} · "
@@ -941,7 +941,7 @@ def _render_bilhetes(obras_db, users):
     # SUB-TAB — REGISTAR MANUAL
     # ════════════════════════════════════════════════════════════════
     with tab_manual:
-        st.markdown("#### ✏️ Registar Bilhete Manualmente")
+        st.markdown("#### :material/edit: Registar Bilhete Manualmente")
 
         with st.form("form_bilhete_manual"):
             col_m1, col_m2 = st.columns(2)
@@ -1051,7 +1051,7 @@ def _render_bilhetes(obras_db, users):
                 use_container_width=True, type="primary"
             ):
                 if not m_origem.strip() or not m_destino.strip():
-                    st.error("❌ Origem e destino obrigatórios.")
+                    st.error(":material/close: Origem e destino obrigatórios.")
                 else:
                     import base64 as b64m2
                     bil_b64_m = ""
@@ -1117,7 +1117,7 @@ def _render_bilhetes(obras_db, users):
                     )
                     inv("bilhetes_viagem.csv")
                     st.success(
-                        f"✅ Bilhete guardado! "
+                        f":material/check_circle: Bilhete guardado! "
                         f"{m_colab} · {m_origem}→{m_destino} · "
                         f"€{m_preco:.2f}"
                     )
@@ -1127,10 +1127,10 @@ def _render_bilhetes(obras_db, users):
     # SUB-TAB — LISTA DE BILHETES
     # ════════════════════════════════════════════════════════════════
     with tab_lista:
-        st.markdown("#### 📋 Todos os Bilhetes")
+        st.markdown("#### :material/assignment: Todos os Bilhetes")
 
         if bilhetes_db.empty:
-            st.info("📋 Sem bilhetes registados.")
+            st.info(":material/assignment: Sem bilhetes registados.")
         else:
             col_lf1,col_lf2,col_lf3,col_lf4 = st.columns(4)
             with col_lf1:
@@ -1293,14 +1293,14 @@ def _render_bilhetes(obras_db, users):
     # SUB-TAB — REEMBOLSOS
     # ════════════════════════════════════════════════════════════════
     with tab_reembolsos:
-        st.markdown("#### 💰 Reembolsos Pendentes")
+        st.markdown("#### :material/payments: Reembolsos Pendentes")
         st.info(
             "Bilhetes pagos pelo colaborador que aguardam "
             "reembolso pela empresa."
         )
 
         if bilhetes_db.empty:
-            st.info("📋 Sem bilhetes registados.")
+            st.info(":material/assignment: Sem bilhetes registados.")
         else:
             reemb = bilhetes_db[
                 (bilhetes_db['Pago_Por']=='Colaborador (reembolso)') &
@@ -1319,7 +1319,7 @@ def _render_bilhetes(obras_db, users):
                 ] if not reemb.empty else pd.DataFrame()
 
                 if pend_r.empty:
-                    st.success("✅ Sem reembolsos pendentes!")
+                    st.success(":material/check_circle: Sem reembolsos pendentes!")
                 else:
                     total_reemb = pd.to_numeric(
                         pend_r.get('Preco_Total',0),
@@ -1427,7 +1427,7 @@ def _render_bilhetes(obras_db, users):
                     reemb['Estado']=='Reembolso Processado'
                 ] if not reemb.empty else pd.DataFrame()
                 if proc_r.empty:
-                    st.info("📋 Sem reembolsos processados.")
+                    st.info(":material/assignment: Sem reembolsos processados.")
                 else:
                     total_proc = pd.to_numeric(
                         proc_r.get('Preco_Total',0),
@@ -1463,7 +1463,7 @@ def _render_resumo_viagem(obras_db, users):
         "Origem","Destino","Preco_Total","Estado"
     ])
 
-    st.markdown("### 📊 Resumo de Deslocações")
+    st.markdown("### :material/bar_chart: Resumo de Deslocações")
     st.info(
         "Visão agregada por colaborador e obra — "
         "bilhetes + dormidas da mesma missão."
@@ -1528,7 +1528,7 @@ def _render_resumo_viagem(obras_db, users):
                 })
 
     if not registos:
-        st.info("📋 Sem deslocações registadas.")
+        st.info(":material/assignment: Sem deslocações registadas.")
         return
 
     df_res = pd.DataFrame(registos)
@@ -1668,7 +1668,7 @@ def _render_resumo_viagem(obras_db, users):
 def render_deslocacoes(obras_db, users, *_):
     """Módulo de Deslocações — Dormidas + Bilhetes + Resumo."""
 
-    st.markdown("## 🗺️ Gestão de Deslocações")
+    st.markdown("## :material/map: Gestão de Deslocações")
 
     tab_dorm, tab_bil, tab_res = st.tabs([
         "🏨 Dormidas",

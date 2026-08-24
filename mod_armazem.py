@@ -52,7 +52,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
     # users_db opcional no extra[0]
     users_db = extra[0] if extra else None
 
-    st.markdown("### 📦 Gestão de Armazém & Validações")
+    st.markdown("### :material/inventory_2: Gestão de Armazém & Validações")
 
     (tab_epis, tab_ferramentas, tab_materiais,
      tab_rececao, tab_compras) = st.tabs([
@@ -87,7 +87,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
         inv(csv)
         from core import _cached_load_all
         _cached_load_all.clear()
-        st.success("✅ Aprovado!"); st.rerun()
+        st.success(":material/check_circle: Aprovado!"); st.rerun()
 
     def _rejeitar(df, csv, ped_id, tec, item_desc):
         df.loc[df['ID'] == ped_id, 'Status']         = 'Rejeitado'
@@ -105,7 +105,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
         inv(csv)
         from core import _cached_load_all
         _cached_load_all.clear()
-        st.error("❌ Rejeitado."); st.rerun()
+        st.error(":material/close: Rejeitado."); st.rerun()
 
     def _marcar_enviado(df, csv, ped_id, tec, item_desc, obra):
         df.loc[df['ID'] == ped_id, 'Status']        = 'Enviado'
@@ -124,18 +124,18 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
         inv(csv)
         from core import _cached_load_all
         _cached_load_all.clear()
-        st.info("📬 Marcado como enviado!"); st.rerun()
+        st.info(":material/markunread_mailbox: Marcado como enviado!"); st.rerun()
 
     # ═══ TAB EPIs ════════════════════════════════════════════════
     with tab_epis:
-        st.markdown("### 🦺 EPIs")
+        st.markdown("### :material/engineering: EPIs")
         sub_pend, sub_aprov, sub_hist = st.tabs([
             "🟠 Pendentes", "🔵 Aprovados", "📋 Histórico"
         ])
 
         with sub_pend:
             if req_epi_db.empty:
-                st.info("📋 Sem pedidos."); return
+                st.info(":material/assignment: Sem pedidos."); return
             if 'Data_Validacao' not in req_epi_db.columns:
                 req_epi_db['Data_Validacao'] = ""
             if 'Validado_Por' not in req_epi_db.columns:
@@ -143,7 +143,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
 
             pend = req_epi_db[req_epi_db['Status'] == 'Pendente']
             if pend.empty:
-                st.success("✅ Sem EPIs pendentes!")
+                st.success(":material/check_circle: Sem EPIs pendentes!")
             else:
                 st.markdown(f"**{len(pend)} pedido(s)**")
                 for idx, ped in pend.iterrows():
@@ -199,10 +199,10 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                 req_epi_db['Status'] == 'Aprovado'
             ] if not req_epi_db.empty else pd.DataFrame()
             if aprov.empty:
-                st.info("📋 Sem EPIs aprovados a aguardar envio.")
+                st.info(":material/assignment: Sem EPIs aprovados a aguardar envio.")
             else:
                 st.info(
-                    "📬 Estes EPIs foram aprovados. "
+                    ":material/markunread_mailbox: Estes EPIs foram aprovados. "
                     "Marca como **Enviado** quando saírem do armazém."
                 )
                 for _, ped in aprov.iterrows():
@@ -259,18 +259,18 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         hide_index=True
                     )
                 else:
-                    st.info("📋 Sem histórico.")
+                    st.info(":material/assignment: Sem histórico.")
 
     # ═══ TAB FERRAMENTAS ═════════════════════════════════════════
     with tab_ferramentas:
-        st.markdown("### 🔧 Ferramentas")
+        st.markdown("### :material/build: Ferramentas")
         sub_pf, sub_af, sub_hf = st.tabs([
             "🟠 Pendentes", "🔵 Aprovadas", "📋 Histórico"
         ])
 
         with sub_pf:
             if req_fer_db.empty:
-                st.info("📋 Sem pedidos."); return
+                st.info(":material/assignment: Sem pedidos."); return
             if 'Data_Validacao' not in req_fer_db.columns:
                 req_fer_db['Data_Validacao'] = ""
             if 'Validado_Por' not in req_fer_db.columns:
@@ -278,7 +278,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
 
             pend_f = req_fer_db[req_fer_db['Status'] == 'Pendente']
             if pend_f.empty:
-                st.success("✅ Sem ferramentas pendentes!")
+                st.success(":material/check_circle: Sem ferramentas pendentes!")
             else:
                 st.markdown(f"**{len(pend_f)} pedido(s)**")
                 for idx, ped in pend_f.iterrows():
@@ -344,7 +344,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                 req_fer_db['Status'] == 'Aprovado'
             ] if not req_fer_db.empty else pd.DataFrame()
             if aprov_f.empty:
-                st.info("📋 Sem ferramentas aprovadas a aguardar envio.")
+                st.info(":material/assignment: Sem ferramentas aprovadas a aguardar envio.")
             else:
                 for _, ped in aprov_f.iterrows():
                     pid = ped.get('ID','')
@@ -397,18 +397,18 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         hide_index=True
                     )
                 else:
-                    st.info("📋 Sem histórico.")
+                    st.info(":material/assignment: Sem histórico.")
 
     # ═══ TAB MATERIAIS ═══════════════════════════════════════════
     with tab_materiais:
-        st.markdown("### 📦 Materiais")
+        st.markdown("### :material/inventory_2: Materiais")
         sub_pm, sub_am, sub_hm = st.tabs([
             "🟠 Pendentes", "🔵 Aprovados", "📋 Histórico"
         ])
 
         with sub_pm:
             if req_mat_db.empty:
-                st.info("📋 Sem pedidos."); return
+                st.info(":material/assignment: Sem pedidos."); return
             if 'Data_Validacao' not in req_mat_db.columns:
                 req_mat_db['Data_Validacao'] = ""
             if 'Validado_Por' not in req_mat_db.columns:
@@ -422,7 +422,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                 ) != 'Gasóleo')
             ]
             if pend_m.empty:
-                st.success("✅ Sem materiais pendentes!")
+                st.success(":material/check_circle: Sem materiais pendentes!")
             else:
                 st.markdown(f"**{len(pend_m)} pedido(s)**")
                 for idx, ped in pend_m.iterrows():
@@ -485,7 +485,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                 ) != 'Gasóleo')
             ] if not req_mat_db.empty else pd.DataFrame()
             if aprov_m.empty:
-                st.info("📋 Sem materiais aprovados a aguardar envio.")
+                st.info(":material/assignment: Sem materiais aprovados a aguardar envio.")
             else:
                 for _, ped in aprov_m.iterrows():
                     pid = ped.get('ID','')
@@ -545,11 +545,11 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         hide_index=True
                     )
                 else:
-                    st.info("📋 Sem histórico.")
+                    st.info(":material/assignment: Sem histórico.")
 
     # ═══ TAB RECEÇÃO / ENTREGA ════════════════════════════════════
     with tab_rececao:
-        st.markdown("### 📬 Receção & Confirmação de Entrega")
+        st.markdown("### :material/markunread_mailbox: Receção & Confirmação de Entrega")
         st.info(
             "Aqui o admin regista a confirmação do chefe de equipa "
             "quando o material chega à obra. "
@@ -578,7 +578,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
 
         if not enviados:
             st.success(
-                "✅ Sem material enviado a aguardar confirmação de receção."
+                ":material/check_circle: Sem material enviado a aguardar confirmação de receção."
             )
         else:
             st.markdown(
@@ -714,13 +714,13 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                             from core import _cached_load_all
                             _cached_load_all.clear()
                             st.success(
-                                f"✅ Receção confirmada: {desc}"
+                                f":material/check_circle: Receção confirmada: {desc}"
                             )
                             st.rerun()
 
         # Histórico de entregas
         st.markdown("---")
-        st.markdown("#### 📋 Histórico de Entregas")
+        st.markdown("#### :material/assignment: Histórico de Entregas")
 
         entregues = []
         for df_e, tipo_e in [
@@ -775,7 +775,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         except:
                             pass
         else:
-            st.info("📋 Sem entregas confirmadas ainda.")
+            st.info(":material/assignment: Sem entregas confirmadas ainda.")
 
     # ═══ TAB COMPRAS ═════════════════════════════════════════════
     with tab_compras:

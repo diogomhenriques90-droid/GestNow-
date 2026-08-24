@@ -199,7 +199,7 @@ def render_voice_assistant_global(user_tipo, user_nome, obra_sel=None, insts=Non
         )
         
         # Mostrar resposta na tela
-        st.info(f"🎤 **Comando:** {voice_command}\n\n📢 **Resposta:** {resposta}")
+        st.info(f":material/mic: **Comando:** {voice_command}\n\n📢 **Resposta:** {resposta}")
         
         # Injetar script para falar a resposta
         speak_script = f"""

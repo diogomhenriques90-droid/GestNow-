@@ -1222,7 +1222,7 @@ def render_fat_auditoria(obras_db, registos_db,
     # TAB — CHECKLIST
     # ════════════════════════════════════════════════════════════════
     with t_check:
-        st.markdown("### ✅ Checklist de Auditoria")
+        st.markdown("### :material/check_circle: Checklist de Auditoria")
 
         # Seletor de ano
         ano_aud = st.number_input(
@@ -1288,7 +1288,7 @@ def render_fat_auditoria(obras_db, registos_db,
             )
 
         # Listar itens
-        st.markdown("#### 📋 Itens da Checklist")
+        st.markdown("#### :material/assignment: Itens da Checklist")
 
         cat_atual = ""
         for item in CHECKLIST_AUDITORIA:
@@ -1358,7 +1358,7 @@ def render_fat_auditoria(obras_db, registos_db,
         if itens_criticos:
             st.markdown("---")
             st.error(
-                f"🔴 **{len(itens_criticos)} item(s) crítico(s) "
+                f":material/circle: **{len(itens_criticos)} item(s) crítico(s) "
                 f"por completar!** A auditoria não está pronta."
             )
             for ic in itens_criticos[:5]:
@@ -1400,7 +1400,7 @@ def render_fat_auditoria(obras_db, registos_db,
     # TAB — INCONSISTÊNCIAS
     # ════════════════════════════════════════════════════════════════
     with t_inc:
-        st.markdown("### ⚠️ Relatório de Inconsistências")
+        st.markdown("### :material/warning: Relatório de Inconsistências")
         st.info(
             "O sistema verifica automaticamente os dados "
             "e identifica potenciais problemas para corrigir "
@@ -1416,7 +1416,7 @@ def render_fat_auditoria(obras_db, registos_db,
                 )
             else:
                 st.success(
-                    "✅ Sem inconsistências detetadas! "
+                    ":material/check_circle: Sem inconsistências detetadas! "
                     "Dossier limpo."
                 )
         with col_ig2:
@@ -1462,7 +1462,7 @@ def render_fat_auditoria(obras_db, registos_db,
         # Detalhe por tipo
         if inconsistencias:
             st.markdown("---")
-            st.markdown("#### 📋 Detalhe Completo")
+            st.markdown("#### :material/assignment: Detalhe Completo")
 
             df_inc = pd.DataFrame([{
                 "Tipo":      i['tipo'],
@@ -1542,15 +1542,15 @@ def render_fat_auditoria(obras_db, registos_db,
                             unsafe_allow_html=True
                         )
                     except Exception as e:
-                        st.error(f"❌ {e}")
+                        st.error(f":material/close: {e}")
             elif not inconsistencias:
-                st.success("✅ Sem inconsistências para analisar!")
+                st.success(":material/check_circle: Sem inconsistências para analisar!")
 
     # ════════════════════════════════════════════════════════════════
     # TAB — DOSSIER DIGITAL
     # ════════════════════════════════════════════════════════════════
     with t_dossier:
-        st.markdown("### 📁 Dossier Digital de Auditoria")
+        st.markdown("### :material/folder: Dossier Digital de Auditoria")
         st.info(
             "O dossier digital organiza todos os documentos "
             "necessários para a auditoria anual. "
@@ -1690,7 +1690,7 @@ def render_fat_auditoria(obras_db, registos_db,
 
         # Gerar ZIP do dossier
         st.markdown("---")
-        st.markdown("#### 📦 Exportar Dossier Completo")
+        st.markdown("#### :material/inventory_2: Exportar Dossier Completo")
 
         col_zip1, col_zip2 = st.columns(2)
         with col_zip1:
@@ -1778,7 +1778,7 @@ def render_fat_auditoria(obras_db, registos_db,
                     f"{empresa.get('nif','')}.zip"
                 )
                 st.success(
-                    f"✅ Dossier compilado com "
+                    f":material/check_circle: Dossier compilado com "
                     f"{sum(p['n_docs'] for p in pastas)} documentos!"
                 )
                 st.rerun()
@@ -1800,7 +1800,7 @@ def render_fat_auditoria(obras_db, registos_db,
     # TAB — COMPARATIVO ANUAL
     # ════════════════════════════════════════════════════════════════
     with t_comp:
-        st.markdown("### 📊 Comparativo Anual")
+        st.markdown("### :material/bar_chart: Comparativo Anual")
 
         ano_comp = st.number_input(
             "Ano", min_value=2020,
@@ -1816,7 +1816,7 @@ def render_fat_auditoria(obras_db, registos_db,
         )
 
         # Tabela resumo
-        st.markdown("#### 📋 Resumo do Exercício")
+        st.markdown("#### :material/assignment: Resumo do Exercício")
         resumo_rows = [
             {
                 "Indicador":    "Faturação Total",
@@ -1879,7 +1879,7 @@ def render_fat_auditoria(obras_db, registos_db,
     # TAB — EXPORT TOC/ROC
     # ════════════════════════════════════════════════════════════════
     with t_export:
-        st.markdown("### 📤 Export para TOC / ROC")
+        st.markdown("### :material/upload: Export para TOC / ROC")
         st.info(
             "Gera o dossier completo em formato adequado "
             "para entrega ao Técnico Oficial de Contas (TOC) "
@@ -1913,7 +1913,7 @@ def render_fat_auditoria(obras_db, registos_db,
 
         with col_e2:
             # Resumo do que vai no dossier
-            st.markdown("#### 📋 Conteúdo do Export")
+            st.markdown("#### :material/assignment: Conteúdo do Export")
             conteudo = [
                 ("📄 Relatório PDF completo",          True),
                 ("✅ Checklist de auditoria",           True),
@@ -1964,7 +1964,7 @@ def render_fat_auditoria(obras_db, registos_db,
                     f"Dossier_Auditoria_"
                     f"{empresa.get('nif','')}_{ano_toc}.pdf"
                 )
-                st.success("✅ Relatório PDF gerado!")
+                st.success(":material/check_circle: Relatório PDF gerado!")
                 st.rerun()
 
         with col_btn2:

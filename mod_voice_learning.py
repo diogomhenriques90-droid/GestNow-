@@ -314,7 +314,7 @@ def render_voice_learning_dashboard():
 
     with col_graf2:
         if insights["commands_by_hour"]:
-            st.markdown(f"#### 🕐 Horários de Uso")
+            st.markdown(f"#### :material/schedule: Horários de Uso")
             df_hour = pd.DataFrame(list(insights["commands_by_hour"].items()), 
                                    columns=['Hora', 'Comandos'])
             df_hour = df_hour.sort_values('Hora')
@@ -342,11 +342,11 @@ def render_voice_learning_dashboard():
                                    columns=['Comando', 'Falhas'])
             st.dataframe(df_fail, use_container_width=True)
         else:
-            st.success("✅ Nenhum comando falhado registado!")
+            st.success(":material/check_circle: Nenhum comando falhado registado!")
 
     with col_fail2:
         if insights["suggestions"]:
-            st.markdown(f"#### 💡 Sugestões de Melhoria")
+            st.markdown(f"#### :material/lightbulb: Sugestões de Melhoria")
             for s in insights["suggestions"]:
                 if "🔴" in s or "❌" in s:
                     st.error(s)
@@ -355,11 +355,11 @@ def render_voice_learning_dashboard():
                 else:
                     st.info(s)
         else:
-            st.success("🎉 Tudo ótimo! A IA está aprendendo bem.")
+            st.success(":material/celebration: Tudo ótimo! A IA está aprendendo bem.")
 
     # Feedbacks dos utilizadores
     st.divider()
-    st.markdown(f"#### 📝 Feedback dos Utilizadores")
+    st.markdown(f"#### :material/edit_note: Feedback dos Utilizadores")
 
     try:
         if os.path.exists(VOICE_FEEDBACK_FILE):
@@ -380,7 +380,7 @@ def render_voice_learning_dashboard():
 def render_voice_feedback_widget(command):
     """Widget para coletar feedback do utilizador sobre a resposta"""
     st.divider()
-    st.markdown(f"#### 👍 Esta resposta foi útil?")
+    st.markdown(f"#### :material/thumb_up: Esta resposta foi útil?")
 
     col_fb1, col_fb2, col_fb3 = st.columns(3)
     with col_fb1:

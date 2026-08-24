@@ -8,7 +8,7 @@ from core import (save_db, inv, _gcs_read, _gcs_write_binary, _gcs_read_binary,
 def render_it():
     """Módulo de Gestão de TI - Custos, Emails, Infraestrutura"""
     
-    st.markdown("### 💻 Gestão de TI", unsafe_allow_html=True)
+    st.markdown("### :material/computer: Gestão de TI", unsafe_allow_html=True)
     
     # KPIs de TI
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -38,12 +38,12 @@ def render_it():
     # TAB 0: CUSTOS DA APP GESTNOW
     # =============================================================================
     with tabs[0]:
-        st.markdown("### 💰 Custos da Aplicação GestNow", unsafe_allow_html=True)
+        st.markdown("### :material/payments: Custos da Aplicação GestNow", unsafe_allow_html=True)
         
         col1, col2 = st.columns([1, 2])
         
         with col1:
-            st.markdown("#### 📊 Resumo Mensal", unsafe_allow_html=True)
+            st.markdown("#### :material/bar_chart: Resumo Mensal", unsafe_allow_html=True)
             
             # Custos fixos
             st.markdown(f"""
@@ -89,7 +89,7 @@ def render_it():
             """, unsafe_allow_html=True)
         
         with col2:
-            st.markdown("#### 📈 Evolução de Custos", unsafe_allow_html=True)
+            st.markdown("#### :material/trending_up: Evolução de Custos", unsafe_allow_html=True)
             
             # Simulação de histórico
             historico = pd.DataFrame({
@@ -103,7 +103,7 @@ def render_it():
             
             st.divider()
             
-            st.markdown("#### ⚙️ Configuração de Deploy", unsafe_allow_html=True)
+            st.markdown("#### :material/settings: Configuração de Deploy", unsafe_allow_html=True)
             
             with st.expander("📝 Detalhes do Deploy"):
                 st.code("""
@@ -116,14 +116,14 @@ def render_it():
                 """, language="yaml")
             
             if st.button("🔄 Atualizar Custos", key="btn_update_custos"):
-                st.info("🔄 A sincronizar com Google Cloud Billing...")
-                st.success("✅ Custos atualizados!")
+                st.info(":material/refresh: A sincronizar com Google Cloud Billing...")
+                st.success(":material/check_circle: Custos atualizados!")
     
     # =============================================================================
     # TAB 1: CUSTOS DE IA POR DEPARTAMENTO/MÓDULO
     # =============================================================================
     with tabs[1]:
-        st.markdown("### 🤖 Custos de IA por Departamento/Módulo", unsafe_allow_html=True)
+        st.markdown("### :material/smart_toy: Custos de IA por Departamento/Módulo", unsafe_allow_html=True)
         
         # Resumo geral
         c1, c2, c3 = st.columns(3)
@@ -137,7 +137,7 @@ def render_it():
         st.divider()
         
         # Custos por módulo
-        st.markdown("#### 📊 Distribuição por Módulo", unsafe_allow_html=True)
+        st.markdown("#### :material/bar_chart: Distribuição por Módulo", unsafe_allow_html=True)
         
         custos_ia = pd.DataFrame({
             'Módulo': [
@@ -159,11 +159,11 @@ def render_it():
         # Gráfico
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("#### 🥧 Distribuição de Custos", unsafe_allow_html=True)
+            st.markdown("#### :material/pie_chart: Distribuição de Custos", unsafe_allow_html=True)
             st.bar_chart(custos_ia.set_index('Módulo')['Custo (€)'])
         
         with col2:
-            st.markdown("#### 📈 Tendência de Uso", unsafe_allow_html=True)
+            st.markdown("#### :material/trending_up: Tendência de Uso", unsafe_allow_html=True)
             tendencia = pd.DataFrame({
                 'Semana': ['S1', 'S2', 'S3', 'S4'],
                 'Tokens': [52000, 58000, 65000, 70000]
@@ -173,7 +173,7 @@ def render_it():
         st.divider()
         
         # Otimização
-        st.markdown("#### 💡 Sugestões de Otimização IA", unsafe_allow_html=True)
+        st.markdown("#### :material/lightbulb: Sugestões de Otimização IA", unsafe_allow_html=True)
         
         col1, col2, c3 = st.columns(3)
         with col1:
@@ -201,18 +201,18 @@ def render_it():
             """)
         
         if st.button("🤖 Aplicar Otimizações", key="btn_otimizar_ia"):
-            st.success("✅ Otimizações aplicadas! Economia estimada: € 35/mês")
+            st.success(":material/check_circle: Otimizações aplicadas! Economia estimada: € 35/mês")
     
     # =============================================================================
     # TAB 2: GESTÃO DE EMAILS
     # =============================================================================
     with tabs[2]:
-        st.markdown("### 📧 Gestão de Emails Corporativos", unsafe_allow_html=True)
+        st.markdown("### :material/mail: Gestão de Emails Corporativos", unsafe_allow_html=True)
         
         col1, col2 = st.columns([1, 2])
         
         with col1:
-            st.markdown("#### ➕ Criar Novo Email", unsafe_allow_html=True)
+            st.markdown("#### :material/add: Criar Novo Email", unsafe_allow_html=True)
             
             with st.form("form_novo_email"):
                 nome = st.text_input("Nome do Utilizador", key="email_nome")
@@ -229,18 +229,18 @@ def render_it():
                 
                 if st.form_submit_button("📧 Criar Email", use_container_width=True):
                     email_criado = f"{nome.lower().replace(' ', '.')}@gestnow.app"
-                    st.success(f"✅ Email criado: {email_criado}")
+                    st.success(f":material/check_circle: Email criado: {email_criado}")
                     st.info(f"Password temporária enviada para administrador")
                     st.rerun()
             
             st.divider()
             
-            st.markdown("#### 📊 Estatísticas", unsafe_allow_html=True)
+            st.markdown("#### :material/bar_chart: Estatísticas", unsafe_allow_html=True)
             st.metric("Total Emails", "24")
             st.metric("Armazenamento Usado", "18.5 GB / 120 GB")
         
         with col2:
-            st.markdown("#### 📧 Emails Existentes", unsafe_allow_html=True)
+            st.markdown("#### :material/mail: Emails Existentes", unsafe_allow_html=True)
             
             emails_df = pd.DataFrame({
                 'Email': [
@@ -262,7 +262,7 @@ def render_it():
             
             st.divider()
             
-            st.markdown("#### ⚙️ Ações", unsafe_allow_html=True)
+            st.markdown("#### :material/settings: Ações", unsafe_allow_html=True)
             col_a1, col_a2, col_a3 = st.columns(3)
             with col_a1:
                 if st.button("🔐 Reset Password", use_container_width=True, key="btn_reset_pass"):
@@ -278,14 +278,14 @@ def render_it():
     # TAB 3: ACESSOS E LICENÇAS
     # =============================================================================
     with tabs[3]:
-        st.markdown("### 🔐 Gestão de Acessos e Licenças", unsafe_allow_html=True)
+        st.markdown("### :material/lock: Gestão de Acessos e Licenças", unsafe_allow_html=True)
         
         tab_acessos, tab_licencas, tab_api = st.tabs([
             "Acessos", "Licenças Software", "API Keys"
         ])
         
         with tab_acessos:
-            st.markdown("#### 👥 Acessos de Utilizadores", unsafe_allow_html=True)
+            st.markdown("#### :material/group: Acessos de Utilizadores", unsafe_allow_html=True)
             
             c1, c2, c3 = st.columns(3)
             with c1:
@@ -297,7 +297,7 @@ def render_it():
             
             st.divider()
             
-            st.markdown("#### 📋 Últimos Acessos", unsafe_allow_html=True)
+            st.markdown("#### :material/assignment: Últimos Acessos", unsafe_allow_html=True)
             
             acessos_df = pd.DataFrame({
                 'Utilizador': ['Admin', 'João Oliveira', 'Patricia Oliveira', 'Marco Santos'],
@@ -310,7 +310,7 @@ def render_it():
             st.dataframe(acessos_df, use_container_width=True, hide_index=True)
         
         with tab_licencas:
-            st.markdown("#### 📦 Licenças de Software", unsafe_allow_html=True)
+            st.markdown("#### :material/inventory_2: Licenças de Software", unsafe_allow_html=True)
             
             licencas_df = pd.DataFrame({
                 'Software': [
@@ -333,10 +333,10 @@ def render_it():
             st.divider()
             
             if st.button("🔄 Verificar Licenças Expiras", key="btn_check_lic"):
-                st.warning("⚠️ 1 licença expira em 30 dias: AutoCAD")
+                st.warning(":material/warning: 1 licença expira em 30 dias: AutoCAD")
         
         with tab_api:
-            st.markdown("#### 🔑 API Keys e Integrações", unsafe_allow_html=True)
+            st.markdown("#### :material/key: API Keys e Integrações", unsafe_allow_html=True)
             
             st.markdown(f"""
             <div style="background:{THEME['surface']}; border:1px solid {THEME['border']}; padding:15px; border-radius:12px; border-left:4px solid {THEME['error']};">
@@ -363,20 +363,20 @@ def render_it():
             st.dataframe(api_df, use_container_width=True, hide_index=True)
             
             if st.button("🔄 Rotacionar API Keys", key="btn_rotate_api", type="secondary"):
-                st.warning("⚠️ Isto vai invalidar as chaves atuais. Confirmar?")
+                st.warning(":material/warning: Isto vai invalidar as chaves atuais. Confirmar?")
     
     # =============================================================================
     # TAB 4: INFRAESTRUTURA
     # =============================================================================
     with tabs[4]:
-        st.markdown("### 🖥️ Infraestrutura IT", unsafe_allow_html=True)
+        st.markdown("### :material/desktop_windows: Infraestrutura IT", unsafe_allow_html=True)
         
         tab_cloud, tab_backup, tab_seguranca, tab_hardware = st.tabs([
             "Cloud", "Backups", "Segurança", "Hardware"
         ])
         
         with tab_cloud:
-            st.markdown("#### ☁️ Recursos Google Cloud", unsafe_allow_html=True)
+            st.markdown("#### :material/cloud: Recursos Google Cloud", unsafe_allow_html=True)
             
             c1, c2, c3, c4 = st.columns(4)
             with c1:
@@ -392,7 +392,7 @@ def render_it():
             
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("#### 📊 Utilização de Recursos", unsafe_allow_html=True)
+                st.markdown("#### :material/bar_chart: Utilização de Recursos", unsafe_allow_html=True)
                 
                 recursos = pd.DataFrame({
                     'Recurso': ['CPU', 'Memória', 'Storage', 'Network'],
@@ -403,7 +403,7 @@ def render_it():
                 st.bar_chart(recursos.set_index('Recurso'))
             
             with col2:
-                st.markdown("#### 📝 Logs Recentes", unsafe_allow_html=True)
+                st.markdown("#### :material/edit_note: Logs Recentes", unsafe_allow_html=True)
                 st.code("""
                 [02/04 10:45] Deploy bem-sucedido v3.2.1
                 [02/04 09:30] Auto-scaling: 2 → 3 instâncias
@@ -516,7 +516,7 @@ def render_it():
             )
 
             # ── Criar e descarregar backup ────────────────────────
-            st.markdown("#### ⬇️ Criar e Descarregar Backup")
+            st.markdown("#### :material/arrow_downward: Criar e Descarregar Backup")
 
             if st.button("💾 Criar Backup Agora",
                           key="btn_backup_real", type="primary",
@@ -570,7 +570,7 @@ def render_it():
                         _registar_backup(admin_nome)
 
                     except Exception as ex:
-                        st.error(f"❌ Erro ao criar backup: {ex}")
+                        st.error(f":material/close: Erro ao criar backup: {ex}")
 
             # ✅ Mostrar download FORA do if — persiste entre reruns
             if st.session_state.get('backup_zip_bytes'):
@@ -579,7 +579,7 @@ def render_it():
                 fname    = st.session_state.get('backup_zip_fname', 'backup.zip')
 
                 st.success(
-                    f"✅ Backup pronto — **{n_inc} ficheiros**."
+                    f":material/check_circle: Backup pronto — **{n_inc} ficheiros**."
                     f"{' ⚠️ ' + str(len(erros_bkp)) + ' erros.' if erros_bkp else ''}"
                 )
                 st.download_button(
@@ -599,7 +599,7 @@ def render_it():
 
             # ── Restauro ──────────────────────────────────────────
             st.markdown("---")
-            st.markdown("#### ⬆️ Restaurar Backup")
+            st.markdown("#### :material/arrow_upward: Restaurar Backup")
             st.markdown(
                 f"<div style='background:{THEME['surface']};border:2px solid {THEME['error']};"
                 f"border-radius:10px;padding:14px;margin-bottom:12px;'>"
@@ -618,7 +618,7 @@ def render_it():
 
             if zip_upload:
                 st.warning(
-                    f"⚠️ Prestes a restaurar: **{zip_upload.name}** "
+                    f":material/warning: Prestes a restaurar: **{zip_upload.name}** "
                     f"({zip_upload.size/1024:.0f} KB)"
                 )
                 confirmar = st.checkbox(
@@ -643,14 +643,14 @@ def render_it():
                                 buf_r = io.BytesIO(zip_upload.read())
                                 with zipfile.ZipFile(buf_r, 'r') as zf:
                                     if "BACKUP_INFO.json" not in zf.namelist():
-                                        st.error("❌ ZIP inválido: não é um backup GESTNOW.")
+                                        st.error(":material/close: ZIP inválido: não é um backup GESTNOW.")
                                         st.stop()
 
                                     meta_r = json.loads(
                                         zf.read("BACKUP_INFO.json").decode('utf-8')
                                     )
                                     if "GESTNOW" not in meta_r.get("versao",""):
-                                        st.error("❌ ZIP inválido: versão incompatível.")
+                                        st.error(":material/close: ZIP inválido: versão incompatível.")
                                         st.stop()
 
                                     for nome_f in zf.namelist():
@@ -671,20 +671,20 @@ def render_it():
 
                                 inv()
                                 st.success(
-                                    f"✅ Restauro concluído! "
+                                    f":material/check_circle: Restauro concluído! "
                                     f"**{len(restaurados)} ficheiros** restaurados."
                                 )
                                 if erros_r:
-                                    st.warning(f"⚠️ {len(erros_r)} erro(s).")
-                                st.info("🔄 Recarrega a página para ver os dados restaurados.")
+                                    st.warning(f":material/warning: {len(erros_r)} erro(s).")
+                                st.info(":material/refresh: Recarrega a página para ver os dados restaurados.")
 
                             except zipfile.BadZipFile:
-                                st.error("❌ Ficheiro ZIP corrompido ou inválido.")
+                                st.error(":material/close: Ficheiro ZIP corrompido ou inválido.")
                             except Exception as ex:
-                                st.error(f"❌ Erro inesperado: {ex}")
+                                st.error(f":material/close: Erro inesperado: {ex}")
         
         with tab_seguranca:
-            st.markdown("#### 🔒 Segurança e Compliance", unsafe_allow_html=True)
+            st.markdown("#### :material/lock: Segurança e Compliance", unsafe_allow_html=True)
             
             c1, c2, c3 = st.columns(3)
             with c1:
@@ -696,7 +696,7 @@ def render_it():
             
             st.divider()
             
-            st.markdown("#### 📊 Score de Segurança", unsafe_allow_html=True)
+            st.markdown("#### :material/bar_chart: Score de Segurança", unsafe_allow_html=True)
             
             seguranca = pd.DataFrame({
                 'Categoria': ['Autenticação', 'Encriptação', 'Acesso', 'Monitorização', 'Backup'],
@@ -707,13 +707,13 @@ def render_it():
             
             st.divider()
             
-            st.markdown("#### ⚠️ Alertas de Segurança", unsafe_allow_html=True)
-            st.success("✅ Sem alertas ativos")
+            st.markdown("#### :material/warning: Alertas de Segurança", unsafe_allow_html=True)
+            st.success(":material/check_circle: Sem alertas ativos")
         
         with tab_hardware:
-            st.markdown("#### 🖥️ Inventário de Hardware", unsafe_allow_html=True)
+            st.markdown("#### :material/desktop_windows: Inventário de Hardware", unsafe_allow_html=True)
             
-            st.info("📋 Gestão de laptops, telemóveis, tablets da empresa...")
+            st.info(":material/assignment: Gestão de laptops, telemóveis, tablets da empresa...")
             
             hardware_df = pd.DataFrame({
                 'Tipo': ['Laptop', 'Laptop', 'Telemóvel', 'Tablet', 'Laptop'],
@@ -730,7 +730,7 @@ def render_it():
     # TAB 5: MONITORIZAÇÃO
     # =============================================================================
     with tabs[5]:
-        st.markdown("### 📊 Monitorização e Alertas", unsafe_allow_html=True)
+        st.markdown("### :material/bar_chart: Monitorização e Alertas", unsafe_allow_html=True)
         
         c1, c2, c3, c4 = st.columns(4)
         with c1:
@@ -747,7 +747,7 @@ def render_it():
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("#### 📈 Performance da App", unsafe_allow_html=True)
+            st.markdown("#### :material/trending_up: Performance da App", unsafe_allow_html=True)
             
             perf = pd.DataFrame({
                 'Hora': ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
@@ -757,16 +757,16 @@ def render_it():
             st.line_chart(perf.set_index('Hora'))
         
         with col2:
-            st.markdown("#### 🔔 Alertas Recentes", unsafe_allow_html=True)
+            st.markdown("#### :material/notifications: Alertas Recentes", unsafe_allow_html=True)
             
-            st.warning("⚠️ **02/04 09:15** - CPU > 80% por 5 min")
+            st.warning(":material/warning: **02/04 09:15** - CPU > 80% por 5 min")
             st.info("ℹ️ **02/04 08:00** - Backup concluído com sucesso")
-            st.success("✅ **01/04 18:30** - Deploy v3.2.1 bem-sucedido")
-            st.error("❌ **01/04 14:20** - Erro 500 em /mod_tecnico (resolvido)")
+            st.success(":material/check_circle: **01/04 18:30** - Deploy v3.2.1 bem-sucedido")
+            st.error(":material/close: **01/04 14:20** - Erro 500 em /mod_tecnico (resolvido)")
         
         st.divider()
         
-        st.markdown("#### ⚙️ Configurar Alertas", unsafe_allow_html=True)
+        st.markdown("#### :material/settings: Configurar Alertas", unsafe_allow_html=True)
         
         col_a1, col_a2 = st.columns(2)
         with col_a1:
@@ -777,4 +777,4 @@ def render_it():
             alert_sms = st.checkbox("Ativar Alertas SMS", key="alert_sms")
         
         if st.button("💾 Guardar Configuração de Alertas", key="btn_save_alerts"):
-            st.success("✅ Configuração guardada!")
+            st.success(":material/check_circle: Configuração guardada!")

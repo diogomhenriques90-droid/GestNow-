@@ -25,7 +25,7 @@ def _unpack():
 # =============================================================================
 
 def _sem_permissao(modulo_label):
-    st.error(f"🚫 Sem permissão para aceder ao módulo **{modulo_label}**.")
+    st.error(f":material/block: Sem permissão para aceder ao módulo **{modulo_label}**.")
 
 
 @st.fragment
@@ -103,7 +103,7 @@ def _subtab_prod_acessos():
 def _tab_producao():
     if not tem_permissao(st.session_state.get('user',''), 'mod_producao'):
         _sem_permissao("Produção"); return
-    st.markdown("## 🏭 Produção")
+    st.markdown("## :material/factory: Produção")
     prod_tabs = st.tabs([
         "🏗️ Obras", "🚗 Frota", "🗺️ Deslocações", "📋 Planeamento", "🔐 Acessos"
     ])
@@ -233,7 +233,7 @@ def _subtab_fat_exportacao():
 def _tab_faturacao():
     if not tem_permissao(st.session_state.get('user',''), 'mod_faturacao'):
         _sem_permissao("Faturação"); return
-    st.markdown("## 💰 Faturação")
+    st.markdown("## :material/payments: Faturação")
     # Lazy: só o sub-render activo é avaliado (antes st.tabs avaliava os 19).
     # A selecção persiste em st.session_state["fat_subtab_sel"] via a key.
     _FAT_SUBTABS = [
@@ -294,7 +294,7 @@ def _tab_qualidade():
     if not tem_permissao(st.session_state.get('user',''), 'mod_qualidade'):
         _sem_permissao("Qualidade"); return
     d = _unpack()
-    st.markdown("## 🎯 Qualidade & Auditoria")
+    st.markdown("## :material/track_changes: Qualidade & Auditoria")
     qual_tabs = st.tabs([
         "🎯 Qualidade Operacional", "🏆 ISO 9001:2015", "📋 Logs Audit"
     ])
@@ -305,7 +305,7 @@ def _tab_qualidade():
         from mod_iso9001 import render_iso9001
         render_iso9001()
     with qual_tabs[2]:
-        st.markdown("### 📋 Logs de Auditoria")
+        st.markdown("### :material/assignment: Logs de Auditoria")
         from core import get_audit_logs
         col_f1, col_f2, col_f3 = st.columns(3)
         with col_f1:
@@ -342,20 +342,20 @@ def _tab_qualidade():
                 "text/csv", use_container_width=True
             )
         else:
-            st.info("📋 Sem registos de auditoria.")
+            st.info(":material/assignment: Sem registos de auditoria.")
 
 
 @st.fragment
 def _tab_it():
     if not tem_permissao(st.session_state.get('user',''), 'mod_it'):
         _sem_permissao("IT"); return
-    st.markdown("## 💻 IT & Sistemas")
+    st.markdown("## :material/computer: IT & Sistemas")
     it_tabs = st.tabs(["💻 IT & Infraestrutura", "📧 Config Email"])
     with it_tabs[0]:
         from mod_admin_it import render_it
         render_it()
     with it_tabs[1]:
-        st.markdown("### 📧 Configuração de Email SMTP")
+        st.markdown("### :material/mail: Configuração de Email SMTP")
         st.info("""
         **Para configurar emails:**
         1. Vai ao Google Cloud Console → Secret Manager
@@ -366,7 +366,7 @@ def _tab_it():
         from core import get_smtp_config, testar_smtp
         config = get_smtp_config()
         if config:
-            st.success("✅ SMTP Configurado!")
+            st.success(":material/check_circle: SMTP Configurado!")
             st.markdown(
                 f"<div style='background:{THEME['surface']};"
                 f"border:2px solid {THEME['success']};border-radius:10px;padding:20px;'>"
@@ -385,13 +385,13 @@ def _tab_it():
                 if email_teste:
                     with st.spinner("A enviar..."):
                         if testar_smtp(email_teste):
-                            st.success(f"✅ Email enviado para {email_teste}!")
+                            st.success(f":material/check_circle: Email enviado para {email_teste}!")
                         else:
-                            st.error("❌ Falha. Verifica a configuração.")
+                            st.error(":material/close: Falha. Verifica a configuração.")
                 else:
-                    st.warning("⚠️ Insere um email.")
+                    st.warning(":material/warning: Insere um email.")
         else:
-            st.warning("⚠️ SMTP não configurado.")
+            st.warning(":material/warning: SMTP não configurado.")
 
 
 @st.fragment
@@ -399,7 +399,7 @@ def _tab_hse():
     if not tem_permissao(st.session_state.get('user',''), 'mod_hse'):
         _sem_permissao("HSE"); return
     d = _unpack()
-    st.markdown("### 🛡️ Segurança e HSE")
+    st.markdown("### :material/shield: Segurança e HSE")
     tab_inc, tab_sw = st.tabs(["⚠️ Incidentes", "🚶 Safety Walks"])
     with tab_inc:
         incs_db = d["incs_db"]
@@ -411,13 +411,13 @@ def _tab_hse():
             ] if c in hse.columns]
             st.dataframe(hse[cols_hse], use_container_width=True, hide_index=True)
         else:
-            st.info("📋 Sem incidentes.")
+            st.info(":material/assignment: Sem incidentes.")
     with tab_sw:
         sw_db = d["sw_db"]
         if not sw_db.empty:
             st.dataframe(sw_db, use_container_width=True, hide_index=True)
         else:
-            st.info("📋 Sem safety walks.")
+            st.info(":material/assignment: Sem safety walks.")
 
 
 # =============================================================================
@@ -441,7 +441,7 @@ _MODULOS_LABELS = [
 @st.fragment
 def _tab_permissoes():
     from core import load_db, save_db, inv, _load_users_cached, _PERM_COLS
-    st.markdown("## 🔐 Gestão de Permissões de Módulos")
+    st.markdown("## :material/lock: Gestão de Permissões de Módulos")
     st.info("Apenas super-admins têm acesso a esta secção. "
             "Configura quais os módulos acessíveis a cada Admin.")
 
@@ -453,7 +453,7 @@ def _tab_permissoes():
                   if n not in _SUPER_ADMINS]
 
     if not admins:
-        st.warning("⚠️ Sem utilizadores com tipo Admin para gerir.")
+        st.warning(":material/warning: Sem utilizadores com tipo Admin para gerir.")
         return
 
     # Permissões actuais
@@ -496,7 +496,7 @@ def _tab_permissoes():
         df_novo = pd.DataFrame(rows, columns=_PERM_COLS)
         save_db(df_novo, "permissoes_admin.csv")
         inv("permissoes_admin.csv")
-        st.success("✅ Permissões guardadas!")
+        st.success(":material/check_circle: Permissões guardadas!")
         st.rerun()
 
 
@@ -552,7 +552,7 @@ def _fragment_notificacoes():
                 inv("notificacoes.csv")
                 st.rerun()
         else:
-            st.info("✅ Sem notificações pendentes.")
+            st.info(":material/check_circle: Sem notificações pendentes.")
 
 
 def render_admin(*args):
@@ -590,7 +590,7 @@ def render_admin(*args):
     st.divider()
 
     # ── Métricas ──────────────────────────────────────────────────
-    st.markdown("### 📊 Visão Geral")
+    st.markdown("### :material/bar_chart: Visão Geral")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1: st.metric("👷 Técnicos", len(users))
     with c2: st.metric("🏭 Obras Ativas",
@@ -643,15 +643,15 @@ def _render_custos_por_obra(
 ):
     import pandas as pd
     from core import fh, load_db
-    st.markdown("### 📊 Custos Totais por Obra")
+    st.markdown("### :material/bar_chart: Custos Totais por Obra")
 
     if obras_db.empty:
-        st.info("📋 Sem obras.")
+        st.info(":material/assignment: Sem obras.")
         return
 
     obras_ativas = obras_db[obras_db['Ativa'] == 'Ativa']['Obra'].tolist()
     if not obras_ativas:
-        st.info("📋 Sem obras ativas.")
+        st.info(":material/assignment: Sem obras ativas.")
         return
 
     obra_c = st.selectbox("Obra", obras_ativas, key="custos_obra")
@@ -703,20 +703,20 @@ def _render_custos_por_obra(
 
 def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
     import pandas as pd
-    st.markdown("### 📄 Folhas de Ponto por Obra")
+    st.markdown("### :material/description: Folhas de Ponto por Obra")
 
     obras_lista = obras_db[
         obras_db['Ativa'] == 'Ativa'
     ]['Obra'].tolist() if not obras_db.empty else []
 
     if not obras_lista:
-        st.info("📋 Sem obras ativas.")
+        st.info(":material/assignment: Sem obras ativas.")
         return
 
     obra_fp = st.selectbox("Obra", obras_lista, key="fat_fp_obra")
 
     # Folhas assinadas
-    st.markdown("#### ✍️ Folhas Assinadas pelo Chefe")
+    st.markdown("#### :material/draw: Folhas Assinadas pelo Chefe")
     if not folhas_db.empty and 'Obra' in folhas_db.columns:
         fp_obra = folhas_db[folhas_db['Obra'] == obra_fp]
         if not fp_obra.empty:
@@ -728,13 +728,13 @@ def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
                 use_container_width=True, hide_index=True
             )
         else:
-            st.info(f"📋 Sem folhas assinadas para {obra_fp}.")
+            st.info(f":material/assignment: Sem folhas assinadas para {obra_fp}.")
     else:
-        st.info("📋 Sem folhas.")
+        st.info(":material/assignment: Sem folhas.")
 
     # Folhas OCR (extraídas por IA)
     st.markdown("---")
-    st.markdown("#### 🤖 Folhas Extraídas por IA (OCR)")
+    st.markdown("#### :material/smart_toy: Folhas Extraídas por IA (OCR)")
     if not folhas_ocr_db.empty and 'Obra' in folhas_ocr_db.columns:
         ocr_obra = folhas_ocr_db[folhas_ocr_db['Obra'] == obra_fp]
         if not ocr_obra.empty:
@@ -749,7 +749,7 @@ def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
 
             # Admin pode ver e descarregar
             st.markdown("---")
-            st.markdown("#### 👁️ Ver Folha de Ponto (Imagem)")
+            st.markdown("#### :material/visibility: Ver Folha de Ponto (Imagem)")
             periodos_ocr = ocr_obra['Semana_Inicio'].unique().tolist()
             periodo_ver  = st.selectbox(
                 "Período", periodos_ocr, key="fat_periodo_ver"
@@ -776,23 +776,23 @@ def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
                             key="dl_folha_img"
                         )
                     except:
-                        st.info("📷 Imagem não disponível para visualização.")
+                        st.info(":material/photo_camera: Imagem não disponível para visualização.")
                 else:
-                    st.info("📷 Imagem não armazenada neste registo.")
+                    st.info(":material/photo_camera: Imagem não armazenada neste registo.")
         else:
-            st.info(f"📋 Sem folhas OCR para {obra_fp}.")
+            st.info(f":material/assignment: Sem folhas OCR para {obra_fp}.")
     else:
-        st.info("📋 Sem folhas OCR disponíveis.")
+        st.info(":material/assignment: Sem folhas OCR disponíveis.")
 
 
 def _render_horas_faturacao(registos_db):
     st.markdown("### ⏱️ Horas por Obra (Faturação)")
     if registos_db.empty:
-        st.info("📋 Sem registos.")
+        st.info(":material/assignment: Sem registos.")
         return
     regs = registos_db[registos_db['Status'] == '3'].copy()
     if regs.empty:
-        st.info("📋 Sem registos com status faturado.")
+        st.info(":material/assignment: Sem registos com status faturado.")
         return
     regs['Horas_Total'] = pd.to_numeric(regs['Horas_Total'], errors='coerce').fillna(0)
     resumo = regs.groupby('Obra')['Horas_Total'].sum().reset_index()
@@ -809,7 +809,7 @@ def _render_emissao_mensal(
     import uuid
     from datetime import datetime
 
-    st.markdown("### 📤 Emissão de Fatura Mensal ao Cliente")
+    st.markdown("### :material/upload: Emissão de Fatura Mensal ao Cliente")
     st.info(
         "Gera o resumo mensal de custos por obra para enviar ao cliente."
     )
@@ -819,7 +819,7 @@ def _render_emissao_mensal(
     ]['Obra'].tolist() if not obras_db.empty else []
 
     if not obras_ativas:
-        st.info("📋 Sem obras ativas.")
+        st.info(":material/assignment: Sem obras ativas.")
         return
 
     col_e1, col_e2 = st.columns(2)
@@ -898,7 +898,7 @@ def _render_emissao_mensal(
     except:
         pass
 
-    st.markdown(f"#### 📊 Resumo — {mes_sel_em} {ano_em} — {obra_em}")
+    st.markdown(f"#### :material/bar_chart: Resumo — {mes_sel_em} {ano_em} — {obra_em}")
     c1, c2, c3, c4 = st.columns(4)
     with c1: st.metric("⏱️ Horas",     fh(horas_fat))
     with c2: st.metric("💶 Diárias",   f"€ {diarias_mes:.2f}")
@@ -984,4 +984,4 @@ def _render_emissao_mensal(
                 key="dl_fat_mensal_pdf"
             )
         except Exception as e:
-            st.error(f"❌ Erro ao gerar PDF: {e}")
+            st.error(f":material/close: Erro ao gerar PDF: {e}")

@@ -518,12 +518,12 @@ def render_fat_fornecedores(obras_db, *_):
     # TAB — FORNECEDORES
     # ════════════════════════════════════════════════════════════════
     with t_forn:
-        st.markdown("### 🏢 Registo de Fornecedores")
+        st.markdown("### :material/business: Registo de Fornecedores")
 
         col_form_f, col_lista_f = st.columns([1, 2])
 
         with col_form_f:
-            st.markdown("#### ➕ Novo Fornecedor")
+            st.markdown("#### :material/add: Novo Fornecedor")
             with st.form("form_novo_forn"):
                 f_nome = st.text_input("Nome *", key="forn_nome")
                 f_nif  = st.text_input("NIF *",  key="forn_nif",
@@ -580,7 +580,7 @@ def render_fat_fornecedores(obras_db, *_):
                     use_container_width=True, type="primary"
                 ):
                     if not f_nome.strip() or not f_nif.strip():
-                        st.error("❌ Nome e NIF obrigatórios.")
+                        st.error(":material/close: Nome e NIF obrigatórios.")
                     else:
                         novo_f = pd.DataFrame([{
                             "ID":                   str(uuid.uuid4())[:8].upper(),
@@ -611,11 +611,11 @@ def render_fat_fornecedores(obras_db, *_):
                             ip=""
                         )
                         inv("fornecedores.csv")
-                        st.success(f"✅ {f_nome} guardado!")
+                        st.success(f":material/check_circle: {f_nome} guardado!")
                         st.rerun()
 
         with col_lista_f:
-            st.markdown("#### 📋 Lista de Fornecedores")
+            st.markdown("#### :material/assignment: Lista de Fornecedores")
 
             col_g1, col_g2 = st.columns(2)
             with col_g1:
@@ -630,7 +630,7 @@ def render_fat_fornecedores(obras_db, *_):
                 )
 
             if fornecedores_db.empty:
-                st.info("📋 Sem fornecedores registados.")
+                st.info(":material/assignment: Sem fornecedores registados.")
             else:
                 cats = ["Todos"] + \
                        fornecedores_db['Categoria'].unique().tolist() \
@@ -746,7 +746,7 @@ def render_fat_fornecedores(obras_db, *_):
                                 )
                                 inv("iban_historico.csv"); inv("fornecedores.csv")
                                 st.warning(
-                                    f"⚠️ IBAN alterado! "
+                                    f":material/warning: IBAN alterado! "
                                     f"Aguarda 30 dias antes de pagar."
                                 )
                                 st.rerun()
@@ -755,12 +755,12 @@ def render_fat_fornecedores(obras_db, *_):
     # TAB — FATURAS RECEBIDAS
     # ════════════════════════════════════════════════════════════════
     with t_fat_rec:
-        st.markdown("### 📥 Faturas de Fornecedores")
+        st.markdown("### :material/download: Faturas de Fornecedores")
 
         col_reg, col_lista = st.columns([1, 2])
 
         with col_reg:
-            st.markdown("#### ➕ Registar Fatura Recebida")
+            st.markdown("#### :material/add: Registar Fatura Recebida")
 
             st.markdown(
                 f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;"
@@ -796,10 +796,10 @@ def render_fat_fornecedores(obras_db, *_):
                             st.session_state['ocr_forn_dados'] = \
                                 res['dados']
                             st.session_state['ocr_forn_pdf']   = fb
-                            st.success("✅ Dados extraídos!")
+                            st.success(":material/check_circle: Dados extraídos!")
                             st.rerun()
                         else:
-                            st.error(f"❌ {res.get('erro','')}")
+                            st.error(f":material/close: {res.get('erro','')}")
 
             with st.form("form_fat_forn"):
                 forn_lista = fornecedores_db['Nome'].tolist() \
@@ -907,7 +907,7 @@ def render_fat_fornecedores(obras_db, *_):
                     use_container_width=True, type="primary"
                 ):
                     if not f_forn or f_tot_val <= 0:
-                        st.error("❌ Fornecedor e valor obrigatórios.")
+                        st.error(":material/close: Fornecedor e valor obrigatórios.")
                     else:
                         f_ret_v = round(
                             f_sub_val * f_ret_pct / 100, 2
@@ -965,16 +965,16 @@ def render_fat_fornecedores(obras_db, *_):
                         st.session_state.pop('ocr_forn_dados', None)
                         st.session_state.pop('ocr_forn_pdf', None)
                         st.success(
-                            f"✅ Fatura de {f_forn} registada! "
+                            f":material/check_circle: Fatura de {f_forn} registada! "
                             f"€{f_tot_val:.2f}"
                         )
                         st.rerun()
 
         with col_lista:
-            st.markdown("#### 📋 Faturas Pendentes")
+            st.markdown("#### :material/assignment: Faturas Pendentes")
 
             if fat_forn.empty:
-                st.info("📋 Sem faturas de fornecedores.")
+                st.info(":material/assignment: Sem faturas de fornecedores.")
             else:
                 col_ff1, col_ff2 = st.columns(2)
                 with col_ff1:
@@ -1099,7 +1099,7 @@ def render_fat_fornecedores(obras_db, *_):
     # TAB — SUBEMPREITEIROS
     # ════════════════════════════════════════════════════════════════
     with t_sub:
-        st.markdown("### 🔨 Subempreiteiros")
+        st.markdown("### :material/handyman: Subempreiteiros")
         st.info(
             "Subempreiteiros estão sujeitos a **retenção na fonte "
             "de 25%** (IRS). A guia de retenção deve ser entregue "
@@ -1114,7 +1114,7 @@ def render_fat_fornecedores(obras_db, *_):
 
         if subs.empty:
             st.warning(
-                "⚠️ Sem subempreiteiros registados. "
+                ":material/warning: Sem subempreiteiros registados. "
                 "Regista no tab 🏢 Fornecedores com "
                 "categoria 'Subempreiteiro'."
             )
@@ -1153,7 +1153,7 @@ def render_fat_fornecedores(obras_db, *_):
     # TAB — AGING & PAGAMENTOS
     # ════════════════════════════════════════════════════════════════
     with t_aging_f:
-        st.markdown("### 📊 Aging de Fornecedores")
+        st.markdown("### :material/bar_chart: Aging de Fornecedores")
 
         col_ag1, col_ag2 = st.columns(2)
         with col_ag1:
@@ -1168,7 +1168,7 @@ def render_fat_fornecedores(obras_db, *_):
             )
 
         st.markdown("---")
-        st.markdown("#### 🏦 Pagamento em Lote (SEPA XML)")
+        st.markdown("#### :material/account_balance: Pagamento em Lote (SEPA XML)")
 
         pendentes_pag = fat_forn[
             fat_forn.get('Estado','') == 'Aprovado'
@@ -1177,7 +1177,7 @@ def render_fat_fornecedores(obras_db, *_):
 
         if pendentes_pag.empty:
             st.info(
-                "📋 Sem faturas aprovadas para pagamento. "
+                ":material/assignment: Sem faturas aprovadas para pagamento. "
                 "Aprova faturas no tab 📥 Faturas Recebidas."
             )
         else:
@@ -1202,7 +1202,7 @@ def render_fat_fornecedores(obras_db, *_):
 
             if sem_iban > 0:
                 st.warning(
-                    f"⚠️ {sem_iban} fornecedor(es) sem IBAN "
+                    f":material/warning: {sem_iban} fornecedor(es) sem IBAN "
                     f"— não incluídos no XML."
                 )
 
@@ -1215,7 +1215,7 @@ def render_fat_fornecedores(obras_db, *_):
                 ]
                 if not recentes.empty:
                     st.error(
-                        f"🔒 ATENÇÃO: {len(recentes)} IBAN(s) "
+                        f":material/lock: ATENÇÃO: {len(recentes)} IBAN(s) "
                         f"alterado(s) nos últimos 30 dias! "
                         f"Verifica no tab 🔒 Controlo IBANs "
                         f"antes de pagar."
@@ -1312,11 +1312,11 @@ def render_fat_fornecedores(obras_db, *_):
                             xml_out.encode('utf-8')
                         st.session_state['sepa_forn_fname'] = \
                             f"pagamentos_fornecedores_{ts_xml}.xml"
-                        st.success("✅ XML gerado!")
+                        st.success(":material/check_circle: XML gerado!")
                         st.rerun()
 
                     except Exception as e:
-                        st.error(f"❌ Erro: {e}")
+                        st.error(f":material/close: Erro: {e}")
 
             with col_sepa2:
                 if st.session_state.get('sepa_forn_bytes'):
@@ -1336,7 +1336,7 @@ def render_fat_fornecedores(obras_db, *_):
     # TAB — RETENÇÕES NA FONTE
     # ════════════════════════════════════════════════════════════════
     with t_ret:
-        st.markdown("### 📋 Retenções na Fonte")
+        st.markdown("### :material/assignment: Retenções na Fonte")
         st.info(
             "Obrigação fiscal: entregar à AT até ao **dia 20 "
             "do mês seguinte** ao pagamento."
@@ -1449,7 +1449,7 @@ def render_fat_fornecedores(obras_db, *_):
                 )
         else:
             st.info(
-                f"📋 Sem retenções registadas em "
+                f":material/assignment: Sem retenções registadas em "
                 f"{mes_ret} {ano_ret}."
             )
 
@@ -1457,7 +1457,7 @@ def render_fat_fornecedores(obras_db, *_):
     # TAB — CONTROLO IBANs
     # ════════════════════════════════════════════════════════════════
     with t_iban:
-        st.markdown("### 🔒 Controlo de IBANs")
+        st.markdown("### :material/lock: Controlo de IBANs")
         st.info(
             "Alterações de IBAN são um vetor comum de fraude. "
             "Qualquer alteração fica registada e gera alerta. "
@@ -1478,7 +1478,7 @@ def render_fat_fornecedores(obras_db, *_):
 
             if not recentes_iban.empty:
                 st.error(
-                    f"🚨 {len(recentes_iban)} IBAN(s) "
+                    f":material/emergency: {len(recentes_iban)} IBAN(s) "
                     f"alterado(s) nos últimos 30 dias!"
                 )
                 for _, ih in recentes_iban.iterrows():
@@ -1534,17 +1534,17 @@ def render_fat_fornecedores(obras_db, *_):
                                 ),
                                 ip=""
                             )
-                            st.success("✅ Desbloqueado. Ação registada.")
+                            st.success(":material/check_circle: Desbloqueado. Ação registada.")
             else:
                 st.success(
-                    "✅ Sem alterações de IBAN nos últimos 30 dias."
+                    ":material/check_circle: Sem alterações de IBAN nos últimos 30 dias."
                 )
 
         st.markdown("---")
-        st.markdown("#### 📋 Histórico Completo de Alterações")
+        st.markdown("#### :material/assignment: Histórico Completo de Alterações")
 
         if iban_hist.empty:
-            st.info("📋 Sem histórico de alterações.")
+            st.info(":material/assignment: Sem histórico de alterações.")
         else:
             cols_h = [c for c in [
                 'Data_Alteracao','Entidade','Tipo',

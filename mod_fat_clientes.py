@@ -531,7 +531,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
     # TAB — EMITIR FATURA
     # ════════════════════════════════════════════════════════════════
     with t_emitir:
-        st.markdown("### ➕ Nova Fatura")
+        st.markdown("### :material/add: Nova Fatura")
 
         col_form, col_prev = st.columns([1, 1])
 
@@ -556,7 +556,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
             )
 
             # Cliente
-            st.markdown("#### 👤 Cliente")
+            st.markdown("#### :material/person: Cliente")
             if not clientes_db.empty:
                 _inativos_l = clientes_db['Activo'].astype(str).str.strip()\
                     .str.lower().isin(['não','nao','inativo','inactivo','0','false'])
@@ -638,7 +638,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
             )
 
             st.markdown("---")
-            st.markdown("#### 📋 Linhas da Fatura")
+            st.markdown("#### :material/assignment: Linhas da Fatura")
 
             # Linhas dinâmicas
             if 'fat_linhas' not in st.session_state:
@@ -780,9 +780,9 @@ def render_fat_clientes(obras_db, registos_db, *_):
 
             if emitir or proforma:
                 if not cliente_sel or not str(cliente_sel).strip():
-                    st.error("❌ Cliente obrigatório.")
+                    st.error(":material/close: Cliente obrigatório.")
                 elif total_geral <= 0:
-                    st.error("❌ Fatura não pode ter total €0.")
+                    st.error(":material/close: Fatura não pode ter total €0.")
                 else:
                     tipo_final = "PF" if proforma else tipo_cod
                     num_final  = _proximo_numero(
@@ -886,7 +886,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             origem="Manual", criado_por=user_nome)
 
                     st.success(
-                        f"✅ {num_final} emitida! "
+                        f":material/check_circle: {num_final} emitida! "
                         f"Total: €{total_geral:.2f}"
                     )
 
@@ -917,7 +917,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 )
 
         with col_prev:
-            st.markdown("#### 👀 Pré-visualização")
+            st.markdown("#### :material/visibility: Pré-visualização")
             st.markdown(
                 f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                 f"border-radius:12px;padding:20px;color:{THEME['text']};'>"
@@ -987,10 +987,10 @@ def render_fat_clientes(obras_db, registos_db, *_):
     # TAB — HISTÓRICO
     # ════════════════════════════════════════════════════════════════
     with t_lista:
-        st.markdown("### 📋 Histórico de Faturas")
+        st.markdown("### :material/assignment: Histórico de Faturas")
 
         if faturas_cli.empty:
-            st.info("📋 Ainda não há faturas emitidas.")
+            st.info(":material/assignment: Ainda não há faturas emitidas.")
         else:
             # Filtros
             col_f1, col_f2, col_f3 = st.columns(3)
@@ -1164,12 +1164,12 @@ def render_fat_clientes(obras_db, registos_db, *_):
     # TAB — CLIENTES
     # ════════════════════════════════════════════════════════════════
     with t_clientes:
-        st.markdown("### 🏢 Registo de Clientes")
+        st.markdown("### :material/business: Registo de Clientes")
 
         col_form_c, col_lista_c = st.columns([1, 2])
 
         with col_form_c:
-            st.markdown("#### ➕ Novo Cliente")
+            st.markdown("#### :material/add: Novo Cliente")
             with st.form("form_novo_cliente"):
                 cli_nome  = st.text_input("Nome *",   key="cli_nome")
                 cli_nif   = st.text_input("NIF *",    key="cli_nif",
@@ -1206,9 +1206,9 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         n.strip() and _norm_nome_cliente(n) == _norm_nome_cliente(cli_nome)
                         for n in clientes_db['Nome'].astype(str)))
                     if not cli_nome.strip() or not cli_nif.strip():
-                        st.error("❌ Nome e NIF obrigatórios.")
+                        st.error(":material/close: Nome e NIF obrigatórios.")
                     elif _dup_c:
-                        st.error("❌ Já existe um cliente com este nome "
+                        st.error(":material/close: Já existe um cliente com este nome "
                                  "(verifica a lista — a comparação ignora "
                                  "maiúsculas e acentos).")
                     else:
@@ -1233,14 +1233,14 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         save_db(updated_c, "clientes_financeiro.csv")
                         inv("clientes_financeiro.csv")
                         st.success(
-                            f"✅ Cliente {cli_nome} guardado!"
+                            f":material/check_circle: Cliente {cli_nome} guardado!"
                         )
                         st.rerun()
 
         with col_lista_c:
-            st.markdown("#### 📋 Clientes Registados")
+            st.markdown("#### :material/assignment: Clientes Registados")
             if clientes_db.empty:
-                st.info("📋 Sem clientes registados.")
+                st.info(":material/assignment: Sem clientes registados.")
             else:
                 for _, cli in clientes_db.iterrows():
                     # Volume faturado a este cliente
@@ -1297,7 +1297,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
         # GESTÃO DE CLIENTES — fonte canónica única (secção aditiva)
         # ════════════════════════════════════════════════════════════
         st.divider()
-        st.markdown("### 🛠️ Gestão de Clientes")
+        st.markdown("### :material/build: Gestão de Clientes")
         st.caption(
             "Fonte canónica única (`clientes_financeiro.csv`) — alimenta os "
             "selectbox de Cliente em toda a app. Clientes inactivos "
@@ -1305,7 +1305,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
         )
 
         if clientes_db.empty:
-            st.info("📋 Sem clientes na fonte canónica.")
+            st.info(":material/assignment: Sem clientes na fonte canónica.")
         else:
             gc_pesq = st.text_input(
                 "🔍 Pesquisar cliente", key="gc_pesquisa",
@@ -1373,7 +1373,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             inv("clientes_financeiro.csv")
                             log_audit(user_nome, "EDITAR_CLIENTE",
                                       "clientes_financeiro.csv", cid_g, nome_g, "")
-                            st.success("✅ Cliente actualizado.")
+                            st.success(":material/check_circle: Cliente actualizado.")
                             st.rerun()
 
                     # ── Pessoas de Contacto (contactos_clientes.csv) ────
@@ -1428,7 +1428,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         if st.form_submit_button("➕ Adicionar Pessoa de Contacto",
                                                  use_container_width=True):
                             if not ct_nome.strip():
-                                st.error("❌ Nome obrigatório.")
+                                st.error(":material/close: Nome obrigatório.")
                             else:
                                 novo_ct = pd.DataFrame([{
                                     "ID": str(uuid.uuid4())[:8].upper(),
@@ -1446,14 +1446,14 @@ def render_fat_clientes(obras_db, registos_db, *_):
                                 ) if not contactos_db.empty else novo_ct
                                 save_db(upd_ct, "contactos_clientes.csv")
                                 inv("contactos_clientes.csv")
-                                st.success(f"✅ {ct_nome} adicionado(a).")
+                                st.success(f":material/check_circle: {ct_nome} adicionado(a).")
                                 st.rerun()
 
                     # Eliminação protegida — verifica referências em toda a app
                     refs_g = referencias_cliente(nome_g)
                     if refs_g:
                         st.warning(
-                            "🔒 **Eliminação bloqueada** — cliente referenciado em: "
+                            ":material/lock: **Eliminação bloqueada** — cliente referenciado em: "
                             + "; ".join(f"{d} ({n}×)" for d, n in refs_g)
                             + ". Em alternativa, desactiva-o (Activo=Não): "
                             "desaparece dos selectbox e o histórico fica intacto."
@@ -1473,7 +1473,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             inv("clientes_financeiro.csv")
                             log_audit(user_nome, "ELIMINAR_CLIENTE",
                                       "clientes_financeiro.csv", cid_g, nome_g, "")
-                            st.success(f"🗑️ Cliente «{nome_g}» eliminado.")
+                            st.success(f":material/delete: Cliente «{nome_g}» eliminado.")
                             st.rerun()
 
         # ── Migração de clientes em texto livre (só Admin) ──────────
@@ -1495,7 +1495,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     _mig_exist = st.session_state.get('gc_mig_exist', 0)
                     if not _mig_nomes:
                         st.success(
-                            f"✅ Nada a migrar — {_mig_exist} cliente(s) "
+                            f":material/check_circle: Nada a migrar — {_mig_exist} cliente(s) "
                             "já registados na fonte canónica."
                         )
                     else:
@@ -1514,19 +1514,19 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             log_audit(user_nome, "MIGRAR_CLIENTES",
                                       "clientes_financeiro.csv", "",
                                       f"{len(_criados)} clientes migrados", "")
-                            st.success(f"✅ {len(_criados)} cliente(s) migrados!")
+                            st.success(f":material/check_circle: {len(_criados)} cliente(s) migrados!")
                             st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB — AGING
     # ════════════════════════════════════════════════════════════════
     with t_aging:
-        st.markdown("### 📊 Aging de Clientes")
+        st.markdown("### :material/bar_chart: Aging de Clientes")
 
         hoje_ts = pd.Timestamp(date.today())
 
         if faturas_cli.empty:
-            st.info("📋 Sem faturas para analisar.")
+            st.info(":material/assignment: Sem faturas para analisar.")
         else:
             # Gráfico
             st.plotly_chart(
@@ -1535,7 +1535,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
             )
 
             # Tabela de aging
-            st.markdown("#### 📋 Detalhe por Fatura")
+            st.markdown("#### :material/assignment: Detalhe por Fatura")
             aging_rows = []
 
             if 'Data_Vencimento' in faturas_cli.columns:
@@ -1605,7 +1605,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         use_container_width=True
                     ):
                         st.success(
-                            f"✅ Lembrete enviado para: {cli_lem}"
+                            f":material/check_circle: Lembrete enviado para: {cli_lem}"
                         )
                         st.info(
                             "ℹ️ Configura o SMTP no tab IT para "
@@ -1616,7 +1616,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
     # TAB — CONTRATOS
     # ════════════════════════════════════════════════════════════════
     with t_contratos:
-        st.markdown("### 📑 Contratos & Cauções")
+        st.markdown("### :material/bookmark: Contratos & Cauções")
 
         contratos_db = _load("contratos_financeiro.csv", [
             "ID","Cliente","Obra","Valor_Total","Valor_Faturado",
@@ -1627,7 +1627,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
         col_c1, col_c2 = st.columns([1, 2])
 
         with col_c1:
-            st.markdown("#### ➕ Novo Contrato")
+            st.markdown("#### :material/add: Novo Contrato")
             with st.form("form_contrato"):
                 ct_cli  = st.selectbox(
                     "Cliente",
@@ -1688,13 +1688,13 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     ) if not contratos_db.empty else novo_ct
                     save_db(upd_ct, "contratos_financeiro.csv")
                     inv("contratos_financeiro.csv")
-                    st.success("✅ Contrato guardado!")
+                    st.success(":material/check_circle: Contrato guardado!")
                     st.rerun()
 
         with col_c2:
-            st.markdown("#### 📋 Contratos Ativos")
+            st.markdown("#### :material/assignment: Contratos Ativos")
             if contratos_db.empty:
-                st.info("📋 Sem contratos registados.")
+                st.info(":material/assignment: Sem contratos registados.")
             else:
                 hoje_ts2 = pd.Timestamp(date.today())
                 for _, ct in contratos_db.iterrows():
@@ -1760,7 +1760,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
     # TAB — NOTAS DE CRÉDITO
     # ════════════════════════════════════════════════════════════════
     with t_nc:
-        st.markdown("### 🔄 Notas de Crédito")
+        st.markdown("### :material/refresh: Notas de Crédito")
         st.info(
             "Uma nota de crédito anula total ou parcialmente "
             "uma fatura emitida. O saldo do cliente é atualizado "
@@ -1773,7 +1773,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
           else faturas_cli
 
         if faturas_emitidas.empty:
-            st.info("📋 Sem faturas disponíveis para nota de crédito.")
+            st.info(":material/assignment: Sem faturas disponíveis para nota de crédito.")
         else:
             with st.form("form_nc"):
                 fat_nc = st.selectbox(
@@ -1819,7 +1819,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     use_container_width=True, type="primary"
                 ):
                     if not nc_desc.strip() or nc_valor <= 0:
-                        st.error("❌ Valor e descrição obrigatórios.")
+                        st.error(":material/close: Valor e descrição obrigatórios.")
                     else:
                         num_nc = _proximo_numero(faturas_cli, "NC")
                         # Criar NC como fatura com valor negativo
@@ -1873,7 +1873,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         )
                         inv("faturas_clientes.csv")
                         st.success(
-                            f"✅ {num_nc} emitida — "
+                            f":material/check_circle: {num_nc} emitida — "
                             f"€{nc_valor:.2f} creditados ao cliente!"
                         )
                         st.rerun()

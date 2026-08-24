@@ -41,7 +41,7 @@ def render_perfil(*args):
         return
 
     if user_data is None:
-        st.warning("⚠️ Utilizador não encontrado na base de dados.")
+        st.warning(":material/warning: Utilizador não encontrado na base de dados.")
         return
 
     # Header
@@ -85,7 +85,7 @@ def render_perfil(*args):
 
         with st.form("form_perfil_edit"):
             # Identificação
-            st.markdown("#### 📋 Identificação")
+            st.markdown("#### :material/assignment: Identificação")
             c1, c2 = st.columns(2)
             with c1:
                 telefone = st.text_input("Telefone",  value=user_data.get('Telefone',''),  disabled='Telefone' in campos_bloqueados,  key="pf_tel")
@@ -96,7 +96,7 @@ def render_perfil(*args):
                 grau     = st.text_input("Grau Parentesco", value=user_data.get('Grau_Parentesco',''), disabled='Grau_Parentesco' in campos_bloqueados, key="pf_grau")
 
             # Morada
-            st.markdown("#### 📍 Morada")
+            st.markdown("#### :material/location_on: Morada")
             morada = st.text_input("Morada", value=user_data.get('Morada',''), disabled='Morada' in campos_bloqueados, key="pf_morada")
             c3, c4, c5 = st.columns(3)
             with c3: localidade = st.text_input("Localidade", value=user_data.get('Localidade',''), disabled='Localidade' in campos_bloqueados, key="pf_loc")
@@ -104,7 +104,7 @@ def render_perfil(*args):
             with c5: cod_postal = st.text_input("Código Postal", value=user_data.get('Codigo_Postal',''), disabled='Codigo_Postal' in campos_bloqueados, key="pf_cp")
 
             # Dados Pessoais
-            st.markdown("#### 🌍 Dados Pessoais")
+            st.markdown("#### :material/public: Dados Pessoais")
             c6, c7 = st.columns(2)
             with c6:
                 naturalidade = st.text_input("Naturalidade", value=user_data.get('Naturalidade',''), disabled='Naturalidade' in campos_bloqueados, key="pf_nat")
@@ -137,7 +137,7 @@ def render_perfil(*args):
                     disabled='Dependentes' in campos_bloqueados, key="pf_dep")
 
             # Profissional
-            st.markdown("#### 💼 Dados Profissionais")
+            st.markdown("#### :material/work: Dados Profissionais")
             profissao = st.text_input("Profissão", value=user_data.get('Profissao',''), disabled='Profissao' in campos_bloqueados, key="pf_prof")
             c10, c11 = st.columns(2)
             with c10:
@@ -151,7 +151,7 @@ def render_perfil(*args):
                     disabled='Habilitacoes_Literarias' in campos_bloqueados, key="pf_hab")
 
             # Fardamento
-            st.markdown("#### 👕 Fardamento")
+            st.markdown("#### :material/checkroom: Fardamento")
             c12, c13, c14 = st.columns(3)
             cam_opts = ["XS","S","M","L","XL","XXL","XXXL"]
             cal_opts = ["XS (34/36)","S (38)","M (40/42)","L (42/44)","XL (46/48)","XXL (50/52)"]
@@ -168,7 +168,7 @@ def render_perfil(*args):
 
             obs = st.text_area("Observações", value=user_data.get('Observacoes',''), disabled='Observacoes' in campos_bloqueados, key="pf_obs")
 
-            st.info("🔒 Nome, Tipo, Cargo e IBAN são geridos pelo Admin e não são editáveis aqui.")
+            st.info(":material/lock: Nome, Tipo, Cargo e IBAN são geridos pelo Admin e não são editáveis aqui.")
 
             if st.form_submit_button("💾 Guardar Alterações", use_container_width=True, type="primary"):
                 updates = {
@@ -192,23 +192,23 @@ def render_perfil(*args):
                 inv("usuarios.csv")
                 from core import _cached_load_all
                 _cached_load_all.clear()
-                st.success("✅ Perfil atualizado com sucesso!")
+                st.success(":material/check_circle: Perfil atualizado com sucesso!")
                 st.rerun()
 
     # ── TAB 1: PASSWORD & PIN ────────────────────────────────────────
     with tabs[1]:
-        st.markdown("#### 🔐 Alterar Password")
+        st.markdown("#### :material/lock: Alterar Password")
         with st.form("form_pwd"):
             pwd_atual = st.text_input("Password Atual", type="password", key="pf_pwd_atual")
             pwd_nova  = st.text_input("Nova Password",  type="password", key="pf_pwd_nova")
             pwd_conf  = st.text_input("Confirmar Nova Password", type="password", key="pf_pwd_conf")
             if st.form_submit_button("🔑 Alterar Password", use_container_width=True, type="primary"):
                 if not pwd_atual or not pwd_nova:
-                    st.error("❌ Preenche todos os campos.")
+                    st.error(":material/close: Preenche todos os campos.")
                 elif pwd_nova != pwd_conf:
-                    st.error("❌ As passwords não coincidem.")
+                    st.error(":material/close: As passwords não coincidem.")
                 elif len(pwd_nova) < 6:
-                    st.error("❌ A password deve ter pelo menos 6 caracteres.")
+                    st.error(":material/close: A password deve ter pelo menos 6 caracteres.")
                 else:
                     hash_atual = user_data.get('Password', '')
                     if cp(pwd_atual, hash_atual):
@@ -219,20 +219,20 @@ def render_perfil(*args):
                         inv("usuarios.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.success("✅ Password alterada com sucesso!")
+                        st.success(":material/check_circle: Password alterada com sucesso!")
                     else:
-                        st.error("❌ Password atual incorreta.")
+                        st.error(":material/close: Password atual incorreta.")
 
         st.divider()
-        st.markdown("#### 🔢 Alterar PIN")
+        st.markdown("#### :material/numbers: Alterar PIN")
         with st.form("form_pin"):
             pin_novo  = st.text_input("Novo PIN (4 dígitos)", type="password", max_chars=4, key="pf_pin_novo")
             pin_conf  = st.text_input("Confirmar PIN", type="password", max_chars=4, key="pf_pin_conf")
             if st.form_submit_button("🔢 Alterar PIN", use_container_width=True):
                 if len(pin_novo) != 4 or not pin_novo.isdigit():
-                    st.error("❌ O PIN deve ter exatamente 4 dígitos.")
+                    st.error(":material/close: O PIN deve ter exatamente 4 dígitos.")
                 elif pin_novo != pin_conf:
-                    st.error("❌ Os PINs não coincidem.")
+                    st.error(":material/close: Os PINs não coincidem.")
                 else:
                     users_fresh.loc[user_idx, 'PIN'] = pin_novo
                     save_db(users_fresh, "usuarios.csv")
@@ -241,15 +241,15 @@ def render_perfil(*args):
                     inv("usuarios.csv")
                     from core import _cached_load_all
                     _cached_load_all.clear()
-                    st.success("✅ PIN alterado com sucesso!")
+                    st.success(":material/check_circle: PIN alterado com sucesso!")
 
     # ── TAB 2: HISTÓRICO DE HORAS ────────────────────────────────────
     with tabs[2]:
-        st.markdown("#### 📊 Histórico de Horas")
+        st.markdown("#### :material/bar_chart: Histórico de Horas")
         if not registos_db.empty:
             meus = registos_db[registos_db['Técnico'] == user_nome].copy()
             if meus.empty:
-                st.info("📋 Sem registos ainda.")
+                st.info(":material/assignment: Sem registos ainda.")
             else:
                 # Filtros
                 c1, c2 = st.columns(2)
@@ -276,4 +276,4 @@ def render_perfil(*args):
                 csv = meus[cols_show].to_csv(index=False).encode('utf-8')
                 st.download_button("📥 Exportar CSV", csv, f"horas_{user_nome}.csv", "text/csv")
         else:
-            st.info("📋 Sem registos de horas.")
+            st.info(":material/assignment: Sem registos de horas.")

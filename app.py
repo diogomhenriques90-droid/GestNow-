@@ -210,7 +210,7 @@ def _render_validacao_obrigatoria(user_nome):
                                 key=f"app_dl_pdf_{pdf_id}", use_container_width=True
                             )
                         except:
-                            st.error("❌ Erro ao carregar PDF")
+                            st.error(":material/close: Erro ao carregar PDF")
                 with col_ok:
                     if not visto:
                         if st.button("✅ Confirmar", key=f"app_val_pdf_{pdf_id}",
@@ -237,15 +237,15 @@ def _render_validacao_obrigatoria(user_nome):
                                     titulo="✅ PDFs Validados",
                                     mensagem=f"{user_nome} validou todos os documentos.",
                                     tipo="success", acao_url="/admin?tab=rh")
-                                st.success("✅ Todos os documentos confirmados!")
+                                st.success(":material/check_circle: Todos os documentos confirmados!")
                             else:
-                                st.success(f"✅ '{pdf_nome}' confirmado! ({novos_val}/{total_pdfs})")
+                                st.success(f":material/check_circle: '{pdf_nome}' confirmado! ({novos_val}/{total_pdfs})")
                             st.rerun()
                     else:
-                        st.success("✅")
+                        st.success(":material/check_circle:")
 
         if pdfs_val_count < total_pdfs:
-            st.warning(f"⚠️ Faltam {total_pdfs - pdfs_val_count} documento(s).")
+            st.warning(f":material/warning: Faltam {total_pdfs - pdfs_val_count} documento(s).")
         st.stop()
 
     # ── PASSO 2: PREÇO HORA ───────────────────────────────────────────
@@ -286,7 +286,7 @@ def _render_validacao_obrigatoria(user_nome):
                         titulo="💰 Preço Hora Aceite",
                         mensagem=f"{user_nome} aceitou €{preco_hora_valor}/hora.",
                         tipo="success", acao_url="/admin?tab=rh")
-                    st.success("✅ Preço hora aceite!")
+                    st.success(":material/check_circle: Preço hora aceite!")
                     st.balloons()
                     st.rerun()
         with col_rec:
@@ -306,7 +306,7 @@ def _render_validacao_obrigatoria(user_nome):
                         titulo="💰 Preço Hora RECUSADO",
                         mensagem=f"{user_nome} RECUSOU €{preco_hora_valor}/hora.",
                         tipo="error", acao_url="/admin?tab=rh")
-                    st.warning("❌ Preço recusado. Admin notificado.")
+                    st.warning(":material/close: Preço recusado. Admin notificado.")
                     st.rerun()
         st.stop()
 
@@ -322,7 +322,7 @@ def _render_validacao_obrigatoria(user_nome):
         </div>""", unsafe_allow_html=True)
 
         with st.form("form_onboard_perfil"):
-            st.markdown("#### 📋 Dados Pessoais")
+            st.markdown("#### :material/assignment: Dados Pessoais")
             col1, col2 = st.columns(2)
             with col1:
                 telefone     = st.text_input("Telefone *",
@@ -340,7 +340,7 @@ def _render_validacao_obrigatoria(user_nome):
                     ["Solteiro(a)","Casado(a)","Divorciado(a)","Viúvo(a)","União de Facto"],
                     key="onb_ec")
 
-            st.markdown("#### 📍 Morada")
+            st.markdown("#### :material/location_on: Morada")
             morada = st.text_input("Morada *",
                 value=user_data.get('Morada',''), key="onb_morada", placeholder="Rua, nº, andar")
             col3, col4, col5 = st.columns(3)
@@ -364,7 +364,7 @@ def _render_validacao_obrigatoria(user_nome):
                 email = st.text_input("Email", value=user_data.get('Email',''),
                     key="onb_email", placeholder="exemplo@email.com")
 
-            st.markdown("#### 🚨 Emergência")
+            st.markdown("#### :material/emergency: Emergência")
             col8, col9 = st.columns(2)
             with col8:
                 nome_emerg = st.text_input("Nome *",
@@ -375,7 +375,7 @@ def _render_validacao_obrigatoria(user_nome):
                 grau = st.text_input("Grau Parentesco",
                     value=user_data.get('Grau_Parentesco',''), key="onb_grau")
 
-            st.markdown("#### 💼 Dados Profissionais")
+            st.markdown("#### :material/work: Dados Profissionais")
             col_p1, col_p2 = st.columns(2)
             with col_p1:
                 profissao = st.text_input("Profissão",
@@ -392,7 +392,7 @@ def _render_validacao_obrigatoria(user_nome):
                     index=hab_opts.index(hab_v) if hab_v in hab_opts else 1,
                     key="onb_hab")
 
-            st.markdown("#### 👕 Fardamento")
+            st.markdown("#### :material/checkroom: Fardamento")
             col10, col11, col12 = st.columns(3)
             cam_opts = ["XS","S","M","L","XL","XXL","XXXL"]
             cal_opts = ["XS (34/36)","S (38)","M (40/42)","L (42/44)","XL (46/48)","XXL (50/52)"]
@@ -423,7 +423,7 @@ def _render_validacao_obrigatoria(user_nome):
             if not nome_emerg.strip(): erros.append("Nome Emergência")
             if not tel_emerg.strip():  erros.append("Telefone Emergência")
             if erros:
-                st.error(f"❌ Campos em falta: {', '.join(erros)}")
+                st.error(f":material/close: Campos em falta: {', '.join(erros)}")
             else:
                 u3 = _load_users_cached().copy()
                 mask = u3['Nome'] == user_nome
@@ -456,7 +456,7 @@ def _render_validacao_obrigatoria(user_nome):
                         titulo="👤 Perfil Preenchido",
                         mensagem=f"{user_nome} completou todos os passos de integração.",
                         tipo="success", acao_url="/admin?tab=rh")
-                    st.success("✅ Perfil guardado! Bem-vindo(a) ao GESTNOW!")
+                    st.success(":material/check_circle: Perfil guardado! Bem-vindo(a) ao GESTNOW!")
                     st.balloons()
                     st.rerun()
         st.stop()
@@ -491,7 +491,7 @@ def _render_validacao_obrigatoria(user_nome):
 
         if ficheiro_iban:
             file_b64 = base64.b64encode(ficheiro_iban.read()).decode('utf-8')
-            st.success(f"✅ Ficheiro carregado: {ficheiro_iban.name}")
+            st.success(f":material/check_circle: Ficheiro carregado: {ficheiro_iban.name}")
             if st.button("💾 Guardar e Concluir Integração",
                          use_container_width=True, type="primary",
                          key="btn_guardar_iban"):
@@ -510,11 +510,11 @@ def _render_validacao_obrigatoria(user_nome):
                         titulo="🏦 Comprovativo IBAN",
                         mensagem=f"{user_nome} submeteu o comprovativo bancário.",
                         tipo="info", acao_url="/admin?tab=rh")
-                    st.success("✅ Integração completa! Bem-vindo(a) ao GESTNOW!")
+                    st.success(":material/check_circle: Integração completa! Bem-vindo(a) ao GESTNOW!")
                     st.balloons()
                     st.rerun()
         else:
-            st.info("👆 Seleciona o ficheiro para continuar.")
+            st.info(":material/touch_app: Seleciona o ficheiro para continuar.")
 
         st.stop()
 
@@ -779,7 +779,7 @@ else:
                         if ficheiro_assin:
                             tam_kb = len(ficheiro_assin.getvalue()) / 1024
                             st.success(
-                                f"✅ Ficheiro: **{ficheiro_assin.name}** "
+                                f":material/check_circle: Ficheiro: **{ficheiro_assin.name}** "
                                 f"({tam_kb:.0f} KB)"
                             )
                             st.markdown(
@@ -813,7 +813,7 @@ else:
                                               detalhes="Contrato assinado submetido",
                                               ip="")
                                     inv("usuarios.csv")  # FIX 2 — selectivo
-                                    st.success("✅ Assinatura submetida! O RH será notificado.")
+                                    st.success(":material/check_circle: Assinatura submetida! O RH será notificado.")
                                     st.rerun()
                         st.stop()
         except Exception as _e_ct:
@@ -832,11 +832,11 @@ else:
                           if _ultima_bkp else 'Nunca realizado'
             if _status_bkp in ('critico', 'nunca'):
                 st.error(
-                    f"🚨 **BACKUP CRÍTICO** — Último: **{_ultima_str}** — "
+                    f":material/emergency: **BACKUP CRÍTICO** — Último: **{_ultima_str}** — "
                     f"Dados não protegidos!"
                 )
             else:
-                st.warning(f"⚠️ **Backup em atraso** — Último: **{_ultima_str}**")
+                st.warning(f":material/warning: **Backup em atraso** — Último: **{_ultima_str}**")
             _col_b1, _col_b2 = st.columns(2)
             with _col_b1:
                 if st.button("💾 Fazer Backup Agora",
@@ -850,7 +850,7 @@ else:
                              key="alert_bkp_confirm",
                              use_container_width=True):
                     _registar_backup(user_nome)
-                    st.success("✅ Backup confirmado!")
+                    st.success(":material/check_circle: Backup confirmado!")
                     st.rerun()
 
         if f"{ICONS['admin']} Admin" in menu:
@@ -908,7 +908,7 @@ else:
                 from mod_instrumentacao import render_instrumentacao
                 render_instrumentacao(*DATA)
             else:
-                st.warning("⚠️ Não tem acesso a este módulo.")
+                st.warning(":material/warning: Não tem acesso a este módulo.")
         elif f"{ICONS['profile']} Perfil" in menu:
             st.markdown(f"# {ICONS['profile']} Perfil do Utilizador")
             from mod_perfil import render_perfil

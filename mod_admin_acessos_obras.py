@@ -495,7 +495,7 @@ def render_acessos_obras(users, obras_db, *_):
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("### 🔐 Gestão de Acessos a Obras")
+    st.markdown("### :material/lock: Gestão de Acessos a Obras")
 
     # ── KPIs ──────────────────────────────────────────────────────
     n_activos  = len(acessos_db[acessos_db['Estado']=='Activo']) \
@@ -559,7 +559,7 @@ def render_acessos_obras(users, obras_db, *_):
     # TAB — PAINEL GERAL
     # ════════════════════════════════════════════════════════════════
     with t_painel:
-        st.markdown("#### 📊 Painel de Acessos")
+        st.markdown("#### :material/bar_chart: Painel de Acessos")
 
         col_g1, col_g2 = st.columns(2)
         with col_g1:
@@ -607,7 +607,7 @@ def render_acessos_obras(users, obras_db, *_):
                 df_p = df_p[df_p['Colaborador']== colab_filt]
 
         if df_p.empty:
-            st.info("📋 Sem acessos registados.")
+            st.info(":material/assignment: Sem acessos registados.")
         else:
             for _, ac in df_p.sort_values(
                 'Data_Fim', ascending=True
@@ -737,7 +737,7 @@ def render_acessos_obras(users, obras_db, *_):
     # TAB — CONCEDER ACESSO
     # ════════════════════════════════════════════════════════════════
     with t_novo:
-        st.markdown("#### ➕ Conceder Acesso a Obra")
+        st.markdown("#### :material/add: Conceder Acesso a Obra")
 
         col_nf, col_ni = st.columns([1, 1])
 
@@ -788,7 +788,7 @@ def render_acessos_obras(users, obras_db, *_):
                     type="primary"
                 ):
                     if na_colab == "—" or na_obra == "—":
-                        st.error("❌ Colaborador e obra obrigatórios.")
+                        st.error(":material/close: Colaborador e obra obrigatórios.")
                     else:
                         # Verificar se já existe
                         ja_existe = False
@@ -802,7 +802,7 @@ def render_acessos_obras(users, obras_db, *_):
 
                         if ja_existe:
                             st.warning(
-                                f"⚠️ {na_colab} já tem acesso activo "
+                                f":material/warning: {na_colab} já tem acesso activo "
                                 f"a {na_obra}."
                             )
                         else:
@@ -852,7 +852,7 @@ def render_acessos_obras(users, obras_db, *_):
                             )
                             inv("acessos_obras.csv")
                             st.success(
-                                f"✅ Acesso concedido a {na_colab} "
+                                f":material/check_circle: Acesso concedido a {na_colab} "
                                 f"para {na_obra}!"
                             )
                             st.rerun()
@@ -924,7 +924,7 @@ def render_acessos_obras(users, obras_db, *_):
                     )
             else:
                 st.info(
-                    "📋 Sem requisitos definidos para esta obra. "
+                    ":material/assignment: Sem requisitos definidos para esta obra. "
                     "Configura no tab ⚙️ Requisitos."
                 )
 
@@ -940,7 +940,7 @@ def render_acessos_obras(users, obras_db, *_):
                 ]
                 if dc.empty:
                     st.warning(
-                        "⚠️ Sem documentos registados para "
+                        ":material/warning: Sem documentos registados para "
                         "este colaborador nesta obra."
                     )
                 else:
@@ -965,7 +965,7 @@ def render_acessos_obras(users, obras_db, *_):
     # TAB — DOCUMENTOS
     # ════════════════════════════════════════════════════════════════
     with t_docs:
-        st.markdown("#### 📋 Gestão de Documentos de Acesso")
+        st.markdown("#### :material/assignment: Gestão de Documentos de Acesso")
 
         col_df, col_dl = st.columns([1, 2])
 
@@ -1017,7 +1017,7 @@ def render_acessos_obras(users, obras_db, *_):
                     type="primary"
                 ):
                     if da_colab == "—":
-                        st.error("❌ Colaborador obrigatório.")
+                        st.error(":material/close: Colaborador obrigatório.")
                     else:
                         fich_b64 = ""
                         if da_ficheiro:
@@ -1058,7 +1058,7 @@ def render_acessos_obras(users, obras_db, *_):
                         )
                         inv("acessos_documentos.csv")
                         st.success(
-                            f"✅ {da_tipo} registado para {da_colab}!"
+                            f":material/check_circle: {da_tipo} registado para {da_colab}!"
                         )
                         st.rerun()
 
@@ -1066,7 +1066,7 @@ def render_acessos_obras(users, obras_db, *_):
             st.markdown("##### 📋 Documentos Registados")
 
             if docs_db.empty:
-                st.info("📋 Sem documentos registados.")
+                st.info(":material/assignment: Sem documentos registados.")
             else:
                 docs_db['Dias_N'] = docs_db['Validade'].apply(_dias_para)
 
@@ -1171,7 +1171,7 @@ def render_acessos_obras(users, obras_db, *_):
     # TAB — POR OBRA
     # ════════════════════════════════════════════════════════════════
     with t_obra:
-        st.markdown("#### 🏗️ Acessos por Obra")
+        st.markdown("#### :material/construction: Acessos por Obra")
 
         obra_sel = st.selectbox(
             "Seleccionar Obra",
@@ -1205,10 +1205,10 @@ def render_acessos_obras(users, obras_db, *_):
 
             if acessos_obra.empty:
                 st.info(
-                    f"📋 Sem colaboradores com acesso a {obra_sel}."
+                    f":material/assignment: Sem colaboradores com acesso a {obra_sel}."
                 )
             else:
-                st.markdown(f"#### 👷 Colaboradores em {obra_sel}")
+                st.markdown(f"#### :material/engineering: Colaboradores em {obra_sel}")
 
                 for _, ac in acessos_obra.sort_values(
                     'Estado'
@@ -1469,13 +1469,13 @@ def render_acessos_obras(users, obras_db, *_):
                         key="dl_rel_obra"
                     )
                 else:
-                    st.info("📋 Sem dados para gerar relatório.")
+                    st.info(":material/assignment: Sem dados para gerar relatório.")
 
     # ════════════════════════════════════════════════════════════════
     # TAB — REQUISITOS POR OBRA
     # ════════════════════════════════════════════════════════════════
     with t_requisitos:
-        st.markdown("#### ⚙️ Requisitos de Acesso por Obra")
+        st.markdown("#### :material/settings: Requisitos de Acesso por Obra")
         st.info(
             "Define os documentos obrigatórios e o nível de segurança "
             "de cada obra. Estes requisitos são usados para validar "
@@ -1552,7 +1552,7 @@ def render_acessos_obras(users, obras_db, *_):
                     save_db(upd_rq,"acessos_requisitos_obras.csv")
                     inv("acessos_requisitos_obras.csv")
                     st.success(
-                        f"✅ Requisitos de {rq_obra} guardados! "
+                        f":material/check_circle: Requisitos de {rq_obra} guardados! "
                         f"{len(docs_sel)} documentos obrigatórios."
                     )
                     st.rerun()
@@ -1560,7 +1560,7 @@ def render_acessos_obras(users, obras_db, *_):
         with col_rl2:
             st.markdown("##### 📋 Requisitos Configurados")
             if req_db.empty:
-                st.info("📋 Sem requisitos configurados.")
+                st.info(":material/assignment: Sem requisitos configurados.")
             else:
                 for _, rq in req_db.iterrows():
                     nivel_rq = rq.get('Nivel_Seguranca','')
@@ -1633,7 +1633,7 @@ def render_acessos_obras(users, obras_db, *_):
     # TAB — RELATÓRIOS
     # ════════════════════════════════════════════════════════════════
     with t_relatorio:
-        st.markdown("#### 📄 Relatórios e Alertas")
+        st.markdown("#### :material/description: Relatórios e Alertas")
 
         # Alertas automáticos
         st.markdown("##### 🔔 Alertas Activos")
@@ -1683,7 +1683,7 @@ def render_acessos_obras(users, obras_db, *_):
                 })
 
         if not alertas:
-            st.success("✅ Sem alertas activos. Tudo em ordem!")
+            st.success(":material/check_circle: Sem alertas activos. Tudo em ordem!")
         else:
             alertas.sort(key=lambda x: x['dias'])
             for alerta in alertas:
@@ -1769,7 +1769,7 @@ def render_acessos_obras(users, obras_db, *_):
                     type="primary"
                 )
             else:
-                st.info("📋 Sem dados para o relatório.")
+                st.info(":material/assignment: Sem dados para o relatório.")
 
         # Tabela completa exportável
         st.markdown("---")
@@ -1801,4 +1801,4 @@ def render_acessos_obras(users, obras_db, *_):
                 key="dl_ac_todos"
             )
         else:
-            st.info("📋 Sem acessos registados.")
+            st.info(":material/assignment: Sem acessos registados.")

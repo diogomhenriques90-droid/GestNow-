@@ -1348,7 +1348,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                         )
                     st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.info("📋 Sem obras ativas para analisar.")
+        st.info(":material/assignment: Sem obras ativas para analisar.")
 
     # ── Co-Piloto IA ──────────────────────────────────────────────
     st.markdown("---")

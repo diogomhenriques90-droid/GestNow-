@@ -350,7 +350,7 @@ def render_formacoes(users, obras_db, *_):
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("### 🎓 Gestão de Formações")
+    st.markdown("### :material/school: Gestão de Formações")
     st.markdown(
         f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;margin:0 0 12px;'>"
         f"ISO 9001:2015 — Cláusula 7.2 Competência · "
@@ -439,10 +439,10 @@ def render_formacoes(users, obras_db, *_):
     # TAB — FORMAÇÕES REGISTADAS
     # ════════════════════════════════════════════════════════════════
     with t_reg:
-        st.markdown("#### 📋 Todas as Formações")
+        st.markdown("#### :material/assignment: Todas as Formações")
 
         if form_db.empty:
-            st.info("📋 Sem formações registadas.")
+            st.info(":material/assignment: Sem formações registadas.")
         else:
             # Filtros
             col_f1,col_f2,col_f3,col_f4 = st.columns(4)
@@ -593,7 +593,7 @@ def render_formacoes(users, obras_db, *_):
     # TAB — REGISTAR FORMAÇÃO
     # ════════════════════════════════════════════════════════════════
     with t_nova:
-        st.markdown("#### ➕ Registar Nova Formação")
+        st.markdown("#### :material/add: Registar Nova Formação")
 
         with st.form("form_nova_formacao"):
             col_n1, col_n2 = st.columns(2)
@@ -707,7 +707,7 @@ def render_formacoes(users, obras_db, *_):
                     else nf_form
                 )
                 if not nome_final or nf_colab == "—":
-                    st.error("❌ Colaborador e formação obrigatórios.")
+                    st.error(":material/close: Colaborador e formação obrigatórios.")
                 else:
                     cert_b64 = ""
                     if nf_cert:
@@ -765,7 +765,7 @@ def render_formacoes(users, obras_db, *_):
                     )
                     inv("formacoes.csv")
                     st.success(
-                        f"✅ Formação registada! "
+                        f":material/check_circle: Formação registada! "
                         f"{nf_colab} · {nome_final} · "
                         f"Válida até "
                         f"{nf_validade.strftime('%d/%m/%Y')}"
@@ -776,7 +776,7 @@ def render_formacoes(users, obras_db, *_):
     # TAB — POR COLABORADOR (Matriz de Competências)
     # ════════════════════════════════════════════════════════════════
     with t_colab:
-        st.markdown("#### 👤 Formações por Colaborador")
+        st.markdown("#### :material/person: Formações por Colaborador")
         st.markdown(
             f"<small style='color:{THEME['text_secondary']};'>"
             f"Matriz de competências — ISO 9001 Cláusula 7.2. "
@@ -824,7 +824,7 @@ def render_formacoes(users, obras_db, *_):
 
             if form_colab.empty:
                 st.info(
-                    f"📋 {colab_sel} não tem formações registadas."
+                    f":material/assignment: {colab_sel} não tem formações registadas."
                 )
             else:
                 # Agrupar por categoria
@@ -959,7 +959,7 @@ def render_formacoes(users, obras_db, *_):
     # TAB — PLANO ANUAL
     # ════════════════════════════════════════════════════════════════
     with t_plano:
-        st.markdown("#### 📅 Plano Anual de Formações")
+        st.markdown("#### :material/calendar_month: Plano Anual de Formações")
         st.info(
             "ISO 9001:2015 Cláusula 7.2 — O plano anual de "
             "formações é evidência obrigatória para certificação."
@@ -1034,7 +1034,7 @@ def render_formacoes(users, obras_db, *_):
                     ) if not plano_db.empty else novo_p
                     save_db(upd_p,"formacoes_plano.csv")
                     inv("formacoes_plano.csv")
-                    st.success("✅ Adicionado ao plano!")
+                    st.success(":material/check_circle: Adicionado ao plano!")
                     st.rerun()
 
         with col_pl:
@@ -1051,7 +1051,7 @@ def render_formacoes(users, obras_db, *_):
 
             if plano_ano.empty:
                 st.info(
-                    f"📋 Sem plano para {ano_plan}. "
+                    f":material/assignment: Sem plano para {ano_plan}. "
                     f"Adiciona formações ao plano."
                 )
             else:
@@ -1181,10 +1181,10 @@ def render_formacoes(users, obras_db, *_):
     # TAB — CUSTOS & REEMBOLSOS
     # ════════════════════════════════════════════════════════════════
     with t_custos:
-        st.markdown("#### 💰 Custos e Reembolsos de Formações")
+        st.markdown("#### :material/payments: Custos e Reembolsos de Formações")
 
         if form_db.empty:
-            st.info("📋 Sem formações registadas.")
+            st.info(":material/assignment: Sem formações registadas.")
         else:
             import plotly.graph_objects as go
 
@@ -1293,7 +1293,7 @@ def render_formacoes(users, obras_db, *_):
             ]
 
             if reemb_pend.empty:
-                st.success("✅ Sem reembolsos pendentes!")
+                st.success(":material/check_circle: Sem reembolsos pendentes!")
             else:
                 for colab_r, grp_r in reemb_pend.groupby('Colaborador'):
                     tot_c = grp_r['Custo_N'].sum()
@@ -1365,7 +1365,7 @@ def render_formacoes(users, obras_db, *_):
     # TAB — CATÁLOGO
     # ════════════════════════════════════════════════════════════════
     with t_catalogo:
-        st.markdown("#### 📚 Catálogo de Formações")
+        st.markdown("#### :material/menu_book: Catálogo de Formações")
         st.info(
             "Define as formações disponíveis, as validades e "
             "quais são obrigatórias para todos os colaboradores. "
@@ -1402,7 +1402,7 @@ def render_formacoes(users, obras_db, *_):
                     )
                     inv("formacoes_catalogo.csv")
                     st.success(
-                        f"✅ Catálogo inicializado com "
+                        f":material/check_circle: Catálogo inicializado com "
                         f"{len(rows_cat)} formações!"
                     )
                     st.rerun()
@@ -1431,7 +1431,7 @@ def render_formacoes(users, obras_db, *_):
                     type="primary"
                 ):
                     if not c_nome.strip():
-                        st.error("❌ Nome obrigatório.")
+                        st.error(":material/close: Nome obrigatório.")
                     else:
                         novo_c = pd.DataFrame([{
                             "ID":           str(uuid.uuid4())[:8].upper(),
@@ -1446,7 +1446,7 @@ def render_formacoes(users, obras_db, *_):
                         ) if not cat_db.empty else novo_c
                         save_db(upd_c,"formacoes_catalogo.csv")
                         inv("formacoes_catalogo.csv")
-                        st.success(f"✅ {c_nome} adicionado!")
+                        st.success(f":material/check_circle: {c_nome} adicionado!")
                         st.rerun()
 
         with col_cl:
@@ -1454,7 +1454,7 @@ def render_formacoes(users, obras_db, *_):
 
             if cat_db.empty:
                 st.info(
-                    "📋 Catálogo vazio. Inicializa com o botão "
+                    ":material/assignment: Catálogo vazio. Inicializa com o botão "
                     "ao lado ou adiciona formações manualmente."
                 )
             else:
