@@ -1317,6 +1317,18 @@ GLOBAL_CSS = f"""
 .stApp {{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
 }}
+/* Logótipo da barra lateral (st.logo(), size="large" já é o máximo
+   nativo do Streamlit) — aumentado via CSS para ficar bem legível.
+   O contentor stSidebarHeader tem altura fixa por omissão; passa a
+   altura automática para não cortar o logótipo maior. */
+[data-testid="stSidebarHeader"] {{
+    height: auto !important;
+    padding: 0.6rem 0 !important;
+}}
+img[data-testid="stLogo"] {{
+    height: 3rem !important;
+    max-width: 85% !important;
+}}
 .stTextInput > div > div > input,
 .stNumberInput > div > div > input,
 .stTextArea > div > div > textarea {{
