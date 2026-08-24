@@ -10,6 +10,7 @@ import base64
 import re
 from datetime import datetime
 from translations import t
+from core import THEME
 
 # =============================================================================
 # 🎨 CSS DO ASSISTENTE DE VOZ - DESIGN SYSTEM INDUSTRIAL
@@ -20,7 +21,7 @@ _VOZ_CSS = f"""
     bottom: 20px;
     right: 20px;
     z-index: 999;
-    background: linear-gradient(135deg, #3B82F6, #60A5FA);
+    background: {THEME['accent']};
     border-radius: 50%;
     width: 64px;
     height: 64px;
@@ -28,48 +29,47 @@ _VOZ_CSS = f"""
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 4px 20px {THEME['accent']}4D;
     transition: all 0.3s ease;
     font-size: 1.8rem;
 }}
 .voice-assistant:hover {{
     transform: scale(1.1);
-    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.7);
+    box-shadow: 0 8px 30px {THEME['accent']}66;
 }}
 .voice-assistant.listening {{
-    background: linear-gradient(135deg, #EF4444, #F59E0B);
+    background: {THEME['error']};
     animation: pulse-voice 1.5s infinite;
 }}
 @keyframes pulse-voice {{
-    0% {{ transform: scale(1); box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5); }}
-    50% {{ transform: scale(1.15); box-shadow: 0 8px 40px rgba(239, 68, 68, 0.8); }}
-    100% {{ transform: scale(1); box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5); }}
+    0% {{ transform: scale(1); box-shadow: 0 4px 20px {THEME['error']}4D; }}
+    50% {{ transform: scale(1.15); box-shadow: 0 8px 40px {THEME['error']}80; }}
+    100% {{ transform: scale(1); box-shadow: 0 4px 20px {THEME['error']}4D; }}
 }}
 .voice-response {{
     position: fixed;
     bottom: 100px;
     right: 20px;
-    background: linear-gradient(135deg, #1E293B, #0F172A);
+    background: {THEME['surface']};
+    border: 1px solid {THEME['border']};
     border-radius: 16px;
     padding: 16px 20px;
     max-width: 350px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-    border-left: 4px solid #3B82F6;
+    border-left: 4px solid {THEME['accent']};
     z-index: 998;
     font-size: 0.9rem;
-    color: #F8FAFC;
+    color: {THEME['text']};
     animation: slideInVoice 0.3s ease;
-    backdrop-filter: blur(10px);
 }}
 @keyframes slideInVoice {{
     from {{ opacity: 0; transform: translateX(50px); }}
     to {{ opacity: 1; transform: translateX(0); }}
 }}
 .voice-response.error {{
-    border-left-color: #EF4444;
+    border-left-color: {THEME['error']};
 }}
 .voice-response.success {{
-    border-left-color: #10B981;
+    border-left-color: {THEME['success']};
 }}
 """
 

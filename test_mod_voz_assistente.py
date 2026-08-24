@@ -47,5 +47,29 @@ class TestRenderVoiceAssistantSemErro(unittest.TestCase):
         self.assertFalse(at.exception, msg=str(at.exception))
 
 
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_voz_assistente.py lê as suas
+    cores de core.THEME — o botão flutuante e a caixa de resposta
+    deixam de usar gradientes fixos (azul/vermelho) e um fundo
+    escuro tipo "glass" (#1E293B→#0F172A com blur), passando a um
+    acento e uma superfície claros consistentes com o resto da app."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "accent",
+                      "success", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("background: #1E293B", textos)
+        self.assertNotIn("#0F172A", textos)
+        self.assertNotIn("#F8FAFC", textos)
+        self.assertNotIn("linear-gradient", textos)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
