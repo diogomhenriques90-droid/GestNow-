@@ -59,14 +59,24 @@ _FATURAS_RECORDS = [
      "PDF_b64": "", "Aprovado_Por": "", "Pago_Em": ""},
 ]
 
+_HOJE = pd.Timestamp.today()
+
 _IBAN_HIST_RECORDS = [
+    # 5 dias atrás — dias_alt<30, bloqueado=True, exercita o ramo
+    # "BLOQUEADO" (error).
     {"ID": "H1", "Entidade": "Fornecedor Normal", "Tipo": "Fornecedor",
-     "Data_Alteracao": "10/08/2026", "IBAN_Anterior": "PT50OLD",
+     "Data_Alteracao": (_HOJE - pd.Timedelta(days=5)).strftime("%d/%m/%Y"),
+     "IBAN_Anterior": "PT50OLD",
      "IBAN_Novo": "PT50000000000000000000000", "Alterado_Por": "Admin"},
-    # Exatamente 30 dias antes de "hoje" (23/08/2026) — dias_alt=30,
-    # bloqueado=False (dias_alt<30), exercita o ramo "Desbloqueado".
+    # Exatamente 30 dias antes de "hoje" — dias_alt=30, bloqueado=False
+    # (dias_alt<30 é falso), exercita o ramo "Desbloqueado" (success).
+    # É o único ponto onde esse ramo dispara: o filtro exterior só
+    # mostra alterações com Alt_d >= hoje-30, logo dias_alt nunca
+    # ultrapassa 30 — tem de ser calculado em relação a "hoje", nunca
+    # uma data fixa (apodrece a cada dia que passa).
     {"ID": "H2", "Entidade": "Subempreiteiro Teste", "Tipo": "Fornecedor",
-     "Data_Alteracao": "24/07/2026", "IBAN_Anterior": "PT50OLD2",
+     "Data_Alteracao": (_HOJE - pd.Timedelta(days=30)).strftime("%d/%m/%Y"),
+     "IBAN_Anterior": "PT50OLD2",
      "IBAN_Novo": "PT50000000000000000000001", "Alterado_Por": "Admin"},
 ]
 
