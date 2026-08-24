@@ -11,7 +11,7 @@ import os
 from datetime import datetime, timedelta
 import plotly.express as px
 from translations import t
-from core import ICONS, COLORS
+from core import ICONS, COLORS, THEME
 
 # =============================================================================
 # 🗄️ ARQUIVOS DE DADOS
@@ -25,45 +25,42 @@ VOICE_FEEDBACK_FILE = "voice_feedback.csv"
 # =============================================================================
 _LEARNING_CSS = f"""
 .learning-card {{
-    background: linear-gradient(135deg, rgba(30,41,59,0.95), rgba(15,23,42,0.98));
+    background: {THEME['surface']};
     border-radius: 20px;
     padding: 20px;
     margin-bottom: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.1);
-    backdrop-filter: blur(10px);
+    border: 1px solid {THEME['border']};
     transition: all 0.3s ease;
 }}
 .learning-card:hover {{
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
     transform: translateY(-2px);
-    border-color: {COLORS["accent"]};
+    border-color: {THEME["accent"]};
 }}
 .metric-box {{
     text-align: center;
     padding: 20px;
-    background: rgba(255,255,255,0.05);
+    background: {THEME['surface']};
     border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid {THEME['border']};
     transition: all 0.2s ease;
 }}
 .metric-box:hover {{
-    background: rgba(255,255,255,0.08);
+    background: {THEME['border']};
     transform: translateY(-2px);
 }}
 .metric-value {{
     font-size: 2.2rem;
     font-weight: 800;
-    color: {COLORS["accent"]};
+    color: {THEME["accent"]};
 }}
 .metric-label {{
     font-size: 0.85rem;
-    color: {COLORS["text_secondary"]};
+    color: {THEME["text_secondary"]};
     margin-top: 8px;
 }}
-.feedback-good {{ color: {COLORS["success"]}; font-weight: 700; }}
-.feedback-bad {{ color: {COLORS["error"]}; font-weight: 700; }}
-.feedback-improve {{ color: {COLORS["warning"]}; font-weight: 700; }}
+.feedback-good {{ color: {THEME["success"]}; font-weight: 700; }}
+.feedback-bad {{ color: {THEME["error"]}; font-weight: 700; }}
+.feedback-improve {{ color: {THEME["warning"]}; font-weight: 700; }}
 """
 
 # =============================================================================
@@ -260,8 +257,8 @@ def render_voice_learning_dashboard():
     st.markdown(f"""
     <div class="learning-card">
         <div style="font-size:2rem; margin-bottom:10px;">{ICONS["voice"]}</div>
-        <div style="font-size:1.5rem; font-weight:800; color:{COLORS["text_primary"]};">🧠 Aprendizagem da IA com Voz</div>
-        <div style="font-size:0.95rem; color:{COLORS["text_secondary"]};">Esta página mostra como a IA está aprendendo com os comandos dos utilizadores.</div>
+        <div style="font-size:1.5rem; font-weight:800; color:{THEME["text"]};">🧠 Aprendizagem da IA com Voz</div>
+        <div style="font-size:0.95rem; color:{THEME["text_secondary"]};">Esta página mostra como a IA está aprendendo com os comandos dos utilizadores.</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -277,7 +274,7 @@ def render_voice_learning_dashboard():
         </div>
         """, unsafe_allow_html=True)
     with col2:
-        success_color = COLORS["success"] if insights["success_rate"] >= 80 else COLORS["warning"] if insights["success_rate"] >= 60 else COLORS["error"]
+        success_color = THEME["success"] if insights["success_rate"] >= 80 else THEME["warning"] if insights["success_rate"] >= 60 else THEME["error"]
         st.markdown(f"""
         <div class="metric-box">
             <div class="metric-value" style="color:{success_color};">{insights["success_rate"]:.1f}%</div>

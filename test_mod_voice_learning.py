@@ -91,5 +91,29 @@ class TestRenderVoiceLearningSemErro(unittest.TestCase):
         self.assertFalse(at.exception, msg=str(at.exception))
 
 
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_voice_learning.py lê as suas
+    cores de core.THEME em vez de core.COLORS (paleta escura antiga)
+    — o cartão de aprendizagem deixa de forçar um fundo em gradiente
+    escuro tipo "glass". Os 2 gráficos Plotly (que ainda usam
+    core.COLORS no font_color/color_scale) ficam de fora, de
+    propósito — Fase 4."""
+
+    def test_css_usa_theme(self):
+        at = _run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        for chave in ("surface", "border", "text", "text_secondary",
+                      "accent", "warning", "success", "error"):
+            self.assertIn(core.THEME[chave], textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        at = _run()
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertNotIn("rgba(30,41,59", textos)
+        self.assertNotIn("rgba(15,23,42", textos)
+        self.assertNotIn("#F8FAFC", textos)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
