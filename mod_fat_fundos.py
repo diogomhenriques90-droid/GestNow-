@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit
+from core import save_db, inv, load_db, log_audit, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -58,7 +58,6 @@ FUNDOS_DB = [
         "documentos":   ["Candidatura online IAPMEI","Balanço 3 anos",
                          "Plano de Negócios","Orçamentos investimento",
                          "Certidões AT e SS","Alvará/licenças"],
-        "cor":          "#3B82F6",
         "elegibilidade_score": 0  # calculado dinamicamente
     },
     {
@@ -87,7 +86,6 @@ FUNDOS_DB = [
                         "e sistemas de monitorização.",
         "documentos":   ["Auditoria energética","Orçamentos",
                          "Certidões AT e SS","Candidatura DGEG"],
-        "cor":          "#10B981",
         "elegibilidade_score": 0
     },
     # ── PT2030 ───────────────────────────────────────────────────
@@ -119,7 +117,6 @@ FUNDOS_DB = [
         "documentos":   ["Candidatura IAPMEI","Business Plan",
                          "Orçamentos detalhados","Balanços 3 anos",
                          "Certidões fiscais","Registo empresarial"],
-        "cor":          "#8B5CF6",
         "elegibilidade_score": 0
     },
     {
@@ -148,7 +145,6 @@ FUNDOS_DB = [
                         "colaboradores. Muito acessível para PMEs.",
         "documentos":   ["Candidatura simplificada IAPMEI",
                          "Certidões fiscais","Orçamentos"],
-        "cor":          "#F59E0B",
         "elegibilidade_score": 0
     },
     # ── FORMAÇÃO ─────────────────────────────────────────────────
@@ -177,7 +173,6 @@ FUNDOS_DB = [
                         "gestão de projetos. Até 100% comparticipado.",
         "documentos":   ["Pedido IEFP","Lista trabalhadores",
                          "Programa formação","Certidões SS"],
-        "cor":          "#06B6D4",
         "elegibilidade_score": 0
     },
     # ── IAPMEI LINHAS ────────────────────────────────────────────
@@ -206,7 +201,6 @@ FUNDOS_DB = [
                         "prazo até 7 anos. Sem colateral imobiliário.",
         "documentos":   ["Pedido ao banco","Balanços 2 anos",
                          "Declarações AT e SS","Plano financeiro"],
-        "cor":          "#10B981",
         "elegibilidade_score": 0
     },
     # ── SIFIDE ───────────────────────────────────────────────────
@@ -235,7 +229,6 @@ FUNDOS_DB = [
                         "pode ser elegível. Consultar TOC.",
         "documentos":   ["Declaração IRC","Mapa despesas I&D",
                          "Relatório técnico","Candidatura FCT"],
-        "cor":          "#EF4444",
         "elegibilidade_score": 0
     },
     # ── RFAI ─────────────────────────────────────────────────────
@@ -265,7 +258,6 @@ FUNDOS_DB = [
                         "Simples de aplicar com o TOC.",
         "documentos":   ["Declaração IRC","Faturas investimento",
                          "Mapa de ativos"],
-        "cor":          "#F97316",
         "elegibilidade_score": 0
     },
 ]
@@ -527,7 +519,8 @@ def _grafico_apoio_donut(fundos_elegíveis: list,
         round(valor_invest * f.get('pct_max', 50) / 100, 0)
         for f in top
     ]
-    cores = [f['cor'] for f in top]
+    paleta = ['#3B82F6','#10B981','#8B5CF6','#F59E0B','#06B6D4']
+    cores  = [paleta[i % len(paleta)] for i in range(len(top))]
 
     fig = go.Figure(go.Pie(
         labels=labels, values=values,
@@ -920,24 +913,26 @@ def render_fat_fundos(*_):
     hoje      = date.today()
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .fundo-card {
-        background:#1E293B; border-radius:12px;
+    .fundo-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:16px; margin-bottom:10px;
-        border-left:5px solid #3B82F6;
+        border-left:5px solid {THEME['accent']};
         transition:transform 0.15s;
-    }
-    .fundo-card:hover { transform:translateX(3px); }
-    .cand-card {
-        background:#1E293B; border-radius:10px;
+    }}
+    .fundo-card:hover {{ transform:translateX(3px); }}
+    .cand-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:10px;
         padding:14px; margin-bottom:8px;
         border-left:4px solid;
-    }
-    .badge-fundo {
+    }}
+    .badge-fundo {{
         display:inline-block; padding:3px 10px;
         border-radius:20px; font-size:0.72rem; font-weight:700;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -1121,9 +1116,9 @@ def render_fat_fundos(*_):
             # Cards por fundo
             for fundo_s in fundos_com_score:
                 sc      = fundo_s['elegibilidade_score']
-                cor_s   = "#10B981" if sc >= 70 \
-                          else "#F59E0B" if sc >= 40 \
-                          else "#EF4444"
+                cor_s   = THEME['success'] if sc >= 70 \
+                          else THEME['warning'] if sc >= 40 \
+                          else THEME['error']
                 ic_s    = "🟢" if sc >= 70 \
                           else "🟡" if sc >= 40 \
                           else "🔴"
@@ -1142,16 +1137,16 @@ def render_fat_fundos(*_):
                     col_fd1, col_fd2 = st.columns([2,1])
                     with col_fd1:
                         st.markdown(
-                            f"<div style='background:#0F172A;"
+                            f"<div style='background:{THEME['border']};"
                             f"border-radius:8px;padding:12px;'>"
-                            f"<p style='color:#64748B;"
+                            f"<p style='color:{THEME['text_secondary']};"
                             f"font-size:0.75rem;margin:0 0 4px;'>"
                             f"🏷️ {fundo_s.get('programa','')} · "
                             f"{fundo_s.get('tipo','')}</p>"
-                            f"<p style='color:#94A3B8;"
+                            f"<p style='color:{THEME['text_secondary']};"
                             f"font-size:0.85rem;margin:0 0 8px;'>"
                             f"{fundo_s.get('descricao','')}</p>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"📞 {fundo_s.get('contacto','')} · "
                             f"🌐 {fundo_s.get('url','')}</small>"
                             f"</div>",
@@ -1160,9 +1155,9 @@ def render_fat_fundos(*_):
 
                         # Critérios de elegibilidade
                         for motivo in fundo_s.get('motivos',[])[:4]:
-                            cor_m = "#10B981" if motivo.startswith("✅") \
-                                    else "#EF4444" if motivo.startswith("❌") \
-                                    else "#F59E0B"
+                            cor_m = THEME['success'] if motivo.startswith("✅") \
+                                    else THEME['error'] if motivo.startswith("❌") \
+                                    else THEME['warning']
                             st.markdown(
                                 f"<small style='color:{cor_m};'>"
                                 f"{motivo}</small><br>",
@@ -1177,18 +1172,18 @@ def render_fat_fundos(*_):
                             f"text-align:center;'>"
                             f"<b style='color:{cor_s};"
                             f"font-size:1.5rem;'>{sc}%</b><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"elegível</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"border-radius:8px;padding:10px;"
                             f"margin-top:8px;text-align:center;'>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"Apoio estimado</small><br>"
-                            f"<b style='color:#3B82F6;"
+                            f"<b style='color:{THEME['accent']};"
                             f"font-size:1.1rem;'>"
                             f"€{apoio_c['apoio_max']:,.0f}</b>"
                             f"</div>",
@@ -1290,42 +1285,42 @@ def render_fat_fundos(*_):
 
             # Cards resultado
             st.markdown(
-                f"<div style='background:#1E293B;"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                 f"border-radius:12px;padding:20px;'>"
                 f"<div style='display:grid;"
                 f"grid-template-columns:1fr 1fr;"
                 f"gap:12px;margin-bottom:16px;'>"
-                f"<div style='background:#0F172A;"
+                f"<div style='background:{THEME['border']};"
                 f"border-radius:8px;padding:12px;"
                 f"text-align:center;'>"
-                f"<small style='color:#64748B;'>Investimento</small><br>"
-                f"<b style='color:#F1F5F9;font-size:1.3rem;'>"
+                f"<small style='color:{THEME['text_secondary']};'>Investimento</small><br>"
+                f"<b style='color:{THEME['text']};font-size:1.3rem;'>"
                 f"€{invest_calc:,.0f}</b>"
                 f"</div>"
-                f"<div style='background:#0F172A;"
+                f"<div style='background:{THEME['border']};"
                 f"border-radius:8px;padding:12px;"
                 f"text-align:center;'>"
-                f"<small style='color:#64748B;'>% Apoio</small><br>"
-                f"<b style='color:#3B82F6;font-size:1.3rem;'>"
+                f"<small style='color:{THEME['text_secondary']};'>% Apoio</small><br>"
+                f"<b style='color:{THEME['accent']};font-size:1.3rem;'>"
                 f"{pct_calc}%</b>"
                 f"</div>"
                 f"</div>"
-                f"<div style='background:rgba(16,185,129,0.1);"
-                f"border:2px solid #10B981;"
+                f"<div style='background:{THEME['success']}1A;"
+                f"border:2px solid {THEME['success']};"
                 f"border-radius:10px;padding:16px;"
                 f"text-align:center;margin-bottom:12px;'>"
-                f"<small style='color:#64748B;'>APOIO ESTIMADO</small><br>"
-                f"<b style='color:#10B981;font-size:2rem;'>"
+                f"<small style='color:{THEME['text_secondary']};'>APOIO ESTIMADO</small><br>"
+                f"<b style='color:{THEME['success']};font-size:2rem;'>"
                 f"€{apoio_r['apoio_max']:,.0f}</b><br>"
-                f"<small style='color:#64748B;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"{'Fundo perdido' if not apoio_r['reembolsavel'] else 'Reembolsável'}"
                 f"</small></div>"
-                f"<div style='background:rgba(239,68,68,0.08);"
+                f"<div style='background:{THEME['error']}14;"
                 f"border-radius:8px;padding:12px;"
                 f"text-align:center;'>"
-                f"<small style='color:#64748B;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"Contrapartida empresa</small><br>"
-                f"<b style='color:#EF4444;"
+                f"<b style='color:{THEME['error']};"
                 f"font-size:1.2rem;'>"
                 f"€{apoio_r['contrapartida']:,.0f}</b>"
                 f"</div></div>",
@@ -1339,15 +1334,15 @@ def render_fat_fundos(*_):
                     apoio_r['contrapartida'] * 100, 0
                 ) if apoio_r['contrapartida'] > 0 else 0
                 st.markdown(
-                    f"<div style='background:rgba(59,130,246,0.1);"
-                    f"border:1px solid #3B82F6;"
+                    f"<div style='background:{THEME['accent']}1A;"
+                    f"border:1px solid {THEME['accent']};"
                     f"border-radius:8px;padding:12px;"
                     f"text-align:center;margin-top:8px;'>"
-                    f"<b style='color:#3B82F6;'>"
+                    f"<b style='color:{THEME['accent']};'>"
                     f"Por cada €100 investidos, "
                     f"o Estado co-financia €"
                     f"{pct_calc}</b><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"ROI mínimo do apoio: "
                     f"{roi_apoio:.0f}%</small>"
                     f"</div>",
@@ -1430,18 +1425,18 @@ def render_fat_fundos(*_):
         ]
 
         st.markdown(
-            f"<p style='color:#64748B;font-size:0.8rem;'>"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;'>"
             f"{len(fundos_filtrados)} fundo(s) encontrado(s)</p>",
             unsafe_allow_html=True
         )
 
         for fundo_f in fundos_filtrados:
-            cor_f = fundo_f['cor']
+            cor_f = THEME['accent']
             tipo_badge_cor = {
-                "Subvenção não reembolsável":       "#10B981",
-                "Crédito bonificado (reembolsável)":"#3B82F6",
-                "Benefício fiscal (dedução IRC)":   "#F59E0B",
-            }.get(fundo_f.get('tipo',''),"#6B7280")
+                "Subvenção não reembolsável":       THEME['success'],
+                "Crédito bonificado (reembolsável)":THEME['accent'],
+                "Benefício fiscal (dedução IRC)":   THEME['warning'],
+            }.get(fundo_f.get('tipo',''), THEME['text_secondary'])
 
             with st.expander(
                 f"🏦 {fundo_f['nome']}",
@@ -1451,20 +1446,20 @@ def render_fat_fundos(*_):
 
                 with col_fi1:
                     st.markdown(
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['border']};"
                         f"border-radius:8px;padding:12px;'>"
                         f"<span class='badge-fundo' "
                         f"style='background:{tipo_badge_cor}22;"
                         f"color:{tipo_badge_cor};'>"
                         f"{fundo_f.get('tipo','')}</span>"
                         f"<span class='badge-fundo' "
-                        f"style='background:rgba(59,130,246,0.15);"
-                        f"color:#3B82F6;margin-left:8px;'>"
+                        f"style='background:{THEME['accent']}26;"
+                        f"color:{THEME['accent']};margin-left:8px;'>"
                         f"{fundo_f.get('programa','')}</span><br><br>"
-                        f"<p style='color:#94A3B8;"
+                        f"<p style='color:{THEME['text_secondary']};"
                         f"font-size:0.85rem;margin:0 0 8px;'>"
                         f"{fundo_f.get('descricao','')}</p>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"🏢 {fundo_f.get('entidade','')} · "
                         f"⏱️ {fundo_f.get('prazo_decisao','')} · "
                         f"📞 {fundo_f.get('contacto','')} · "
@@ -1475,30 +1470,30 @@ def render_fat_fundos(*_):
 
                     # Documentos necessários
                     st.markdown(
-                        "<p style='color:#64748B;"
-                        "font-size:0.75rem;font-weight:700;"
-                        "text-transform:uppercase;"
-                        "margin:8px 0 4px;'>Documentos:</p>",
+                        f"<p style='color:{THEME['text_secondary']};"
+                        f"font-size:0.75rem;font-weight:700;"
+                        f"text-transform:uppercase;"
+                        f"margin:8px 0 4px;'>Documentos:</p>",
                         unsafe_allow_html=True
                     )
                     for doc in fundo_f.get('documentos',[]):
                         st.markdown(
-                            f"<small style='color:#94A3B8;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"📄 {doc}</small><br>",
                             unsafe_allow_html=True
                         )
 
                 with col_fi2:
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:8px;padding:12px;"
                         f"text-align:center;'>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Apoio máximo</small><br>"
                         f"<b style='color:{cor_f};"
                         f"font-size:1.1rem;'>"
                         f"{fundo_f.get('pct_max',0)}%</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"€{fundo_f.get('valor_min',0):,} — "
                         f"€{fundo_f.get('valor_max',0):,.0f}"
                         f"</small></div>",
@@ -1644,14 +1639,14 @@ def render_fat_fundos(*_):
                 st.info("📋 Sem candidaturas registadas.")
             else:
                 est_cores = {
-                    'Identificado':  '#64748B',
-                    'A Preparar':    '#F59E0B',
-                    'Submetido':     '#3B82F6',
-                    'Em Análise':    '#8B5CF6',
-                    'Aprovado':      '#10B981',
-                    'Rejeitado':     '#EF4444',
-                    'Em Execução':   '#06B6D4',
-                    'Concluído':     '#94A3B8',
+                    'Identificado':  THEME['text_secondary'],
+                    'A Preparar':    THEME['warning'],
+                    'Submetido':     THEME['accent'],
+                    'Em Análise':    THEME['accent'],
+                    'Aprovado':      THEME['success'],
+                    'Rejeitado':     THEME['error'],
+                    'Em Execução':   THEME['success'],
+                    'Concluído':     THEME['text_secondary'],
                 }
 
                 for _, cand_row in cand_db.sort_values(
@@ -1659,7 +1654,7 @@ def render_fat_fundos(*_):
                 ).iterrows():
                     cid     = cand_row.get('ID','')
                     est_c   = cand_row.get('Estado','')
-                    cor_c   = est_cores.get(est_c,'#6B7280')
+                    cor_c   = est_cores.get(est_c, THEME['text_secondary'])
                     val_c   = float(cand_row.get('Valor_Apoio',0) or 0)
                     pct_c   = float(cand_row.get('Pct_Apoio',0) or 0)
                     docs_ok = cand_row.get('Documentos_OK','Não')
@@ -1675,20 +1670,20 @@ def render_fat_fundos(*_):
                             dias_pz = (d_pz - hoje).days
                             if dias_pz < 0:
                                 alerta_pz = (
-                                    "<span style='color:#EF4444;"
-                                    "font-size:0.72rem;'>"
-                                    "🔴 Prazo expirado!</span>"
+                                    f"<span style='color:{THEME['error']};"
+                                    f"font-size:0.72rem;'>"
+                                    f"🔴 Prazo expirado!</span>"
                                 )
                             elif dias_pz <= 14:
                                 alerta_pz = (
-                                    f"<span style='color:#EF4444;"
+                                    f"<span style='color:{THEME['error']};"
                                     f"font-size:0.72rem;'>"
                                     f"⚠️ Prazo em {dias_pz} dias!"
                                     f"</span>"
                                 )
                             elif dias_pz <= 30:
                                 alerta_pz = (
-                                    f"<span style='color:#F59E0B;"
+                                    f"<span style='color:{THEME['warning']};"
                                     f"font-size:0.72rem;'>"
                                     f"⏰ {dias_pz} dias para prazo"
                                     f"</span>"
@@ -1705,10 +1700,10 @@ def render_fat_fundos(*_):
                             f"justify-content:space-between;"
                             f"align-items:flex-start;'>"
                             f"<div>"
-                            f"<b style='color:#F1F5F9;"
+                            f"<b style='color:{THEME['text']};"
                             f"font-size:0.9rem;'>"
                             f"{cand_row.get('Fundo','')[:35]}</b><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"🏷️ {cand_row.get('Programa','')} · "
                             f"📅 {cand_row.get('Data_Inicio','')} · "
                             f"Prazo: {prazo_str} · "
@@ -1716,7 +1711,7 @@ def render_fat_fundos(*_):
                             f"{alerta_pz}"
                             f"</div>"
                             f"<div style='text-align:right;'>"
-                            f"<b style='color:#10B981;"
+                            f"<b style='color:{THEME['success']};"
                             f"font-size:1rem;'>"
                             f"€{val_c:,.0f}</b><br>"
                             f"<span class='badge-fundo' "
@@ -1817,9 +1812,9 @@ def render_fat_fundos(*_):
         with col_ia1:
             st.markdown("#### 🔍 Pesquisa de Avisos Abertos")
             st.markdown(
-                "<small style='color:#64748B;'>"
-                "A IA pesquisa e sugere fundos relevantes "
-                "para o perfil da empresa.</small>",
+                f"<small style='color:{THEME['text_secondary']};'>"
+                f"A IA pesquisa e sugere fundos relevantes "
+                f"para o perfil da empresa.</small>",
                 unsafe_allow_html=True
             )
 
@@ -1837,10 +1832,10 @@ def render_fat_fundos(*_):
 
             # Preview do perfil atual
             st.markdown(
-                f"<div style='background:#1E293B;"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                 f"border-radius:8px;padding:10px;"
                 f"margin-bottom:8px;'>"
-                f"<small style='color:#64748B;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"Setor: {perfil_ia.get('setor','')} · "
                 f"Região: {perfil_ia.get('regiao','')} · "
                 f"{perfil_ia.get('n_trabalhadores','')} trabalhadores"
@@ -1862,12 +1857,12 @@ def render_fat_fundos(*_):
 
             if st.session_state.get('ia_avisos'):
                 st.markdown(
-                    f"<div style='background:rgba(59,130,246,0.1);"
-                    f"border:1px solid #3B82F6;"
+                    f"<div style='background:{THEME['accent']}1A;"
+                    f"border:1px solid {THEME['accent']};"
                     f"border-radius:12px;padding:16px;"
-                    f"color:#E2E8F0;font-size:0.85rem;"
+                    f"color:{THEME['text']};font-size:0.85rem;"
                     f"line-height:1.7;'>"
-                    f"<p style='color:#3B82F6;font-weight:700;"
+                    f"<p style='color:{THEME['accent']};font-weight:700;"
                     f"margin:0 0 8px;'>"
                     f"🤖 AVISOS ABERTOS — IA</p>"
                     f"{st.session_state['ia_avisos'].replace(chr(10),'<br>')}"
@@ -1878,9 +1873,9 @@ def render_fat_fundos(*_):
         with col_ia2:
             st.markdown("#### 📋 Plano de Candidatura IA")
             st.markdown(
-                "<small style='color:#64748B;'>"
-                "Seleciona um fundo e a IA gera um plano "
-                "detalhado de candidatura.</small>",
+                f"<small style='color:{THEME['text_secondary']};'>"
+                f"Seleciona um fundo e a IA gera um plano "
+                f"detalhado de candidatura.</small>",
                 unsafe_allow_html=True
             )
 
@@ -1921,12 +1916,12 @@ def render_fat_fundos(*_):
 
             if st.session_state.get('ia_plano_cand'):
                 st.markdown(
-                    f"<div style='background:rgba(16,185,129,0.08);"
-                    f"border:1px solid #10B981;"
+                    f"<div style='background:{THEME['success']}14;"
+                    f"border:1px solid {THEME['success']};"
                     f"border-radius:12px;padding:16px;"
-                    f"color:#E2E8F0;font-size:0.85rem;"
+                    f"color:{THEME['text']};font-size:0.85rem;"
                     f"line-height:1.7;'>"
-                    f"<p style='color:#10B981;font-weight:700;"
+                    f"<p style='color:{THEME['success']};font-weight:700;"
                     f"margin:0 0 8px;'>"
                     f"📋 PLANO — "
                     f"{st.session_state.get('ia_plano_fundo','')[:30]}"
@@ -1978,10 +1973,10 @@ def render_fat_fundos(*_):
                                 }]
                             )
                             st.markdown(
-                                f"<div style='background:rgba(59,130,246,0.1);"
-                                f"border:1px solid #3B82F6;"
+                                f"<div style='background:{THEME['accent']}1A;"
+                                f"border:1px solid {THEME['accent']};"
                                 f"border-radius:10px;padding:14px;"
-                                f"color:#E2E8F0;font-size:0.88rem;"
+                                f"color:{THEME['text']};font-size:0.88rem;"
                                 f"line-height:1.6;margin-top:8px;'>"
                                 f"{resp.content[0].text.replace(chr(10),'<br>')}"
                                 f"</div>",
@@ -2055,8 +2050,8 @@ def render_fat_fundos(*_):
             if alertas_pz:
                 alertas_pz.sort(key=lambda x: x['dias'])
                 for ap in alertas_pz:
-                    cor_ap = "#EF4444" if ap['dias'] < 14 \
-                             else "#F59E0B"
+                    cor_ap = THEME['error'] if ap['dias'] < 14 \
+                             else THEME['warning']
                     st.markdown(
                         f"<div style='background:{cor_ap}10;"
                         f"border-left:4px solid {cor_ap};"
@@ -2064,9 +2059,9 @@ def render_fat_fundos(*_):
                         f"margin-bottom:6px;'>"
                         f"<b style='color:{cor_ap};'>"
                         f"⏰ {ap['fundo']}</b>"
-                        f"<span style='float:right;color:#64748B;'>"
+                        f"<span style='float:right;color:{THEME['text_secondary']};'>"
                         f"€{ap['val']:,.0f}</span><br>"
-                        f"<small style='color:#94A3B8;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Prazo: {ap['prazo']} — "
                         f"faltam {ap['dias']} dia(s)</small>"
                         f"</div>",
@@ -2103,17 +2098,17 @@ def render_fat_fundos(*_):
         else:
             for _, proj in candidaturas_ativas.iterrows():
                 st.markdown(
-                    f"<div style='background:#1E293B;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                     f"border-radius:8px;padding:12px;"
                     f"margin-bottom:8px;"
-                    f"border-left:3px solid #06B6D4;'>"
-                    f"<b style='color:#F1F5F9;'>"
+                    f"border-left:3px solid {THEME['accent']};'>"
+                    f"<b style='color:{THEME['text']};'>"
                     f"▶ {proj.get('Fundo','')[:35]}</b><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"Valor apoio: "
                     f"€{float(proj.get('Valor_Apoio',0) or 0):,.0f} · "
                     f"Início: {proj.get('Data_Inicio','')}</small><br>"
-                    f"<small style='color:#06B6D4;'>"
+                    f"<small style='color:{THEME['accent']};'>"
                     f"📊 Próximo reporte trimestral — verificar portal"
                     f"</small></div>",
                     unsafe_allow_html=True
