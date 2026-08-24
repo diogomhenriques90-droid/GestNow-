@@ -256,7 +256,7 @@ def render_voice_learning_dashboard():
     # Header com branding industrial
     st.markdown(f"""
     <div class="learning-card">
-        <div style="font-size:2rem; margin-bottom:10px;">{ICONS["voice"]}</div>
+        <div style="font-size:2rem; margin-bottom:10px;">🎤</div>
         <div style="font-size:1.5rem; font-weight:800; color:{THEME["text"]};">🧠 Aprendizagem da IA com Voz</div>
         <div style="font-size:0.95rem; color:{THEME["text_secondary"]};">Esta página mostra como a IA está aprendendo com os comandos dos utilizadores.</div>
     </div>
@@ -270,7 +270,7 @@ def render_voice_learning_dashboard():
         st.markdown(f"""
         <div class="metric-box">
             <div class="metric-value">{insights["total_commands"]}</div>
-            <div class="metric-label">{ICONS["voice"]} Total de Comandos</div>
+            <div class="metric-label">🎤 Total de Comandos</div>
         </div>
         """, unsafe_allow_html=True)
     with col2:

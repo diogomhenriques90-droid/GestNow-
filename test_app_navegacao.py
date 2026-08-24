@@ -77,7 +77,7 @@ class TestEncaminhamentoAdmin(unittest.TestCase):
         at = _run("Admin", f"{ICONS['work']} Dashboard de Obra")
         self.assertFalse(at.exception, msg=str(at.exception))
         self.assertIn("Sem obras para apresentar", _texto(at))
-        self.assertEqual(ICONS['work'], "📊")
+        self.assertEqual(ICONS['work'], ":material/bar_chart:")
 
 
 class TestLogotipoNaBarraLateral(unittest.TestCase):
