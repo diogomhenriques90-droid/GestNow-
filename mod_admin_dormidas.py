@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import uuid
 from datetime import datetime, date
-from core import save_db, inv, load_db, THEME
+from core import save_db, inv, load_db
 
 def render_dormidas():
     st.markdown("### 🏨 Gestão de Dormidas")
@@ -264,28 +264,28 @@ Responde APENAS em JSON:
                                 preco = h.get('preco_noite', 0)
                                 total_h = round(preco * noites_pesq * n_pessoas, 2)
                                 adequado = h.get('adequado', True)
-                                cor_h = THEME['success'] if adequado else THEME['warning']
+                                cor_h = "#10B981" if adequado else "#F59E0B"
                                 dentro_orcamento = preco <= orcamento
 
                                 st.markdown(
-                                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
+                                    f"<div style='background:#1E293B;"
                                     f"border-radius:12px;padding:16px;"
                                     f"margin-bottom:10px;"
                                     f"border-left:4px solid {cor_h};'>"
-                                    f"<b style='color:{THEME['text']};font-size:1rem;'>"
+                                    f"<b style='color:#F1F5F9;font-size:1rem;'>"
                                     f"{'✅' if adequado else '⚠️'} "
                                     f"{h.get('nome','')}</b>"
                                     f"<span style='float:right;"
-                                    f"color:{THEME['success'] if dentro_orcamento else THEME['error']};"
+                                    f"color:{'#10B981' if dentro_orcamento else '#EF4444'};"
                                     f"font-weight:700;font-size:1.1rem;'>"
                                     f"€ {preco:.2f}/noite</span><br>"
-                                    f"<small style='color:{THEME['text_secondary']};'>"
+                                    f"<small style='color:#64748B;'>"
                                     f"📍 {h.get('cidade','')} · "
                                     f"🚗 {h.get('distancia_km','')}km · "
                                     f"🏨 {h.get('tipo','')}</small><br>"
-                                    f"<small style='color:{THEME['text_secondary']};'>"
+                                    f"<small style='color:#94A3B8;'>"
                                     f"{h.get('motivo','')}</small><br>"
-                                    f"<small style='color:{THEME['accent']};'>"
+                                    f"<small style='color:#3B82F6;'>"
                                     f"💰 Total estimado "
                                     f"({noites_pesq}n × {n_pessoas}p): "
                                     f"<b>€ {total_h:.2f}</b></small>"
