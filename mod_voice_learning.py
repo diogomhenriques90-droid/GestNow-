@@ -340,7 +340,7 @@ def render_voice_learning_dashboard():
 
     with col_fail1:
         if insights["most_failed_commands"]:
-            st.markdown(f"#### {ICONS['error']} Comandos Mais Falhados")
+            st.markdown(f"#### {ICONS['close']} Comandos Mais Falhados")
             df_fail = pd.DataFrame(list(insights["most_failed_commands"].items()),
                                    columns=['Comando', 'Falhas'])
             st.dataframe(df_fail, use_container_width=True)
