@@ -665,7 +665,7 @@ def render_iso9001(*_):
     # TAB 1 — OBJETIVOS DA QUALIDADE (Cláusula 6.2)
     # ════════════════════════════════════════════════════════════════
     with t_obj:
-        st.markdown("### :material/track_changes: Objetivos da Qualidade")
+        st.markdown("### Objetivos da Qualidade")
         st.info(
             "ISO 9001:2015 Cláusula 6.2 — Os objetivos devem ser "
             "mensuráveis, monitorizados, comunicados e atualizados."
@@ -674,7 +674,7 @@ def render_iso9001(*_):
         col_of, col_ol = st.columns([1, 2])
 
         with col_of:
-            st.markdown("#### :material/add: Novo Objetivo")
+            st.markdown("#### Novo Objetivo")
             with st.form("form_obj_iso"):
                 o_ano    = st.number_input(
                     "Ano", min_value=2024,
@@ -726,7 +726,7 @@ def render_iso9001(*_):
                     use_container_width=True, type="primary"
                 ):
                     if not o_obj.strip() or not o_ind.strip():
-                        st.error(":material/close: Objetivo e indicador obrigatórios.")
+                        st.error("Objetivo e indicador obrigatórios.")
                     else:
                         novo_o = pd.DataFrame([{
                             "ID":         str(uuid.uuid4())[:8].upper(),
@@ -753,10 +753,10 @@ def render_iso9001(*_):
                             detalhes=f"{o_obj[:50]} | Meta:{o_meta}",
                             ip=""
                         )
-                        inv("iso_objetivos.csv"); st.success(":material/check_circle: Objetivo criado!"); st.rerun()
+                        inv("iso_objetivos.csv"); st.success("Objetivo criado!"); st.rerun()
 
         with col_ol:
-            st.markdown("#### :material/bar_chart: Objetivos em Curso")
+            st.markdown("#### Objetivos em Curso")
 
             # Filtro ano
             anos_obj = [ano_atual]
@@ -781,7 +781,7 @@ def render_iso9001(*_):
                 )
 
             if df_o.empty:
-                st.info(":material/assignment: Sem objetivos para este ano.")
+                st.info("Sem objetivos para este ano.")
             else:
                 for _, obj in df_o.iterrows():
                     oid   = obj.get('ID','')
@@ -857,7 +857,7 @@ def render_iso9001(*_):
     # TAB 2 — GESTÃO DE RISCOS (Cláusula 6.1)
     # ════════════════════════════════════════════════════════════════
     with t_ris:
-        st.markdown("### :material/warning: Gestão de Riscos e Oportunidades")
+        st.markdown("### Gestão de Riscos e Oportunidades")
         st.info(
             "ISO 9001:2015 Cláusula 6.1 — Identificar riscos e "
             "oportunidades que podem afetar a conformidade "
@@ -867,7 +867,7 @@ def render_iso9001(*_):
         col_rf, col_rl = st.columns([1, 2])
 
         with col_rf:
-            st.markdown("#### :material/add: Novo Risco / Oportunidade")
+            st.markdown("#### Novo Risco / Oportunidade")
             with st.form("form_risco"):
                 r_proc   = st.selectbox(
                     "Processo *",
@@ -938,7 +938,7 @@ def render_iso9001(*_):
                     use_container_width=True, type="primary"
                 ):
                     if not r_desc.strip():
-                        st.error(":material/close: Descrição obrigatória.")
+                        st.error("Descrição obrigatória.")
                     else:
                         novo_r = pd.DataFrame([{
                             "ID":           str(uuid.uuid4())[:8].upper(),
@@ -961,7 +961,7 @@ def render_iso9001(*_):
                         save_db(upd_r,"iso_riscos.csv")
                         inv("iso_riscos.csv")
                         st.success(
-                            f":material/check_circle: {r_tipo} registado! Score: {score_calc}"
+                            f"{r_tipo} registado! Score: {score_calc}"
                         )
                         st.rerun()
 
@@ -971,7 +971,7 @@ def render_iso9001(*_):
             if fig_mat:
                 st.plotly_chart(fig_mat)
             else:
-                st.info(":material/assignment: Sem riscos para mostrar na matriz.")
+                st.info("Sem riscos para mostrar na matriz.")
 
             # Lista de riscos
             if not riscos_db.empty:
@@ -1085,7 +1085,7 @@ def render_iso9001(*_):
     # TAB 3 — PARTES INTERESSADAS (Cláusula 4.2)
     # ════════════════════════════════════════════════════════════════
     with t_part:
-        st.markdown("### :material/business: Partes Interessadas")
+        st.markdown("### Partes Interessadas")
         st.info(
             "ISO 9001:2015 Cláusula 4.2 — Identificar partes "
             "interessadas relevantes e as suas expectativas e "
@@ -1095,7 +1095,7 @@ def render_iso9001(*_):
         col_pf, col_pl = st.columns([1, 2])
 
         with col_pf:
-            st.markdown("#### :material/add: Nova Parte Interessada")
+            st.markdown("#### Nova Parte Interessada")
             with st.form("form_parte"):
                 p_nome  = st.text_input(
                     "Nome *", key="p_nome",
@@ -1143,7 +1143,7 @@ def render_iso9001(*_):
                     use_container_width=True, type="primary"
                 ):
                     if not p_nome.strip():
-                        st.error(":material/close: Nome obrigatório.")
+                        st.error("Nome obrigatório.")
                     else:
                         nova_p = pd.DataFrame([{
                             "ID":              str(uuid.uuid4())[:8].upper(),
@@ -1161,14 +1161,14 @@ def render_iso9001(*_):
                         ) if not partes_db.empty else nova_p
                         save_db(upd_p,"iso_partes_interessadas.csv")
                         inv("iso_partes_interessadas.csv")
-                        st.success(f":material/check_circle: {p_nome} registado!")
+                        st.success(f"{p_nome} registado!")
                         st.rerun()
 
         with col_pl:
-            st.markdown("#### :material/assignment: Mapa de Partes Interessadas")
+            st.markdown("#### Mapa de Partes Interessadas")
 
             if partes_db.empty:
-                st.info(":material/assignment: Sem partes interessadas registadas.")
+                st.info("Sem partes interessadas registadas.")
             else:
                 # Matriz Influência × Interesse
                 inf_map  = {"Baixo":1,"Médio":2,"Alto":3}
@@ -1260,7 +1260,7 @@ def render_iso9001(*_):
     # TAB 4 — AUDITORIAS INTERNAS (Cláusula 9.2)
     # ════════════════════════════════════════════════════════════════
     with t_aud:
-        st.markdown("### :material/search: Auditorias Internas")
+        st.markdown("### Auditorias Internas")
         st.info(
             "ISO 9001:2015 Cláusula 9.2 — Realizar auditorias "
             "internas planeadas para verificar conformidade "
@@ -1270,7 +1270,7 @@ def render_iso9001(*_):
         col_af2, col_al2 = st.columns([1, 2])
 
         with col_af2:
-            st.markdown("#### :material/add: Planear Auditoria")
+            st.markdown("#### Planear Auditoria")
             with st.form("form_aud"):
                 a_tipo  = st.selectbox(
                     "Tipo *",
@@ -1375,11 +1375,11 @@ def render_iso9001(*_):
                         ip=""
                     )
                     inv("iso_auditorias.csv")
-                    st.success(":material/check_circle: Auditoria registada!")
+                    st.success("Auditoria registada!")
                     st.rerun()
 
         with col_al2:
-            st.markdown("#### :material/bar_chart: Plano Anual de Auditorias")
+            st.markdown("#### Plano Anual de Auditorias")
 
             # Calendário anual
             ano_aud = st.number_input(
@@ -1397,7 +1397,7 @@ def render_iso9001(*_):
                 ]
 
                 if adb2.empty:
-                    st.info(f":material/assignment: Sem auditorias planeadas para {ano_aud}.")
+                    st.info(f"Sem auditorias planeadas para {ano_aud}.")
                 else:
                     # KPIs
                     n_plan  = len(adb2)
@@ -1481,13 +1481,13 @@ def render_iso9001(*_):
                             )
 
             else:
-                st.info(":material/assignment: Sem auditorias registadas.")
+                st.info("Sem auditorias registadas.")
 
     # ════════════════════════════════════════════════════════════════
     # TAB 5 — REVISÃO PELA GESTÃO (Cláusula 9.3)
     # ════════════════════════════════════════════════════════════════
     with t_rev:
-        st.markdown("### :material/bar_chart: Revisão pela Gestão")
+        st.markdown("### Revisão pela Gestão")
         st.info(
             "ISO 9001:2015 Cláusula 9.3 — A gestão de topo deve "
             "rever o SGQ a intervalos planeados para assegurar "
@@ -1497,7 +1497,7 @@ def render_iso9001(*_):
         col_rv1, col_rv2 = st.columns([1, 1])
 
         with col_rv1:
-            st.markdown("#### :material/settings: Parâmetros")
+            st.markdown("#### Parâmetros")
 
             ano_rev  = st.number_input(
                 "Ano", min_value=2024,
@@ -1519,7 +1519,7 @@ def render_iso9001(*_):
             )
 
             st.markdown("---")
-            st.markdown("#### :material/edit_note: Conteúdo das Secções")
+            st.markdown("#### Conteúdo das Secções")
             st.markdown(
                 f"<small style='color:{THEME['text_secondary']};'>"
                 "Preenche cada secção — os dados dos módulos "
@@ -1612,7 +1612,7 @@ def render_iso9001(*_):
             )
 
         with col_rv2:
-            st.markdown("#### :material/bar_chart: Resumo Automático")
+            st.markdown("#### Resumo Automático")
 
             # Dashboard indicadores
             indicadores_rev = [
@@ -1668,7 +1668,7 @@ def render_iso9001(*_):
             ):
                 if not elab_rev.strip() or not aprov_rev.strip():
                     st.error(
-                        ":material/close: Elaborado por e Aprovado por obrigatórios."
+                        "Elaborado por e Aprovado por obrigatórios."
                     )
                 else:
                     dados_rev = {
@@ -1701,7 +1701,7 @@ def render_iso9001(*_):
                         f"Revisao_Gestao_ISO9001_"
                         f"{ano_rev}_{sem_rev.replace(' ','')}.pdf"
                     )
-                    st.success(":material/check_circle: Documento gerado!")
+                    st.success("Documento gerado!")
                     st.rerun()
 
             if st.session_state.get('rev_pdf'):
@@ -1781,13 +1781,13 @@ def render_iso9001(*_):
                                 unsafe_allow_html=True
                             )
                         except Exception as e:
-                            st.error(f":material/close: {e}")
+                            st.error(f"{e}")
 
     # ════════════════════════════════════════════════════════════════
     # TAB 6 — AVALIAÇÃO DE FORNECEDORES (Cláusula 8.4)
     # ════════════════════════════════════════════════════════════════
     with t_forn:
-        st.markdown("### :material/factory: Avaliação e Qualificação de Fornecedores")
+        st.markdown("### Avaliação e Qualificação de Fornecedores")
         st.info(
             "ISO 9001:2015 Cláusula 8.4 — Controlar processos, "
             "produtos e serviços de fornecedores externos. "
@@ -1797,7 +1797,7 @@ def render_iso9001(*_):
         col_ff2, col_fl2 = st.columns([1, 2])
 
         with col_ff2:
-            st.markdown("#### :material/add: Nova Avaliação")
+            st.markdown("#### Nova Avaliação")
 
             # Lista de fornecedores disponíveis
             forn_lista = []
@@ -1925,20 +1925,20 @@ def render_iso9001(*_):
                     )
                     inv("iso_fornecedores_aval.csv")
                     st.success(
-                        f":material/check_circle: {fa_forn} avaliado! "
+                        f"{fa_forn} avaliado! "
                         f"Score: {score_tot}/100 — {class_forn}"
                     )
                     st.rerun()
 
         with col_fl2:
-            st.markdown("#### :material/bar_chart: Painel de Fornecedores")
+            st.markdown("#### Painel de Fornecedores")
 
             fig_forn = _grafico_fornecedores_score(forn_aval_db)
             if fig_forn:
                 st.plotly_chart(fig_forn)
 
             if forn_aval_db.empty:
-                st.info(":material/assignment: Sem avaliações registadas.")
+                st.info("Sem avaliações registadas.")
             else:
                 # Última avaliação por fornecedor
                 forn_aval_db['Score_N'] = pd.to_numeric(
@@ -1950,7 +1950,7 @@ def render_iso9001(*_):
                     'Data_Aval', ascending=False
                 ).drop_duplicates('Fornecedor')
 
-                st.markdown("#### :material/assignment: Estado Actual dos Fornecedores")
+                st.markdown("#### Estado Actual dos Fornecedores")
 
                 # KPIs
                 n_qual = len(ultimo_por_forn[

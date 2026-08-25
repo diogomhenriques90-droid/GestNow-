@@ -14,7 +14,7 @@ import fitz  # PyMuPDF
 try:
     from core import (
     load_db, save_db, inv, fh, render_metric,
-    process_and_compress_image, ICONS, COLORS, log_audit, criar_notificacao,
+    process_and_compress_image, COLORS, log_audit, criar_notificacao,
     gerar_hash_assinatura, render_signature_pad,
     render_connection_indicator, render_offline_banner, sync_data_when_online,
     save_to_local_cache, add_action_to_queue, check_connection_status,
@@ -87,7 +87,7 @@ def _save_inst(insts_df, obra_key, tabela_tipo="index"):
         if check_connection_status():
             result = save_db(insts_df[cols].fillna(""), filename)
             if result:
-                st.success(":material/check_circle: Dados guardados!")
+                st.success("Dados guardados!")
                 if tabela_tipo == "index":
                     try:
                         from mod_dashboard import _load_instrumentos_cache
@@ -102,12 +102,12 @@ def _save_inst(insts_df, obra_key, tabela_tipo="index"):
                 dados={"filename": filename, "data": insts_df[cols].to_dict()},
                 usuario=st.session_state.user
             )
-            st.warning(":material/warning: Offline - Dados guardados localmente. Sincronizará quando voltar online.")
+            st.warning("Offline - Dados guardados localmente. Sincronizará quando voltar online.")
             return True
             
     except Exception as e:
         logger.error(f"Erro em _save_inst: {e}")
-        st.error(f":material/close: Erro ao guardar: {e}")
+        st.error(f"Erro ao guardar: {e}")
         return False
 
 # =============================================================================
@@ -205,7 +205,7 @@ def _processar_ia_vision(file, modo):
     try:
         api_key = st.secrets.get("ANTHROPIC_API_KEY", "")
         if not api_key:
-            st.error(":material/close: API Key da Anthropic não configurada.")
+            st.error("API Key da Anthropic não configurada.")
             return None
         client = anthropic.Anthropic(api_key=api_key)
         pdf_bytes = file.read()
@@ -224,7 +224,7 @@ def _processar_ia_vision(file, modo):
         return json.loads(json_match.group(0)) if json_match else None
     except Exception as e:
         logger.error(f"Erro na IA ({modo}): {e}")
-        st.error(f":material/close: Erro na IA: {e}")
+        st.error(f"Erro na IA: {e}")
         return None
 
 # =============================================================================
@@ -270,7 +270,7 @@ def render_instrumentacao(*args):
 
     o_inst = obras_db[obras_db['TipoObra'] == 'Instrumentação']['Obra'].tolist()
     if not o_inst:
-        st.warning(":material/warning: Nenhuma obra configurada como 'Instrumentação'.")
+        st.warning("Nenhuma obra configurada como 'Instrumentação'.")
         return
     
     obra_sel = st.selectbox("🏗️ Selecionar Projeto", o_inst, key="inst_project_sel")
@@ -288,7 +288,7 @@ def render_instrumentacao(*args):
 
     # --- TAB IA VISION ---
     with t_conv:
-        st.markdown("### :material/smart_toy: Motores IA: P&ID, Hook-up e Packing List")
+        st.markdown("### Motores IA: P&ID, Hook-up e Packing List")
         c_mode = st.radio("Documento", ["P&ID (Tags)", "Hook-Up (BOM)", "Packing List"], horizontal=True)
         up = st.file_uploader(f"Upload PDF {c_mode}", type="pdf", key="up_ia")
         if up and st.button("🚀 Processar Vision", use_container_width=True, type="primary"):
@@ -296,7 +296,7 @@ def render_instrumentacao(*args):
             with st.spinner("🤖 Claude 3.5 a analisar..."):
                 res = _processar_ia_vision(up, m)
                 if res:
-                    st.success(":material/check_circle: Dados Extraídos!")
+                    st.success("Dados Extraídos!")
                     k = list(res.keys())[0]
                     edited = st.data_editor(pd.DataFrame(res[k]), use_container_width=True, num_rows="dynamic")
                     if st.button("✅ Confirmar e Gravar", use_container_width=True, type="primary"):
@@ -306,7 +306,7 @@ def render_instrumentacao(*args):
 
     # --- TAB INDEX (COM QR CODE) ---
     with t_idx:
-        st.markdown("### :material/assignment: Index de Instrumentos", unsafe_allow_html=True)
+        st.markdown("### Index de Instrumentos", unsafe_allow_html=True)
         if not insts.empty:
             col_f1, col_f2 = st.columns(2)
             with col_f1:
@@ -325,7 +325,7 @@ def render_instrumentacao(*args):
             # ✅ QR CODE VIEWER
             if 'Tag' in edited.columns and not edited.empty:
                 st.divider()
-                st.markdown("### :material/search: Visualizar QR Code", unsafe_allow_html=True)
+                st.markdown("### Visualizar QR Code", unsafe_allow_html=True)
                 tag_qr_sel = st.selectbox("Selecionar Tag para ver QR:", [""] + edited['Tag'].tolist(), key="qr_view_sel")
                 if tag_qr_sel:
                     row_data = edited[edited['Tag'] == tag_qr_sel].iloc[0]
@@ -350,14 +350,14 @@ def render_instrumentacao(*args):
                     log_audit(usuario=st.session_state.user, acao="EDITAR_INSTRUMENTO", tabela=f"inst_{o_key}_index.csv", registro_id=row.get('Tag', ''), detalhes=f"Editado: {row.get('Tag')} - Status: {row.get('Status')}", ip="")
                 _save_inst(edited, o_key, "index")
                 inv()
-                st.success(":material/check_circle: Alterações guardadas!")
+                st.success("Alterações guardadas!")
                 st.rerun()
         else:
             st.info("ℹ️ Sem instrumentos. Use IA Vision para extrair tags.")
 
     # --- TAB SCAN QR (NOVA) ---
     with t_scan:
-        st.markdown("### :material/smartphone: Scan QR Code de Instrumento", unsafe_allow_html=True)
+        st.markdown("### Scan QR Code de Instrumento", unsafe_allow_html=True)
         
         qr_result = render_camera_scanner("Ler QR Code do Instrumento", "inst_scan")
         
@@ -368,7 +368,7 @@ def render_instrumentacao(*args):
                 tag_scan = qr_parsed.get('tag')
                 obra_scan = qr_parsed.get('obra', obra_sel)
                 
-                st.success(f":material/check_circle: QR Code lido: **{tag_scan}**")
+                st.success(f"QR Code lido: **{tag_scan}**")
                 
                 if not insts.empty and 'Tag' in insts.columns:
                     inst_found = insts[insts['Tag'] == tag_scan]
@@ -389,29 +389,29 @@ def render_instrumentacao(*args):
                         status = inst.get('Status', '0')
                         
                         if status == '1':
-                            st.info(":material/biotech: Este instrumento está pronto para calibração.")
+                            st.info("Este instrumento está pronto para calibração.")
                             if st.button("🔬 Ir para Calibração (ITR-A)", use_container_width=True, type="primary", key="btn_goto_itra"):
                                 st.session_state['qr_tag_selected'] = tag_scan
                                 st.rerun()
                         elif status == '2':
-                            st.info(":material/construction: Este instrumento está calibrado e pronto para instalação.")
+                            st.info("Este instrumento está calibrado e pronto para instalação.")
                             if st.button("🏗️ Ir para Instalação (ITR-B)", use_container_width=True, type="primary", key="btn_goto_itrb"):
                                 st.session_state['qr_tag_selected'] = tag_scan
                                 st.rerun()
                         elif status in ['3', '4']:
-                            st.success(":material/check_circle: Instrumento instalado e concluído.")
+                            st.success("Instrumento instalado e concluído.")
                             if st.button("📄 Ver Certificado", use_container_width=True, key="btn_view_cert"):
-                                st.info(":material/description: Funcionalidade em desenvolvimento.")
+                                st.info("Funcionalidade em desenvolvimento.")
                         else:
                             st.warning(f"⏳ Instrumento em status: {STATUS_INST.get(status, ('Pendente', '', '⏳'))[0]}")
                     else:
-                        st.warning(f":material/warning: Instrumento {tag_scan} não encontrado na base de dados desta obra.")
+                        st.warning(f"Instrumento {tag_scan} não encontrado na base de dados desta obra.")
                 else:
                     st.info("ℹ️ Sem instrumentos carregados para esta obra.")
             else:
-                st.error(":material/close: QR Code inválido ou não reconhecido.")
+                st.error("QR Code inválido ou não reconhecido.")
         else:
-            st.info(":material/smartphone: Aguardando leitura de QR Code...")
+            st.info("Aguardando leitura de QR Code...")
             with st.expander("ℹ️ Formato esperado do QR Code"):
                 st.markdown("""
                 **Formato curto:** `GN|PT-101|Obra_Exemplo`
@@ -421,7 +421,7 @@ def render_instrumentacao(*args):
 
     # --- TAB ITR-A: CALIBRAÇÃO COM ASSINATURA DIGITAL ---
     with t_itra:
-        st.markdown("### :material/biotech: Calibração ITR-A (5 pontos) + ✍️ Assinatura Digital", unsafe_allow_html=True)
+        st.markdown("### Calibração ITR-A (5 pontos) + ✍️ Assinatura Digital", unsafe_allow_html=True)
         
         # Suporte para QR Code selecionado
         tag_default = st.session_state.get('qr_tag_selected', None)
@@ -455,7 +455,7 @@ def render_instrumentacao(*args):
                 
                 if st.form_submit_button("💾 Gerar Certificado com Assinatura", use_container_width=True, type="primary", key="btn_itra_submit"):
                     if not assinatura:
-                        st.warning(":material/warning: Por favor, assine para validar o certificado.")
+                        st.warning("Por favor, assine para validar o certificado.")
                     else:
                         esign = secrets.token_hex(4).upper()
                         err = max([abs(rise[p] - (r_min + (r_max - r_min) * (p/100))) for p in pts])
@@ -479,14 +479,14 @@ def render_instrumentacao(*args):
                             acao_url="/instrumentacao?tab=itra"
                         )
                         
-                        st.success(f":material/check_circle: Certificado {esign} gerado com assinatura!")
+                        st.success(f"Certificado {esign} gerado com assinatura!")
                         if pdf_cert:
                             st.download_button("📥 Descarregar Certificado PDF", pdf_cert, f"ITR-A_{tag_c}_{esign}.pdf", "application/pdf", key=f"dl_{esign}")
                         st.rerun()
 
     # --- TAB ITR-B: INSTALAÇÃO + GPS + ASSINATURA ---
     with t_itrb:
-        st.markdown("### :material/construction: Instalação + GPS + ✍️ Assinatura", unsafe_allow_html=True)
+        st.markdown("### Instalação + GPS + ✍️ Assinatura", unsafe_allow_html=True)
         
         tag_default = st.session_state.get('qr_tag_selected', None)
         inst_f = insts[insts['Status'] == '2']
@@ -514,7 +514,7 @@ def render_instrumentacao(*args):
                 </div>
                 """, unsafe_allow_html=True)
             else:
-                st.warning(":material/warning: GPS não registado.")
+                st.warning("GPS não registado.")
 
             st.divider()
             f_foto = st.camera_input("📸 Foto da Instalação", key="itrb_foto")
@@ -541,14 +541,14 @@ def render_instrumentacao(*args):
                         acao_url="/instrumentacao?tab=itrb"
                     )
                     
-                    st.success(":material/check_circle: Instalação registada com foto e assinatura!")
+                    st.success("Instalação registada com foto e assinatura!")
                     st.rerun()
             elif f_foto and not assinatura_inst:
-                st.warning(":material/warning: Por favor, assine para validar a instalação.")
+                st.warning("Por favor, assine para validar a instalação.")
 
     # --- TAB HANDOVER (COM QR CODE EM LOTE) ---
     with t_hand:
-        st.markdown("### :material/description: Handover Digital", unsafe_allow_html=True)
+        st.markdown("### Handover Digital", unsafe_allow_html=True)
         c_z, c_h = st.columns(2)
         
         with c_z:
@@ -565,14 +565,14 @@ def render_instrumentacao(*args):
             if st.button("📱 Gerar QR Codes para Imprimir", use_container_width=True, type="secondary", key="btn_qr_lote"):
                 tags_qr = insts['Tag'].head(50).tolist() if not insts.empty else []
                 if tags_qr:
-                    st.markdown("### :material/smartphone: QR Codes Gerados", unsafe_allow_html=True)
+                    st.markdown("### QR Codes Gerados", unsafe_allow_html=True)
                     cols = st.columns(5)
                     for i, tag in enumerate(tags_qr):
                         tipo = insts[insts['Tag']==tag]['Tipo'].iloc[0] if 'Tipo' in insts.columns and not insts[insts['Tag']==tag].empty else 'XX'
                         qr_data = gerar_qr_code_data(tag, obra_sel, tipo)
                         with cols[i % 5]:
                             st.image(render_qr_code_image(qr_data['short'], size=100), caption=tag)
-                    st.info(":material/lightbulb: Dica: Capture screenshot para guardar as etiquetas QR.")
+                    st.info("Dica: Capture screenshot para guardar as etiquetas QR.")
                 else:
                     st.info("ℹ️ Sem instrumentos para gerar QR Codes.")
         
@@ -580,4 +580,4 @@ def render_instrumentacao(*args):
             if st.button("📄 Gerar Handover COMPLETO", use_container_width=True, type="primary", key="btn_handover"):
                 tags = insts[insts['Status'].isin(['3','4'])]['Tag'].tolist() if not insts.empty else []
                 log_audit(usuario=st.session_state.user, acao="GERAR_HANDOVER", tabela=f"inst_{o_key}_index.csv", registro_id=obra_sel, detalhes=f"Handover gerado para {len(tags)} instrumentos concluídos", ip="")
-                st.success(f":material/check_circle: Dossier pronto para {len(tags)} instrumentos!")
+                st.success(f"Dossier pronto para {len(tags)} instrumentos!")

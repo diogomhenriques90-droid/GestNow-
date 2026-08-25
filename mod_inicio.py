@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta, date
-from core import fh, ICONS, load_db, THEME, escape_html
+from core import fh, load_db, THEME, escape_html
 
 _DOT_COLOR = {
     "0": THEME["warning"],
@@ -166,13 +166,13 @@ def render_inicio(*args):
     with col_r1:
         if st.button("📋 Registar Ponto",
                      use_container_width=True, type="primary", key="btn_rp"):
-            st.session_state['menu_selected'] = f"{ICONS['technician']} Obra"
+            st.session_state['menu_selected'] = f"Obra"
             st.session_state['_menu_locked']  = True
             st.rerun()
     with col_r2:
         if st.button("👤 O Meu Perfil",
                      use_container_width=True, type="secondary", key="btn_mp"):
-            st.session_state['menu_selected'] = f"{ICONS['profile']} Perfil"
+            st.session_state['menu_selected'] = f"Perfil"
             st.session_state['_menu_locked']  = True
             st.rerun()
 
@@ -181,7 +181,7 @@ def render_inicio(*args):
     if tem_inst:
         if st.button("🧪 Instrumentação",
                      use_container_width=True, type="secondary", key="btn_inst"):
-            st.session_state['menu_selected'] = f"{ICONS['instrumentation']} Instrumentação"
+            st.session_state['menu_selected'] = f"Instrumentação"
             st.session_state['_menu_locked']  = True
             st.rerun()
 
@@ -291,10 +291,10 @@ def render_inicio(*args):
         if not m_.empty:
             row = m_.iloc[0]
             if row.get('PDFs_Validados', 'Não') != 'Sim':
-                st.warning(":material/description: Tens documentos obrigatórios por validar.")
+                st.warning("Tens documentos obrigatórios por validar.")
             if row.get('PrecoHoraStatus', '') == '':
-                st.warning(":material/payments: Tens o preço hora por aceitar.")
+                st.warning("Tens o preço hora por aceitar.")
             elif row.get('PrecoHoraStatus', '') == 'Recusado':
-                st.error(":material/close: Preço hora recusado — contacta o administrador.")
+                st.error("Preço hora recusado — contacta o administrador.")
     except:
         pass

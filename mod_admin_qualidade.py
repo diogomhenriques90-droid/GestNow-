@@ -43,7 +43,7 @@ def render_qualidade(*_):
     user_nome = st.session_state.get('user','Admin')
     hoje      = date.today()
 
-    st.markdown("### :material/track_changes: Gestão da Qualidade")
+    st.markdown("### Gestão da Qualidade")
 
     # KPIs
     n_nc_aber = len(nc_db[nc_db['Status'].isin(['Aberta','Em Tratamento'])]) \
@@ -82,10 +82,10 @@ def render_qualidade(*_):
     # NÃO CONFORMIDADES
     # ════════════════════════════════════════════════════════════════
     with tab_nc:
-        st.markdown("#### :material/circle: Não Conformidades")
+        st.markdown("#### Não Conformidades")
 
         if nc_db.empty:
-            st.success(":material/check_circle: Sem não conformidades registadas.")
+            st.success("Sem não conformidades registadas.")
         else:
             col_f1, col_f2, col_f3 = st.columns(3)
             with col_f1:
@@ -239,7 +239,7 @@ def render_qualidade(*_):
     # NOVA NC
     # ════════════════════════════════════════════════════════════════
     with tab_nova_nc:
-        st.markdown("#### :material/add: Registar Não Conformidade")
+        st.markdown("#### Registar Não Conformidade")
 
         obras_ativas = obras_db[
             obras_db['Ativa']=='Ativa'
@@ -297,7 +297,7 @@ def render_qualidade(*_):
                 type="primary"
             ):
                 if not nn_desc.strip():
-                    st.error(":material/close: Descrição obrigatória.")
+                    st.error("Descrição obrigatória.")
                 else:
                     nova_nc = pd.DataFrame([{
                         "ID":           str(uuid.uuid4())[:8].upper(),
@@ -343,14 +343,14 @@ def render_qualidade(*_):
                             acao_url="/"
                         )
                     inv("nao_conformidades.csv")
-                    st.success(":material/check_circle: Não conformidade registada!")
+                    st.success("Não conformidade registada!")
                     st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # INSPEÇÕES
     # ════════════════════════════════════════════════════════════════
     with tab_insp:
-        st.markdown("#### :material/search: Inspeções de Qualidade")
+        st.markdown("#### Inspeções de Qualidade")
 
         col_ic1, col_ic2 = st.columns([1, 2])
 
@@ -405,13 +405,13 @@ def render_qualidade(*_):
                     ) if not insp_db.empty else nova_i
                     save_db(upd_i,"inspecoes_qualidade.csv")
                     inv("inspecoes_qualidade.csv")
-                    st.success(":material/check_circle: Inspeção registada!")
+                    st.success("Inspeção registada!")
                     st.rerun()
 
         with col_ic2:
             st.markdown("##### 📋 Últimas Inspeções")
             if insp_db.empty:
-                st.info(":material/assignment: Sem inspeções.")
+                st.info("Sem inspeções.")
             else:
                 for _, ins in insp_db.sort_values(
                     'Data', ascending=False
@@ -449,7 +449,7 @@ def render_qualidade(*_):
     # DOCUMENTOS SGQ
     # ════════════════════════════════════════════════════════════════
     with tab_docs:
-        st.markdown("#### :material/description: Documentação do SGQ")
+        st.markdown("#### Documentação do SGQ")
         st.info(
             "Registo e controlo dos documentos do Sistema de "
             "Gestão da Qualidade — procedimentos, instruções, "
@@ -494,7 +494,7 @@ def render_qualidade(*_):
                     type="primary"
                 ):
                     if not d_cod.strip() or not d_tit.strip():
-                        st.error(":material/close: Código e título obrigatórios.")
+                        st.error("Código e título obrigatórios.")
                     else:
                         novo_d = pd.DataFrame([{
                             "ID":          str(uuid.uuid4())[:8].upper(),
@@ -514,14 +514,14 @@ def render_qualidade(*_):
                         save_db(upd_d,"documentos_sgq.csv")
                         inv("documentos_sgq.csv")
                         st.success(
-                            f":material/check_circle: {d_cod} — {d_tit} adicionado!"
+                            f"{d_cod} — {d_tit} adicionado!"
                         )
                         st.rerun()
 
         with col_dc2:
             st.markdown("##### 📋 Índice de Documentos")
             if docs_sgq.empty:
-                st.info(":material/assignment: Sem documentos registados.")
+                st.info("Sem documentos registados.")
             else:
                 stat_doc_f = st.selectbox(
                     "Estado",
@@ -566,12 +566,12 @@ def render_qualidade(*_):
     # INDICADORES
     # ════════════════════════════════════════════════════════════════
     with tab_kpis:
-        st.markdown("#### :material/bar_chart: Indicadores de Qualidade")
+        st.markdown("#### Indicadores de Qualidade")
 
         import plotly.graph_objects as go
 
         if nc_db.empty and insp_db.empty:
-            st.info(":material/assignment: Sem dados suficientes para indicadores.")
+            st.info("Sem dados suficientes para indicadores.")
         else:
             # NC por gravidade
             if not nc_db.empty and 'Gravidade' in nc_db.columns:

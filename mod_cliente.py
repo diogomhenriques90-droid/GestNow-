@@ -40,7 +40,7 @@ def render_cliente_portal():
         obras_db = load_db("obras_lista.csv", ["Obra", "Cliente", "TipoObra", "Ativa"], silent=True)
         logs_db  = load_db("logs_audit.csv",  ["ID","Data","Hora","Usuario","Acao","Tabela","Registro_ID","Detalhes","IP"], silent=True)
     except Exception as e:
-        st.error(f":material/close: Erro ao carregar dados: {e}")
+        st.error(f"Erro ao carregar dados: {e}")
         return
 
     cliente_nome  = st.session_state.user
@@ -49,7 +49,7 @@ def render_cliente_portal():
     ] if not obras_db.empty else pd.DataFrame()
 
     if obras_cliente.empty:
-        st.warning(":material/warning: Não tem obras ativas associadas à sua conta.")
+        st.warning("Não tem obras ativas associadas à sua conta.")
         st.info("Contacte o administrador para configurar o acesso às suas obras.")
         return
 
@@ -76,7 +76,7 @@ def render_cliente_portal():
         punch_db = pd.DataFrame(columns=["ID","Data","Autor","Tag","Descricao","Prioridade","Estado"])
 
     # Dashboard de Progresso
-    st.markdown("### :material/bar_chart: Progresso da Obra")
+    st.markdown("### Progresso da Obra")
     total     = len(insts_db) if not insts_db.empty else 0
     pendentes = len(insts_db[insts_db['Status'] == '0']) if not insts_db.empty else 0
     mat_ok    = len(insts_db[insts_db['Status'] == '1']) if not insts_db.empty else 0
@@ -107,7 +107,7 @@ def render_cliente_portal():
 
     # ── TAB RESUMO ───────────────────────────────────────────────────
     with tab_res:
-        st.markdown("### :material/assignment: Resumo do Projeto")
+        st.markdown("### Resumo do Projeto")
         st.markdown(f"""
         <div class="cliente-card">
             <h3>🏗️ {obra_sel}</h3>
@@ -117,7 +117,7 @@ def render_cliente_portal():
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("### :material/schedule: Atividades Recentes")
+        st.markdown("### Atividades Recentes")
         if not logs_db.empty:
             logs_obra = logs_db[logs_db['Detalhes'].str.contains(obra_sel, na=False)]
             if not logs_obra.empty:
@@ -129,13 +129,13 @@ def render_cliente_portal():
                     </div>
                     """, unsafe_allow_html=True)
             else:
-                st.info(":material/assignment: Sem atividades recentes.")
+                st.info("Sem atividades recentes.")
         else:
-            st.info(":material/assignment: Sem logs disponíveis.")
+            st.info("Sem logs disponíveis.")
 
     # ── TAB INSTRUMENTOS ─────────────────────────────────────────────
     with tab_inst:
-        st.markdown("### :material/build: Lista de Instrumentos")
+        st.markdown("### Lista de Instrumentos")
         if not insts_db.empty:
             c1, c2 = st.columns(2)
             with c1:
@@ -160,7 +160,7 @@ def render_cliente_portal():
 
     # ── TAB QR CODES ─────────────────────────────────────────────────
     with tab_qr:
-        st.markdown("### :material/smartphone: QR Codes dos Instrumentos")
+        st.markdown("### QR Codes dos Instrumentos")
         if not insts_db.empty and 'Tag' in insts_db.columns:
             tag_sel = st.selectbox("Selecionar Instrumento", insts_db['Tag'].tolist(), key="cli_qr_sel")
             if tag_sel:
@@ -192,13 +192,13 @@ def render_cliente_portal():
                         qr_d = gerar_qr_code_data(tag, obra_sel, tipo)
                         with cols[i % 5]:
                             st.image(render_qr_code_image(qr_d['short'], size=100), caption=tag)
-                    st.info(":material/lightbulb: Faz screenshot para guardar as etiquetas.")
+                    st.info("Faz screenshot para guardar as etiquetas.")
         else:
             st.info("ℹ️ Sem instrumentos disponíveis.")
 
     # ── TAB APROVAÇÕES ───────────────────────────────────────────────
     with tab_apr:
-        st.markdown("### :material/check_circle: Aprovação de ITRs")
+        st.markdown("### Aprovação de ITRs")
         if not insts_db.empty and 'Status' in insts_db.columns:
             prontos = insts_db[insts_db['Status'].isin(['2','3','4'])]
             if not prontos.empty:
@@ -235,7 +235,7 @@ def render_cliente_portal():
                                 tipo="success",
                                 acao_url=f"/instrumentacao?obra={o_key}"
                             )
-                            st.success(f":material/check_circle: {tag_ap} aprovado com sucesso!")
+                            st.success(f"{tag_ap} aprovado com sucesso!")
                             st.rerun()
             else:
                 st.info("ℹ️ Nenhum instrumento pronto para aprovação.")
@@ -244,7 +244,7 @@ def render_cliente_portal():
 
     # ── TAB DOCUMENTAÇÃO ─────────────────────────────────────────────
     with tab_docs:
-        st.markdown("### :material/description: Documentação da Obra")
+        st.markdown("### Documentação da Obra")
         st.info("""
         **📋 Documentação Disponível:**
         - ✅ Relatórios de Calibração (ITR-A) — por instrumento
@@ -258,10 +258,10 @@ def render_cliente_portal():
 
     # ── TAB PUNCH LIST ───────────────────────────────────────────────
     with tab_punch:
-        st.markdown("### :material/chat: Punch List / Comentários")
+        st.markdown("### Punch List / Comentários")
 
         if not punch_db.empty:
-            st.markdown("#### :material/assignment: Punch List Existente")
+            st.markdown("#### Punch List Existente")
             filt_estado = st.selectbox("Filtrar", ["Todos","Aberto","Em Progresso","Fechado"], key="cli_punch_filt")
             pf = punch_db.copy()
             if filt_estado != "Todos":
@@ -282,10 +282,10 @@ def render_cliente_portal():
                     </div>
                     """, unsafe_allow_html=True)
             else:
-                st.info(":material/assignment: Sem itens com este filtro.")
+                st.info("Sem itens com este filtro.")
 
         st.divider()
-        st.markdown("#### :material/add: Adicionar Novo Item")
+        st.markdown("#### Adicionar Novo Item")
         with st.form("form_punch_cliente"):
             c1, c2 = st.columns(2)
             with c1: tag_punch  = st.text_input("Tag do Instrumento (opcional)", key="cli_punch_tag")
@@ -322,7 +322,7 @@ def render_cliente_portal():
                         acao_url="/admin?tab=qualidade"
                     )
                     inv()
-                    st.success(":material/check_circle: Item adicionado à punch list!")
+                    st.success("Item adicionado à punch list!")
                     st.rerun()
                 else:
-                    st.warning(":material/warning: Preenche a descrição.")
+                    st.warning("Preenche a descrição.")

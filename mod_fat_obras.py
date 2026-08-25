@@ -862,7 +862,7 @@ def render_fat_obras(obras_db, registos_db,
 
     # ── Obras ativas ──────────────────────────────────────────────
     if obras_db.empty:
-        st.info(":material/assignment: Sem obras para analisar.")
+        st.info("Sem obras para analisar.")
         return
 
     obras_ativas = obras_db[
@@ -870,7 +870,7 @@ def render_fat_obras(obras_db, registos_db,
     ]['Obra'].tolist() if not obras_db.empty else []
 
     if not obras_ativas:
-        st.info(":material/assignment: Sem obras ativas.")
+        st.info("Sem obras ativas.")
         return
 
     # Pré-calcular P&L de todas as obras
@@ -926,7 +926,7 @@ def render_fat_obras(obras_db, registos_db,
     # TAB — VISÃO GERAL (scorecard)
     # ════════════════════════════════════════════════════════════════
     with t_visao:
-        st.markdown("### :material/bar_chart: Scorecard de Obras")
+        st.markdown("### Scorecard de Obras")
 
         # Gráficos globais
         col_g1, col_g2 = st.columns(2)
@@ -1054,7 +1054,7 @@ def render_fat_obras(obras_db, registos_db,
                     )
                 with col_rar2:
                     st.markdown(
-                        f"### :material/assignment: Análise Detalhada — {obra_r}"
+                        f"### Análise Detalhada — {obra_r}"
                     )
                     for dim, (pts, max_pts) in pl_r['det'].items():
                         pct = pts/max_pts*100
@@ -1093,7 +1093,7 @@ def render_fat_obras(obras_db, registos_db,
     # TAB — P&L POR OBRA
     # ════════════════════════════════════════════════════════════════
     with t_pl:
-        st.markdown("### :material/payments: P&L Detalhado por Obra")
+        st.markdown("### P&L Detalhado por Obra")
 
         obra_pl = st.selectbox(
             "Selecionar Obra",
@@ -1156,7 +1156,7 @@ def render_fat_obras(obras_db, registos_db,
                 )
 
             # Detalhe linhas P&L
-            st.markdown("#### :material/assignment: Detalhe P&L")
+            st.markdown("#### Detalhe P&L")
 
             # RECEITA
             st.markdown(
@@ -1294,7 +1294,7 @@ def render_fat_obras(obras_db, registos_db,
     # TAB — ORÇAMENTO vs REAL
     # ════════════════════════════════════════════════════════════════
     with t_orc:
-        st.markdown("### :material/assignment: Orçamento vs Real")
+        st.markdown("### Orçamento vs Real")
 
         obra_orc = st.selectbox(
             "Obra", obras_ativas, key="orc_obra_sel"
@@ -1312,7 +1312,7 @@ def render_fat_obras(obras_db, registos_db,
         col_of, col_og = st.columns([1, 2])
 
         with col_of:
-            st.markdown("#### :material/edit: Definir Orçamento")
+            st.markdown("#### Definir Orçamento")
             with st.form("form_orcamento"):
                 orc_rec = st.number_input(
                     "Receita Orçamentada (€)",
@@ -1392,7 +1392,7 @@ def render_fat_obras(obras_db, registos_db,
                         ) if not orc_db.empty else novo_df
                         save_db(upd, "obras_orcamento.csv")
                     inv("obras_orcamento.csv")
-                    st.success(":material/check_circle: Orçamento guardado!")
+                    st.success("Orçamento guardado!")
                     st.rerun()
 
         with col_og:
@@ -1403,7 +1403,7 @@ def render_fat_obras(obras_db, registos_db,
                 )
 
                 # Tabela desvios
-                st.markdown("#### :material/bar_chart: Análise de Desvios")
+                st.markdown("#### Análise de Desvios")
                 desvios = []
                 pares = [
                     ("Receita",
@@ -1462,7 +1462,7 @@ def render_fat_obras(obras_db, registos_db,
                         )
                         if abs(dp) > 15 and d['Status'] == "🔴":
                             st.error(
-                                f":material/warning: {d['Categoria']}: "
+                                f"{d['Categoria']}: "
                                 f"desvio de {d['Desvio %']} "
                                 f"— ação corretiva recomendada!"
                             )
@@ -1473,7 +1473,7 @@ def render_fat_obras(obras_db, registos_db,
     # TAB — WIP (Trabalhos em Curso)
     # ════════════════════════════════════════════════════════════════
     with t_wip:
-        st.markdown("### :material/refresh: Trabalhos em Curso (WIP)")
+        st.markdown("### Trabalhos em Curso (WIP)")
         st.info(
             "WIP — Work In Progress. "
             "Trabalho executado mas ainda não faturado ao cliente. "
@@ -1483,7 +1483,7 @@ def render_fat_obras(obras_db, registos_db,
         col_wf1, col_wf2 = st.columns([1, 2])
 
         with col_wf1:
-            st.markdown("#### :material/add: Registar WIP")
+            st.markdown("#### Registar WIP")
             with st.form("form_wip"):
                 wip_obra = st.selectbox(
                     "Obra *", obras_ativas, key="wip_obra"
@@ -1509,7 +1509,7 @@ def render_fat_obras(obras_db, registos_db,
                     use_container_width=True, type="primary"
                 ):
                     if not wip_desc.strip() or wip_val <= 0:
-                        st.error(":material/close: Descrição e valor obrigatórios.")
+                        st.error("Descrição e valor obrigatórios.")
                     else:
                         novo_wip = pd.DataFrame([{
                             "ID":           str(uuid.uuid4())[:8].upper(),
@@ -1527,15 +1527,15 @@ def render_fat_obras(obras_db, registos_db,
                         save_db(upd_wip, "obras_wip.csv")
                         inv("obras_wip.csv")
                         st.success(
-                            f":material/check_circle: WIP registado! €{wip_val:,.2f}"
+                            f"WIP registado! €{wip_val:,.2f}"
                         )
                         st.rerun()
 
         with col_wf2:
-            st.markdown("#### :material/assignment: WIP por Obra")
+            st.markdown("#### WIP por Obra")
 
             if wip_db.empty:
-                st.info(":material/assignment: Sem trabalhos em curso registados.")
+                st.info("Sem trabalhos em curso registados.")
             else:
                 # KPIs WIP
                 wip_ativo = wip_db[
@@ -1643,7 +1643,7 @@ def render_fat_obras(obras_db, registos_db,
     # TAB — TIMELINE FINANCEIRA
     # ════════════════════════════════════════════════════════════════
     with t_timeline:
-        st.markdown("### :material/calendar_month: Timeline Financeira por Obra")
+        st.markdown("### Timeline Financeira por Obra")
 
         obra_tl = st.selectbox(
             "Obra", obras_ativas, key="tl_obra_sel"
@@ -1656,7 +1656,7 @@ def render_fat_obras(obras_db, registos_db,
             st.plotly_chart(fig_tl, key="timeline_fin" )
         else:
             st.info(
-                f":material/assignment: Sem eventos financeiros registados "
+                f"Sem eventos financeiros registados "
                 f"para {obra_tl}."
             )
 
@@ -1666,7 +1666,7 @@ def render_fat_obras(obras_db, registos_db,
                 faturas_cli['Obra'] == obra_tl
             ].copy()
             if not fc_tl.empty:
-                st.markdown("#### :material/assignment: Faturas desta Obra")
+                st.markdown("#### Faturas desta Obra")
                 fc_tl['Total_Num'] = pd.to_numeric(
                     fc_tl.get('Total',0), errors='coerce'
                 ).fillna(0)
@@ -1699,7 +1699,7 @@ def render_fat_obras(obras_db, registos_db,
     # TAB — SCATTER LUCRATIVIDADE
     # ════════════════════════════════════════════════════════════════
     with t_scatter:
-        st.markdown("### :material/track_changes: Análise de Lucratividade")
+        st.markdown("### Análise de Lucratividade")
 
         fig_scat = _grafico_scatter_obras(todas_pl)
         if fig_scat:
@@ -1708,7 +1708,7 @@ def render_fat_obras(obras_db, registos_db,
             )
 
         # Tabela comparativa todas as obras
-        st.markdown("#### :material/bar_chart: Comparativo Geral")
+        st.markdown("#### Comparativo Geral")
         rows_comp = []
         for p in sorted(todas_pl,
                         key=lambda x: x['margem_pct'],
@@ -1749,7 +1749,7 @@ def render_fat_obras(obras_db, registos_db,
 
         # Insights IA
         st.markdown("---")
-        st.markdown("#### :material/smart_toy: Insights de Lucratividade")
+        st.markdown("#### Insights de Lucratividade")
 
         if st.button(
             "🤖 Analisar com IA",
@@ -1760,7 +1760,7 @@ def render_fat_obras(obras_db, registos_db,
             import anthropic, json
             api_key = os.environ.get("ANTHROPIC_API_KEY","")
             if not api_key:
-                st.error(":material/close: API key não configurada.")
+                st.error("API key não configurada.")
             else:
                 ctx = {
                     "obras": [
@@ -1815,4 +1815,4 @@ def render_fat_obras(obras_db, registos_db,
                             unsafe_allow_html=True
                         )
                     except Exception as e:
-                        st.error(f":material/close: Erro: {e}")
+                        st.error(f"Erro: {e}")

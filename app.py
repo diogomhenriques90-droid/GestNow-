@@ -3,7 +3,7 @@ import pandas as pd
 import json, base64, time
 from datetime import datetime
 from core import (init_session, check_timeout, load_all, inject_pwa_meta,
-                  inject_global_css, ICONS, hp, save_db, log_audit,
+                  inject_global_css, hp, save_db, log_audit,
                   criar_notificacao, load_db, _gcs_read, inv, tem_permissao,
                   _verificar_alerta_backup, _registar_backup,
                   # FIX 1 — importar a versão cached de core em vez de redefinir
@@ -210,7 +210,7 @@ def _render_validacao_obrigatoria(user_nome):
                                 key=f"app_dl_pdf_{pdf_id}", use_container_width=True
                             )
                         except:
-                            st.error(":material/close: Erro ao carregar PDF")
+                            st.error("Erro ao carregar PDF")
                 with col_ok:
                     if not visto:
                         if st.button("✅ Confirmar", key=f"app_val_pdf_{pdf_id}",
@@ -237,15 +237,15 @@ def _render_validacao_obrigatoria(user_nome):
                                     titulo="✅ PDFs Validados",
                                     mensagem=f"{user_nome} validou todos os documentos.",
                                     tipo="success", acao_url="/admin?tab=rh")
-                                st.success(":material/check_circle: Todos os documentos confirmados!")
+                                st.success("Todos os documentos confirmados!")
                             else:
-                                st.success(f":material/check_circle: '{pdf_nome}' confirmado! ({novos_val}/{total_pdfs})")
+                                st.success(f"'{pdf_nome}' confirmado! ({novos_val}/{total_pdfs})")
                             st.rerun()
                     else:
-                        st.success(":material/check_circle:")
+                        st.success("")
 
         if pdfs_val_count < total_pdfs:
-            st.warning(f":material/warning: Faltam {total_pdfs - pdfs_val_count} documento(s).")
+            st.warning(f"Faltam {total_pdfs - pdfs_val_count} documento(s).")
         st.stop()
 
     # ── PASSO 2: PREÇO HORA ───────────────────────────────────────────
@@ -286,7 +286,7 @@ def _render_validacao_obrigatoria(user_nome):
                         titulo="💰 Preço Hora Aceite",
                         mensagem=f"{user_nome} aceitou €{preco_hora_valor}/hora.",
                         tipo="success", acao_url="/admin?tab=rh")
-                    st.success(":material/check_circle: Preço hora aceite!")
+                    st.success("Preço hora aceite!")
                     st.balloons()
                     st.rerun()
         with col_rec:
@@ -306,7 +306,7 @@ def _render_validacao_obrigatoria(user_nome):
                         titulo="💰 Preço Hora RECUSADO",
                         mensagem=f"{user_nome} RECUSOU €{preco_hora_valor}/hora.",
                         tipo="error", acao_url="/admin?tab=rh")
-                    st.warning(":material/close: Preço recusado. Admin notificado.")
+                    st.warning("Preço recusado. Admin notificado.")
                     st.rerun()
         st.stop()
 
@@ -322,7 +322,7 @@ def _render_validacao_obrigatoria(user_nome):
         </div>""", unsafe_allow_html=True)
 
         with st.form("form_onboard_perfil"):
-            st.markdown("#### :material/assignment: Dados Pessoais")
+            st.markdown("#### Dados Pessoais")
             col1, col2 = st.columns(2)
             with col1:
                 telefone     = st.text_input("Telefone *",
@@ -340,7 +340,7 @@ def _render_validacao_obrigatoria(user_nome):
                     ["Solteiro(a)","Casado(a)","Divorciado(a)","Viúvo(a)","União de Facto"],
                     key="onb_ec")
 
-            st.markdown("#### :material/location_on: Morada")
+            st.markdown("#### Morada")
             morada = st.text_input("Morada *",
                 value=user_data.get('Morada',''), key="onb_morada", placeholder="Rua, nº, andar")
             col3, col4, col5 = st.columns(3)
@@ -364,7 +364,7 @@ def _render_validacao_obrigatoria(user_nome):
                 email = st.text_input("Email", value=user_data.get('Email',''),
                     key="onb_email", placeholder="exemplo@email.com")
 
-            st.markdown("#### :material/emergency: Emergência")
+            st.markdown("#### Emergência")
             col8, col9 = st.columns(2)
             with col8:
                 nome_emerg = st.text_input("Nome *",
@@ -375,7 +375,7 @@ def _render_validacao_obrigatoria(user_nome):
                 grau = st.text_input("Grau Parentesco",
                     value=user_data.get('Grau_Parentesco',''), key="onb_grau")
 
-            st.markdown("#### :material/work: Dados Profissionais")
+            st.markdown("#### Dados Profissionais")
             col_p1, col_p2 = st.columns(2)
             with col_p1:
                 profissao = st.text_input("Profissão",
@@ -392,7 +392,7 @@ def _render_validacao_obrigatoria(user_nome):
                     index=hab_opts.index(hab_v) if hab_v in hab_opts else 1,
                     key="onb_hab")
 
-            st.markdown("#### :material/checkroom: Fardamento")
+            st.markdown("#### Fardamento")
             col10, col11, col12 = st.columns(3)
             cam_opts = ["XS","S","M","L","XL","XXL","XXXL"]
             cal_opts = ["XS (34/36)","S (38)","M (40/42)","L (42/44)","XL (46/48)","XXL (50/52)"]
@@ -423,7 +423,7 @@ def _render_validacao_obrigatoria(user_nome):
             if not nome_emerg.strip(): erros.append("Nome Emergência")
             if not tel_emerg.strip():  erros.append("Telefone Emergência")
             if erros:
-                st.error(f":material/close: Campos em falta: {', '.join(erros)}")
+                st.error(f"Campos em falta: {', '.join(erros)}")
             else:
                 u3 = _load_users_cached().copy()
                 mask = u3['Nome'] == user_nome
@@ -456,7 +456,7 @@ def _render_validacao_obrigatoria(user_nome):
                         titulo="👤 Perfil Preenchido",
                         mensagem=f"{user_nome} completou todos os passos de integração.",
                         tipo="success", acao_url="/admin?tab=rh")
-                    st.success(":material/check_circle: Perfil guardado! Bem-vindo(a) ao GESTNOW!")
+                    st.success("Perfil guardado! Bem-vindo(a) ao GESTNOW!")
                     st.balloons()
                     st.rerun()
         st.stop()
@@ -491,7 +491,7 @@ def _render_validacao_obrigatoria(user_nome):
 
         if ficheiro_iban:
             file_b64 = base64.b64encode(ficheiro_iban.read()).decode('utf-8')
-            st.success(f":material/check_circle: Ficheiro carregado: {ficheiro_iban.name}")
+            st.success(f"Ficheiro carregado: {ficheiro_iban.name}")
             if st.button("💾 Guardar e Concluir Integração",
                          use_container_width=True, type="primary",
                          key="btn_guardar_iban"):
@@ -510,11 +510,11 @@ def _render_validacao_obrigatoria(user_nome):
                         titulo="🏦 Comprovativo IBAN",
                         mensagem=f"{user_nome} submeteu o comprovativo bancário.",
                         tipo="info", acao_url="/admin?tab=rh")
-                    st.success(":material/check_circle: Integração completa! Bem-vindo(a) ao GESTNOW!")
+                    st.success("Integração completa! Bem-vindo(a) ao GESTNOW!")
                     st.balloons()
                     st.rerun()
         else:
-            st.info(":material/touch_app: Seleciona o ficheiro para continuar.")
+            st.info("Seleciona o ficheiro para continuar.")
 
         st.stop()
 
@@ -541,7 +541,7 @@ if st.session_state.get('user'):
             </div>
         </div>""", unsafe_allow_html=True)
 
-        st.markdown(f"**{ICONS['app']} {t('language')}**")
+        st.markdown(f"**{t('language')}**")
         lang_opts = get_language_options()
         curr_lang = st.session_state.language
         sel_lang  = st.selectbox(
@@ -563,28 +563,28 @@ if st.session_state.get('user'):
 
         if eh_cliente:
             menu_item = st.radio("Nav",
-                [f"{ICONS['dashboard']} Portal", "Logout"],
+                [f"Portal", "Logout"],
                 label_visibility="collapsed", key="sidebar_nav_cliente")
         elif tipo == 'Admin':
-            _opts_admin = [f"{ICONS['dashboard']} Dashboard", f"{ICONS['admin']} Admin",
-                           f"{ICONS['instrumentation']} Instrumentação",
-                           f"{ICONS['profile']} Perfil"]
+            _opts_admin = [f"Dashboard", f"Admin",
+                           f"Instrumentação",
+                           f"Perfil"]
             # Dashboard de Obra — mesma condição da barra inferior (super-admin vê sempre)
             if tem_permissao(st.session_state.get('user', ''), 'mod_dashboard_obra'):
-                _opts_admin.append(f"{ICONS['work']} Dashboard de Obra")
+                _opts_admin.append(f"Dashboard de Obra")
             _opts_admin.append("Logout")
             menu_item = st.radio("Nav", _opts_admin,
                 label_visibility="collapsed", key="sidebar_nav_admin")
         elif tem_acesso_inst:
             menu_item = st.radio("Nav",
-                [f"{ICONS['dashboard']} Início", f"{ICONS['technician']} Obra",
-                 f"{ICONS['instrumentation']} Instrumentação",
-                 f"{ICONS['profile']} Perfil", "Logout"],
+                [f"Início", f"Obra",
+                 f"Instrumentação",
+                 f"Perfil", "Logout"],
                 label_visibility="collapsed", key="sidebar_nav_chefe")
         else:
             menu_item = st.radio("Nav",
-                [f"{ICONS['dashboard']} Início", f"{ICONS['technician']} Obra",
-                 f"{ICONS['profile']} Perfil", "Logout"],
+                [f"Início", f"Obra",
+                 f"Perfil", "Logout"],
                 label_visibility="collapsed", key="sidebar_nav_tecnico")
 
         if not st.session_state.get('_menu_locked', False):
@@ -597,7 +597,7 @@ if st.session_state.get('user'):
             _cached_load_all.clear()
             inv()
             st.rerun()
-        if st.button(f"{ICONS['logout']} {t('logout')}", use_container_width=True,
+        if st.button(f"{t('logout')}", use_container_width=True,
                      type="secondary", key="sidebar_logout_btn"):
             st.session_state.clear()
             st.rerun()
@@ -660,14 +660,14 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
     )
 
     nav_map = {
-        "Início":         f"{ICONS['dashboard']} Início",
-        "Portal":         f"{ICONS['dashboard']} Portal",
-        "Obra":           f"{ICONS['technician']} Obra",
-        "Instrumentação": f"{ICONS['instrumentation']} Instrumentação",
-        "Dashboard":      f"{ICONS['dashboard']} Dashboard",
-        "Admin":          f"{ICONS['admin']} Admin",
-        "Perfil":         f"{ICONS['profile']} Perfil",
-        "Dashboard de Obra": f"{ICONS['work']} Dashboard de Obra",
+        "Início":         f"Início",
+        "Portal":         f"Portal",
+        "Obra":           f"Obra",
+        "Instrumentação": f"Instrumentação",
+        "Dashboard":      f"Dashboard",
+        "Admin":          f"Admin",
+        "Perfil":         f"Perfil",
+        "Dashboard de Obra": f"Dashboard de Obra",
         "Logout":         "Logout",
     }
 
@@ -779,7 +779,7 @@ else:
                         if ficheiro_assin:
                             tam_kb = len(ficheiro_assin.getvalue()) / 1024
                             st.success(
-                                f":material/check_circle: Ficheiro: **{ficheiro_assin.name}** "
+                                f"Ficheiro: **{ficheiro_assin.name}** "
                                 f"({tam_kb:.0f} KB)"
                             )
                             st.markdown(
@@ -813,14 +813,14 @@ else:
                                               detalhes="Contrato assinado submetido",
                                               ip="")
                                     inv("usuarios.csv")  # FIX 2 — selectivo
-                                    st.success(":material/check_circle: Assinatura submetida! O RH será notificado.")
+                                    st.success("Assinatura submetida! O RH será notificado.")
                                     st.rerun()
                         st.stop()
         except Exception as _e_ct:
             pass
 
     if eh_cliente:
-        st.markdown(f"# {ICONS['dashboard']} Portal do Cliente")
+        st.markdown(f"# Portal do Cliente")
         from mod_cliente import render_cliente_portal
         render_cliente_portal()
 
@@ -832,17 +832,17 @@ else:
                           if _ultima_bkp else 'Nunca realizado'
             if _status_bkp in ('critico', 'nunca'):
                 st.error(
-                    f":material/emergency: **BACKUP CRÍTICO** — Último: **{_ultima_str}** — "
+                    f"**BACKUP CRÍTICO** — Último: **{_ultima_str}** — "
                     f"Dados não protegidos!"
                 )
             else:
-                st.warning(f":material/warning: **Backup em atraso** — Último: **{_ultima_str}**")
+                st.warning(f"**Backup em atraso** — Último: **{_ultima_str}**")
             _col_b1, _col_b2 = st.columns(2)
             with _col_b1:
                 if st.button("💾 Fazer Backup Agora",
                              key="alert_bkp_btn", type="primary",
                              use_container_width=True):
-                    st.session_state['menu_selected'] = f"{ICONS['admin']} Admin"
+                    st.session_state['menu_selected'] = f"Admin"
                     st.session_state['_menu_locked']  = True
                     st.rerun()
             with _col_b2:
@@ -850,26 +850,26 @@ else:
                              key="alert_bkp_confirm",
                              use_container_width=True):
                     _registar_backup(user_nome)
-                    st.success(":material/check_circle: Backup confirmado!")
+                    st.success("Backup confirmado!")
                     st.rerun()
 
-        if f"{ICONS['admin']} Admin" in menu:
+        if f"Admin" in menu:
             from mod_admin import render_admin
             render_admin(*DATA)
-        elif f"{ICONS['instrumentation']} Instrumentação" in menu:
-            st.markdown(f"# {ICONS['instrumentation']} Instrumentação Industrial")
+        elif f"Instrumentação" in menu:
+            st.markdown(f"# Instrumentação Industrial")
             from mod_instrumentacao import render_instrumentacao
             render_instrumentacao(*DATA)
-        elif f"{ICONS['profile']} Perfil" in menu:
-            st.markdown(f"# {ICONS['profile']} Perfil do Utilizador")
+        elif f"Perfil" in menu:
+            st.markdown(f"# Perfil do Utilizador")
             from mod_perfil import render_perfil
             render_perfil(*DATA)
-        elif f"{ICONS['work']} Dashboard de Obra" in menu and \
+        elif f"Dashboard de Obra" in menu and \
                 tem_permissao(user_nome, 'mod_dashboard_obra'):
             from mod_dashboard_obra import render_dashboard_obra
             render_dashboard_obra(*DATA)
-        elif f"{ICONS['dashboard']} Dashboard" in menu or menu == '':
-            st.markdown(f"# {ICONS['dashboard']} Dashboard Geral")
+        elif f"Dashboard" in menu or menu == '':
+            st.markdown(f"# Dashboard Geral")
             c1,c2,c3,c4 = st.columns(4)
             with c1: st.metric("👥 Utilizadores", len(users))
             with c2: st.metric("🏭 Obras Ativas",
@@ -894,23 +894,23 @@ else:
         render_armazem(req_fer_db2, req_mat_db2, req_epi_db2, incs_db2)
 
     else:
-        if f"{ICONS['technician']} Obra" in menu:
-            st.markdown(f"# {ICONS['technician']} Área Técnica")
+        if f"Obra" in menu:
+            st.markdown(f"# Área Técnica")
             if tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
                 from mod_chefe import render_chefe
                 render_chefe(*DATA)
             else:
                 from mod_tecnico import render_tecnico
                 render_tecnico(*DATA)
-        elif f"{ICONS['instrumentation']} Instrumentação" in menu:
+        elif f"Instrumentação" in menu:
             if tem_acesso_inst:
-                st.markdown(f"# {ICONS['instrumentation']} Instrumentação Industrial")
+                st.markdown(f"# Instrumentação Industrial")
                 from mod_instrumentacao import render_instrumentacao
                 render_instrumentacao(*DATA)
             else:
-                st.warning(":material/warning: Não tem acesso a este módulo.")
-        elif f"{ICONS['profile']} Perfil" in menu:
-            st.markdown(f"# {ICONS['profile']} Perfil do Utilizador")
+                st.warning("Não tem acesso a este módulo.")
+        elif f"Perfil" in menu:
+            st.markdown(f"# Perfil do Utilizador")
             from mod_perfil import render_perfil
             render_perfil(*DATA)
         else:

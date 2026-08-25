@@ -13,7 +13,6 @@ Correr:  python -m unittest test_app_navegacao -v
 import unittest
 from unittest.mock import patch
 from streamlit.testing.v1 import AppTest
-from core import ICONS
 
 
 def _run(tipo, menu, user="Diogo Henriques", cargo="Administrador"):
@@ -50,12 +49,12 @@ def _texto(at):
 
 class TestEncaminhamentoAdmin(unittest.TestCase):
     def test_dashboard_geral_abre(self):
-        at = _run("Admin", f"{ICONS['dashboard']} Dashboard")
+        at = _run("Admin", f"Dashboard")
         self.assertFalse(at.exception, msg=str(at.exception))
         self.assertIn("Dashboard Geral", _texto(at))
 
     def test_instrumentacao_abre(self):
-        at = _run("Admin", f"{ICONS['instrumentation']} Instrumentação")
+        at = _run("Admin", f"Instrumentação")
         self.assertFalse(at.exception, msg=str(at.exception))
         self.assertIn("Instrumentação Industrial", _texto(at))
 
@@ -63,21 +62,20 @@ class TestEncaminhamentoAdmin(unittest.TestCase):
         # Smoke: confirma só que o ecrã de Perfil abre sem erro (com dados
         # vazios no ambiente de teste, o formulário pode não desenhar todas as
         # secções, por isso não se exige texto específico).
-        at = _run("Admin", f"{ICONS['profile']} Perfil")
+        at = _run("Admin", f"Perfil")
         self.assertFalse(at.exception, msg=str(at.exception))
 
     def test_admin_abre_sem_erro(self):
-        at = _run("Admin", f"{ICONS['admin']} Admin")
+        at = _run("Admin", f"Admin")
         self.assertFalse(at.exception, msg=str(at.exception))
 
     def test_dashboard_de_obra_abre(self):
         # Fase B do Dashboard de Obra (campos operacionais): renomeado
-        # de "🏗️ Painel de Obra" para "📊 Dashboard de Obra" no menu
-        # lateral, para não se confundir com o nome interno do projeto.
-        at = _run("Admin", f"{ICONS['work']} Dashboard de Obra")
+        # de "Painel de Obra" para "Dashboard de Obra" no menu lateral,
+        # para não se confundir com o nome interno do projeto.
+        at = _run("Admin", f"Dashboard de Obra")
         self.assertFalse(at.exception, msg=str(at.exception))
         self.assertIn("Sem obras para apresentar", _texto(at))
-        self.assertEqual(ICONS['work'], ":material/bar_chart:")
 
 
 class TestLogotipoNaBarraLateral(unittest.TestCase):
@@ -108,7 +106,7 @@ class TestLogotipoNaBarraLateral(unittest.TestCase):
 
 class TestEncaminhamentoCliente(unittest.TestCase):
     def test_portal_cliente_abre(self):
-        at = _run("Cliente", f"{ICONS['dashboard']} Portal", user="Cliente Teste")
+        at = _run("Cliente", f"Portal", user="Cliente Teste")
         self.assertFalse(at.exception, msg=str(at.exception))
         self.assertIn("Portal do Cliente", _texto(at))
 

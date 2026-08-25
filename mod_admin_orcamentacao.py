@@ -280,7 +280,7 @@ def _carregar_dados():
 
 def _tab_cockpit(orc_db, clientes_db):
     if orc_db.empty:
-        st.info(":material/assignment: Sem orçamentos. Cria o primeiro no tab ➕ Novo Orçamento.")
+        st.info("Sem orçamentos. Cria o primeiro no tab ➕ Novo Orçamento.")
         return
 
     today = date.today()
@@ -328,7 +328,7 @@ def _tab_cockpit(orc_db, clientes_db):
             alertas.append(('warn', row, days))
 
     if alertas:
-        st.markdown("#### :material/warning: Alertas de Validade")
+        st.markdown("#### Alertas de Validade")
         for tipo, row, days in sorted(alertas, key=lambda x: x[2]):
             total = float(row.get('Total_Com_Margem', 0) or 0)
             if tipo == 'exp':
@@ -346,7 +346,7 @@ def _tab_cockpit(orc_db, clientes_db):
         st.markdown("<br>", unsafe_allow_html=True)
 
     # ── Kanban visual ────────────────────────────────────────
-    st.markdown("#### :material/bar_chart: Pipeline por Estado")
+    st.markdown("#### Pipeline por Estado")
 
     estados = [
         ('Rascunho',   THEME['text_secondary'], '📝'),
@@ -394,7 +394,7 @@ def _tab_cockpit(orc_db, clientes_db):
 
 def _tab_lista(orc_db, orc_linhas, clientes_db):
     if orc_db.empty:
-        st.info(":material/assignment: Sem orçamentos.")
+        st.info("Sem orçamentos.")
         return
 
     # Filtros
@@ -588,14 +588,14 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
                             orc_db.loc[orc_db['ID'] == oid, 'Motivo_Rejeicao'] = motivo
                         save_db(orc_db, "orcamentos.csv")
                         inv("orcamentos.csv")
-                        st.success(":material/check_circle: Estado actualizado!")
+                        st.success("Estado actualizado!")
                         st.rerun()
 
                 with col_b2:
                     if st.button("📋 Duplicar", key=f"orc_dup_{oid}",
                                  use_container_width=True):
                         st.session_state['duplicar_orc_id'] = oid
-                        st.info(":material/lightbulb: Abre o tab ➕ Novo — o orçamento foi pré-carregado.")
+                        st.info("Abre o tab ➕ Novo — o orçamento foi pré-carregado.")
 
                 # Adjudicação → Criar Obra
                 if novo_stat == 'Adjudicado' or stat == 'Adjudicado':
@@ -617,7 +617,7 @@ def _modal_criar_obra(orc, oid, orc_db):
         f"border-radius:10px;padding:16px;margin-top:8px;'>",
         unsafe_allow_html=True
     )
-    st.markdown("#### :material/construction: Validar e Criar Obra")
+    st.markdown("#### Validar e Criar Obra")
     st.caption("Confirma os dados antes de criar a obra.")
 
     co1, co2 = st.columns(2)
@@ -689,7 +689,7 @@ def _modal_criar_obra(orc, oid, orc_db):
                     detalhes=f"Obra '{obra_nome}' criada a partir do orçamento {oid}",
                     ip=""
                 )
-                st.success(f":material/check_circle: Obra '{obra_nome}' criada com sucesso!")
+                st.success(f"Obra '{obra_nome}' criada com sucesso!")
                 st.session_state[f'criar_obra_orc_{oid}'] = False
                 st.rerun()
 
@@ -716,7 +716,7 @@ def _tab_novo(orc_db, orc_linhas, obras_db, catalogo, tarifas, ref_precos):
         matches = orc_db[orc_db['ID'] == dup_id]
         if not matches.empty:
             orc_base = matches.iloc[0].to_dict()
-            st.info(f":material/assignment: A duplicar orçamento de: **{orc_base.get('Obra','')}** "
+            st.info(f"A duplicar orçamento de: **{orc_base.get('Obra','')}** "
                     f"(v{orc_base.get('Versao','1')})")
 
     # Tipo de orçamento
@@ -795,9 +795,9 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
         )
         # Aviso margem baixa
         if no_margem < 15:
-            st.warning(":material/warning: Margem abaixo de 15% — confirma se é intencional.")
+            st.warning("Margem abaixo de 15% — confirma se é intencional.")
         elif no_margem > 35:
-            st.warning(":material/warning: Margem acima de 35% — pode reduzir competitividade.")
+            st.warning("Margem acima de 35% — pode reduzir competitividade.")
 
         no_notas = st.text_area(
             "Notas",
@@ -818,7 +818,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
         )
 
     st.markdown("---")
-    st.markdown("#### :material/edit_note: Linhas do Orçamento")
+    st.markdown("#### Linhas do Orçamento")
 
     # Inicializar linhas temp
     if 'orc_linhas_temp' not in st.session_state:
@@ -1040,9 +1040,9 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
             if st.button("💾 Guardar Orçamento", type="primary",
                          use_container_width=True, key="btn_save_a"):
                 if not no_obra or no_obra == "—":
-                    st.error(":material/close: Selecciona uma obra.")
+                    st.error("Selecciona uma obra.")
                 elif not no_cliente.strip():
-                    st.error(":material/close: Cliente obrigatório.")
+                    st.error("Cliente obrigatório.")
                 else:
                     if no_cliente_novo:
                         registar_cliente_do_select(no_cliente, "noa_cliente")
@@ -1064,7 +1064,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                 st.session_state['orc_linhas_temp'] = []
                 st.rerun()
     else:
-        st.info(":material/edit_note: Sem linhas. Pesquisa no catálogo ou adiciona manualmente.")
+        st.info("Sem linhas. Pesquisa no catálogo ou adiciona manualmente.")
 
 
 def _guardar_orcamento_a(orc_db, orc_linhas, obra, cliente, versao, validade,
@@ -1119,7 +1119,7 @@ def _guardar_orcamento_a(orc_db, orc_linhas, obra, cliente, versao, validade,
         detalhes=f"{obra} | v{versao} | €{total_com:,.2f}", ip=""
     )
     st.session_state['orc_linhas_temp'] = []
-    st.success(f":material/check_circle: Orçamento criado! Total: €{total_com:,.2f}")
+    st.success(f"Orçamento criado! Total: €{total_com:,.2f}")
     st.rerun()
 
 
@@ -1129,7 +1129,7 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
     obras_ativas = (obras_db[obras_db['Ativa'] == 'Ativa']['Obra'].tolist()
                     if not obras_db.empty else [])
 
-    st.markdown("#### :material/engineering: Orçamento de Cedência de Mão de Obra")
+    st.markdown("#### Orçamento de Cedência de Mão de Obra")
     st.caption("Preenche os campos — o total é calculado automaticamente.")
 
     col1, col2 = st.columns(2)
@@ -1152,10 +1152,10 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
                                    max_value=12, key="nb_horas")
         nb_margem = st.slider("Margem (%)", 0, 50, 15, key="nb_margem")
         if nb_margem < 10:
-            st.warning(":material/warning: Margem muito baixa.")
+            st.warning("Margem muito baixa.")
 
     st.markdown("---")
-    st.markdown("#### :material/group: Equipa")
+    st.markdown("#### Equipa")
 
     # Categorias de técnicos disponíveis nas tarifas
     cats_disponiveis = ["Instrumentista", "Mecânico", "Electricista",
@@ -1177,7 +1177,7 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
     total_pessoas = sum(equipa.values())
 
     st.markdown("---")
-    st.markdown("#### :material/airport_shuttle: Logística")
+    st.markdown("#### Logística")
 
     col_v1, col_v2, col_v3 = st.columns(3)
     with col_v1:
@@ -1227,7 +1227,7 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
 
     # ── Cálculo em tempo real ────────────────────────────────
     st.markdown("---")
-    st.markdown("#### :material/payments: Simulação em Tempo Real")
+    st.markdown("#### Simulação em Tempo Real")
 
     linhas_b = []
     total_mo = 0.0
@@ -1327,9 +1327,9 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
     if st.button("💾 Guardar Orçamento Tipo B", type="primary",
                  use_container_width=True, key="btn_save_b"):
         if not nb_obra or nb_obra == "—" or not nb_cliente.strip():
-            st.error(":material/close: Obra e cliente obrigatórios.")
+            st.error("Obra e cliente obrigatórios.")
         elif total_pessoas == 0:
-            st.error(":material/close: Adiciona pelo menos um técnico.")
+            st.error("Adiciona pelo menos um técnico.")
         else:
             if nb_cliente_novo:
                 registar_cliente_do_select(nb_cliente, "nb_cliente")
@@ -1390,14 +1390,14 @@ def _guardar_orcamento_b(orc_db, obra, cliente, versao, validade,
         tabela="orcamentos.csv", registro_id=orc_id,
         detalhes=f"{obra} | v{versao} | €{total_com:,.2f} | {equipa_str}", ip=""
     )
-    st.success(f":material/check_circle: Orçamento Tipo B criado! Total: €{total_com:,.2f}")
+    st.success(f"Orçamento Tipo B criado! Total: €{total_com:,.2f}")
     st.rerun()
 
 
 # ── Orçamento de Arquivo ─────────────────────────────────────
 
 def _form_arquivo(orc_db, obras_db, user_nome, op_db=None):
-    st.markdown("#### :material/folder: Orçamento de Arquivo")
+    st.markdown("#### Orçamento de Arquivo")
     st.caption("Para orçamentos feitos fora da app (Excel/PDF, históricos ou "
                "pontuais). Anexa o(s) ficheiro(s) e regista os dados — entra "
                "no mesmo pipeline e ciclo de vida dos orçamentos nativos.")
@@ -1455,7 +1455,7 @@ def _form_arquivo(orc_db, obras_db, user_nome, op_db=None):
         cliente_final = ar_cliente.strip()
         obra_final = (ar_obra or "").strip()
         if not ar_numero.strip() or not cliente_final or not obra_final:
-            st.error(":material/close: Número, cliente e obra proposta são obrigatórios.")
+            st.error("Número, cliente e obra proposta são obrigatórios.")
         else:
             if ar_cliente_novo:
                 registar_cliente_do_select(cliente_final, "ar_cliente")
@@ -1491,7 +1491,7 @@ def _guardar_orcamento_arquivo(orc_db, numero, obra, cliente, valor_total,
                     detalhes=f"Anexo '{f.name}' carregado", ip=""
                 )
             else:
-                st.warning(f":material/warning: Falha ao carregar o anexo '{f.name}'.")
+                st.warning(f"Falha ao carregar o anexo '{f.name}'.")
 
     notas_final = f"Nº Ref.: {numero.strip()}" + (f" | {notas.strip()}" if notas.strip() else "")
 
@@ -1532,7 +1532,7 @@ def _guardar_orcamento_arquivo(orc_db, numero, obra, cliente, valor_total,
         detalhes=f"{obra} | Nº {numero} | €{valor_total:,.2f} | "
                  f"{len(nomes_anexos)} anexo(s)", ip=""
     )
-    st.success(f":material/check_circle: Orçamento de Arquivo registado! Total: €{valor_total:,.2f}")
+    st.success(f"Orçamento de Arquivo registado! Total: €{valor_total:,.2f}")
     st.rerun()
 
 
@@ -1549,7 +1549,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
 
     # ── Catálogo de Tempos ────────────────────────────────────
     with sub[0]:
-        st.markdown("#### :material/bolt: Catálogo de Itens e Tempos")
+        st.markdown("#### Catálogo de Itens e Tempos")
         st.caption("Base de dados de actividades com tempo estimado por unidade.")
 
         col_ca1, col_ca2 = st.columns([3, 1])
@@ -1597,7 +1597,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                                if not catalogo.empty else novo_item)
                         save_db(upd, "orc_catalogo.csv")
                         inv("orc_catalogo.csv")
-                        st.success(":material/check_circle: Item adicionado ao catálogo!")
+                        st.success("Item adicionado ao catálogo!")
                         st.session_state['cat_novo_open'] = False
                         st.rerun()
                     else:
@@ -1619,7 +1619,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                            if not catalogo.empty else df_imp)
                     save_db(upd, "orc_catalogo.csv")
                     inv("orc_catalogo.csv")
-                    st.success(f":material/check_circle: {len(df_imp)} itens importados!")
+                    st.success(f"{len(df_imp)} itens importados!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Erro: {e}")
@@ -1643,7 +1643,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
 
     # ── Tarifas MO ───────────────────────────────────────────
     with sub[1]:
-        st.markdown("#### :material/payments: Tabela de Tarifas de Mão de Obra")
+        st.markdown("#### Tabela de Tarifas de Mão de Obra")
         st.caption("Valores hora e diária por categoria e zona geográfica.")
 
         if st.button("➕ Nova Tarifa", key="cat_tar_novo_btn"):
@@ -1678,7 +1678,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                                if not tarifas.empty else novo_t)
                         save_db(upd, "orc_tarifas.csv")
                         inv("orc_tarifas.csv")
-                        st.success(":material/check_circle: Tarifa guardada!")
+                        st.success("Tarifa guardada!")
                         st.session_state['tar_novo_open'] = False
                         st.rerun()
 
@@ -1689,7 +1689,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
 
     # ── Preços Referência ────────────────────────────────────
     with sub[2]:
-        st.markdown("#### :material/airport_shuttle: Preços de Referência (Carrinhas e Dormidas)")
+        st.markdown("#### Preços de Referência (Carrinhas e Dormidas)")
         st.caption("Valores editáveis. Actualizados periodicamente.")
 
         if not ref_precos.empty:
@@ -1724,7 +1724,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                            if not ref_precos.empty else novo_r)
                     save_db(upd, "orc_ref_precos.csv")
                     inv("orc_ref_precos.csv")
-                    st.success(":material/check_circle: Preço de referência actualizado!")
+                    st.success("Preço de referência actualizado!")
                     st.rerun()
 
 
@@ -1744,7 +1744,7 @@ def _tab_analytics(orc_db, clientes_db):
     except ImportError:
         HAS_PLOTLY = False
 
-    st.markdown("#### :material/trending_up: Analytics de Orçamentação")
+    st.markdown("#### Analytics de Orçamentação")
 
     # ── KPIs ─────────────────────────────────────────────────
     adj     = orc_db[orc_db['Status'] == 'Adjudicado']
@@ -1906,7 +1906,7 @@ def render_orcamentacao(*_):
     user_nome = st.session_state.get('user', 'Admin')
     hoje = date.today()
 
-    st.markdown("### :material/bar_chart: Orçamentação")
+    st.markdown("### Orçamentação")
 
     # KPI header rápido
     n_total   = len(orc_db) if not orc_db.empty else 0

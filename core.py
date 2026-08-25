@@ -58,39 +58,10 @@ THEME = {
     "radius":          "12px",
 }
 
-# Fase A da remoção de emojis (2026-08-24) — ícones nativos do Streamlit
-# (Google Material Symbols, sintaxe ":material/nome:"). Funciona em
-# st.markdown(), st.tabs(), st.radio()/label+options, st.button() (label
-# ou icon=) e é extraído automaticamente por st.error/warning/success/
-# info() quando está no início do texto. NÃO funciona dentro de HTML
-# solto (unsafe_allow_html=True) — não usar ICONS dentro de f-strings de
-# cartões/badges; usar o emoji literal aí (ver mod_voice_learning.py).
-ICONS = {
-    "app": ":material/tune:", "login": ":material/lock:",
-    "admin": ":material/bolt:", "technician": ":material/engineering:",
-    "dashboard": ":material/trending_up:", "instrumentation": ":material/science:",
-    "voice": ":material/mic:", "safety": ":material/shield:",
-    "profile": ":material/person:", "reports": ":material/bar_chart:",
-    "handover": ":material/check_circle:", "gps": ":material/location_on:",
-    "calibration": ":material/biotech:", "material": ":material/inventory_2:",
-    "pending": ":material/hourglass_empty:", "logout": ":material/logout:",
-    "save": ":material/save:", "edit": ":material/edit:",
-    "delete": ":material/delete:", "add": ":material/add:",
-    "search": ":material/search:", "filter": ":material/filter_list:",
-    "download": ":material/download:", "upload": ":material/upload:",
-    "check": ":material/check_circle:", "close": ":material/close:",
-    "warning": ":material/warning:", "info": ":material/info:",
-    "calendar": ":material/calendar_month:", "clock": ":material/schedule:",
-    "user": ":material/person:", "users": ":material/group:",
-    "settings": ":material/settings:", "home": ":material/home:",
-    "work": ":material/bar_chart:", "tools": ":material/build:",
-    "equipment": ":material/hardware:", "document": ":material/description:",
-    "documents": ":material/folder:", "chart": ":material/bar_chart:",
-    "graph": ":material/trending_up:", "email": ":material/mail:",
-    "phone": ":material/call:", "location": ":material/location_on:",
-    "time": ":material/timer:", "approved": ":material/check_circle:",
-    "rejected": ":material/close:", "pending_approval": ":material/hourglass_empty:",
-}
+# ICONS foi retirado (2026-08-25) — decisão do utilizador de não ter
+# nenhum ícone na app (nem emoji, nem Material Symbols, nem fonte de
+# ícones), só texto. Os sítios que liam daqui passaram a usar texto
+# literal diretamente.
 
 logging.basicConfig(
     level=logging.INFO,

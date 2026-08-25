@@ -11,7 +11,7 @@ import time
 
 from core import (
     save_db, inv, fh, sl, load_db,
-    ICONS, THEME, TIPOS_FRENTE, REGRAS_OURO,
+    THEME, TIPOS_FRENTE, REGRAS_OURO,
     log_audit, criar_notificacao, process_and_compress_image,
     hp, _load_users_cached, render_card, render_badge, escape_html
 )
@@ -555,7 +555,7 @@ def render_chefe(*args):
     # TAB 0 — EQUIPA
     # ══════════════════════════════════════════════════════════════════════════
     with tabs[0]:
-        st.markdown("### :material/engineering: Visão Geral da Equipa")
+        st.markdown("### Visão Geral da Equipa")
         if not regs_equipa.empty:
             resumo = regs_equipa.groupby('Técnico').agg(
                 Horas     =('Horas_Total', lambda x: pd.to_numeric(x, errors='coerce').sum()),
@@ -583,10 +583,10 @@ def render_chefe(*args):
                     </div>
                 </div>""", unsafe_allow_html=True)
         else:
-            st.info(":material/assignment: Sem dados de equipa.")
+            st.info("Sem dados de equipa.")
 
         st.divider()
-        st.markdown("### :material/campaign: Comunicado à Equipa")
+        st.markdown("### Comunicado à Equipa")
         with st.form("form_comunicado_chefe"):
             titulo_com   = st.text_input("Título", key="com_ch_titulo")
             conteudo_com = st.text_area("Mensagem", key="com_ch_msg")
@@ -608,7 +608,7 @@ def render_chefe(*args):
                     inv("comunicados.csv")
                     from core import _cached_load_all
                     _cached_load_all.clear()
-                    st.success(":material/check_circle: Comunicado enviado!")
+                    st.success("Comunicado enviado!")
                     st.session_state['_menu_locked'] = True
                     st.rerun()
 
@@ -616,7 +616,7 @@ def render_chefe(*args):
     # TAB 1 — VALIDAR HORAS
     # ══════════════════════════════════════════════════════════════════════════
     with tabs[1]:
-        st.markdown("### :material/check_circle: Validação de Horas da Equipa")
+        st.markdown("### Validação de Horas da Equipa")
         sub_p, sub_h = st.tabs(["🟠 Pendentes", "📅 Histórico Mensal"])
 
         # ── Pendentes ─────────────────────────────────────────────────────────
@@ -668,7 +668,7 @@ def render_chefe(*args):
                         inv("registos.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.success(":material/check_circle: Todos validados!")
+                        st.success("Todos validados!")
                         st.session_state['_menu_locked'] = True
                         st.rerun()
                 with col_rm:
@@ -686,7 +686,7 @@ def render_chefe(*args):
                         inv("registos.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.error(":material/close: Todos rejeitados.")
+                        st.error("Todos rejeitados.")
                         st.session_state['_menu_locked'] = True
                         st.rerun()
 
@@ -827,13 +827,13 @@ def render_chefe(*args):
 
         # ── Histórico Mensal ───────────────────────────────────────────────────
         with sub_h:
-            st.markdown("### :material/calendar_month: Histórico de Horas por Colaborador")
+            st.markdown("### Histórico de Horas por Colaborador")
 
             # Selecção colaborador + mês
             tecnicos_lista = sorted(regs_equipa['Técnico'].unique().tolist()) \
                              if not regs_equipa.empty else []
             if not tecnicos_lista:
-                st.info(":material/assignment: Sem dados de equipa.")
+                st.info("Sem dados de equipa.")
             else:
                 col_tc, col_mes, col_ano = st.columns([3, 2, 1])
                 with col_tc:
@@ -940,7 +940,7 @@ def render_chefe(*args):
 
                 if not regs_mes_tec.empty:
                     # ── Calendário mensal visual ───────────────────────────────
-                    st.markdown("#### :material/calendar_month: Vista Calendário")
+                    st.markdown("#### Vista Calendário")
 
                     # Construir mapa dia → horas+status
                     import calendar as cal_lib
@@ -1018,7 +1018,7 @@ def render_chefe(*args):
                     </div>""", unsafe_allow_html=True)
 
                     # ── Breakdown por obra ─────────────────────────────────────
-                    st.markdown("#### :material/factory: Breakdown por Obra")
+                    st.markdown("#### Breakdown por Obra")
                     breakdown = regs_mes_tec.groupby('Obra').agg(
                         Horas   =('Horas_Total', lambda x: pd.to_numeric(x, errors='coerce').sum()),
                         Registos=('Obra', 'count'),
@@ -1212,7 +1212,7 @@ def render_chefe(*args):
             st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
             if st.session_state.pop('_pt_redirect_ch', False):
-                st.info(":material/smartphone: O registo de horas é feito na **CPS Ponto**.")
+                st.info("O registo de horas é feito na **CPS Ponto**.")
                 st.link_button(
                     "🔗 Abrir CPS Ponto",
                     "https://cps-ponto-773461449136.europe-west1.run.app",
@@ -1371,7 +1371,7 @@ def render_chefe(*args):
                                     f"font-size:0.8rem;margin:0 0 4px;'>= {fh(delta)}</p>",
                                     unsafe_allow_html=True)
                     elif delta < 0:
-                        st.warning(":material/warning: Saída antes da entrada")
+                        st.warning("Saída antes da entrada")
 
                 if total_horas > 0:
                     st.markdown(
@@ -1404,9 +1404,9 @@ def render_chefe(*args):
 
             if guardar:
                 if total_horas <= 0:
-                    st.error(":material/warning: Horas têm de ser superiores a 0.")
+                    st.error("Horas têm de ser superiores a 0.")
                 elif not obra_sel or obra_sel == "Sem obras":
-                    st.error(":material/warning: Seleciona uma obra.")
+                    st.error("Seleciona uma obra.")
                 else:
                     regs_atual = registos_db.copy() if not registos_db.empty else pd.DataFrame()
                     ids_guardados = []
@@ -1447,7 +1447,7 @@ def render_chefe(*args):
     # TAB 3 — FOLHA DE PONTO (fluxo completo)
     # ══════════════════════════════════════════════════════════════════════════
     with tabs[3]:
-        st.markdown("### :material/bar_chart: Folha de Ponto")
+        st.markdown("### Folha de Ponto")
 
         # Estado da folha em session_state
         for k, v in [
@@ -1537,7 +1537,7 @@ def render_chefe(*args):
                 if st.button("👁️ Gerar Preview da Folha →", use_container_width=True,
                              type="primary", key="btn_fp_preview"):
                     if not nome_resp.strip():
-                        st.warning(":material/warning: Indica o nome do responsável.")
+                        st.warning("Indica o nome do responsável.")
                     else:
                         html_folha, total_h = _gerar_html_folha(
                             obra_fp, periodo_str, regs_fp, nome_resp)
@@ -1551,7 +1551,7 @@ def render_chefe(*args):
                         st.session_state['_menu_locked'] = True
                         st.rerun()
             else:
-                st.info(":material/assignment: Sem registos para o período e obra seleccionados.")
+                st.info("Sem registos para o período e obra seleccionados.")
 
         # ── PASSO 2: Preview ──────────────────────────────────────────────────
         elif st.session_state.fp_step == 'preview':
@@ -1719,9 +1719,9 @@ def render_chefe(*args):
 
                 if confirmar:
                     if not nome_conf.strip():
-                        st.error(":material/warning: Confirma o teu nome completo.")
+                        st.error("Confirma o teu nome completo.")
                     elif not aceito:
-                        st.error(":material/warning: Tens de confirmar os dados antes de assinar.")
+                        st.error("Tens de confirmar os dados antes de assinar.")
                     else:
                         folha_id = str(uuid.uuid4())[:8].upper()
                         selo_id  = secrets.token_hex(8).upper()
@@ -1784,7 +1784,7 @@ def render_chefe(*args):
 
                 if ficheiro_assin:
                     tam_kb = len(ficheiro_assin.getvalue()) / 1024
-                    st.success(f":material/check_circle: {ficheiro_assin.name} ({tam_kb:.0f} KB)")
+                    st.success(f"{ficheiro_assin.name} ({tam_kb:.0f} KB)")
 
                     nome_cliente = st.text_input(
                         "Nome do cliente / representante que assinou",
@@ -1890,7 +1890,7 @@ def render_chefe(*args):
     # TAB 4 — HSE
     # ══════════════════════════════════════════════════════════════════════════
     with tabs[4]:
-        st.markdown("### :material/shield: Segurança & HSE")
+        st.markdown("### Segurança & HSE")
         sub_r, sub_rep, sub_list = st.tabs(["📋 Regras de Ouro","⚠️ Reportar","📊 Incidentes"])
 
         with sub_r:
@@ -1923,7 +1923,7 @@ def render_chefe(*args):
                         inv("incidentes.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.success(":material/check_circle: Alerta HSE submetido!")
+                        st.success("Alerta HSE submetido!")
                         st.session_state['_menu_locked'] = True
                         st.rerun()
 
@@ -1936,15 +1936,15 @@ def render_chefe(*args):
                 if not i_eq.empty:
                     st.dataframe(i_eq[cols_s], use_container_width=True, hide_index=True)
                 else:
-                    st.success(":material/check_circle: Sem incidentes.")
+                    st.success("Sem incidentes.")
             else:
-                st.success(":material/check_circle: Sem incidentes.")
+                st.success("Sem incidentes.")
 
     # ══════════════════════════════════════════════════════════════════════════
     # TAB 5 — PEDIDOS
     # ══════════════════════════════════════════════════════════════════════════
     with tabs[5]:
-        st.markdown("### :material/inventory_2: Pedidos da Equipa")
+        st.markdown("### Pedidos da Equipa")
         tecnicos_equipa = regs_equipa['Técnico'].unique().tolist() \
                           if not regs_equipa.empty else []
 
@@ -1954,12 +1954,12 @@ def render_chefe(*args):
 
         def _mostrar_pedidos(df):
             if df.empty:
-                st.info(":material/assignment: Sem pedidos.")
+                st.info("Sem pedidos.")
                 return
             df_eq = (df[df['Solicitante'].isin(tecnicos_equipa)]
                      if tecnicos_equipa and 'Solicitante' in df.columns else df)
             if df_eq.empty:
-                st.success(":material/check_circle: Sem pedidos da equipa.")
+                st.success("Sem pedidos da equipa.")
                 return
             for _, ped in df_eq.iterrows():
                 status = ped.get('Status', 'Pendente')

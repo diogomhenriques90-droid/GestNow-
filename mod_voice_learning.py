@@ -11,7 +11,7 @@ import os
 from datetime import datetime, timedelta
 import plotly.express as px
 from translations import t
-from core import ICONS, COLORS, THEME
+from core import COLORS, THEME
 
 # =============================================================================
 # 🗄️ ARQUIVOS DE DADOS
@@ -296,7 +296,7 @@ def render_voice_learning_dashboard():
 
     with col_graf1:
         if insights["most_used_commands"]:
-            st.markdown(f"#### {ICONS['reports']} Comandos Mais Usados")
+            st.markdown(f"#### Comandos Mais Usados")
             df_used = pd.DataFrame(list(insights["most_used_commands"].items()), 
                                    columns=['Comando', 'Frequência'])
             fig = px.bar(df_used, x='Comando', y='Frequência', title='Top 10 Comandos',
@@ -314,7 +314,7 @@ def render_voice_learning_dashboard():
 
     with col_graf2:
         if insights["commands_by_hour"]:
-            st.markdown(f"#### :material/schedule: Horários de Uso")
+            st.markdown(f"#### Horários de Uso")
             df_hour = pd.DataFrame(list(insights["commands_by_hour"].items()), 
                                    columns=['Hora', 'Comandos'])
             df_hour = df_hour.sort_values('Hora')
@@ -337,16 +337,16 @@ def render_voice_learning_dashboard():
 
     with col_fail1:
         if insights["most_failed_commands"]:
-            st.markdown(f"#### {ICONS['close']} Comandos Mais Falhados")
+            st.markdown(f"#### Comandos Mais Falhados")
             df_fail = pd.DataFrame(list(insights["most_failed_commands"].items()),
                                    columns=['Comando', 'Falhas'])
             st.dataframe(df_fail, use_container_width=True)
         else:
-            st.success(":material/check_circle: Nenhum comando falhado registado!")
+            st.success("Nenhum comando falhado registado!")
 
     with col_fail2:
         if insights["suggestions"]:
-            st.markdown(f"#### :material/lightbulb: Sugestões de Melhoria")
+            st.markdown(f"#### Sugestões de Melhoria")
             for s in insights["suggestions"]:
                 if "🔴" in s or "❌" in s:
                     st.error(s)
@@ -355,11 +355,11 @@ def render_voice_learning_dashboard():
                 else:
                     st.info(s)
         else:
-            st.success(":material/celebration: Tudo ótimo! A IA está aprendendo bem.")
+            st.success("Tudo ótimo! A IA está aprendendo bem.")
 
     # Feedbacks dos utilizadores
     st.divider()
-    st.markdown(f"#### :material/edit_note: Feedback dos Utilizadores")
+    st.markdown(f"#### Feedback dos Utilizadores")
 
     try:
         if os.path.exists(VOICE_FEEDBACK_FILE):
@@ -380,7 +380,7 @@ def render_voice_learning_dashboard():
 def render_voice_feedback_widget(command):
     """Widget para coletar feedback do utilizador sobre a resposta"""
     st.divider()
-    st.markdown(f"#### :material/thumb_up: Esta resposta foi útil?")
+    st.markdown(f"#### Esta resposta foi útil?")
 
     col_fb1, col_fb2, col_fb3 = st.columns(3)
     with col_fb1:

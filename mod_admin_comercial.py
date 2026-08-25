@@ -563,7 +563,7 @@ def render_comercial(*_):
     # TAB — PIPELINE
     # ════════════════════════════════════════════════════════════════
     with t_pipeline:
-        st.markdown("### :material/bar_chart: Pipeline Comercial")
+        st.markdown("### Pipeline Comercial")
 
         col_p1, col_p2 = st.columns(2)
         with col_p1:
@@ -583,7 +583,7 @@ def render_comercial(*_):
         col_form_p, col_lista_p = st.columns([1, 2])
 
         with col_form_p:
-            st.markdown("#### :material/add: Nova Oportunidade")
+            st.markdown("#### Nova Oportunidade")
             with st.form("form_oportunidade"):
                 op_nome    = st.text_input("Nome da Oportunidade *", key="op_nome")
                 op_cliente, op_cliente_novo = cliente_select("Cliente *", "op_cliente")
@@ -635,7 +635,7 @@ def render_comercial(*_):
                     use_container_width=True, type="primary"
                 ):
                     if not op_nome.strip() or not op_cliente.strip():
-                        st.error(":material/close: Nome e cliente obrigatórios.")
+                        st.error("Nome e cliente obrigatórios.")
                     else:
                         if op_cliente_novo:
                             registar_cliente_do_select(
@@ -683,11 +683,11 @@ def render_comercial(*_):
                                   f"{op_nome} | {op_cliente} | €{op_valor:,.0f}"
                                   + (f" | Contacto: {ct_orig_id}" if ct_orig_id else ""),
                                   "")
-                        st.success(f":material/check_circle: Oportunidade criada!")
+                        st.success(f"Oportunidade criada!")
                         st.rerun()
 
         with col_lista_p:
-            st.markdown("#### :material/assignment: Oportunidades Ativas")
+            st.markdown("#### Oportunidades Ativas")
 
             # Filtros
             col_pf1, col_pf2 = st.columns(2)
@@ -714,7 +714,7 @@ def render_comercial(*_):
                 df_pipe = df_pipe[df_pipe['Comercial'] == com_filt]
 
             if df_pipe.empty:
-                st.info(":material/assignment: Sem oportunidades. Cria a primeira no formulário.")
+                st.info("Sem oportunidades. Cria a primeira no formulário.")
             else:
                 for _, op in df_pipe.sort_values(
                     'Data_Criacao', ascending=False
@@ -776,11 +776,11 @@ def render_comercial(*_):
     # TAB — VISITAS
     # ════════════════════════════════════════════════════════════════
     with t_visitas:
-        st.markdown("### :material/calendar_month: Gestão de Visitas Comerciais")
+        st.markdown("### Gestão de Visitas Comerciais")
 
         # Alertas visitas próximas
         if alertas_visitas:
-            st.markdown("#### :material/bolt: Visitas nas Próximas 48h")
+            st.markdown("#### Visitas nas Próximas 48h")
             for av in alertas_visitas:
                 cor_av = THEME['error'] if av['dias'] <= 0 else THEME['warning']
                 st.markdown(
@@ -798,7 +798,7 @@ def render_comercial(*_):
         col_vf, col_vl = st.columns([1, 2])
 
         with col_vf:
-            st.markdown("#### :material/add: Agendar Visita")
+            st.markdown("#### Agendar Visita")
             with st.form("form_visita"):
                 v_cliente, v_cliente_novo = cliente_select("Cliente *", "v_cliente")
                 v_contacto = st.text_input("Contacto", key="v_contacto")
@@ -843,7 +843,7 @@ def render_comercial(*_):
                     use_container_width=True, type="primary"
                 ):
                     if not v_cliente.strip():
-                        st.error(":material/close: Cliente obrigatório.")
+                        st.error("Cliente obrigatório.")
                     else:
                         if v_cliente_novo:
                             registar_cliente_do_select(
@@ -876,14 +876,14 @@ def render_comercial(*_):
                         save_db(upd_v, "comercial_visitas.csv")
                         inv("comercial_visitas.csv")
                         st.success(
-                            f":material/check_circle: Visita agendada para "
+                            f"Visita agendada para "
                             f"{v_data.strftime('%d/%m/%Y')} "
                             f"às {v_hora.strftime('%H:%M')}!"
                         )
                         st.rerun()
 
         with col_vl:
-            st.markdown("#### :material/assignment: Visitas Agendadas & Histórico")
+            st.markdown("#### Visitas Agendadas & Histórico")
 
             # Gráfico distribuição semanal
             fig_vsem = _grafico_visitas_semana(visitas_db)
@@ -894,7 +894,7 @@ def render_comercial(*_):
                 )
 
             if visitas_db.empty:
-                st.info(":material/assignment: Sem visitas agendadas.")
+                st.info("Sem visitas agendadas.")
             else:
                 # Filtro estado
                 est_v_filt = st.selectbox(
@@ -1019,14 +1019,14 @@ def render_comercial(*_):
                                 ] = prox_acao
                                 save_db(visitas_db, "comercial_visitas.csv")
                                 inv("comercial_visitas.csv")
-                                st.success(":material/check_circle: Resultado guardado!")
+                                st.success("Resultado guardado!")
                                 st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB — CLIENTES & ANGARIAÇÕES
     # ════════════════════════════════════════════════════════════════
     with t_clientes:
-        st.markdown("### :material/group: Clientes & Angariações")
+        st.markdown("### Clientes & Angariações")
 
         # Gráfico novos clientes
         fig_nc = _grafico_novos_clientes_mes(clientes_db)
@@ -1039,7 +1039,7 @@ def render_comercial(*_):
         col_cf, col_cl = st.columns([1, 2])
 
         with col_cf:
-            st.markdown("#### :material/add: Registar Cliente Angariado")
+            st.markdown("#### Registar Cliente Angariado")
             with st.form("form_cliente_com"):
                 cc_nome    = st.text_input("Nome da Empresa *", key="cc_nome")
                 cc_nif     = st.text_input("NIF", key="cc_nif",
@@ -1081,7 +1081,7 @@ def render_comercial(*_):
                     use_container_width=True, type="primary"
                 ):
                     if not cc_nome.strip():
-                        st.error(":material/close: Nome obrigatório.")
+                        st.error("Nome obrigatório.")
                     else:
                         novo_c = pd.DataFrame([{
                             "ID":              str(uuid.uuid4())[:8].upper(),
@@ -1113,14 +1113,14 @@ def render_comercial(*_):
                             telefone=cc_tel, morada=cc_morada,
                             sector=cc_setor, origem="Manual",
                             criado_por=cc_comercial.strip() or user_nome)
-                        st.success(f":material/check_circle: Cliente {cc_nome} angariado!")
+                        st.success(f"Cliente {cc_nome} angariado!")
                         st.rerun()
 
         with col_cl:
-            st.markdown("#### :material/assignment: Clientes Angariados")
+            st.markdown("#### Clientes Angariados")
 
             if clientes_db.empty:
-                st.info(":material/assignment: Sem clientes registados.")
+                st.info("Sem clientes registados.")
             else:
                 # Filtro potencial
                 pot_filt = st.selectbox(
@@ -1173,7 +1173,7 @@ def render_comercial(*_):
     # TAB — RANKING
     # ════════════════════════════════════════════════════════════════
     with t_ranking:
-        st.markdown("### :material/emoji_events: Ranking Comercial")
+        st.markdown("### Ranking Comercial")
 
         col_rk1, col_rk2 = st.columns(2)
         with col_rk1:
@@ -1191,11 +1191,11 @@ def render_comercial(*_):
                     key="ranking_comerciais"
                 )
             else:
-                st.info(":material/assignment: Sem dados suficientes para ranking.")
+                st.info("Sem dados suficientes para ranking.")
 
         # Tabela de ranking detalhado
         st.markdown("---")
-        st.markdown("#### :material/bar_chart: Tabela de Performance")
+        st.markdown("#### Tabela de Performance")
 
         if not oport_db.empty and 'Comercial' in oport_db.columns:
             comerciais = oport_db['Comercial'].dropna().unique().tolist()
@@ -1250,7 +1250,7 @@ def render_comercial(*_):
 
                 # Medalhas top 3
                 if len(rows_rank) >= 1:
-                    st.markdown("#### :material/military_tech: Top Comerciais")
+                    st.markdown("#### Top Comerciais")
                     medalhas = ["🥇", "🥈", "🥉"]
                     for i, row in enumerate(rows_rank[:3]):
                         med = medalhas[i] if i < 3 else "🏅"
@@ -1282,11 +1282,11 @@ def render_comercial(*_):
                             unsafe_allow_html=True
                         )
         else:
-            st.info(":material/assignment: Sem dados de comerciais para ranking.")
+            st.info("Sem dados de comerciais para ranking.")
 
         # Ranking angariações de novos clientes
         st.markdown("---")
-        st.markdown("#### :material/star: Ranking de Angariações")
+        st.markdown("#### Ranking de Angariações")
 
         if not clientes_db.empty and 'Comercial_Resp' in clientes_db.columns:
             grp_ang = clientes_db.groupby('Comercial_Resp').size()\
@@ -1327,13 +1327,13 @@ def render_comercial(*_):
                     unsafe_allow_html=True
                 )
         else:
-            st.info(":material/assignment: Sem angariações registadas.")
+            st.info("Sem angariações registadas.")
 
     # ════════════════════════════════════════════════════════════════
     # TAB — RELATÓRIO
     # ════════════════════════════════════════════════════════════════
     with t_relatorio:
-        st.markdown("### :material/upload: Relatório Comercial")
+        st.markdown("### Relatório Comercial")
         st.info(
             "Gera relatório completo do pipeline, visitas "
             "e ranking para apresentar à direção."
@@ -1341,7 +1341,7 @@ def render_comercial(*_):
 
         col_re1, col_re2 = st.columns(2)
         with col_re1:
-            st.markdown("#### :material/bar_chart: Resumo")
+            st.markdown("#### Resumo")
 
             # Valor ponderado pelo pipeline
             val_ponderado = 0.0
@@ -1372,7 +1372,7 @@ def render_comercial(*_):
                 )
 
         with col_re2:
-            st.markdown("#### :material/download: Exportar")
+            st.markdown("#### Exportar")
 
             col_re_b1, col_re_b2 = st.columns(2)
             with col_re_b1:
@@ -1392,7 +1392,7 @@ def render_comercial(*_):
                         f"relatorio_comercial_"
                         f"{hoje.strftime('%Y%m%d')}.pdf"
                     )
-                    st.success(":material/check_circle: PDF gerado!")
+                    st.success("PDF gerado!")
                     st.rerun()
 
             with col_re_b2:

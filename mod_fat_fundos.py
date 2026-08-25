@@ -982,7 +982,7 @@ def render_fat_fundos(*_):
     # TAB — MATCHER DE ELEGIBILIDADE
     # ════════════════════════════════════════════════════════════════
     with t_match:
-        st.markdown("### :material/track_changes: Matcher de Elegibilidade")
+        st.markdown("### Matcher de Elegibilidade")
         st.info(
             "Preenche o perfil da empresa e o sistema "
             "identifica automaticamente os fundos mais adequados."
@@ -991,7 +991,7 @@ def render_fat_fundos(*_):
         col_perf, col_res = st.columns([1, 2])
 
         with col_perf:
-            st.markdown("#### :material/business: Perfil da Empresa")
+            st.markdown("#### Perfil da Empresa")
 
             m_setor = st.selectbox(
                 "Setor de atividade",
@@ -1079,7 +1079,7 @@ def render_fat_fundos(*_):
                 st.rerun()
 
         with col_res:
-            st.markdown("#### :material/bar_chart: Fundos Elegíveis")
+            st.markdown("#### Fundos Elegíveis")
 
             perfil_calc = st.session_state.get(
                 'perfil_match', perfil_atual
@@ -1225,7 +1225,7 @@ def render_fat_fundos(*_):
                                 )
                                 inv("fundos_candidaturas.csv")
                                 st.success(
-                                    f":material/check_circle: Adicionado a candidaturas!"
+                                    f"Adicionado a candidaturas!"
                                 )
                                 st.rerun()
 
@@ -1233,7 +1233,7 @@ def render_fat_fundos(*_):
     # TAB — CALCULADORA DE APOIO
     # ════════════════════════════════════════════════════════════════
     with t_calc:
-        st.markdown("### :material/payments: Calculadora de Apoio")
+        st.markdown("### Calculadora de Apoio")
         st.info(
             "Simula o valor de apoio que podes obter "
             "para um investimento específico."
@@ -1242,7 +1242,7 @@ def render_fat_fundos(*_):
         col_c1, col_c2 = st.columns(2)
 
         with col_c1:
-            st.markdown("#### :material/settings: Parâmetros")
+            st.markdown("#### Parâmetros")
 
             fundo_calc = st.selectbox(
                 "Fundo",
@@ -1276,7 +1276,7 @@ def render_fat_fundos(*_):
             )
 
         with col_c2:
-            st.markdown("#### :material/bar_chart: Resultado")
+            st.markdown("#### Resultado")
 
             apoio_r = _calcular_apoio(
                 invest_calc, pct_calc,
@@ -1351,7 +1351,7 @@ def render_fat_fundos(*_):
 
         # Tabela comparativa todos os fundos
         st.markdown("---")
-        st.markdown("#### :material/bar_chart: Comparativo de Apoio por Fundo")
+        st.markdown("#### Comparativo de Apoio por Fundo")
 
         rows_comp = []
         for f in FUNDOS_DB:
@@ -1389,7 +1389,7 @@ def render_fat_fundos(*_):
     # TAB — FUNDOS DISPONÍVEIS
     # ════════════════════════════════════════════════════════════════
     with t_fundos:
-        st.markdown("### :material/menu_book: Catálogo de Fundos")
+        st.markdown("### Catálogo de Fundos")
 
         # Filtros
         col_ff1, col_ff2, col_ff3 = st.columns(3)
@@ -1511,7 +1511,7 @@ def render_fat_fundos(*_):
                             'fundo_candidatar'
                         ] = fundo_f
                         st.info(
-                            ":material/check_circle: Vai ao tab 📋 Gestão Candidaturas "
+                            "Vai ao tab 📋 Gestão Candidaturas "
                             "para completar."
                         )
 
@@ -1519,12 +1519,12 @@ def render_fat_fundos(*_):
     # TAB — GESTÃO DE CANDIDATURAS
     # ════════════════════════════════════════════════════════════════
     with t_cand:
-        st.markdown("### :material/assignment: Gestão de Candidaturas")
+        st.markdown("### Gestão de Candidaturas")
 
         col_cf, col_cl = st.columns([1, 2])
 
         with col_cf:
-            st.markdown("#### :material/add: Nova Candidatura")
+            st.markdown("#### Nova Candidatura")
             fundo_pre = st.session_state.get('fundo_candidatar')
 
             with st.form("form_candidatura"):
@@ -1583,7 +1583,7 @@ def render_fat_fundos(*_):
                     use_container_width=True, type="primary"
                 ):
                     if cand_invest <= 0:
-                        st.error(":material/close: Valor de investimento obrigatório.")
+                        st.error("Valor de investimento obrigatório.")
                     else:
                         nova_c = pd.DataFrame([{
                             "ID":               str(uuid.uuid4())[:8].upper(),
@@ -1620,13 +1620,13 @@ def render_fat_fundos(*_):
                         )
                         inv("fundos_candidaturas.csv")
                         st.success(
-                            f":material/check_circle: Candidatura criada! "
+                            f"Candidatura criada! "
                             f"Apoio est.: €{apoio_est:,.0f}"
                         )
                         st.rerun()
 
         with col_cl:
-            st.markdown("#### :material/bar_chart: Candidaturas em Curso")
+            st.markdown("#### Candidaturas em Curso")
 
             # Timeline
             fig_tl_c = _grafico_timeline_candidaturas(cand_db)
@@ -1636,7 +1636,7 @@ def render_fat_fundos(*_):
                 )
 
             if cand_db.empty:
-                st.info(":material/assignment: Sem candidaturas registadas.")
+                st.info("Sem candidaturas registadas.")
             else:
                 est_cores = {
                     'Identificado':  THEME['text_secondary'],
@@ -1800,7 +1800,7 @@ def render_fat_fundos(*_):
     # TAB — IA CONSULTORA
     # ════════════════════════════════════════════════════════════════
     with t_ia:
-        st.markdown("### :material/smart_toy: IA Consultora de Fundos Europeus")
+        st.markdown("### IA Consultora de Fundos Europeus")
         st.info(
             "A IA analisa o perfil da empresa e "
             "recomenda os melhores fundos com um plano "
@@ -1810,7 +1810,7 @@ def render_fat_fundos(*_):
         col_ia1, col_ia2 = st.columns(2)
 
         with col_ia1:
-            st.markdown("#### :material/search: Pesquisa de Avisos Abertos")
+            st.markdown("#### Pesquisa de Avisos Abertos")
             st.markdown(
                 f"<small style='color:{THEME['text_secondary']};'>"
                 f"A IA pesquisa e sugere fundos relevantes "
@@ -1871,7 +1871,7 @@ def render_fat_fundos(*_):
                 )
 
         with col_ia2:
-            st.markdown("#### :material/assignment: Plano de Candidatura IA")
+            st.markdown("#### Plano de Candidatura IA")
             st.markdown(
                 f"<small style='color:{THEME['text_secondary']};'>"
                 f"Seleciona um fundo e a IA gera um plano "
@@ -1933,7 +1933,7 @@ def render_fat_fundos(*_):
 
         # Pergunta livre
         st.markdown("---")
-        st.markdown("#### :material/chat: Pergunta Livre sobre Fundos")
+        st.markdown("#### Pergunta Livre sobre Fundos")
 
         pergunta_fundos = st.text_input(
             "Pergunta",
@@ -1983,13 +1983,13 @@ def render_fat_fundos(*_):
                                 unsafe_allow_html=True
                             )
                         except Exception as e:
-                            st.error(f":material/close: {e}")
+                            st.error(f"{e}")
 
     # ════════════════════════════════════════════════════════════════
     # TAB — CALENDÁRIO DE FUNDOS
     # ════════════════════════════════════════════════════════════════
     with t_calendario:
-        st.markdown("### :material/calendar_month: Calendário de Fundos & Prazos")
+        st.markdown("### Calendário de Fundos & Prazos")
 
         # Gráfico prazos
         fig_cal = _grafico_calendario_fundos(cand_db)
@@ -2068,16 +2068,16 @@ def render_fat_fundos(*_):
                         unsafe_allow_html=True
                     )
             else:
-                st.success(":material/check_circle: Sem prazos urgentes nos próximos 60 dias.")
+                st.success("Sem prazos urgentes nos próximos 60 dias.")
         else:
             st.info(
-                ":material/assignment: Adiciona prazos de candidatura no tab "
+                "Adiciona prazos de candidatura no tab "
                 "📋 Gestão Candidaturas."
             )
 
         # Calendário fiscal de obrigações de reporte
         st.markdown("---")
-        st.markdown("#### :material/assignment: Obrigações de Reporte para Fundos Ativos")
+        st.markdown("#### Obrigações de Reporte para Fundos Ativos")
         st.info(
             "Projetos aprovados têm obrigações de reporte "
             "trimestrais/anuais. Regista aqui os prazos."
@@ -2091,7 +2091,7 @@ def render_fat_fundos(*_):
 
         if candidaturas_ativas.empty:
             st.info(
-                ":material/assignment: Sem projetos em execução. "
+                "Sem projetos em execução. "
                 "Quando um projeto for aprovado e iniciado, "
                 "aparece aqui."
             )

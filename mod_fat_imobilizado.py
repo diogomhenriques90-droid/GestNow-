@@ -649,12 +649,12 @@ def render_fat_imobilizado(*_):
     # TAB — IMOBILIZADO & AMORTIZAÇÕES
     # ════════════════════════════════════════════════════════════════
     with t_imob:
-        st.markdown("### :material/factory: Imobilizado & Amortizações")
+        st.markdown("### Imobilizado & Amortizações")
 
         col_form_i, col_lista_i = st.columns([1, 2])
 
         with col_form_i:
-            st.markdown("#### :material/add: Novo Ativo")
+            st.markdown("#### Novo Ativo")
             with st.form("form_imob"):
                 i_desc   = st.text_input(
                     "Descrição *", key="imob_desc",
@@ -739,7 +739,7 @@ def render_fat_imobilizado(*_):
                     use_container_width=True, type="primary"
                 ):
                     if not i_desc.strip() or i_valor <= 0:
-                        st.error(":material/close: Descrição e valor obrigatórios.")
+                        st.error("Descrição e valor obrigatórios.")
                     else:
                         amort_f = _calcular_amortizacao(
                             i_valor, i_taxa, i_data, i_metodo
@@ -777,14 +777,14 @@ def render_fat_imobilizado(*_):
                         )
                         inv("imobilizado_db.csv")
                         st.success(
-                            f":material/check_circle: {i_desc} registado! "
+                            f"{i_desc} registado! "
                             f"Amort. anual: "
                             f"€{amort_f['amort_anual']:,.2f}"
                         )
                         st.rerun()
 
         with col_lista_i:
-            st.markdown("#### :material/bar_chart: Inventário de Imobilizado")
+            st.markdown("#### Inventário de Imobilizado")
 
             # Gráficos
             col_dg1, col_dg2 = st.columns(2)
@@ -802,7 +802,7 @@ def render_fat_imobilizado(*_):
                     )
 
             if imob_db.empty:
-                st.info(":material/assignment: Sem ativos registados.")
+                st.info("Sem ativos registados.")
             else:
                 # Filtro estado
                 estados_f = ["Todos"] + \
@@ -917,7 +917,7 @@ def render_fat_imobilizado(*_):
 
         # Quadro anual + export PDF
         st.markdown("---")
-        st.markdown("#### :material/assignment: Quadro de Amortizações Anual")
+        st.markdown("#### Quadro de Amortizações Anual")
 
         ano_qa = st.number_input(
             "Ano",
@@ -993,12 +993,12 @@ def render_fat_imobilizado(*_):
     # TAB — SEGUROS
     # ════════════════════════════════════════════════════════════════
     with t_seg:
-        st.markdown("### :material/shield: Gestão de Seguros")
+        st.markdown("### Gestão de Seguros")
 
         col_sf, col_sl = st.columns([1, 2])
 
         with col_sf:
-            st.markdown("#### :material/add: Novo Seguro")
+            st.markdown("#### Novo Seguro")
             with st.form("form_seg_imob"):
                 s_tipo  = st.selectbox(
                     "Tipo *",
@@ -1056,7 +1056,7 @@ def render_fat_imobilizado(*_):
                     use_container_width=True, type="primary"
                 ):
                     if not s_ent.strip():
-                        st.error(":material/close: Seguradora obrigatória.")
+                        st.error("Seguradora obrigatória.")
                     else:
                         novo_s = pd.DataFrame([{
                             "ID":          str(uuid.uuid4())[:8].upper(),
@@ -1075,11 +1075,11 @@ def render_fat_imobilizado(*_):
                         ) if not seguros_db.empty else novo_s
                         save_db(upd_s, "seguros_db.csv")
                         inv("seguros_db.csv")
-                        st.success(":material/check_circle: Seguro registado!")
+                        st.success("Seguro registado!")
                         st.rerun()
 
         with col_sl:
-            st.markdown("#### :material/assignment: Seguros Ativos")
+            st.markdown("#### Seguros Ativos")
 
             # Timeline
             fig_seg_tl = _grafico_seguros_timeline(seguros_db)
@@ -1089,7 +1089,7 @@ def render_fat_imobilizado(*_):
                 )
 
             if seguros_db.empty:
-                st.info(":material/assignment: Sem seguros registados.")
+                st.info("Sem seguros registados.")
             else:
                 total_premios = _num(seguros_db, 'Valor_Anual')
                 st.metric(
@@ -1156,7 +1156,7 @@ def render_fat_imobilizado(*_):
     # TAB — CAUÇÕES BANCÁRIAS
     # ════════════════════════════════════════════════════════════════
     with t_caucoes:
-        st.markdown("### :material/lock: Cauções Bancárias")
+        st.markdown("### Cauções Bancárias")
         st.info(
             "As cauções são garantias financeiras exigidas "
             "em contratos de obra (normalmente 5-10% do valor). "
@@ -1167,7 +1167,7 @@ def render_fat_imobilizado(*_):
         col_cf1, col_cf2 = st.columns([1, 2])
 
         with col_cf1:
-            st.markdown("#### :material/add: Nova Caução")
+            st.markdown("#### Nova Caução")
             with st.form("form_caucao"):
                 ca_obra  = st.text_input(
                     "Obra *", key="ca_obra"
@@ -1213,7 +1213,7 @@ def render_fat_imobilizado(*_):
                     use_container_width=True, type="primary"
                 ):
                     if not ca_obra.strip() or ca_val <= 0:
-                        st.error(":material/close: Obra e valor obrigatórios.")
+                        st.error("Obra e valor obrigatórios.")
                     else:
                         nova_ca = pd.DataFrame([{
                             "ID":               str(uuid.uuid4())[:8].upper(),
@@ -1232,13 +1232,13 @@ def render_fat_imobilizado(*_):
                         save_db(upd_ca, "caucoes_db.csv")
                         inv("caucoes_db.csv")
                         st.success(
-                            f":material/check_circle: Caução €{ca_val:,.2f} "
+                            f"Caução €{ca_val:,.2f} "
                             f"registada para {ca_obra}!"
                         )
                         st.rerun()
 
         with col_cf2:
-            st.markdown("#### :material/bar_chart: Cauções Ativas")
+            st.markdown("#### Cauções Ativas")
 
             # Gráfico
             fig_cau = _grafico_caucoes_timeline(caucoes_db)
@@ -1248,7 +1248,7 @@ def render_fat_imobilizado(*_):
                 )
 
             if caucoes_db.empty:
-                st.info(":material/assignment: Sem cauções registadas.")
+                st.info("Sem cauções registadas.")
             else:
                 # KPIs
                 cau_ativas = caucoes_db[
@@ -1344,7 +1344,7 @@ def render_fat_imobilizado(*_):
                                 )
                                 inv("caucoes_db.csv")
                                 st.success(
-                                    f":material/check_circle: Caução €{val_c:,.2f} "
+                                    f"Caução €{val_c:,.2f} "
                                     f"libertada!"
                                 )
                                 st.rerun()
@@ -1353,7 +1353,7 @@ def render_fat_imobilizado(*_):
     # TAB — ALVARÁS & LICENÇAS
     # ════════════════════════════════════════════════════════════════
     with t_alvaras:
-        st.markdown("### :material/assignment: Alvarás & Licenças")
+        st.markdown("### Alvarás & Licenças")
         st.info(
             "Controlo de todas as licenças e alvarás obrigatórios. "
             "A empresa fica sem poder operar se um alvará expirar. "
@@ -1363,7 +1363,7 @@ def render_fat_imobilizado(*_):
         col_af, col_al = st.columns([1, 2])
 
         with col_af:
-            st.markdown("#### :material/add: Novo Alvará / Licença")
+            st.markdown("#### Novo Alvará / Licença")
             with st.form("form_alvara"):
                 al_tipo = st.selectbox(
                     "Tipo *",
@@ -1418,7 +1418,7 @@ def render_fat_imobilizado(*_):
                     use_container_width=True, type="primary"
                 ):
                     if not al_num.strip():
-                        st.error(":material/close: Número obrigatório.")
+                        st.error("Número obrigatório.")
                     else:
                         novo_al = pd.DataFrame([{
                             "ID":             str(uuid.uuid4())[:8].upper(),
@@ -1447,14 +1447,14 @@ def render_fat_imobilizado(*_):
                             ip=""
                         )
                         inv("alvaras_db.csv")
-                        st.success(":material/check_circle: Alvará registado!")
+                        st.success("Alvará registado!")
                         st.rerun()
 
         with col_al:
-            st.markdown("#### :material/bar_chart: Alvarás & Licenças")
+            st.markdown("#### Alvarás & Licenças")
 
             if alvaras_db.empty:
-                st.info(":material/assignment: Sem alvarás registados.")
+                st.info("Sem alvarás registados.")
             else:
                 # KPIs
                 tot_al   = len(alvaras_db)

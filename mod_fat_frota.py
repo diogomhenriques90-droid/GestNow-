@@ -520,12 +520,12 @@ def render_fat_frota(*_):
     # TAB — CONTRATOS RENTING
     # ════════════════════════════════════════════════════════════════
     with t_rent:
-        st.markdown("### :material/account_balance: Contratos de Renting")
+        st.markdown("### Contratos de Renting")
 
         col_form_r, col_lista_r = st.columns([1, 2])
 
         with col_form_r:
-            st.markdown("#### :material/add: Novo Contrato")
+            st.markdown("#### Novo Contrato")
             with st.form("form_renting"):
                 r_mat   = st.text_input(
                     "Matrícula *", key="rent_mat",
@@ -593,7 +593,7 @@ def render_fat_frota(*_):
                     use_container_width=True, type="primary"
                 ):
                     if not r_mat.strip() or r_renda <= 0:
-                        st.error(":material/close: Matrícula e renda obrigatórios.")
+                        st.error("Matrícula e renda obrigatórios.")
                     else:
                         meses_cont = max(
                             1,
@@ -633,12 +633,12 @@ def render_fat_frota(*_):
                         )
                         inv("renting_contratos.csv")
                         st.success(
-                            f":material/check_circle: Contrato {r_mat.upper()} guardado!"
+                            f"Contrato {r_mat.upper()} guardado!"
                         )
                         st.rerun()
 
         with col_lista_r:
-            st.markdown("#### :material/assignment: Contratos Ativos")
+            st.markdown("#### Contratos Ativos")
 
             # Timeline
             fig_tl = _grafico_timeline_renting(renting_db)
@@ -648,7 +648,7 @@ def render_fat_frota(*_):
                 )
 
             if renting_db.empty:
-                st.info(":material/assignment: Sem contratos de renting.")
+                st.info("Sem contratos de renting.")
             else:
                 for _, row in renting_db.iterrows():
                     rent_id  = row.get('ID','')
@@ -766,7 +766,7 @@ def render_fat_frota(*_):
     # TAB — COMBUSTÍVEL & KM
     # ════════════════════════════════════════════════════════════════
     with t_comb:
-        st.markdown("### :material/local_gas_station: Combustível & Quilómetros")
+        st.markdown("### Combustível & Quilómetros")
 
         # Gráficos topo
         col_gc1, col_gc2 = st.columns(2)
@@ -782,7 +782,7 @@ def render_fat_frota(*_):
                     fig_km, use_container_width=True
                 )
             else:
-                st.info(":material/assignment: Regista abastecimentos para ver análise de KM.")
+                st.info("Regista abastecimentos para ver análise de KM.")
 
         st.markdown("---")
 
@@ -790,7 +790,7 @@ def render_fat_frota(*_):
         col_reg_c, col_hist_c = st.columns([1, 2])
 
         with col_reg_c:
-            st.markdown("#### :material/add: Registo de Abastecimento")
+            st.markdown("#### Registo de Abastecimento")
 
             # Lista de viaturas (renting + frota)
             mats_rent = renting_db['Matricula'].tolist() \
@@ -851,7 +851,7 @@ def render_fat_frota(*_):
                     use_container_width=True, type="primary"
                 ):
                     if cb_lit <= 0 or cb_val <= 0:
-                        st.error(":material/close: Litros e valor obrigatórios.")
+                        st.error("Litros e valor obrigatórios.")
                     else:
                         rec_b64 = ""
                         if cb_recibo:
@@ -875,16 +875,16 @@ def render_fat_frota(*_):
                         save_db(upd_cb, "frota_combustivel.csv")
                         inv("frota_combustivel.csv")
                         st.success(
-                            f":material/check_circle: {cb_lit}L em {cb_mat} — "
+                            f"{cb_lit}L em {cb_mat} — "
                             f"€{cb_val:.2f}"
                         )
                         st.rerun()
 
         with col_hist_c:
-            st.markdown("#### :material/bar_chart: Análise por Viatura")
+            st.markdown("#### Análise por Viatura")
 
             if comb_db.empty:
-                st.info(":material/assignment: Sem abastecimentos registados.")
+                st.info("Sem abastecimentos registados.")
             else:
                 # Selector viatura
                 mats_comb = comb_db['Matricula'].unique().tolist() \
@@ -971,7 +971,7 @@ def render_fat_frota(*_):
                                 exc = km_total - km_ano_c
                                 custo_exc = round(exc * preco_exc, 2)
                                 st.error(
-                                    f":material/warning: KM EXCEDIDOS! "
+                                    f"KM EXCEDIDOS! "
                                     f"+{exc:.0f} km × "
                                     f"€{preco_exc}/km = "
                                     f"**€{custo_exc:.2f} extra**"
@@ -981,7 +981,7 @@ def render_fat_frota(*_):
     # TAB — COMPARADOR TCO
     # ════════════════════════════════════════════════════════════════
     with t_tco:
-        st.markdown("### :material/bar_chart: Comparador Renting vs Compra (TCO)")
+        st.markdown("### Comparador Renting vs Compra (TCO)")
         st.info(
             "TCO — Total Cost of Ownership. "
             "Compara o custo total de posse ao longo do contrato, "
@@ -1219,12 +1219,12 @@ def render_fat_frota(*_):
     # TAB — SEGUROS FROTA
     # ════════════════════════════════════════════════════════════════
     with t_seguros:
-        st.markdown("### :material/shield: Seguros de Frota")
+        st.markdown("### Seguros de Frota")
 
         col_sf1, col_sf2 = st.columns([1, 2])
 
         with col_sf1:
-            st.markdown("#### :material/add: Registar Seguro")
+            st.markdown("#### Registar Seguro")
             with st.form("form_seg_frota"):
                 s_tipo = st.selectbox(
                     "Tipo *",
@@ -1278,7 +1278,7 @@ def render_fat_frota(*_):
                     use_container_width=True, type="primary"
                 ):
                     if not s_seg.strip():
-                        st.error(":material/close: Seguradora obrigatória.")
+                        st.error("Seguradora obrigatória.")
                     else:
                         novo_s = pd.DataFrame([{
                             "ID":          str(uuid.uuid4())[:8].upper(),
@@ -1295,13 +1295,13 @@ def render_fat_frota(*_):
                         ) if not seguros_db.empty else novo_s
                         save_db(upd_s, "seguros_db.csv")
                         inv("seguros_db.csv")
-                        st.success(":material/check_circle: Seguro registado!")
+                        st.success("Seguro registado!")
                         st.rerun()
 
         with col_sf2:
-            st.markdown("#### :material/assignment: Seguros Ativos")
+            st.markdown("#### Seguros Ativos")
             if seguros_db.empty:
-                st.info(":material/assignment: Sem seguros registados.")
+                st.info("Sem seguros registados.")
             else:
                 total_premios = pd.to_numeric(
                     seguros_db.get('Valor_Anual',0),
@@ -1353,7 +1353,7 @@ def render_fat_frota(*_):
     # TAB — RELATÓRIO FINANCEIRO FROTA
     # ════════════════════════════════════════════════════════════════
     with t_relatorio:
-        st.markdown("### :material/assignment: Relatório Financeiro da Frota")
+        st.markdown("### Relatório Financeiro da Frota")
 
         col_rel1, col_rel2 = st.columns(2)
         with col_rel1:
@@ -1416,7 +1416,7 @@ def render_fat_frota(*_):
 
         # Detalhe por viatura
         st.markdown("---")
-        st.markdown("#### :material/directions_car: Custo por Viatura")
+        st.markdown("#### Custo por Viatura")
 
         viaturas_all = list(set(
             (renting_db['Matricula'].tolist()

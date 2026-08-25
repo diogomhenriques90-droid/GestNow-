@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, date
 from core import save_db, inv, load_db, THEME
 
 def render_planeamento():
-    st.markdown("### :material/assignment: Planeamento e Engenharia")
+    st.markdown("### Planeamento e Engenharia")
 
     try:
         pacotes_db = load_db("planeamento_pacotes.csv", [
@@ -46,7 +46,7 @@ def render_planeamento():
     # TAB PRODUÇÃO
     # ════════════════════════════════════════════════════════════════
     with tab_producao:
-        st.markdown("### :material/factory: Produção e Progresso")
+        st.markdown("### Produção e Progresso")
 
         if not pacotes_db.empty:
             total_plan  = pd.to_numeric(pacotes_db['Horas_Plan'],  errors='coerce').fillna(0).sum()
@@ -66,7 +66,7 @@ def render_planeamento():
 
         col1, col2 = st.columns([1, 2])
         with col1:
-            st.markdown("#### :material/add: Novo Pacote de Trabalho")
+            st.markdown("#### Novo Pacote de Trabalho")
             with st.form("form_pacote"):
                 obra_p      = st.text_input("Obra *", key="prod_obra")
                 frente_p    = st.text_input("Frente", key="prod_frente")
@@ -95,7 +95,7 @@ def render_planeamento():
                     use_container_width=True, type="primary"
                 ):
                     if not obra_p.strip() or not desc_p.strip():
-                        st.error(":material/close: Obra e Descrição obrigatórios.")
+                        st.error("Obra e Descrição obrigatórios.")
                     else:
                         novo_p = pd.DataFrame([{
                             "ID":          str(uuid.uuid4())[:8].upper(),
@@ -114,13 +114,13 @@ def render_planeamento():
                         ) if not pacotes_db.empty else novo_p
                         save_db(updated_p, "planeamento_pacotes.csv")
                         inv("planeamento_pacotes.csv")
-                        st.success(f":material/check_circle: Pacote criado: {desc_p[:30]}")
+                        st.success(f"Pacote criado: {desc_p[:30]}")
                         st.rerun()
 
         with col2:
-            st.markdown("#### :material/assignment: Pacotes de Trabalho")
+            st.markdown("#### Pacotes de Trabalho")
             if pacotes_db.empty:
-                st.info(":material/assignment: Sem pacotes criados.")
+                st.info("Sem pacotes criados.")
             else:
                 # Filtro por estado
                 estados_f = ["Todos"] + pacotes_db['Status'].unique().tolist()
@@ -184,18 +184,18 @@ def render_planeamento():
                         pacotes_db.loc[pacotes_db['ID'] == pac_id, 'Status']      = novo_st
                         save_db(pacotes_db, "planeamento_pacotes.csv")
                         inv("planeamento_pacotes.csv")
-                        st.success(":material/check_circle: Atualizado!")
+                        st.success("Atualizado!")
                         st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB CRONOGRAMA
     # ════════════════════════════════════════════════════════════════
     with tab_cronograma:
-        st.markdown("### :material/calendar_month: Cronograma e Milestones")
+        st.markdown("### Cronograma e Milestones")
 
         col1, col2 = st.columns([1, 2])
         with col1:
-            st.markdown("#### :material/add: Novo Milestone")
+            st.markdown("#### Novo Milestone")
             with st.form("form_milestone"):
                 obra_m  = st.text_input("Obra *",        key="mile_obra")
                 desc_m  = st.text_input("Descrição *",   key="mile_desc")
@@ -213,7 +213,7 @@ def render_planeamento():
                     use_container_width=True, type="primary"
                 ):
                     if not obra_m.strip() or not desc_m.strip():
-                        st.error(":material/close: Obra e Descrição obrigatórios.")
+                        st.error("Obra e Descrição obrigatórios.")
                     else:
                         novo_m = pd.DataFrame([{
                             "ID":          str(uuid.uuid4())[:8].upper(),
@@ -228,13 +228,13 @@ def render_planeamento():
                         ) if not milestones_db.empty else novo_m
                         save_db(updated_m, "planeamento_milestones.csv")
                         inv("planeamento_milestones.csv")
-                        st.success(f":material/check_circle: Milestone criado!")
+                        st.success(f"Milestone criado!")
                         st.rerun()
 
         with col2:
-            st.markdown("#### :material/assignment: Milestones")
+            st.markdown("#### Milestones")
             if milestones_db.empty:
-                st.info(":material/assignment: Sem milestones.")
+                st.info("Sem milestones.")
             else:
                 for _, ms in milestones_db.sort_values(
                     'Data_Alvo', ascending=True
@@ -283,7 +283,7 @@ def render_planeamento():
     # TAB RECURSOS
     # ════════════════════════════════════════════════════════════════
     with tab_recursos:
-        st.markdown("### :material/engineering: Planeamento de Recursos")
+        st.markdown("### Planeamento de Recursos")
 
         if not pacotes_db.empty:
             obras_pac = pacotes_db['Obra'].unique().tolist()
@@ -310,17 +310,17 @@ def render_planeamento():
                 use_container_width=True, hide_index=True
             )
         else:
-            st.info(":material/assignment: Sem pacotes de trabalho criados.")
+            st.info("Sem pacotes de trabalho criados.")
 
     # ════════════════════════════════════════════════════════════════
     # TAB DESENHOS
     # ════════════════════════════════════════════════════════════════
     with tab_desenhos:
-        st.markdown("### :material/square_foot: Gestão de Desenhos Técnicos")
+        st.markdown("### Gestão de Desenhos Técnicos")
 
         col1, col2 = st.columns([1, 2])
         with col1:
-            st.markdown("#### :material/add: Upload de Desenho")
+            st.markdown("#### Upload de Desenho")
             with st.form("form_desenho"):
                 obra_d    = st.text_input("Obra *", key="des_obra")
                 tipo_d    = st.selectbox(
@@ -340,9 +340,9 @@ def render_planeamento():
                     "💾 Upload", use_container_width=True, type="primary"
                 ):
                     if not obra_d.strip():
-                        st.error(":material/close: Obra obrigatória.")
+                        st.error("Obra obrigatória.")
                     elif not ficheiro_d:
-                        st.error(":material/close: Seleciona um ficheiro.")
+                        st.error("Seleciona um ficheiro.")
                     else:
                         import base64 as _b64
                         f_b64 = _b64.b64encode(
@@ -363,14 +363,14 @@ def render_planeamento():
                         save_db(updated_d, "planeamento_desenhos.csv")
                         inv("planeamento_desenhos.csv")
                         st.success(
-                            f":material/check_circle: Desenho carregado: {ficheiro_d.name}"
+                            f"Desenho carregado: {ficheiro_d.name}"
                         )
                         st.rerun()
 
         with col2:
-            st.markdown("#### :material/assignment: Biblioteca de Desenhos")
+            st.markdown("#### Biblioteca de Desenhos")
             if desenhos_db.empty:
-                st.info(":material/assignment: Sem desenhos carregados.")
+                st.info("Sem desenhos carregados.")
             else:
                 cols_d = [c for c in [
                     'Obra','Tipo','Revisao','Data_Upload','Upload_Por'

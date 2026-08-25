@@ -5,7 +5,7 @@ from datetime import datetime, date
 from core import save_db, inv, load_db, THEME
 
 def render_frota():
-    st.markdown("### :material/directions_car: Gestão de Frota")
+    st.markdown("### Gestão de Frota")
 
     try:
         frota_db = load_db("frota_viaturas.csv", [
@@ -72,7 +72,7 @@ def render_frota():
         col1, col2 = st.columns([1, 2])
 
         with col1:
-            st.markdown("#### :material/add: Nova Viatura")
+            st.markdown("#### Nova Viatura")
             with st.form("form_viatura"):
                 matricula = st.text_input("Matrícula *", key="viat_mat",
                                            placeholder="AA-00-AA")
@@ -103,10 +103,10 @@ def render_frota():
                     use_container_width=True, type="primary"
                 ):
                     if not matricula.strip():
-                        st.error(":material/close: Matrícula obrigatória.")
+                        st.error("Matrícula obrigatória.")
                     elif not frota_db.empty and \
                          matricula.strip() in frota_db['Matricula'].values:
-                        st.error(":material/close: Matrícula já existe.")
+                        st.error("Matrícula já existe.")
                     else:
                         nova_v = pd.DataFrame([{
                             "ID":           str(uuid.uuid4())[:8].upper(),
@@ -125,14 +125,14 @@ def render_frota():
                         save_db(updated_v, "frota_viaturas.csv")
                         inv("frota_viaturas.csv")
                         st.success(
-                            f":material/check_circle: Viatura {matricula.upper()} registada!"
+                            f"Viatura {matricula.upper()} registada!"
                         )
                         st.rerun()
 
         with col2:
-            st.markdown("#### :material/directions_car: Frota")
+            st.markdown("#### Frota")
             if frota_db.empty:
-                st.info(":material/assignment: Sem viaturas registadas.")
+                st.info("Sem viaturas registadas.")
             else:
                 for _, v in frota_db.iterrows():
                     vid    = v.get('ID','')
@@ -183,7 +183,7 @@ def render_frota():
         col1, col2 = st.columns([1, 2])
 
         with col1:
-            st.markdown("#### :material/add: Registo de Abastecimento")
+            st.markdown("#### Registo de Abastecimento")
             matriculas = frota_db['Matricula'].tolist() \
                          if not frota_db.empty else []
 
@@ -229,7 +229,7 @@ def render_frota():
                     use_container_width=True, type="primary"
                 ):
                     if litros_c <= 0:
-                        st.error(":material/close: Indica os litros.")
+                        st.error("Indica os litros.")
                     else:
                         rec_b64 = ""
                         if recibo_c:
@@ -253,14 +253,14 @@ def render_frota():
                         save_db(updated_c, "frota_combustivel.csv")
                         inv("frota_combustivel.csv")
                         st.success(
-                            f":material/check_circle: {litros_c}L registados em {mat_c}!"
+                            f"{litros_c}L registados em {mat_c}!"
                         )
                         st.rerun()
 
         with col2:
-            st.markdown("#### :material/assignment: Histórico de Abastecimentos")
+            st.markdown("#### Histórico de Abastecimentos")
             if comb_db.empty:
-                st.info(":material/assignment: Sem abastecimentos.")
+                st.info("Sem abastecimentos.")
             else:
                 total_l = pd.to_numeric(
                     comb_db['Litros'], errors='coerce'
@@ -287,7 +287,7 @@ def render_frota():
         col1, col2 = st.columns([1, 2])
 
         with col1:
-            st.markdown("#### :material/add: Registar Avaria")
+            st.markdown("#### Registar Avaria")
             matriculas_av = frota_db['Matricula'].tolist() \
                             if not frota_db.empty else []
 
@@ -318,7 +318,7 @@ def render_frota():
                     use_container_width=True, type="primary"
                 ):
                     if not desc_av.strip():
-                        st.error(":material/close: Descrição obrigatória.")
+                        st.error("Descrição obrigatória.")
                     else:
                         nova_av = pd.DataFrame([{
                             "ID":            str(uuid.uuid4())[:8].upper(),
@@ -335,13 +335,13 @@ def render_frota():
                         ) if not avarfrota_db.empty else nova_av
                         save_db(updated_av, "frota_avarias.csv")
                         inv("frota_avarias.csv")
-                        st.success(f":material/check_circle: Avaria registada em {mat_av}!")
+                        st.success(f"Avaria registada em {mat_av}!")
                         st.rerun()
 
         with col2:
-            st.markdown("#### :material/assignment: Avarias")
+            st.markdown("#### Avarias")
             if avarfrota_db.empty:
-                st.info(":material/assignment: Sem avarias.")
+                st.info("Sem avarias.")
             else:
                 for _, av in avarfrota_db.iterrows():
                     avid    = av.get('ID','')

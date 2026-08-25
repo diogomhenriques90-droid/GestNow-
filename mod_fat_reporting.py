@@ -1037,7 +1037,7 @@ def render_fat_reporting(obras_db, registos_db,
     # TAB — DASHBOARD EXECUTIVO
     # ════════════════════════════════════════════════════════════════
     with t_dash:
-        st.markdown("### :material/bar_chart: Dashboard Executivo do Mês")
+        st.markdown("### Dashboard Executivo do Mês")
 
         # Linha 1
         col_d1, col_d2 = st.columns(2)
@@ -1082,7 +1082,7 @@ def render_fat_reporting(obras_db, registos_db,
 
         # Narrativa IA
         st.markdown("---")
-        st.markdown("#### :material/smart_toy: Narrativa Executiva IA")
+        st.markdown("#### Narrativa Executiva IA")
 
         if st.button(
             "🤖 Gerar Análise Executiva do Mês",
@@ -1118,7 +1118,7 @@ def render_fat_reporting(obras_db, registos_db,
     # TAB — PLANO DE NEGÓCIOS DINÂMICO
     # ════════════════════════════════════════════════════════════════
     with t_pneg:
-        st.markdown("### :material/trending_up: Plano de Negócios Dinâmico")
+        st.markdown("### Plano de Negócios Dinâmico")
 
         # Gráfico projeção
         st.plotly_chart(
@@ -1131,7 +1131,7 @@ def render_fat_reporting(obras_db, registos_db,
         )
 
         # Tabela de cenários
-        st.markdown("#### :material/bar_chart: Cenários de Fecho de Ano")
+        st.markdown("#### Cenários de Fecho de Ano")
         media_mes = kpis['fat_ytd'] / kpis['mes'] \
                     if kpis['mes'] > 0 else 0
         meses_rest = 12 - kpis['mes']
@@ -1238,7 +1238,7 @@ def render_fat_reporting(obras_db, registos_db,
     # TAB — BENCHMARKING
     # ════════════════════════════════════════════════════════════════
     with t_benchm:
-        st.markdown("### :material/track_changes: Benchmarking Setorial")
+        st.markdown("### Benchmarking Setorial")
         st.info(
             "Comparação com médias do setor de instrumentação "
             "industrial e construção especializada em Portugal. "
@@ -1251,7 +1251,7 @@ def render_fat_reporting(obras_db, registos_db,
         )
 
         # Tabela comparativa
-        st.markdown("#### :material/assignment: Tabela de Comparação")
+        st.markdown("#### Tabela de Comparação")
         benchmarks = [
             {
                 "indicador":  "Margem Bruta",
@@ -1341,7 +1341,7 @@ def render_fat_reporting(obras_db, registos_db,
     # TAB — MOTOR DE REGRAS
     # ════════════════════════════════════════════════════════════════
     with t_regras:
-        st.markdown("### :material/settings: Motor de Regras de Negócio")
+        st.markdown("### Motor de Regras de Negócio")
         st.info(
             "Define regras que o sistema verifica automaticamente. "
             "Sem necessidade de programar — "
@@ -1351,7 +1351,7 @@ def render_fat_reporting(obras_db, registos_db,
         col_rf, col_rl = st.columns([1, 2])
 
         with col_rf:
-            st.markdown("#### :material/add: Nova Regra")
+            st.markdown("#### Nova Regra")
             with st.form("form_regra"):
                 r_nome = st.text_input(
                     "Nome da Regra *",
@@ -1391,7 +1391,7 @@ def render_fat_reporting(obras_db, registos_db,
                     use_container_width=True, type="primary"
                 ):
                     if not r_nome.strip() or not r_acao.strip():
-                        st.error(":material/close: Nome e ação obrigatórios.")
+                        st.error("Nome e ação obrigatórios.")
                     else:
                         nova_r = pd.DataFrame([{
                             "ID":        str(uuid.uuid4())[:8].upper(),
@@ -1407,11 +1407,11 @@ def render_fat_reporting(obras_db, registos_db,
                         ) if not regras_db.empty else nova_r
                         save_db(upd_r, "regras_negocio.csv")
                         inv("regras_negocio.csv")
-                        st.success(":material/check_circle: Regra guardada!")
+                        st.success("Regra guardada!")
                         st.rerun()
 
         with col_rl:
-            st.markdown("#### :material/assignment: Regras Ativas")
+            st.markdown("#### Regras Ativas")
 
             # Regras default se não há nenhuma
             regras_default = [
@@ -1478,7 +1478,7 @@ def render_fat_reporting(obras_db, registos_db,
             )
             if n_disparadas > 0:
                 st.error(
-                    f":material/notifications: {n_disparadas} regra(s) disparada(s)!"
+                    f"{n_disparadas} regra(s) disparada(s)!"
                 )
 
             for regra in regras_avaliadas:
@@ -1523,7 +1523,7 @@ def render_fat_reporting(obras_db, registos_db,
     # TAB — PASSAPORTE FINANCEIRO
     # ════════════════════════════════════════════════════════════════
     with t_passaporte:
-        st.markdown("### :material/folder_open: Passaporte Financeiro da Empresa")
+        st.markdown("### Passaporte Financeiro da Empresa")
         st.info(
             "Documento sempre atualizado com os indicadores "
             "chave da empresa. Pronto para apresentar a bancos, "
@@ -1544,7 +1544,7 @@ def render_fat_reporting(obras_db, registos_db,
         col_p1, col_p2 = st.columns(2)
 
         with col_p1:
-            st.markdown("#### :material/business: Dados da Empresa")  
+            st.markdown("#### Dados da Empresa")  
 
             empresa_rows = ''.join([
                 f'<tr><td style=color:{THEME["text_secondary"]};font-size:0.8rem;padding:4px 0;>' + k +
@@ -1568,7 +1568,7 @@ def render_fat_reporting(obras_db, registos_db,
                 unsafe_allow_html=True
             )
 
-            st.markdown("#### :material/bar_chart: Performance Financeira")
+            st.markdown("#### Performance Financeira")
             fat_anual_est = kpis['fat_ytd']/kpis['mes']*12 \
                             if kpis['mes'] > 0 else 0
 
@@ -1595,7 +1595,7 @@ def render_fat_reporting(obras_db, registos_db,
             )
 
         with col_p2:
-            st.markdown("#### :material/trending_up: Indicadores de Solidez")
+            st.markdown("#### Indicadores de Solidez")
             indicadores_pass = [
                 ("Current Ratio (est.)",
                  f"{min(kpis['autonomia']*0.5,3):.2f}",
@@ -1641,7 +1641,7 @@ def render_fat_reporting(obras_db, registos_db,
                     unsafe_allow_html=True
                 )
 
-            st.markdown("#### :material/construction: Obras de Referência")
+            st.markdown("#### Obras de Referência")
             if not obras_db.empty:
                 obras_ref = obras_db[
                     obras_db['Ativa']=='Ativa'
@@ -1691,11 +1691,11 @@ def render_fat_reporting(obras_db, registos_db,
     # TAB — EXPORTAR RELATÓRIO
     # ════════════════════════════════════════════════════════════════
     with t_export:
-        st.markdown("### :material/upload: Exportar Relatório Executivo")
+        st.markdown("### Exportar Relatório Executivo")
 
         col_ex1, col_ex2 = st.columns(2)
         with col_ex1:
-            st.markdown("#### :material/settings: Configuração")
+            st.markdown("#### Configuração")
 
             dest_report = st.selectbox(
                 "Destinatário",
@@ -1727,7 +1727,7 @@ def render_fat_reporting(obras_db, registos_db,
                     acoes_report.append(acao.strip())
 
         with col_ex2:
-            st.markdown("#### :material/assignment: Conteúdo")
+            st.markdown("#### Conteúdo")
             st.markdown(
                 f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                 f"border-radius:10px;padding:14px;'>"
@@ -1785,7 +1785,7 @@ def render_fat_reporting(obras_db, registos_db,
                     f"Relatorio_Executivo_"
                     f"{meses_pt[kpis['mes']-1]}_{kpis['ano']}.pdf"
                 )
-                st.success(":material/check_circle: PDF gerado!")
+                st.success("PDF gerado!")
                 st.rerun()
 
         with col_btn2:
@@ -1834,7 +1834,7 @@ def render_fat_reporting(obras_db, registos_db,
 
         # Preview do relatório
         st.markdown("---")
-        st.markdown("#### :material/visibility: Preview do Relatório")
+        st.markdown("#### Preview do Relatório")
 
         col_prev1, col_prev2, col_prev3 = st.columns(3)
         with col_prev1:

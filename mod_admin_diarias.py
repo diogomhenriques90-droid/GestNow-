@@ -253,7 +253,7 @@ def _calcular_diarias_semana(
     # ✅ Debug info para confirmar dados encontrados
     if grupo.empty:
         st.warning(
-            f":material/warning: Sem registos com Status 1 ou 2 entre "
+            f"Sem registos com Status 1 ou 2 entre "
             f"{semana_inicio.strftime('%d/%m/%Y')} e "
             f"{semana_fim.strftime('%d/%m/%Y')}. "
             f"Certifica-te que as horas estão validadas (🟢 verde)."
@@ -469,7 +469,7 @@ def render_admin_diarias(*args):
     admin_nome = st.session_state.get('user', 'Admin')
     hoje       = date.today()
 
-    st.markdown("# :material/payments: Diárias & Ajudas de Custo")
+    st.markdown("# Diárias & Ajudas de Custo")
 
     tab_semana, tab_config, tab_faltas, tab_historico, tab_empresa = st.tabs([
         "📅 Semana Atual",
@@ -520,7 +520,7 @@ def render_admin_diarias(*args):
             )
 
             if df_calc.empty:
-                st.warning(":material/warning: Sem registos validados neste período.")
+                st.warning("Sem registos validados neste período.")
             else:
                 total_geral = df_calc['Valor_Total'].sum()
 
@@ -533,7 +533,7 @@ def render_admin_diarias(*args):
 
                 st.markdown("<div style='height:10px;'></div>",
                             unsafe_allow_html=True)
-                st.markdown("### :material/group: Detalhe por Colaborador")
+                st.markdown("### Detalhe por Colaborador")
 
                 for _, row in df_calc.iterrows():
                     detalhe = {}
@@ -601,7 +601,7 @@ def render_admin_diarias(*args):
                     cfg_emp  = _get_config_empresa()
                     iban_emp = cfg_emp.get('iban', '').strip()
                     if not iban_emp:
-                        st.warning(":material/warning: Configura o IBAN da empresa no tab 🏢")
+                        st.warning("Configura o IBAN da empresa no tab 🏢")
                     else:
                         df_com_iban = df_calc[
                             df_calc['IBAN'].str.strip().str.len() >= 15
@@ -626,7 +626,7 @@ def render_admin_diarias(*args):
                             )
                             if sem_iban > 0:
                                 st.warning(
-                                    f":material/warning: {sem_iban} sem IBAN — não incluídos."
+                                    f"{sem_iban} sem IBAN — não incluídos."
                                 )
                         except Exception as ex:
                             st.error(f"Erro ao gerar XML: {ex}")
@@ -642,7 +642,7 @@ def render_admin_diarias(*args):
                         semana_ja_paga = not jp.empty
 
                     if semana_ja_paga:
-                        st.success(":material/check_circle: Semana marcada como paga.")
+                        st.success("Semana marcada como paga.")
                     else:
                         if st.button(
                             "✅ Marcar como Paga",
@@ -705,7 +705,7 @@ def render_admin_diarias(*args):
                             from core import _cached_load_all
                             _cached_load_all.clear()
                             st.success(
-                                f":material/check_circle: {len(df_calc)} colaboradores marcados "
+                                f"{len(df_calc)} colaboradores marcados "
                                 f"como pagos — € {total_geral:.2f}"
                             )
                             st.session_state['diarias_calc'] = False
@@ -715,7 +715,7 @@ def render_admin_diarias(*args):
     # TAB 2 — CONFIGURAR VALORES  ← SUBSTITUIR ESTE BLOCO
     # ════════════════════════════════════════════════════════════════
     with tab_config:
-        st.markdown("### :material/settings: Valor da Diária por Obra")
+        st.markdown("### Valor da Diária por Obra")
         st.info(
             f"Valor padrão: **€ {_VALOR_DIARIA_PADRAO:.2f}/dia** "
             f"(aplicado a obras sem configuração específica). "
@@ -727,7 +727,7 @@ def render_admin_diarias(*args):
                       if not obras_db.empty else []
 
         if not obras_lista:
-            st.warning(":material/warning: Sem obras registadas.")
+            st.warning("Sem obras registadas.")
         else:
             # ── Construir dataframe editável ──────────────────────
             rows_cfg = []
@@ -806,7 +806,7 @@ def render_admin_diarias(*args):
                     inv("diarias_config.csv")
                     from core import _cached_load_all
                     _cached_load_all.clear()
-                    st.success(":material/check_circle: Configuração guardada!")
+                    st.success("Configuração guardada!")
                     st.rerun()
 
             with col_sv2:
@@ -830,7 +830,7 @@ def render_admin_diarias(*args):
     # TAB 3 — FALTAS INJUSTIFICADAS
     # ════════════════════════════════════════════════════════════════
     with tab_faltas:
-        st.markdown("### :material/close: Registar Falta Injustificada")
+        st.markdown("### Registar Falta Injustificada")
         st.info(
             "Dias com falta injustificada **não contam** para diária, "
             "mesmo que haja registo de ponto."
@@ -890,14 +890,14 @@ def render_admin_diarias(*args):
                 from core import _cached_load_all
                 _cached_load_all.clear()
                 st.success(
-                    f":material/check_circle: Falta registada: {tec_falta} — "
+                    f"Falta registada: {tec_falta} — "
                     f"{data_falta.strftime('%d/%m/%Y')}"
                 )
                 st.rerun()
 
         if not diarias_faltas.empty:
             st.markdown("---")
-            st.markdown("#### :material/assignment: Faltas Registadas Recentes")
+            st.markdown("#### Faltas Registadas Recentes")
             faltas_show = diarias_faltas.sort_values(
                 'Data', ascending=False
             ).head(20)
@@ -936,7 +936,7 @@ def render_admin_diarias(*args):
     # TAB 4 — HISTÓRICO
     # ════════════════════════════════════════════════════════════════
     with tab_historico:
-        st.markdown("### :material/assignment: Histórico de Pagamentos")
+        st.markdown("### Histórico de Pagamentos")
 
         if diarias_pagamentos.empty:
             st.info("Sem pagamentos registados.")
@@ -1040,7 +1040,7 @@ def render_admin_diarias(*args):
     # TAB 5 — CONFIGURAÇÃO DA EMPRESA
     # ════════════════════════════════════════════════════════════════
     with tab_empresa:
-        st.markdown("### :material/business: Dados da Empresa Ordenante")
+        st.markdown("### Dados da Empresa Ordenante")
         st.info(
             "Estes dados são usados para gerar o ficheiro SEPA XML "
             "para o Montepio Net24 Empresas."
@@ -1109,7 +1109,7 @@ def render_admin_diarias(*args):
 
                 if erros_emp:
                     st.error(
-                        f":material/close: Campos obrigatórios: {', '.join(erros_emp)}"
+                        f"Campos obrigatórios: {', '.join(erros_emp)}"
                     )
                 else:
                     nova_cfg = {
@@ -1120,5 +1120,5 @@ def render_admin_diarias(*args):
                         "morada": emp_morada.strip(),
                     }
                     _save_config_empresa(nova_cfg)
-                    st.success(":material/check_circle: Configuração guardada!")
+                    st.success("Configuração guardada!")
                     st.rerun()

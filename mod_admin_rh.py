@@ -7,7 +7,7 @@ from io import BytesIO
 from core import (
     save_db, inv, load_db, log_audit, criar_notificacao,
     hp, _gcs_read, _gcs_write_binary, _gcs_read_binary,
-    _fill_contrato_template, ICONS, logger,
+    _fill_contrato_template, logger,
     cliente_select, registar_cliente_do_select,
     obra_select, get_cliente_da_obra,
     lista_rh_select, registar_valor_lista_rh, set_funcao_categoria,
@@ -681,7 +681,7 @@ def render_admin_rh(*args):
 
     admin_nome = st.session_state.get('user', 'Admin')
 
-    st.markdown("# :material/group: Recursos Humanos")
+    st.markdown("# Recursos Humanos")
 
     # ── Painel de alertas de validade ─────────────────────────────────
     _today = date.today()
@@ -776,7 +776,7 @@ def render_admin_rh(*args):
 
         col_titulo, col_btn = st.columns([4, 1])
         with col_titulo:
-            st.markdown("### :material/group: Todos os Colaboradores")
+            st.markdown("### Todos os Colaboradores")
         with col_btn:
             if st.button("➕ Novo", key="btn_novo_colab",
                           type="primary", use_container_width=True):
@@ -788,7 +788,7 @@ def render_admin_rh(*args):
         # ── Formulário de criação ─────────────────────────────────
         if st.session_state.get('show_criar_colab', False):
             st.markdown("---")
-            st.markdown("#### :material/add: Criar Novo Colaborador")
+            st.markdown("#### Criar Novo Colaborador")
 
             with st.form("form_criar_colab"):
                 st.markdown("**Dados obrigatórios**")
@@ -860,12 +860,12 @@ def render_admin_rh(*args):
                 if not novo_cliente:         erros.append("Cliente (a Obra escolhida não tem Cliente associado)")
 
                 if erros:
-                    st.error(f":material/close: Campos obrigatórios em falta: {', '.join(erros)}")
+                    st.error(f"Campos obrigatórios em falta: {', '.join(erros)}")
                 else:
                     # Verificar nome duplicado
                     if not users_live.empty and \
                        novo_nome.strip() in users_live['Nome'].values:
-                        st.error(f":material/close: Já existe um colaborador com o nome '{novo_nome.strip()}'")
+                        st.error(f"Já existe um colaborador com o nome '{novo_nome.strip()}'")
                     else:
                         novo_id  = str(uuid.uuid4())[:8].upper()
                         pwd_hash = hp(novo_pwd.strip())
@@ -907,7 +907,7 @@ def render_admin_rh(*args):
                                            f"({novo_tipo} / {novo_cargo})",
                                   ip="")
 
-                        st.success(f":material/check_circle: Colaborador **{novo_nome.strip()}** criado com sucesso!")
+                        st.success(f"Colaborador **{novo_nome.strip()}** criado com sucesso!")
                         st.session_state['show_criar_colab'] = False
                         inv("usuarios.csv")
                         st.rerun()
@@ -1075,10 +1075,10 @@ def render_admin_rh(*args):
                         "Email": _gi_email, "Morada": _gi_morada,
                         "Localidade": _gi_localidade, "Codigo_Postal": _gi_cp,
                     }, extra_usuarios={"Telefone": _gi_tel, "Concelho": _gi_concelho}):
-                        st.success(":material/check_circle: Contactos & Morada guardados.")
+                        st.success("Contactos & Morada guardados.")
                         st.rerun()
                     else:
-                        st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 4. Bancários (fundida) ────────────────────────────────────
         # Banco_Nome e Banco_IBAN são dual-write (usuarios.csv fonte,
@@ -1095,10 +1095,10 @@ def render_admin_rh(*args):
                     if _save_dual(nome_sel, {
                         "Banco_Nome": _gi_banco, "Banco_IBAN": _gi_iban,
                     }):
-                        st.success(":material/check_circle: Dados bancários guardados.")
+                        st.success("Dados bancários guardados.")
                         st.rerun()
                     else:
-                        st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 5. Emergência ───────────────────────────────────────────
         with st.expander("🆘 Emergência"):
@@ -1118,10 +1118,10 @@ def render_admin_rh(*args):
                     if _save_gi({"Nome_Emergencia": _gi_nome_em,
                                   "Contacto_Emergencia": _gi_tel_em,
                                   "Grau_Parentesco": _gi_grau_em}):
-                        st.success(":material/check_circle: Dados de emergência guardados.")
+                        st.success("Dados de emergência guardados.")
                         st.rerun()
                     else:
-                        st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 6. Profissional (fundida) ─────────────────────────────────
         # Tipo/Cargo (Permissões APP), PrecoHora/Salario_Base e
@@ -1169,7 +1169,7 @@ def render_admin_rh(*args):
                               tabela="usuarios.csv",
                               registro_id=nome_sel,
                               detalhes=f"Tipo={novo_tipo}, Cargo={novo_cargo}")
-                    st.success(f":material/check_circle: Permissões APP actualizadas: {novo_tipo} / {novo_cargo}")
+                    st.success(f"Permissões APP actualizadas: {novo_tipo} / {novo_cargo}")
                     st.rerun()
 
             st.markdown("---")
@@ -1243,10 +1243,10 @@ def render_admin_rh(*args):
                     }) and _sync_rh_csv(nome_sel, {
                         "Salario_Base": _gi_salb, "Local_Trabalho": _gi_local_trab,
                     }):
-                        st.success(":material/check_circle: Dados profissionais guardados.")
+                        st.success("Dados profissionais guardados.")
                         st.rerun()
                     else:
-                        st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── Estado do perfil (só leitura) ─────────────────────────
         with st.expander("ℹ️ Estado do Perfil (só leitura)"):
@@ -1272,11 +1272,11 @@ def render_admin_rh(*args):
 
         # ── Download Comprovativo IBAN ────────────────────────────
         st.markdown("---")
-        st.markdown("#### :material/account_balance: Comprovativo IBAN")
+        st.markdown("#### Comprovativo IBAN")
         iban_b64 = row.get('IBAN_Comprovativo_b64', '')
         iban_data = row.get('IBAN_Data_Upload', '')
         if iban_b64:
-            st.success(f":material/check_circle: Comprovativo submetido em {iban_data}")
+            st.success(f"Comprovativo submetido em {iban_data}")
             try:
                 iban_bytes = base64.b64decode(iban_b64)
                 st.download_button(
@@ -1293,7 +1293,7 @@ def render_admin_rh(*args):
 
         # ── Bloquear/Desbloquear campos ───────────────────────────
         st.markdown("---")
-        st.markdown("#### :material/lock: Campos Bloqueados")
+        st.markdown("#### Campos Bloqueados")
         try:
             campos_bl = json.loads(row.get('Campos_Bloqueados', '[]'))
         except:
@@ -1316,7 +1316,7 @@ def render_admin_rh(*args):
                 inv("usuarios.csv")
                 from core import _cached_load_all
                 _cached_load_all.clear()
-                st.success(":material/check_circle: Campos bloqueados atualizados.")
+                st.success("Campos bloqueados atualizados.")
                 st.rerun()
 
         # ── Redefinir Password ─────────────────────────────────────
@@ -1332,11 +1332,11 @@ def render_admin_rh(*args):
             if st.button("🔐 Redefinir Password", key="btn_redef_pwd",
                          type="primary"):
                 if not nova_pwd_admin.strip():
-                    st.error(":material/warning: Introduz uma nova password.")
+                    st.error("Introduz uma nova password.")
                 elif len(nova_pwd_admin.strip()) < 4:
-                    st.error(":material/warning: Mínimo 4 caracteres.")
+                    st.error("Mínimo 4 caracteres.")
                 elif nova_pwd_admin != conf_pwd_admin:
-                    st.error(":material/warning: As passwords não coincidem.")
+                    st.error("As passwords não coincidem.")
                 else:
                     u_pw = _load_users_fresh()
                     mk_pw = u_pw["Nome"] == nome_sel
@@ -1351,12 +1351,12 @@ def render_admin_rh(*args):
                                   tabela="usuarios.csv",
                                   registro_id=nome_sel,
                                   detalhes="Password redefinida pelo Admin")
-                        st.success(f":material/check_circle: Password de {nome_sel} redefinida.")
+                        st.success(f"Password de {nome_sel} redefinida.")
                         st.rerun()
 
         # ── Remover ou Lista Negra ────────────────────────────────
         st.markdown("---")
-        st.markdown("#### :material/block: Remover Colaborador")
+        st.markdown("#### Remover Colaborador")
 
         st.markdown(
             f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
@@ -1383,7 +1383,7 @@ def render_admin_rh(*args):
             if st.button("🗑️ Remover Definitivamente",
                          key="btn_remover_def"):
                 if confirmar_rm.strip() != nome_sel:
-                    st.error(":material/warning: Nome não coincide. Operação cancelada.")
+                    st.error("Nome não coincide. Operação cancelada.")
                 else:
                     u_rm = _load_users_fresh()
                     _row_rm = u_rm[u_rm["Nome"] == nome_sel]
@@ -1420,7 +1420,7 @@ def render_admin_rh(*args):
                               tabela="usuarios.csv",
                               registro_id=nome_sel,
                               detalhes="Removido permanentemente pelo Admin")
-                    st.success(f":material/check_circle: {nome_sel} removido da plataforma.")
+                    st.success(f"{nome_sel} removido da plataforma.")
                     st.session_state.pop("rh_colaborador_sel", None)
                     st.rerun()
 
@@ -1439,7 +1439,7 @@ def render_admin_rh(*args):
             if st.button("⛔ Enviar para Lista Negra",
                          key="btn_lista_negra"):
                 if not obs_ln.strip():
-                    st.error(":material/warning: Indica o motivo.")
+                    st.error("Indica o motivo.")
                 else:
                     # 1. Bloquear utilizador (Tipo → Bloqueado)
                     u_ln = _load_users_fresh()
@@ -1460,7 +1460,7 @@ def render_admin_rh(*args):
                             tabela="usuarios.csv",
                             registro_id=nome_sel,
                             detalhes=f"Lista negra: {obs_ln[:100]}")
-                        st.success(f":material/block: {nome_sel} adicionado à lista negra.")
+                        st.success(f"{nome_sel} adicionado à lista negra.")
                         st.rerun()
 
         # ── Ver Lista Negra ───────────────────────────────────────
@@ -1515,7 +1515,7 @@ def render_admin_rh(*args):
                                 tabela="usuarios.csv",
                                 registro_id=ln_nome,
                                 detalhes="Reactivado da lista negra")
-                            st.success(f":material/check_circle: {ln_nome} reactivado.")
+                            st.success(f"{ln_nome} reactivado.")
                             st.rerun()
 
     # ────────────────────────────────────────────────────────────────
@@ -1523,7 +1523,7 @@ def render_admin_rh(*args):
     # ────────────────────────────────────────────────────────────────
     with tab_gestao:
         st.markdown("---")
-        st.markdown("### :material/assignment: Dados Legais e Fiscais")
+        st.markdown("### Dados Legais e Fiscais")
 
         # Mesmo colaborador selecionado acima (ficha unificada) — sem
         # seletor próprio para Dados Legais.
@@ -1629,10 +1629,10 @@ def render_admin_rh(*args):
                         "N_Dependentes": _n_dep,
                         "N_Dependentes_Deficiencia": _n_dep_def,
                     }):
-                        st.success(":material/check_circle: Identificação guardada.")
+                        st.success("Identificação guardada.")
                         st.rerun()
                     else:
-                        st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 2. Dados Fiscais ──────────────────────────────────
         with st.expander("🏦 Dados Fiscais"):
@@ -1671,10 +1671,10 @@ def render_admin_rh(*args):
                         "Estado_Fiscal": _est_fiscal, "Medida_Fiscal": _med_fiscal,
                         "Enquadramento_SS": _enq_ss,
                     }):
-                        st.success(":material/check_circle: Dados fiscais guardados.")
+                        st.success("Dados fiscais guardados.")
                         st.rerun()
                     else:
-                        st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 3. Dados Contratuais ──────────────────────────────
         with st.expander("📄 Dados Contratuais"):
@@ -1754,10 +1754,10 @@ def render_admin_rh(*args):
                         "Motivo_Entrada": _mot_ent, "Motivo_Saida": _mot_sai,
                         "Data_Saida": _data_sai,
                     }):
-                        st.success(":material/check_circle: Dados contratuais guardados.")
+                        st.success("Dados contratuais guardados.")
                         st.rerun()
                     else:
-                        st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 4. Remuneração e Pagamento ────────────────────────
         # Salário Base fica na secção "💼 Profissional" (lado a lado com
@@ -1824,10 +1824,10 @@ def render_admin_rh(*args):
                         "Regime_Reforma": _reg_reforma,
                         "Pensionista": _pensionista,
                     }):
-                        st.success(":material/check_circle: Remuneração guardada.")
+                        st.success("Remuneração guardada.")
                         st.rerun()
                     else:
-                        st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 5. Profissional / Relatório Único ─────────────────
         with st.expander("📊 Profissional & Relatório Único"):
@@ -1855,17 +1855,17 @@ def render_admin_rh(*args):
             if st.button("💾 Guardar Função/Categoria Operacional",
                          key=f"dl_fc_save_{_slug}", type="primary"):
                 if (_fc_f_novo and not _fc_f) or (_fc_c_novo and not _fc_c):
-                    st.error(":material/warning: Introduz o novo valor antes de guardar.")
+                    st.error("Introduz o novo valor antes de guardar.")
                 else:
                     if _fc_f_novo:
                         _fc_f = registar_valor_lista_rh("funcao", _fc_f)
                     if _fc_c_novo:
                         _fc_c = registar_valor_lista_rh("categoria_operacional", _fc_c)
                     if set_funcao_categoria(_nome_dl, funcao=_fc_f, categoria=_fc_c):
-                        st.success(":material/check_circle: Função/Categoria Operacional guardadas.")
+                        st.success("Função/Categoria Operacional guardadas.")
                         st.rerun()
                     else:
-                        st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
             st.markdown("---")
             with st.form(f"dl_form_prof_{_slug}"):
                 _c1, _c2 = st.columns(2)
@@ -1956,10 +1956,10 @@ def render_admin_rh(*args):
                         "Tipo_Doc_ID": _tipo_doc_id,
                         "Seguradora_AT": _seg_at, "Apolice_AT": _apol_at,
                     }):
-                        st.success(":material/check_circle: Dados profissionais guardados.")
+                        st.success("Dados profissionais guardados.")
                         st.rerun()
                     else:
-                        st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 6. Condução e Documentos ──────────────────────────
         with st.expander("🚗 Condução e Documentos"):
@@ -1987,10 +1987,10 @@ def render_admin_rh(*args):
                         "Carta_Conducao_Categoria": _carta_cat,
                         "Regulamento_Assinado": _reg_assinado, "Regulamento_Data": _reg_data,
                     }):
-                        st.success(":material/check_circle: Dados de condução guardados.")
+                        st.success("Dados de condução guardados.")
                         st.rerun()
                     else:
-                        st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 7. Importador Funções/Categorias (W5) ─────────────
         with st.expander("📥 Importar Funções/Categorias (CSV)"):
@@ -2010,7 +2010,7 @@ def render_admin_rh(*args):
                     _fc_imp = pd.read_csv(_fc_file, dtype=str, sep=";",
                                           encoding="utf-8-sig").fillna("")
                 except Exception as _e:
-                    st.error(f":material/close: Erro ao ler o ficheiro: {_e}")
+                    st.error(f"Erro ao ler o ficheiro: {_e}")
                 if _fc_imp is not None:
                     _fc_imp.columns = [c.strip() for c in _fc_imp.columns]
                     _fc_cols = {}
@@ -2021,7 +2021,7 @@ def render_admin_rh(*args):
                         if _cn in ("funcao", "categoria", "nif"):
                             _fc_cols[_cn] = _c
                     if len(_fc_cols) < 3:
-                        st.error(":material/close: Formato inválido — esperadas as colunas "
+                        st.error("Formato inválido — esperadas as colunas "
                                  "`Funçao;Categoria;NIF`.")
                     else:
                         st.markdown(f"**{len(_fc_imp)}** linha(s) no ficheiro.")
@@ -2076,22 +2076,22 @@ def render_admin_rh(*args):
                                               f"{len(_sem_match)} sem match; "
                                               f"{_n_ignorados} campos ignorados"))
                                 st.success(
-                                    f":material/check_circle: Importação concluída: **{_n_colab}** "
+                                    f"Importação concluída: **{_n_colab}** "
                                     f"colaborador(es) actualizado(s) · "
                                     f"**{len(_sem_match)}** NIF(s) sem match · "
                                     f"**{_n_ignorados}** campo(s) ignorado(s) "
                                     f"por estarem vazios no ficheiro.")
                                 if _sem_match:
-                                    st.warning(":material/warning: NIFs sem match (não criados): "
+                                    st.warning("NIFs sem match (não criados): "
                                                + ", ".join(_sem_match))
                             else:
-                                st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                                st.error("Erro ao guardar — verifica ligação ao GCS")
 
     # ════════════════════════════════════════════════════════════════
     # TAB 3 — IMPORTAR ETICADATA
     # ════════════════════════════════════════════════════════════════
     with tab_eticadata:
-        st.markdown("### :material/download: Importar Lista de Trabalhadores (Eticadata)")
+        st.markdown("### Importar Lista de Trabalhadores (Eticadata)")
         st.info(
             "Exporta do Eticadata o ficheiro **`Lista_Trabalhadores.csv`** "
             "(separador `;`, codificação UTF-8 com BOM) e faz upload aqui. "
@@ -2116,10 +2116,10 @@ def render_admin_rh(*args):
                 _cols_dup_presentes = [c for c in _DUPLICADOS_MIGRACAO if c in _df_mig.columns]
 
                 if not _cols_dup_presentes:
-                    st.success(":material/check_circle: Schema já migrado.")
+                    st.success("Schema já migrado.")
                 else:
                     st.warning(
-                        f":material/warning: Encontradas {len(_cols_dup_presentes)} coluna(s) "
+                        f"Encontradas {len(_cols_dup_presentes)} coluna(s) "
                         f"duplicada(s): {', '.join(_cols_dup_presentes)}"
                     )
                     _relatorio_mig = []
@@ -2169,10 +2169,10 @@ def render_admin_rh(*args):
                                 detalhes=f"Colunas migradas: {', '.join(_cols_dup_presentes)}",
                                 ip=""
                             )
-                            st.success(":material/check_circle: Migração aplicada com sucesso.")
+                            st.success("Migração aplicada com sucesso.")
                             st.rerun()
                         else:
-                            st.error(":material/close: Erro ao guardar — verifica ligação ao GCS")
+                            st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── Tabelas de conversão de valores Eticadata ─────────────
         _E_SEXO = {"0": "Masculino", "1": "Feminino"}
@@ -2303,12 +2303,12 @@ def render_admin_rh(*args):
                     _eti_raw[_ec] = _eti_raw[_ec].str.strip()
                 st.session_state['eticadata_df'] = _eti_raw
             except Exception as _e:
-                st.error(f":material/close: Erro ao ler o ficheiro: {_e}")
+                st.error(f"Erro ao ler o ficheiro: {_e}")
 
         if 'eticadata_result' in st.session_state:
             _res = st.session_state['eticadata_result']
             st.success(
-                f":material/check_circle: Importação concluída! "
+                f"Importação concluída! "
                 f"**{_res['n_act']}** actualizados, "
                 f"**{_res['n_new']}** novos criados, "
                 f"**{_res['n_campos']}** campos preenchidos."
@@ -2316,7 +2316,7 @@ def render_admin_rh(*args):
             if _res.get('novos'):
                 st.markdown("#### 🆕 Passwords geradas — guardar agora!")
                 st.warning(
-                    ":material/warning: Estas passwords só são mostradas uma vez. "
+                    "Estas passwords só são mostradas uma vez. "
                     "Comunica-as aos colaboradores antes de fechar."
                 )
                 for _nc in _res['novos']:
@@ -2347,7 +2347,7 @@ def render_admin_rh(*args):
 
             _ecol_h, _ecol_btn = st.columns([5, 1])
             with _ecol_h:
-                st.success(f":material/check_circle: Ficheiro carregado: **{len(_eti_df)}** registos, "
+                st.success(f"Ficheiro carregado: **{len(_eti_df)}** registos, "
                            f"**{len(_eti_df.columns)}** colunas.")
             with _ecol_btn:
                 if st.button("🗑️ Limpar", key="imp_limpar"):
@@ -2360,7 +2360,7 @@ def render_admin_rh(*args):
 
             if _nome_col_eti is None:
                 st.error(
-                    ":material/close: Coluna 'Nome' não encontrada no CSV. "
+                    "Coluna 'Nome' não encontrada no CSV. "
                     f"Colunas disponíveis: `{'`, `'.join(_eti_df.columns.tolist())}`"
                 )
             else:
@@ -2451,7 +2451,7 @@ def render_admin_rh(*args):
                 _mc1.metric("✅ Com match", _n_match)
                 _mc2.metric("⚠️ Sem match", _n_nomatch)
 
-                st.markdown("#### :material/assignment: Pré-visualização — todos os colaboradores")
+                st.markdown("#### Pré-visualização — todos os colaboradores")
                 st.dataframe(_prev_df, use_container_width=True, height=400)
 
                 if _n_nomatch > 0:
@@ -2468,7 +2468,7 @@ def render_admin_rh(*args):
                     + (f" + {_n_nomatch} novos" if _n_nomatch else "")
                 )
                 if _n_match == 0 and _n_nomatch == 0:
-                    st.warning(":material/warning: Nenhum registo encontrado no CSV.")
+                    st.warning("Nenhum registo encontrado no CSV.")
                 else:
                     if st.button(
                         _btn_label,
@@ -2649,13 +2649,13 @@ def render_admin_rh(*args):
 
                         _ok_rh = save_db(_df_rh, "colaboradores_rh.csv", permitir_reducao=True)
                         if not _ok_rh:
-                            st.error(":material/close: Erro ao guardar colaboradores_rh.csv — "
+                            st.error("Erro ao guardar colaboradores_rh.csv — "
                                      "verifica ligação ao GCS")
                             st.stop()
 
                         _ok_users = save_db(_df_users, "usuarios.csv")
                         if not _ok_users:
-                            st.error(":material/close: Erro ao guardar usuarios.csv — "
+                            st.error("Erro ao guardar usuarios.csv — "
                                      "verifica ligação ao GCS")
                             st.stop()
 
@@ -2741,7 +2741,7 @@ def render_admin_rh(*args):
 
         if dados_em_falta:
             st.warning(
-                f":material/warning: Perfil incompleto para gerar contrato. "
+                f"Perfil incompleto para gerar contrato. "
                 f"Em falta: **{', '.join(dados_em_falta)}**"
             )
 
@@ -2750,10 +2750,10 @@ def render_admin_rh(*args):
             template_ok = _gcs_read_binary("contrato_template.docx") is not None
 
             if not template_ok:
-                st.error(":material/close: Template do contrato não encontrado. "
+                st.error("Template do contrato não encontrado. "
                          "Faz upload do template no separador '⚙️ Templates'.")
             else:
-                st.markdown("#### :material/description: Gerar Contrato")
+                st.markdown("#### Gerar Contrato")
                 st.info(
                     "Os dados pessoais são preenchidos automaticamente "
                     "a partir do perfil do colaborador."
@@ -2784,7 +2784,7 @@ def render_admin_rh(*args):
                     if st.form_submit_button("📄 Gerar Contrato",
                         use_container_width=True, type="primary"):
                         if not ct_local or not ct_cliente:
-                            st.error(":material/close: Local e Cliente são obrigatórios.")
+                            st.error("Local e Cliente são obrigatórios.")
                         else:
                             if ct_cliente_novo:
                                 registar_cliente_do_select(ct_cliente, "ct_cliente")
@@ -2832,15 +2832,15 @@ def render_admin_rh(*args):
                                         detalhes=f"Contrato gerado para {nome_ct_sel}",
                                         ip=""
                                     )
-                                    st.success(":material/check_circle: Contrato gerado com sucesso!")
+                                    st.success("Contrato gerado com sucesso!")
                                     st.rerun()
                             else:
-                                st.error(":material/close: Erro ao gerar contrato. "
+                                st.error("Erro ao gerar contrato. "
                                          "Verifica o template.")
 
         # ── PASSO 2: Download + Enviar ao colaborador ─────────────
         if ct_gerado and not ct_enviado:
-            st.markdown("#### :material/upload: Rever e Enviar ao Colaborador")
+            st.markdown("#### Rever e Enviar ao Colaborador")
             ct_b64 = row_ct.get('Contrato_b64','')
             if ct_b64:
                 try:
@@ -2876,7 +2876,7 @@ def render_admin_rh(*args):
                             inv("usuarios.csv")
                             from core import _cached_load_all
                             _cached_load_all.clear()
-                            st.success(":material/check_circle: Contrato atualizado com a versão editada!")
+                            st.success("Contrato atualizado com a versão editada!")
                             st.rerun()
 
                 st.markdown("---")       
@@ -2904,7 +2904,7 @@ def render_admin_rh(*args):
                         inv("usuarios.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.success(":material/check_circle: Colaborador notificado!")
+                        st.success("Colaborador notificado!")
                         st.rerun()
             with col_env2:
                 if st.button("🔄 Regenerar Contrato",
@@ -2932,7 +2932,7 @@ def render_admin_rh(*args):
 
         # ── PASSO 4: Validar assinatura ───────────────────────────
         if ct_assinado and not ct_validado:
-            st.markdown("#### :material/check_circle: Validar Assinatura do Colaborador")
+            st.markdown("#### Validar Assinatura do Colaborador")
             assin_b64 = row_ct.get('Contrato_Assinatura_b64','')
             if assin_b64:
                 try:
@@ -2977,7 +2977,7 @@ def render_admin_rh(*args):
                             detalhes=f"Contrato validado para {nome_ct_sel}",
                             ip=""
                         )
-                        st.success(":material/check_circle: Contrato arquivado!")
+                        st.success("Contrato arquivado!")
                         st.rerun()
             with col_val2:
                 if st.button("❌ Recusar (pedir nova assinatura)",
@@ -3007,7 +3007,7 @@ def render_admin_rh(*args):
 
         # ── PASSO 5: Arquivo final ────────────────────────────────
         if ct_validado:
-            st.success(":material/check_circle: **Contrato arquivado e validado.**")
+            st.success("**Contrato arquivado e validado.**")
             ct_b64_f = row_ct.get('Contrato_b64','')
             if ct_b64_f:
                 try:
@@ -3027,16 +3027,16 @@ def render_admin_rh(*args):
     # TAB 5 — TEMPLATES & CONFIG
     # ════════════════════════════════════════════════════════════════
     with tab_template:
-        st.markdown("### :material/settings: Template do Contrato")
+        st.markdown("### Template do Contrato")
 
         template_existe = _gcs_read_binary("contrato_template.docx") is not None
         if template_existe:
-            st.success(":material/check_circle: Template do contrato carregado no sistema.")
+            st.success("Template do contrato carregado no sistema.")
         else:
-            st.warning(":material/warning: Nenhum template carregado. "
+            st.warning("Nenhum template carregado. "
                        "Faz upload abaixo para activar a geração automática.")
 
-        st.markdown("#### :material/upload: Upload do Template")
+        st.markdown("#### Upload do Template")
         st.info(
             "O template deve ser um ficheiro `.docx` com os campos marcados como:\n"
             "`{{nome}}` `{{morada}}` `{{NIF}}` `{{NISS}}` "
@@ -3046,7 +3046,7 @@ def render_admin_rh(*args):
 
         if template_existe:
             st.warning(
-                ":material/warning: Já existe um template. Fazer upload de um novo **substitui** o atual."
+                "Já existe um template. Fazer upload de um novo **substitui** o atual."
             )
 
         template_file = st.file_uploader(
@@ -3064,7 +3064,7 @@ def render_admin_rh(*args):
                     template_file.read(), "contrato_template.docx"
                 )
                 if ok:
-                    st.success(":material/check_circle: Template guardado no sistema!")
+                    st.success("Template guardado no sistema!")
                     log_audit(
                         usuario=admin_nome,
                         acao="UPLOAD_TEMPLATE_CONTRATO",
@@ -3075,11 +3075,11 @@ def render_admin_rh(*args):
                     )
                     st.rerun()
                 else:
-                    st.error(":material/close: Erro ao guardar o template.")
+                    st.error("Erro ao guardar o template.")
 
         if template_existe:
             st.markdown("---")
-            st.markdown("#### :material/download: Descarregar Template Atual")
+            st.markdown("#### Descarregar Template Atual")
             template_bytes = _gcs_read_binary("contrato_template.docx")
             if template_bytes:
                 st.download_button(

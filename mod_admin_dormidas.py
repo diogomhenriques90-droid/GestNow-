@@ -5,7 +5,7 @@ from datetime import datetime, date
 from core import save_db, inv, load_db
 
 def render_dormidas():
-    st.markdown("### :material/hotel: Gestão de Dormidas")
+    st.markdown("### Gestão de Dormidas")
 
     try:
         dormidas_db = load_db("dormidas.csv", [
@@ -45,7 +45,7 @@ def render_dormidas():
         col1, col2 = st.columns([1, 2])
 
         with col1:
-            st.markdown("#### :material/add: Nova Dormida")
+            st.markdown("#### Nova Dormida")
 
             users_lista = users_db['Nome'].tolist() \
                           if not users_db.empty else []
@@ -96,7 +96,7 @@ def render_dormidas():
                     use_container_width=True, type="primary"
                 ):
                     if not hotel.strip():
-                        st.error(":material/close: Hotel obrigatório.")
+                        st.error("Hotel obrigatório.")
                     else:
                         noites = max((data_sai - data_ent).days, 1)
                         total  = round(noites * custo_noite, 2)
@@ -126,15 +126,15 @@ def render_dormidas():
                         save_db(updated_d, "dormidas.csv")
                         inv("dormidas.csv")
                         st.success(
-                            f":material/check_circle: Dormida registada! "
+                            f"Dormida registada! "
                             f"{noites} noite(s) em {hotel} — € {total:.2f}"
                         )
                         st.rerun()
 
         with col2:
-            st.markdown("#### :material/assignment: Dormidas Registadas")
+            st.markdown("#### Dormidas Registadas")
             if dormidas_db.empty:
-                st.info(":material/assignment: Sem dormidas registadas.")
+                st.info("Sem dormidas registadas.")
             else:
                 total_geral = pd.to_numeric(
                     dormidas_db['Total'], errors='coerce'
@@ -167,7 +167,7 @@ def render_dormidas():
     # TAB IA PESQUISA HOTÉIS
     # ════════════════════════════════════════════════════════════════
     with tab_pesquisar:
-        st.markdown("#### :material/smart_toy: Pesquisa de Hotéis com IA")
+        st.markdown("#### Pesquisa de Hotéis com IA")
         st.info(
             "A IA pesquisa e sugere hotéis próximos da obra, "
             "com estimativas de preço e distância."
@@ -203,12 +203,12 @@ def render_dormidas():
             use_container_width=True
         ):
             if not local_pesq.strip():
-                st.error(":material/close: Indica a localização.")
+                st.error("Indica a localização.")
             else:
                 import os, anthropic, json
                 api_key = os.environ.get("ANTHROPIC_API_KEY", "")
                 if not api_key:
-                    st.error(":material/close: API key não configurada.")
+                    st.error("API key não configurada.")
                 else:
                     with st.spinner(
                         f"🤖 A pesquisar hotéis perto de {local_pesq}..."
@@ -256,7 +256,7 @@ Responde APENAS em JSON:
                             hoteis = dados.get("hoteis", [])
 
                             st.success(
-                                f":material/check_circle: {len(hoteis)} opção(ões) encontrada(s) "
+                                f"{len(hoteis)} opção(ões) encontrada(s) "
                                 f"perto de {local_pesq}!"
                             )
 
@@ -302,23 +302,23 @@ Responde APENAS em JSON:
                                     st.session_state['hotel_pre_fill'] = h
                                     st.session_state['hotel_pre_noites'] = noites_pesq
                                     st.info(
-                                        ":material/check_circle: Dados pré-preenchidos! "
+                                        "Dados pré-preenchidos! "
                                         "Vai ao tab 📝 Registar para confirmar."
                                     )
 
                         except json.JSONDecodeError:
-                            st.error(":material/close: Erro ao interpretar resposta da IA.")
+                            st.error("Erro ao interpretar resposta da IA.")
                         except Exception as e:
-                            st.error(f":material/close: Erro: {e}")
+                            st.error(f"Erro: {e}")
 
     # ════════════════════════════════════════════════════════════════
     # TAB HISTÓRICO
     # ════════════════════════════════════════════════════════════════
     with tab_historico:
-        st.markdown("#### :material/assignment: Histórico de Dormidas")
+        st.markdown("#### Histórico de Dormidas")
 
         if dormidas_db.empty:
-            st.info(":material/assignment: Sem histórico.")
+            st.info("Sem histórico.")
         else:
             # Filtros
             col_h1, col_h2, col_h3 = st.columns(3)
