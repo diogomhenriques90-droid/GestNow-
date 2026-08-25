@@ -120,7 +120,7 @@ def render_secretariado(*args):
 
                 col_va, col_vr = st.columns(2)
                 with col_va:
-                    if st.button("🟢 Validar Todos (filtro)",
+                    if st.button("Validar Todos (filtro)",
                                   key="s1_val_todos", type="primary",
                                   use_container_width=True):
                         ids = df_view.index
@@ -143,7 +143,7 @@ def render_secretariado(*args):
                         st.success(f"{len(ids)} registos validados!")
                         st.rerun()
                 with col_vr:
-                    if st.button("❌ Rejeitar Todos (filtro)",
+                    if st.button("Rejeitar Todos (filtro)",
                                   key="s1_rej_todos",
                                   use_container_width=True):
                         ids = df_view.index
@@ -179,7 +179,7 @@ def render_secretariado(*args):
                             unsafe_allow_html=True
                         )
                     with col_v:
-                        if st.button("✅", key=f"s1_val_{reg_id}_{idx1}",
+                        if st.button("Sim", key=f"s1_val_{reg_id}_{idx1}",
                                       use_container_width=True, help="Validar"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status']         = '1'
                             registos_db.loc[registos_db['ID'] == reg_id, 'Validado1_Por']  = user_nome
@@ -194,7 +194,7 @@ def render_secretariado(*args):
                             _cached_load_all.clear()
                             st.rerun()
                     with col_r:
-                        if st.button("❌", key=f"s1_rej_{reg_id}_{idx1}",
+                        if st.button("Não", key=f"s1_rej_{reg_id}_{idx1}",
                                       use_container_width=True, help="Rejeitar"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status'] = '-1'
                             save_db(registos_db, "registos.csv")
@@ -244,7 +244,7 @@ def render_secretariado(*args):
 
                 col_va2, col_vr2 = st.columns(2)
                 with col_va2:
-                    if st.button("🔵 Enviar Todos para Faturação",
+                    if st.button("Enviar Todos para Faturação",
                                   key="s2_val_todos", type="primary",
                                   use_container_width=True):
                         ids2 = df_view2.index
@@ -262,7 +262,7 @@ def render_secretariado(*args):
                         st.success(f"{len(ids2)} registos enviados para faturação!")
                         st.rerun()
                 with col_vr2:
-                    if st.button("🟠 Devolver (anular 1ª validação)",
+                    if st.button("Devolver (anular 1ª validação)",
                                   key="s2_dev_todos",
                                   use_container_width=True):
                         ids2 = df_view2.index
@@ -293,7 +293,7 @@ def render_secretariado(*args):
                             unsafe_allow_html=True
                         )
                     with col_v:
-                        if st.button("🔵", key=f"s2_val_{reg_id}_{idx2}",
+                        if st.button("Sim", key=f"s2_val_{reg_id}_{idx2}",
                                       use_container_width=True,
                                       help="Enviar para faturação"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status']         = '2'
@@ -305,7 +305,7 @@ def render_secretariado(*args):
                             _cached_load_all.clear()
                             st.rerun()
                     with col_d:
-                        if st.button("🟠", key=f"s2_dev_{reg_id}_{idx2}",
+                        if st.button("Não", key=f"s2_dev_{reg_id}_{idx2}",
                                       use_container_width=True,
                                       help="Devolver"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status'] = '0'
@@ -556,7 +556,7 @@ def render_secretariado(*args):
                             key="fat_just",
                             placeholder="Descreve o motivo..."
                         )
-                        if st.button("⚠️ Aprovar com Inconformidade",
+                        if st.button("Aprovar com Inconformidade",
                                       key="fat_forcar", type="secondary",
                                       use_container_width=True):
                             if justificacao.strip():
@@ -571,7 +571,7 @@ def render_secretariado(*args):
                                 st.error("Justificação obrigatória.")
                 else:
                     st.success("Todos os registos conferem com a folha de ponto!")
-                    if st.button("✅ Processar Pagamento",
+                    if st.button("Processar Pagamento",
                                   key="fat_processar", type="primary",
                                   use_container_width=True):
                         _processar_pagamento(
@@ -629,7 +629,7 @@ def render_secretariado(*args):
                                         pass
                             ca, cr = st.columns(2)
                             with ca:
-                                if st.button("✅ Validar", key=f"sec_apr_gas_{ped_id}",
+                                if st.button("Validar", key=f"sec_apr_gas_{ped_id}",
                                               use_container_width=True):
                                     req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Status']         = 'Aprovado'
                                     req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -646,7 +646,7 @@ def render_secretariado(*args):
                                     _cached_load_all.clear()
                                     st.success(""); st.rerun()
                             with cr:
-                                if st.button("❌ Rejeitar", key=f"sec_rej_gas_{ped_id}",
+                                if st.button("Rejeitar", key=f"sec_rej_gas_{ped_id}",
                                               use_container_width=True, type="secondary"):
                                     req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Status']         = 'Rejeitado'
                                     req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -730,7 +730,7 @@ def render_secretariado(*args):
                                         pass
                             ca, cr = st.columns(2)
                             with ca:
-                                if st.button("✅ Aprovar", key=f"sec_apr_av_{ped_id}",
+                                if st.button("Aprovar", key=f"sec_apr_av_{ped_id}",
                                               use_container_width=True):
                                     incs_db.loc[incs_db.index == idx, 'Status']         = 'Aprovado'
                                     incs_db.loc[incs_db.index == idx, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -747,7 +747,7 @@ def render_secretariado(*args):
                                     _cached_load_all.clear()
                                     st.success(""); st.rerun()
                             with cr:
-                                if st.button("❌ Rejeitar", key=f"sec_rej_av_{ped_id}",
+                                if st.button("Rejeitar", key=f"sec_rej_av_{ped_id}",
                                               use_container_width=True, type="secondary"):
                                     incs_db.loc[incs_db.index == idx, 'Status']         = 'Rejeitado'
                                     incs_db.loc[incs_db.index == idx, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -850,7 +850,7 @@ def render_secretariado(*args):
 
                 csv = hist_all[cols_show].to_csv(index=False, encoding='utf-8-sig')
                 st.download_button(
-                    "📥 Exportar CSV",
+                    "Exportar CSV",
                     data=csv.encode('utf-8-sig'),
                     file_name=f"historico_{ano_sel}_{mes_sel[:2] if mes_sel!='Todos' else 'all'}.csv",
                     mime="text/csv",

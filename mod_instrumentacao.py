@@ -291,7 +291,7 @@ def render_instrumentacao(*args):
         st.markdown("### Motores IA: P&ID, Hook-up e Packing List")
         c_mode = st.radio("Documento", ["P&ID (Tags)", "Hook-Up (BOM)", "Packing List"], horizontal=True)
         up = st.file_uploader(f"Upload PDF {c_mode}", type="pdf", key="up_ia")
-        if up and st.button("🚀 Processar Vision", use_container_width=True, type="primary"):
+        if up and st.button("Processar Vision", use_container_width=True, type="primary"):
             m = "PID" if "P&ID" in c_mode else "HOOKUP" if "Hook-Up" in c_mode else "PACKING"
             with st.spinner("🤖 Claude 3.5 a analisar..."):
                 res = _processar_ia_vision(up, m)
@@ -299,7 +299,7 @@ def render_instrumentacao(*args):
                     st.success("Dados Extraídos!")
                     k = list(res.keys())[0]
                     edited = st.data_editor(pd.DataFrame(res[k]), use_container_width=True, num_rows="dynamic")
-                    if st.button("✅ Confirmar e Gravar", use_container_width=True, type="primary"):
+                    if st.button("Confirmar e Gravar", use_container_width=True, type="primary"):
                         log_audit(usuario=st.session_state.user, acao="IA_VISION_EXTRACAO", tabela=f"inst_{o_key}_index.csv", registro_id=c_mode, detalhes=f"Extração via IA: {c_mode} para obra {obra_sel}", ip="")
                         st.info("Gravação em desenvolvimento...")
                         st.balloons()
@@ -345,7 +345,7 @@ def render_instrumentacao(*args):
                         </div>
                         """, unsafe_allow_html=True)
             
-            if st.button("💾 Guardar Alterações", use_container_width=True, type="primary", key="idx_save"):
+            if st.button("Guardar Alterações", use_container_width=True, type="primary", key="idx_save"):
                 for _, row in edited.iterrows():
                     log_audit(usuario=st.session_state.user, acao="EDITAR_INSTRUMENTO", tabela=f"inst_{o_key}_index.csv", registro_id=row.get('Tag', ''), detalhes=f"Editado: {row.get('Tag')} - Status: {row.get('Status')}", ip="")
                 _save_inst(edited, o_key, "index")
@@ -390,17 +390,17 @@ def render_instrumentacao(*args):
                         
                         if status == '1':
                             st.info("Este instrumento está pronto para calibração.")
-                            if st.button("🔬 Ir para Calibração (ITR-A)", use_container_width=True, type="primary", key="btn_goto_itra"):
+                            if st.button("Ir para Calibração (ITR-A)", use_container_width=True, type="primary", key="btn_goto_itra"):
                                 st.session_state['qr_tag_selected'] = tag_scan
                                 st.rerun()
                         elif status == '2':
                             st.info("Este instrumento está calibrado e pronto para instalação.")
-                            if st.button("🏗️ Ir para Instalação (ITR-B)", use_container_width=True, type="primary", key="btn_goto_itrb"):
+                            if st.button("Ir para Instalação (ITR-B)", use_container_width=True, type="primary", key="btn_goto_itrb"):
                                 st.session_state['qr_tag_selected'] = tag_scan
                                 st.rerun()
                         elif status in ['3', '4']:
                             st.success("Instrumento instalado e concluído.")
-                            if st.button("📄 Ver Certificado", use_container_width=True, key="btn_view_cert"):
+                            if st.button("Ver Certificado", use_container_width=True, key="btn_view_cert"):
                                 st.info("Funcionalidade em desenvolvimento.")
                         else:
                             st.warning(f"⏳ Instrumento em status: {STATUS_INST.get(status, ('Pendente', '', '⏳'))[0]}")
@@ -453,7 +453,7 @@ def render_instrumentacao(*args):
                 st.divider()
                 assinatura = render_signature_pad("Assinatura do Técnico Calibrador", f"sig_{tag_c}")
                 
-                if st.form_submit_button("💾 Gerar Certificado com Assinatura", use_container_width=True, type="primary", key="btn_itra_submit"):
+                if st.form_submit_button("Gerar Certificado com Assinatura", use_container_width=True, type="primary", key="btn_itra_submit"):
                     if not assinatura:
                         st.warning("Por favor, assine para validar o certificado.")
                     else:
@@ -481,7 +481,7 @@ def render_instrumentacao(*args):
                         
                         st.success(f"Certificado {esign} gerado com assinatura!")
                         if pdf_cert:
-                            st.download_button("📥 Descarregar Certificado PDF", pdf_cert, f"ITR-A_{tag_c}_{esign}.pdf", "application/pdf", key=f"dl_{esign}")
+                            st.download_button("Descarregar Certificado PDF", pdf_cert, f"ITR-A_{tag_c}_{esign}.pdf", "application/pdf", key=f"dl_{esign}")
                         st.rerun()
 
     # --- TAB ITR-B: INSTALAÇÃO + GPS + ASSINATURA ---
@@ -522,7 +522,7 @@ def render_instrumentacao(*args):
             
             if f_foto and assinatura_inst:
                 foto_comp = process_and_compress_image(f_foto)
-                if st.button("✅ Registar Instalação com Assinatura", use_container_width=True, type="primary", key="btn_itrb_submit"):
+                if st.button("Registar Instalação com Assinatura", use_container_width=True, type="primary", key="btn_itrb_submit"):
                     insts.loc[insts['Tag'] == tag_f, 'Status'] = '3'
                     if 'Foto_Local_b64' in insts.columns:
                         insts.loc[insts['Tag'] == tag_f, 'Foto_Local_b64'] = foto_comp
@@ -552,17 +552,17 @@ def render_instrumentacao(*args):
         c_z, c_h = st.columns(2)
         
         with c_z:
-            if st.button("🖨️ Gerar Etiquetas Zebra (50x30mm)", use_container_width=True, type="secondary", key="btn_zebra"):
+            if st.button("Gerar Etiquetas Zebra (50x30mm)", use_container_width=True, type="secondary", key="btn_zebra"):
                 tags = insts['Tag'].head(20).tolist() if not insts.empty else []
                 pdf_z = _gerar_etiquetas_zebra(tags, obra_sel)
                 log_audit(usuario=st.session_state.user, acao="GERAR_ETIQUETAS_ZEBRA", tabela=f"inst_{o_key}_index.csv", registro_id=f"{len(tags)}_tags", detalhes=f"Geradas {len(tags)} etiquetas Zebra para obra {obra_sel}", ip="")
                 if pdf_z:
-                    st.download_button("📥 Descarregar Etiquetas", pdf_z, f"etiquetas_{obra_sel}.pdf", "application/pdf", key="dl_zebra")
+                    st.download_button("Descarregar Etiquetas", pdf_z, f"etiquetas_{obra_sel}.pdf", "application/pdf", key="dl_zebra")
                 else:
                     st.info("ℹ️ Reportlab não disponível.")
             
             # ✅ QR CODES EM LOTE
-            if st.button("📱 Gerar QR Codes para Imprimir", use_container_width=True, type="secondary", key="btn_qr_lote"):
+            if st.button("Gerar QR Codes para Imprimir", use_container_width=True, type="secondary", key="btn_qr_lote"):
                 tags_qr = insts['Tag'].head(50).tolist() if not insts.empty else []
                 if tags_qr:
                     st.markdown("### QR Codes Gerados", unsafe_allow_html=True)
@@ -577,7 +577,7 @@ def render_instrumentacao(*args):
                     st.info("ℹ️ Sem instrumentos para gerar QR Codes.")
         
         with c_h:
-            if st.button("📄 Gerar Handover COMPLETO", use_container_width=True, type="primary", key="btn_handover"):
+            if st.button("Gerar Handover COMPLETO", use_container_width=True, type="primary", key="btn_handover"):
                 tags = insts[insts['Status'].isin(['3','4'])]['Tag'].tolist() if not insts.empty else []
                 log_audit(usuario=st.session_state.user, acao="GERAR_HANDOVER", tabela=f"inst_{o_key}_index.csv", registro_id=obra_sel, detalhes=f"Handover gerado para {len(tags)} instrumentos concluídos", ip="")
                 st.success(f"Dossier pronto para {len(tags)} instrumentos!")

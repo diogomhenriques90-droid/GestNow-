@@ -181,7 +181,7 @@ def render_cliente_portal():
                     """, unsafe_allow_html=True)
 
             st.divider()
-            if st.button("📱 Gerar Todos os QR Codes (max 50)", use_container_width=True, type="primary"):
+            if st.button("Gerar Todos os QR Codes (max 50)", use_container_width=True, type="primary"):
                 tags = insts_db['Tag'].head(50).tolist()
                 if tags:
                     st.markdown(f"**{len(tags)} QR Codes gerados**")
@@ -219,7 +219,7 @@ def render_cliente_portal():
                     confirmar = st.checkbox("✅ Confirmo que este instrumento está instalado e funcional", key=f"cli_conf_{tag_ap}")
                     if confirmar:
                         comentario = st.text_area("Comentários (opcional)", key=f"cli_coment_{tag_ap}")
-                        if st.button("✅ Aprovar Instrumento", use_container_width=True, type="primary", key=f"cli_btn_apr_{tag_ap}"):
+                        if st.button("Aprovar Instrumento", use_container_width=True, type="primary", key=f"cli_btn_apr_{tag_ap}"):
                             log_audit(
                                 usuario=f"CLIENTE: {cliente_nome}",
                                 acao="APROVAR_INSTRUMENTO_CLIENTE",
@@ -292,7 +292,7 @@ def render_cliente_portal():
             with c2: prioridade = st.selectbox("Prioridade", ["Baixa","Média","Alta","Crítica"], key="cli_punch_prior")
             descricao = st.text_area("Descrição do Issue / Comentário", key="cli_punch_desc")
 
-            if st.form_submit_button("💬 Adicionar à Punch List", use_container_width=True, type="primary"):
+            if st.form_submit_button("Adicionar à Punch List", use_container_width=True, type="primary"):
                 if descricao:
                     novo_id = str(uuid.uuid4())[:8].upper()
                     novo_item = pd.DataFrame([{

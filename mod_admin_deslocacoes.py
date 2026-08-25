@@ -265,7 +265,7 @@ def _render_card_opcao(opcao: dict, idx: int,
         with col_b1:
             if link:
                 st.link_button(
-                    "🔗 Ver no site",
+                    "Ver no site",
                     url=link,
                     use_container_width=True
                 ) 
@@ -274,13 +274,13 @@ def _render_card_opcao(opcao: dict, idx: int,
         with col_b1:
             if link:
                 st.link_button(
-                    "🔗 Ver no site",
+                    "Ver no site",
                     url=link,
                     use_container_width=True
                 )
         with col_b2:
             if st.button(
-                "✅ Seleccionar esta opção",
+                "Seleccionar esta opção",
                 key=f"sel_opcao_{idx}",
                 use_container_width=True,
                 type="primary"
@@ -396,7 +396,7 @@ def _render_dormidas(obras_db, users):
                 )
 
             if st.form_submit_button(
-                "💾 Guardar Reserva",
+                "Guardar Reserva",
                 use_container_width=True,
                 type="primary"
             ):
@@ -491,7 +491,7 @@ def _render_dormidas(obras_db, users):
                         label_visibility="collapsed"
                     )
                     if st.button(
-                        "✅",
+                        "",
                         key=f"upd_d_{did}",
                         use_container_width=True
                     ):
@@ -669,7 +669,7 @@ def _render_bilhetes(obras_db, users):
             )
 
             pesquisar = st.form_submit_button(
-                "🔍 Pesquisar com IA",
+                "Pesquisar com IA",
                 use_container_width=True,
                 type="primary"
             )
@@ -771,7 +771,7 @@ def _render_bilhetes(obras_db, users):
                     )
 
             if st.button(
-                "🔄 Nova Pesquisa",
+                "Nova Pesquisa",
                 key="btn_nova_pesq",
                 use_container_width=True
             ):
@@ -854,7 +854,7 @@ def _render_bilhetes(obras_db, users):
                 g_notas = st.text_area("Notas", key="g_notas")
 
                 if st.form_submit_button(
-                    "💾 Guardar Bilhete",
+                    "Guardar Bilhete",
                     use_container_width=True,
                     type="primary"
                 ):
@@ -1047,7 +1047,7 @@ def _render_bilhetes(obras_db, users):
             m_notas   = st.text_area("Notas", key="m_notas")
 
             if st.form_submit_button(
-                "💾 Guardar Bilhete",
+                "Guardar Bilhete",
                 use_container_width=True, type="primary"
             ):
                 if not m_origem.strip() or not m_destino.strip():
@@ -1233,7 +1233,7 @@ def _render_bilhetes(obras_db, users):
                         import base64 as b64v
                         try:
                             st.download_button(
-                                "📎",
+                                "",
                                 data=b64v.b64decode(bil_b),
                                 file_name=(
                                     f"bilhete_"
@@ -1257,7 +1257,7 @@ def _render_bilhetes(obras_db, users):
                         label_visibility="collapsed"
                     )
                     if st.button(
-                        "✅",
+                        "",
                         key=f"upd_bil_{bid}",
                         use_container_width=True,
                         help="Actualizar estado"
@@ -1279,7 +1279,7 @@ def _render_bilhetes(obras_db, users):
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                "📥 Exportar Bilhetes",
+                "Exportar Bilhetes",
                 data=csv_bil.encode('utf-8-sig'),
                 file_name=(
                     f"bilhetes_viagem_"
@@ -1394,7 +1394,7 @@ def _render_bilhetes(obras_db, users):
                                 )
                             with col_rp2:
                                 if st.button(
-                                    "✅ Marcar tudo como reembolsado",
+                                    "Marcar tudo como reembolsado",
                                     key=f"reemb_{colab_r}",
                                     use_container_width=True,
                                     type="primary"
@@ -1650,7 +1650,7 @@ def _render_resumo_viagem(obras_db, users):
     # Exportar
     csv_res = df_res.to_csv(index=False, encoding='utf-8-sig')
     st.download_button(
-        "📥 Exportar Resumo",
+        "Exportar Resumo",
         data=csv_res.encode('utf-8-sig'),
         file_name=(
             f"resumo_deslocacoes_"

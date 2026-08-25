@@ -576,7 +576,7 @@ def render_fat_fornecedores(obras_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Fornecedor",
+                    "Guardar Fornecedor",
                     use_container_width=True, type="primary"
                 ):
                     if not f_nome.strip() or not f_nif.strip():
@@ -707,7 +707,7 @@ def render_fat_fornecedores(obras_db, *_):
                         )
                     with col_id:
                         if st.button(
-                            "🔄 IBAN",
+                            "IBAN",
                             key=f"btn_iban_{forn_id}",
                             use_container_width=True,
                             help="Atualizar IBAN"
@@ -779,7 +779,7 @@ def render_fat_fornecedores(obras_db, *_):
 
             if upload_fat and not ocr_dados:
                 if st.button(
-                    "🤖 Extrair com IA",
+                    "Extrair com IA",
                     key="btn_ocr_forn",
                     type="primary",
                     use_container_width=True
@@ -903,7 +903,7 @@ def render_fat_fornecedores(obras_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar Fatura",
+                    "Registar Fatura",
                     use_container_width=True, type="primary"
                 ):
                     if not f_forn or f_tot_val <= 0:
@@ -1075,7 +1075,7 @@ def render_fat_fornecedores(obras_db, *_):
                             label_visibility="collapsed"
                         )
                         if st.button(
-                            "✅", key=f"ff_upd_{ff_id}",
+                            "", key=f"ff_upd_{ff_id}",
                             use_container_width=True,
                             help="Atualizar estado"
                         ):
@@ -1224,7 +1224,7 @@ def render_fat_fornecedores(obras_db, *_):
             col_sepa1, col_sepa2 = st.columns(2)
             with col_sepa1:
                 if st.button(
-                    "🏦 Gerar SEPA XML (Montepio)",
+                    "Gerar SEPA XML (Montepio)",
                     key="btn_sepa_forn",
                     type="primary",
                     use_container_width=True
@@ -1321,7 +1321,7 @@ def render_fat_fornecedores(obras_db, *_):
             with col_sepa2:
                 if st.session_state.get('sepa_forn_bytes'):
                     st.download_button(
-                        "📥 Descarregar XML Montepio",
+                        "Descarregar XML Montepio",
                         data=st.session_state['sepa_forn_bytes'],
                         file_name=st.session_state.get(
                             'sepa_forn_fname','pagamentos.xml'
@@ -1421,7 +1421,7 @@ def render_fat_fornecedores(obras_db, *_):
                          hide_index=True)
 
             if st.button(
-                "📄 Gerar Guia de Retenção PDF",
+                "Gerar Guia de Retenção PDF",
                 key="btn_guia_ret",
                 type="primary",
                 use_container_width=True
@@ -1438,7 +1438,7 @@ def render_fat_fornecedores(obras_db, *_):
 
             if st.session_state.get('guia_ret_bytes'):
                 st.download_button(
-                    "📥 Descarregar Guia",
+                    "Descarregar Guia",
                     data=st.session_state['guia_ret_bytes'],
                     file_name=st.session_state.get(
                         'guia_ret_fname','guia.pdf'
@@ -1516,7 +1516,7 @@ def render_fat_fornecedores(obras_db, *_):
 
                     if bloqueado:
                         if st.button(
-                            f"🔓 Desbloquear manualmente — "
+                            f"Desbloquear manualmente — "
                             f"{ih.get('Entidade','')}",
                             key=f"desbloquear_{ih.get('ID','')}",
                             type="secondary",
@@ -1561,7 +1561,7 @@ def render_fat_fornecedores(obras_db, *_):
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                "📥 Exportar Histórico IBANs",
+                "Exportar Histórico IBANs",
                 data=csv_iban.encode('utf-8-sig'),
                 file_name="historico_ibans.csv",
                 mime="text/csv",

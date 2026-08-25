@@ -1345,7 +1345,7 @@ def render_fat_auditoria(obras_db, registos_db,
                 )
             with col_cb:
                 if st.button(
-                    "✅" if not ok else "↩️",
+                    "" if not ok else "↩️",
                     key=f"aud_{uuid.uuid4().hex[:6]}_{k[:20].replace(' ','_')}",
                     use_container_width=True,
                     help="Marcar/desmarcar"
@@ -1378,7 +1378,7 @@ def render_fat_auditoria(obras_db, registos_db,
         col_r1, col_r2 = st.columns(2)
         with col_r1:
             if st.button(
-                "✅ Marcar todos como OK",
+                "Marcar todos como OK",
                 key="btn_all_ok",
                 use_container_width=True
             ):
@@ -1389,7 +1389,7 @@ def render_fat_auditoria(obras_db, registos_db,
                 st.rerun()
         with col_r2:
             if st.button(
-                "🔄 Reset Checklist",
+                "Reset Checklist",
                 key="btn_reset_check",
                 use_container_width=True
             ):
@@ -1478,7 +1478,7 @@ def render_fat_auditoria(obras_db, registos_db,
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                "📥 Exportar Inconsistências",
+                "Exportar Inconsistências",
                 data=csv_inc.encode('utf-8-sig'),
                 file_name=(
                     f"inconsistencias_"
@@ -1491,7 +1491,7 @@ def render_fat_auditoria(obras_db, registos_db,
         # Análise IA
         st.markdown("---")
         if st.button(
-            "🤖 Análise IA das Inconsistências",
+            "Análise IA das Inconsistências",
             key="btn_ia_inc",
             use_container_width=True
         ):
@@ -1705,7 +1705,7 @@ def render_fat_auditoria(obras_db, registos_db,
             )
 
         if st.button(
-            "📦 Gerar ZIP Dossier Auditoria",
+            "Gerar ZIP Dossier Auditoria",
             key="btn_zip_dossier",
             type="primary",
             use_container_width=True
@@ -1785,7 +1785,7 @@ def render_fat_auditoria(obras_db, registos_db,
 
         if st.session_state.get('dossier_zip'):
             st.download_button(
-                "📥 Descarregar ZIP Dossier",
+                "Descarregar ZIP Dossier",
                 data=st.session_state['dossier_zip'],
                 file_name=st.session_state.get(
                     'dossier_zip_nome','dossier.zip'
@@ -1868,7 +1868,7 @@ def render_fat_auditoria(obras_db, registos_db,
             index=False, encoding='utf-8-sig'
         )
         st.download_button(
-            "📥 Exportar Resumo CSV",
+            "Exportar Resumo CSV",
             data=csv_res.encode('utf-8-sig'),
             file_name=f"resumo_exercicio_{ano_comp}.csv",
             mime="text/csv",
@@ -1949,7 +1949,7 @@ def render_fat_auditoria(obras_db, registos_db,
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
             if st.button(
-                "📄 Gerar Relatório PDF Completo",
+                "Gerar Relatório PDF Completo",
                 key="btn_pdf_toc",
                 type="primary",
                 use_container_width=True
@@ -1970,7 +1970,7 @@ def render_fat_auditoria(obras_db, registos_db,
         with col_btn2:
             if st.session_state.get('toc_pdf'):
                 st.download_button(
-                    "📥 Descarregar PDF Dossier",
+                    "Descarregar PDF Dossier",
                     data=st.session_state['toc_pdf'],
                     file_name=st.session_state.get(
                         'toc_pdf_nome','dossier.pdf'

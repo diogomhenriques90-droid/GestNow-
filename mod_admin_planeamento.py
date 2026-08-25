@@ -91,7 +91,7 @@ def render_planeamento():
                 )
 
                 if st.form_submit_button(
-                    "💾 Criar Pacote",
+                    "Criar Pacote",
                     use_container_width=True, type="primary"
                 ):
                     if not obra_p.strip() or not desc_p.strip():
@@ -178,7 +178,7 @@ def render_planeamento():
                             key=f"st_{pac_id}",
                             label_visibility="collapsed"
                         )
-                    if st.button("✅ Guardar", key=f"save_pac_{pac_id}",
+                    if st.button("Guardar", key=f"save_pac_{pac_id}",
                                   use_container_width=True):
                         pacotes_db.loc[pacotes_db['ID'] == pac_id, 'Horas_Reais'] = novas_h
                         pacotes_db.loc[pacotes_db['ID'] == pac_id, 'Status']      = novo_st
@@ -209,7 +209,7 @@ def render_planeamento():
                 )
 
                 if st.form_submit_button(
-                    "💾 Criar Milestone",
+                    "Criar Milestone",
                     use_container_width=True, type="primary"
                 ):
                     if not obra_m.strip() or not desc_m.strip():
@@ -270,7 +270,7 @@ def render_planeamento():
                             label_visibility="collapsed"
                         )
                     with col_ms_d:
-                        if st.button("✅", key=f"ms_save_{ms_id}",
+                        if st.button("OK", key=f"ms_save_{ms_id}",
                                       use_container_width=True):
                             milestones_db.loc[
                                 milestones_db['ID'] == ms_id, 'Status'
@@ -337,7 +337,7 @@ def render_planeamento():
                 )
 
                 if st.form_submit_button(
-                    "💾 Upload", use_container_width=True, type="primary"
+                    "Upload", use_container_width=True, type="primary"
                 ):
                     if not obra_d.strip():
                         st.error("Obra obrigatória.")

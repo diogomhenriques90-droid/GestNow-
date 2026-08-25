@@ -212,7 +212,7 @@ def render_qualidade(*_):
                                       else 0
                             )
                             if st.button(
-                                "💾 Guardar",
+                                "Guardar",
                                 key=f"nc_save_{ncid}",
                                 use_container_width=True,
                                 type="primary"
@@ -292,7 +292,7 @@ def render_qualidade(*_):
                 )
 
             if st.form_submit_button(
-                "💾 Registar NC",
+                "Registar NC",
                 use_container_width=True,
                 type="primary"
             ):
@@ -385,7 +385,7 @@ def render_qualidade(*_):
                 i_obs   = st.text_area("Observações", key="i_obs")
 
                 if st.form_submit_button(
-                    "💾 Registar",
+                    "Registar",
                     use_container_width=True,
                     type="primary"
                 ):
@@ -489,7 +489,7 @@ def render_qualidade(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar",
+                    "Guardar",
                     use_container_width=True,
                     type="primary"
                 ):
@@ -555,7 +555,7 @@ def render_qualidade(*_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar Índice",
+                    "Exportar Índice",
                     data=csv_d.encode('utf-8-sig'),
                     file_name="indice_sgq.csv",
                     mime="text/csv",

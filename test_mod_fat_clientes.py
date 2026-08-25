@@ -109,7 +109,7 @@ class TestPessoasDeContacto(unittest.TestCase):
                 _script, args=(_CLIENTES_RECORDS,), default_timeout=30)
             at.run()
             at.button(
-                key="FormSubmitter:gc_ct_form_C1-➕ Adicionar Pessoa de Contacto"
+                key="FormSubmitter:gc_ct_form_C1-Adicionar Pessoa de Contacto"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         mock_save.assert_not_called()
@@ -131,7 +131,7 @@ class TestPessoasDeContacto(unittest.TestCase):
             at.text_input(key="gc_ct_email_C1").set_value("miguel@cliente.pt").run()
             at.text_input(key="gc_ct_tel_C1").set_value("912345678").run()
             at.button(
-                key="FormSubmitter:gc_ct_form_C1-➕ Adicionar Pessoa de Contacto"
+                key="FormSubmitter:gc_ct_form_C1-Adicionar Pessoa de Contacto"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         self.assertTrue(mock_save.called)

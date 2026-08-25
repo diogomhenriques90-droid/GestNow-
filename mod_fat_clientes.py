@@ -714,7 +714,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
 
             col_add, col_rem = st.columns(2)
             with col_add:
-                if st.button("➕ Linha", key="fat_add_linha",
+                if st.button("Linha", key="fat_add_linha",
                               use_container_width=True):
                     st.session_state['fat_linhas'].append(
                         {"Descricao":"","Quantidade":1.0,
@@ -723,7 +723,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     st.rerun()
             with col_rem:
                 if len(linhas_atuais) > 1:
-                    if st.button("➖ Remover", key="fat_rem_linha",
+                    if st.button("Remover", key="fat_rem_linha",
                                   use_container_width=True):
                         st.session_state['fat_linhas'].pop()
                         st.rerun()
@@ -766,14 +766,14 @@ def render_fat_clientes(obras_db, registos_db, *_):
             col_em, col_pf = st.columns(2)
             with col_em:
                 emitir = st.button(
-                    "🧾 Emitir Fatura",
+                    "Emitir Fatura",
                     type="primary",
                     use_container_width=True,
                     key="btn_emitir_fat"
                 )
             with col_pf:
                 proforma = st.button(
-                    "📄 Gerar Pró-forma",
+                    "Gerar Pró-forma",
                     use_container_width=True,
                     key="btn_proforma"
                 )
@@ -905,7 +905,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
             # Botão download depois de emitir
             if st.session_state.get('fat_pdf_bytes'):
                 st.download_button(
-                    "📥 Descarregar Fatura PDF",
+                    "Descarregar Fatura PDF",
                     data=st.session_state['fat_pdf_bytes'],
                     file_name=st.session_state.get(
                         'fat_pdf_nome', 'fatura.pdf'
@@ -1124,7 +1124,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         label_visibility="collapsed"
                     )
                     if st.button(
-                        "✅", key=f"upd_est_{fat_id}",
+                        "", key=f"upd_est_{fat_id}",
                         use_container_width=True,
                         help="Atualizar estado"
                     ):
@@ -1149,7 +1149,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                                 ' ','_'
                             ).replace('/','_')
                             st.download_button(
-                                "📄",
+                                "",
                                 data=pdf_dl,
                                 file_name=f"{num_fn}.pdf",
                                 mime="application/pdf",
@@ -1199,7 +1199,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Cliente",
+                    "Guardar Cliente",
                     use_container_width=True, type="primary"
                 ):
                     _dup_c = (not clientes_db.empty and any(
@@ -1356,7 +1356,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         g_notas = st.text_area("Notas",
                             value=str(cli_g.get('Notas','')), key=f"gc_notas_{cid_g}")
 
-                        if st.form_submit_button("💾 Guardar Alterações",
+                        if st.form_submit_button("Guardar Alterações",
                                                  use_container_width=True):
                             upd_g  = clientes_db.copy()
                             mask_g = upd_g['ID'].astype(str) == cid_g
@@ -1407,7 +1407,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                                     unsafe_allow_html=True
                                 )
                             with col_ct2:
-                                if st.button("🗑️", key=f"gc_ct_del_{ct_id}",
+                                if st.button("X", key=f"gc_ct_del_{ct_id}",
                                              help="Remover contacto"):
                                     upd_ct = contactos_db[
                                         contactos_db['ID'].astype(str) != ct_id
@@ -1425,7 +1425,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         with ct_c2:
                             ct_email = st.text_input("Email", key=f"gc_ct_email_{cid_g}")
                             ct_tel = st.text_input("Telefone", key=f"gc_ct_tel_{cid_g}")
-                        if st.form_submit_button("➕ Adicionar Pessoa de Contacto",
+                        if st.form_submit_button("Adicionar Pessoa de Contacto",
                                                  use_container_width=True):
                             if not ct_nome.strip():
                                 st.error("Nome obrigatório.")
@@ -1463,7 +1463,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             f"Confirmo a eliminação definitiva de «{nome_g}»",
                             key=f"gc_conf_{cid_g}"
                         )
-                        if st.button("🗑️ Eliminar Cliente",
+                        if st.button("Eliminar Cliente",
                                      key=f"gc_del_{cid_g}", disabled=not conf_g):
                             upd_g = clientes_db[
                                 clientes_db['ID'].astype(str) != cid_g
@@ -1485,7 +1485,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     "cria os que faltam na fonte canónica (Origem=Migração). "
                     "Idempotente — não altera os ficheiros de origem."
                 )
-                if st.button("🔍 Analisar fontes", key="gc_mig_analisar"):
+                if st.button("Analisar fontes", key="gc_mig_analisar"):
                     _mig_nomes, _mig_exist = migrar_clientes_existentes(executar=False)
                     st.session_state['gc_mig_preview'] = _mig_nomes
                     st.session_state['gc_mig_exist']   = _mig_exist
@@ -1505,7 +1505,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         )
                         st.markdown("\n".join(f"- {n}" for n in _mig_nomes))
                         if st.button(
-                            f"✅ Confirmar criação de {len(_mig_nomes)} cliente(s)",
+                            f"Confirmar criação de {len(_mig_nomes)} cliente(s)",
                             key="gc_mig_exec", type="primary"
                         ):
                             _criados, _ = migrar_clientes_existentes(executar=True)
@@ -1599,7 +1599,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         key="aging_lem_cli"
                     )
                     if st.button(
-                        "📧 Enviar Lembrete de Pagamento",
+                        "Enviar Lembrete de Pagamento",
                         key="btn_lem_pag",
                         type="primary",
                         use_container_width=True
@@ -1667,7 +1667,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Contrato",
+                    "Guardar Contrato",
                     use_container_width=True, type="primary"
                 ):
                     novo_ct = pd.DataFrame([{
@@ -1815,7 +1815,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "🔄 Emitir Nota de Crédito",
+                    "Emitir Nota de Crédito",
                     use_container_width=True, type="primary"
                 ):
                     if not nc_desc.strip() or nc_valor <= 0:

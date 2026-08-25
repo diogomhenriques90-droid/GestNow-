@@ -23,7 +23,7 @@ def render_faturacao(faturas_db, obras_db):
         
         st.divider()
         
-        if st.button("📄 Gerar Fatura PDF", type="primary", use_container_width=True, key="btn_gerar_fat"):
+        if st.button("Gerar Fatura PDF", type="primary", use_container_width=True, key="btn_gerar_fat"):
             st.info(f"A processar fatura para {cliente}...")
             st.success("Fatura gerada!")
     else:

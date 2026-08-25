@@ -631,7 +631,7 @@ def render_comercial(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Oportunidade",
+                    "Guardar Oportunidade",
                     use_container_width=True, type="primary"
                 ):
                     if not op_nome.strip() or not op_cliente.strip():
@@ -765,7 +765,7 @@ def render_comercial(*_):
                             key=f"op_st_{op_id}",
                             label_visibility="collapsed"
                         )
-                        if st.button("✅", key=f"op_upd_{op_id}",
+                        if st.button("OK", key=f"op_upd_{op_id}",
                                      use_container_width=True):
                             new_sid = STAGE_IDS[STAGE_NOMES.index(novo_stage)]
                             oport_db.loc[oport_db['ID'] == op_id, 'Stage'] = new_sid
@@ -839,7 +839,7 @@ def render_comercial(*_):
                 v_notas = st.text_area("Notas / Agenda", key="v_notas")
 
                 if st.form_submit_button(
-                    "📅 Agendar Visita",
+                    "Agendar Visita",
                     use_container_width=True, type="primary"
                 ):
                     if not v_cliente.strip():
@@ -979,7 +979,7 @@ def render_comercial(*_):
                             key=f"v_est_{vid}",
                             label_visibility="collapsed"
                         )
-                        if st.button("✅", key=f"v_upd_{vid}",
+                        if st.button("OK", key=f"v_upd_{vid}",
                                      use_container_width=True):
                             visitas_db.loc[
                                 visitas_db['ID'] == vid, 'Estado'
@@ -1007,7 +1007,7 @@ def render_comercial(*_):
                                     key=f"v_prox_{vid}"
                                 )
                             if st.button(
-                                "💾 Guardar Resultado",
+                                "Guardar Resultado",
                                 key=f"v_res_save_{vid}",
                                 use_container_width=True
                             ):
@@ -1077,7 +1077,7 @@ def render_comercial(*_):
                 cc_notas = st.text_area("Notas", key="cc_notas")
 
                 if st.form_submit_button(
-                    "💾 Registar Cliente",
+                    "Registar Cliente",
                     use_container_width=True, type="primary"
                 ):
                     if not cc_nome.strip():
@@ -1377,7 +1377,7 @@ def render_comercial(*_):
             col_re_b1, col_re_b2 = st.columns(2)
             with col_re_b1:
                 if st.button(
-                    "📄 Gerar PDF",
+                    "Gerar PDF",
                     key="btn_pdf_comercial",
                     type="primary",
                     use_container_width=True
@@ -1398,7 +1398,7 @@ def render_comercial(*_):
             with col_re_b2:
                 if st.session_state.get('com_pdf'):
                     st.download_button(
-                        "📥 Descarregar PDF",
+                        "Descarregar PDF",
                         data=st.session_state['com_pdf'],
                         file_name=st.session_state.get(
                             'com_pdf_nome', 'relatorio_comercial.pdf'
@@ -1420,7 +1420,7 @@ def render_comercial(*_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar Pipeline CSV",
+                    "Exportar Pipeline CSV",
                     data=csv_op.encode('utf-8-sig'),
                     file_name=f"pipeline_{hoje.strftime('%Y%m%d')}.csv",
                     mime="text/csv",

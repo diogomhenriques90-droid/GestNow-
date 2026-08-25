@@ -589,7 +589,7 @@ def render_fat_frota(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Contrato",
+                    "Guardar Contrato",
                     use_container_width=True, type="primary"
                 ):
                     if not r_mat.strip() or r_renda <= 0:
@@ -743,7 +743,7 @@ def render_fat_frota(*_):
                         )
                     with col_ra2:
                         if st.button(
-                            "✅ Atualizar",
+                            "Atualizar",
                             key=f"rupd_{rent_id}",
                             use_container_width=True
                         ):
@@ -847,7 +847,7 @@ def render_fat_frota(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar Abastecimento",
+                    "Registar Abastecimento",
                     use_container_width=True, type="primary"
                 ):
                     if cb_lit <= 0 or cb_val <= 0:
@@ -1048,7 +1048,7 @@ def render_fat_frota(*_):
             )
 
         if st.button(
-            "📊 Calcular TCO",
+            "Calcular TCO",
             key="btn_tco",
             type="primary",
             use_container_width=True
@@ -1274,7 +1274,7 @@ def render_fat_frota(*_):
                     )
 
                 if st.form_submit_button(
-                    "💾 Guardar Seguro",
+                    "Guardar Seguro",
                     use_container_width=True, type="primary"
                 ):
                     if not s_seg.strip():
@@ -1481,7 +1481,7 @@ def render_fat_frota(*_):
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                f"📥 Exportar Relatório Frota {mes_rel} {ano_rel}",
+                f"Exportar Relatório Frota {mes_rel} {ano_rel}",
                 data=csv_rel.encode('utf-8-sig'),
                 file_name=(
                     f"relatorio_frota_"

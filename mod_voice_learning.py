@@ -384,7 +384,7 @@ def render_voice_feedback_widget(command):
 
     col_fb1, col_fb2, col_fb3 = st.columns(3)
     with col_fb1:
-        if st.button("✅ Sim, boa resposta", use_container_width=True, key="fb_good"):
+        if st.button("Sim, boa resposta", use_container_width=True, key="fb_good"):
             register_feedback(
                 user=st.session_state.get('user', ''),
                 command=command,
@@ -395,7 +395,7 @@ def render_voice_feedback_widget(command):
             st.rerun()
 
     with col_fb2:
-        if st.button("⚠️ Podia ser melhor", use_container_width=True, key="fb_improve"):
+        if st.button("Podia ser melhor", use_container_width=True, key="fb_improve"):
             with st.popover("O que podia ser melhor?"):
                 comentario = st.text_area("Sugestão:", key="fb_comment_improve")
                 if st.button("Enviar feedback"):
@@ -410,7 +410,7 @@ def render_voice_feedback_widget(command):
                         st.rerun()
 
     with col_fb3:
-        if st.button("❌ Resposta errada", use_container_width=True, key="fb_bad"):
+        if st.button("Resposta errada", use_container_width=True, key="fb_bad"):
             with st.popover("Qual era a resposta esperada?"):
                 comentario = st.text_area("Resposta esperada:", key="fb_comment_bad")
                 if st.button("Enviar feedback"):

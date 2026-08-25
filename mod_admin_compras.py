@@ -204,7 +204,7 @@ def render_compras(*_):
                         col_a, col_r = st.columns(2)
                         with col_a:
                             if st.button(
-                                "✅ Aprovar",
+                                "Aprovar",
                                 key=f"cp_apr_{cid}",
                                 use_container_width=True,
                                 type="primary"
@@ -258,7 +258,7 @@ def render_compras(*_):
                                 label_visibility="collapsed"
                             )
                             if st.button(
-                                "❌ Rejeitar",
+                                "Rejeitar",
                                 key=f"cp_rej_{cid}",
                                 use_container_width=True
                             ):
@@ -366,7 +366,7 @@ def render_compras(*_):
             )
 
             submitted = st.form_submit_button(
-                "💾 Registar Compra",
+                "Registar Compra",
                 use_container_width=True,
                 type="primary"
             )
@@ -478,7 +478,7 @@ def render_compras(*_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar CSV",
+                    "Exportar CSV",
                     data=csv_h.encode('utf-8-sig'),
                     file_name=f"compras_{hoje.strftime('%Y%m')}.csv",
                     mime="text/csv",
@@ -548,7 +548,7 @@ def render_compras(*_):
                 f_notas = st.text_area("Notas", key="f_notas")
 
                 if st.form_submit_button(
-                    "💾 Guardar",
+                    "Guardar",
                     use_container_width=True,
                     type="primary"
                 ):

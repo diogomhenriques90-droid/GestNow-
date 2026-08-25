@@ -1031,7 +1031,7 @@ def render_fat_obras(obras_db, registos_db,
 
             with col_rad:
                 if st.button(
-                    "📊 Radar",
+                    "Radar",
                     key=f"radar_ob_{obra}",
                     use_container_width=True
                 ):
@@ -1081,7 +1081,7 @@ def render_fat_obras(obras_db, registos_db,
                             unsafe_allow_html=True
                         )
                     if st.button(
-                        "✖ Fechar",
+                        "Fechar",
                         key="fechar_radar_pl"
                     ):
                         st.session_state.pop(
@@ -1259,7 +1259,7 @@ def render_fat_obras(obras_db, registos_db,
             col_pdf1, col_pdf2 = st.columns(2)
             with col_pdf1:
                 if st.button(
-                    "📄 Gerar Relatório P&L PDF",
+                    "Gerar Relatório P&L PDF",
                     key="btn_pl_pdf",
                     type="primary",
                     use_container_width=True
@@ -1279,7 +1279,7 @@ def render_fat_obras(obras_db, registos_db,
             with col_pdf2:
                 if st.session_state.get('pl_pdf_bytes'):
                     st.download_button(
-                        "📥 Descarregar PDF",
+                        "Descarregar PDF",
                         data=st.session_state['pl_pdf_bytes'],
                         file_name=st.session_state.get(
                             'pl_pdf_nome','pl.pdf'
@@ -1357,7 +1357,7 @@ def render_fat_obras(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Orçamento",
+                    "Guardar Orçamento",
                     use_container_width=True, type="primary"
                 ):
                     novo_orc = {
@@ -1505,7 +1505,7 @@ def render_fat_obras(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar WIP",
+                    "Registar WIP",
                     use_container_width=True, type="primary"
                 ):
                     if not wip_desc.strip() or wip_val <= 0:
@@ -1630,7 +1630,7 @@ def render_fat_obras(obras_db, registos_db,
                             label_visibility="collapsed"
                         )
                         if st.button(
-                            "✅", key=f"wip_upd_{wid}",
+                            "", key=f"wip_upd_{wid}",
                             use_container_width=True
                         ):
                             wip_db.loc[
@@ -1737,7 +1737,7 @@ def render_fat_obras(obras_db, registos_db,
             index=False, encoding='utf-8-sig'
         )
         st.download_button(
-            "📥 Exportar Comparativo",
+            "Exportar Comparativo",
             data=csv_comp.encode('utf-8-sig'),
             file_name=(
                 f"comparativo_obras_"
@@ -1752,7 +1752,7 @@ def render_fat_obras(obras_db, registos_db,
         st.markdown("#### Insights de Lucratividade")
 
         if st.button(
-            "🤖 Analisar com IA",
+            "Analisar com IA",
             key="btn_insights_obras",
             type="primary",
             use_container_width=True

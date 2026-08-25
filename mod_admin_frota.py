@@ -99,7 +99,7 @@ def render_frota():
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar Viatura",
+                    "Registar Viatura",
                     use_container_width=True, type="primary"
                 ):
                     if not matricula.strip():
@@ -168,7 +168,7 @@ def render_frota():
                             label_visibility="collapsed"
                         )
                     with col_vd:
-                        if st.button("✅", key=f"vup_{vid}",
+                        if st.button("OK", key=f"vup_{vid}",
                                       use_container_width=True):
                             frota_db.loc[
                                 frota_db['ID'] == vid, 'Status'
@@ -225,7 +225,7 @@ def render_frota():
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar",
+                    "Registar",
                     use_container_width=True, type="primary"
                 ):
                     if litros_c <= 0:
@@ -314,7 +314,7 @@ def render_frota():
                     )
 
                 if st.form_submit_button(
-                    "⚠️ Registar Avaria",
+                    "Registar Avaria",
                     use_container_width=True, type="primary"
                 ):
                     if not desc_av.strip():
@@ -383,7 +383,7 @@ def render_frota():
                             label_visibility="collapsed"
                         )
                     with col_avd:
-                        if st.button("✅", key=f"avup_{avid}",
+                        if st.button("OK", key=f"avup_{avid}",
                                       use_container_width=True):
                             avarfrota_db.loc[
                                 avarfrota_db['ID'] == avid, 'Status'

@@ -226,7 +226,7 @@ def render_contactos_iso(*_):
                             url = _get_evidencia_url(ev_path)
                             if url:
                                 st.link_button(
-                                    "📎 Ver Evidência", url,
+                                    "Ver Evidência", url,
                                     use_container_width=True,
                                 )
                         else:
@@ -239,7 +239,7 @@ def render_contactos_iso(*_):
                             key=f"ct_est_{cid}",
                         )
                         if st.button(
-                            "✅ Atualizar", key=f"ct_upd_{cid}",
+                            "Atualizar", key=f"ct_upd_{cid}",
                             use_container_width=True, type="primary",
                         ):
                             ct_db.loc[ct_db["ID"] == cid, "Estado"] = novo_est
@@ -319,7 +319,7 @@ def render_contactos_iso(*_):
         n_op = st.selectbox("Oportunidade", ops_label, key="ct_n_op")
 
         st.divider()
-        if st.button("💾 Guardar Contacto", key="ct_btn_save", type="primary"):
+        if st.button("Guardar Contacto", key="ct_btn_save", type="primary"):
             erros = []
             if not n_cli_nome.strip(): erros.append("Nome da empresa")
             if not n_ct_nome.strip():  erros.append("Nome do contacto")

@@ -1923,7 +1923,7 @@ def render_fat_crise(obras_db, registos_db,
             acoes_editadas.append(ac_edit)
 
         # Adicionar ação personalizada
-        if st.button("➕ Adicionar Ação", key="btn_add_acao"):
+        if st.button("Adicionar Ação", key="btn_add_acao"):
             st.session_state['n_acoes_extra'] = \
                 st.session_state.get('n_acoes_extra', 0) + 1
 
@@ -1951,7 +1951,7 @@ def render_fat_crise(obras_db, registos_db,
         col_pdf1, col_pdf2 = st.columns(2)
         with col_pdf1:
             if st.button(
-                "📄 Gerar Plano PDF",
+                "Gerar Plano PDF",
                 key="btn_contingencia_pdf",
                 type="primary",
                 use_container_width=True
@@ -1972,7 +1972,7 @@ def render_fat_crise(obras_db, registos_db,
         with col_pdf2:
             if st.session_state.get('cont_pdf'):
                 st.download_button(
-                    "📥 Descarregar PDF",
+                    "Descarregar PDF",
                     data=st.session_state['cont_pdf'],
                     file_name=st.session_state.get(
                         'cont_pdf_nome','plano.pdf'
@@ -1988,7 +1988,7 @@ def render_fat_crise(obras_db, registos_db,
         st.markdown("#### Conselho IA para a Situação Atual")
 
         if st.button(
-            "🤖 Pedir Análise e Recomendações IA",
+            "Pedir Análise e Recomendações IA",
             key="btn_ia_contingencia",
             use_container_width=True
         ):

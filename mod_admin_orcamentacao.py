@@ -513,7 +513,7 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
                         )
                         if anexo_bytes:
                             if st.download_button(
-                                f"⬇️ {nome_anexo}",
+                                f"{nome_anexo}",
                                 data=anexo_bytes,
                                 file_name=nome_anexo,
                                 key=f"orc_anexo_{oid}_{nome_anexo}",
@@ -581,7 +581,7 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
 
                 col_b1, col_b2 = st.columns(2)
                 with col_b1:
-                    if st.button("✅ Actualizar", key=f"orc_upd_{oid}",
+                    if st.button("Actualizar", key=f"orc_upd_{oid}",
                                  use_container_width=True, type="primary"):
                         orc_db.loc[orc_db['ID'] == oid, 'Status'] = novo_stat
                         if motivo:
@@ -592,7 +592,7 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
                         st.rerun()
 
                 with col_b2:
-                    if st.button("📋 Duplicar", key=f"orc_dup_{oid}",
+                    if st.button("Duplicar", key=f"orc_dup_{oid}",
                                  use_container_width=True):
                         st.session_state['duplicar_orc_id'] = oid
                         st.info("Abre o tab ➕ Novo — o orçamento foi pré-carregado.")
@@ -600,7 +600,7 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
                 # Adjudicação → Criar Obra
                 if novo_stat == 'Adjudicado' or stat == 'Adjudicado':
                     st.markdown("---")
-                    if st.button("🏗️ Criar Obra a partir deste orçamento",
+                    if st.button("Criar Obra a partir deste orçamento",
                                  key=f"orc_obra_{oid}",
                                  use_container_width=True,
                                  type="primary"):
@@ -649,7 +649,7 @@ def _modal_criar_obra(orc, oid, orc_db):
 
     col_ok, col_cancel = st.columns(2)
     with col_ok:
-        if st.button("✅ Confirmar e Criar Obra",
+        if st.button("Confirmar e Criar Obra",
                      key=f"cr_confirm_{oid}",
                      type="primary",
                      use_container_width=True):
@@ -694,7 +694,7 @@ def _modal_criar_obra(orc, oid, orc_db):
                 st.rerun()
 
     with col_cancel:
-        if st.button("✖ Cancelar", key=f"cr_cancel_{oid}",
+        if st.button("Cancelar", key=f"cr_cancel_{oid}",
                      use_container_width=True):
             st.session_state[f'criar_obra_orc_{oid}'] = False
             st.rerun()
@@ -912,7 +912,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                             key=f"cat_preco_{item.get('ID','')}"
                         )
                     with col_i4:
-                        if st.button("➕", key=f"cat_add_{item.get('ID','')}"):
+                        if st.button("Usar", key=f"cat_add_{item.get('ID','')}"):
                             st.session_state['orc_linhas_temp'].append({
                                 "ID":          str(uuid.uuid4())[:6].upper(),
                                 "Descricao":   item.get('Descricao', ''),
@@ -966,7 +966,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                                           step=1.0, key="manual_preco")
                 m_notas = st.text_input("Notas", key="manual_notas")
 
-            if st.form_submit_button("➕ Adicionar"):
+            if st.form_submit_button("Adicionar"):
                 if m_desc.strip():
                     st.session_state['orc_linhas_temp'].append({
                         "ID":          str(uuid.uuid4())[:6].upper(),
@@ -998,7 +998,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
             with col_l4:
                 st.caption(f"**€{lin['Total']:.2f}**")
             with col_l5:
-                if st.button("🗑", key=f"rm_lin_{i}"):
+                if st.button("X", key=f"rm_lin_{i}", help="Remover linha"):
                     st.session_state['orc_linhas_temp'].pop(i)
                     st.rerun()
 
@@ -1037,7 +1037,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
         st.markdown("<br>", unsafe_allow_html=True)
         col_s1, col_s2 = st.columns(2)
         with col_s1:
-            if st.button("💾 Guardar Orçamento", type="primary",
+            if st.button("Guardar Orçamento", type="primary",
                          use_container_width=True, key="btn_save_a"):
                 if not no_obra or no_obra == "—":
                     st.error("Selecciona uma obra.")
@@ -1059,7 +1059,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                         _no_op_id
                     )
         with col_s2:
-            if st.button("🗑️ Limpar Linhas", use_container_width=True,
+            if st.button("Limpar Linhas", use_container_width=True,
                          key="btn_clear_a"):
                 st.session_state['orc_linhas_temp'] = []
                 st.rerun()
@@ -1324,7 +1324,7 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("💾 Guardar Orçamento Tipo B", type="primary",
+    if st.button("Guardar Orçamento Tipo B", type="primary",
                  use_container_width=True, key="btn_save_b"):
         if not nb_obra or nb_obra == "—" or not nb_cliente.strip():
             st.error("Obra e cliente obrigatórios.")
@@ -1450,7 +1450,7 @@ def _form_arquivo(orc_db, obras_db, user_nome, op_db=None):
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("💾 Guardar Orçamento de Arquivo", type="primary",
+    if st.button("Guardar Orçamento de Arquivo", type="primary",
                  use_container_width=True, key="btn_save_arquivo"):
         cliente_final = ar_cliente.strip()
         obra_final = (ar_obra or "").strip()
@@ -1554,7 +1554,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
 
         col_ca1, col_ca2 = st.columns([3, 1])
         with col_ca2:
-            if st.button("➕ Novo Item", key="cat_novo_btn",
+            if st.button("Novo Item", key="cat_novo_btn",
                          use_container_width=True, type="primary"):
                 st.session_state['cat_novo_open'] = True
 
@@ -1580,7 +1580,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                     c_preco = st.number_input("Preço sugerido (€/un)",
                                                min_value=0.0, step=0.5, key="cat_c_preco")
 
-                if st.form_submit_button("💾 Guardar"):
+                if st.form_submit_button("Guardar"):
                     if c_desc.strip() and c_mins > 0:
                         novo_item = pd.DataFrame([{
                             "ID":               str(uuid.uuid4())[:6].upper(),
@@ -1607,7 +1607,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
         with st.expander("📥 Importação em bulk (CSV)"):
             st.caption("Colunas: Categoria, Descricao, Unidade, Minutos_Unit, Preco_Sugerido")
             f_bulk = st.file_uploader("Upload CSV", type="csv", key="cat_bulk")
-            if f_bulk and st.button("📥 Importar", key="cat_import_btn"):
+            if f_bulk and st.button("Importar", key="cat_import_btn"):
                 try:
                     df_imp = pd.read_csv(f_bulk)
                     df_imp['ID']               = [str(uuid.uuid4())[:6].upper()
@@ -1646,7 +1646,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
         st.markdown("#### Tabela de Tarifas de Mão de Obra")
         st.caption("Valores hora e diária por categoria e zona geográfica.")
 
-        if st.button("➕ Nova Tarifa", key="cat_tar_novo_btn"):
+        if st.button("Nova Tarifa", key="cat_tar_novo_btn"):
             st.session_state['tar_novo_open'] = True
 
         if st.session_state.get('tar_novo_open', False):
@@ -1663,7 +1663,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                     t_diaria = st.number_input("Diária (€)", min_value=0.0,
                                                 step=1.0, key="cat_t_diaria")
 
-                if st.form_submit_button("💾 Guardar"):
+                if st.form_submit_button("Guardar"):
                     if t_cat.strip() and t_zona.strip():
                         novo_t = pd.DataFrame([{
                             "ID":               str(uuid.uuid4())[:6].upper(),
@@ -1710,7 +1710,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                                               min_value=0.0, step=1.0, key="cat_r_val")
                     r_fonte = st.text_input("Fonte (opcional)", key="cat_r_fonte")
 
-                if st.form_submit_button("💾 Guardar"):
+                if st.form_submit_button("Guardar"):
                     novo_r = pd.DataFrame([{
                         "ID":               str(uuid.uuid4())[:6].upper(),
                         "Tipo":             r_tipo,

@@ -164,13 +164,13 @@ def render_inicio(*args):
 
     col_r1, col_r2 = st.columns(2)
     with col_r1:
-        if st.button("📋 Registar Ponto",
+        if st.button("Registar Ponto",
                      use_container_width=True, type="primary", key="btn_rp"):
             st.session_state['menu_selected'] = f"Obra"
             st.session_state['_menu_locked']  = True
             st.rerun()
     with col_r2:
-        if st.button("👤 O Meu Perfil",
+        if st.button("O Meu Perfil",
                      use_container_width=True, type="secondary", key="btn_mp"):
             st.session_state['menu_selected'] = f"Perfil"
             st.session_state['_menu_locked']  = True
@@ -179,7 +179,7 @@ def render_inicio(*args):
     tem_inst = (user_tipo in ['Chefe de Equipa','Admin','Gestor'] or
                 cargo in ['Chefe de Equipa','Encarregado','Instrumentista'])
     if tem_inst:
-        if st.button("🧪 Instrumentação",
+        if st.button("Instrumentação",
                      use_container_width=True, type="secondary", key="btn_inst"):
             st.session_state['menu_selected'] = f"Instrumentação"
             st.session_state['_menu_locked']  = True

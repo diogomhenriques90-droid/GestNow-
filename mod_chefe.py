@@ -591,7 +591,7 @@ def render_chefe(*args):
             titulo_com   = st.text_input("Título", key="com_ch_titulo")
             conteudo_com = st.text_area("Mensagem", key="com_ch_msg")
             urgente      = st.checkbox("Urgente", key="com_ch_urg")
-            if st.form_submit_button("📣 Enviar", use_container_width=True, type="primary"):
+            if st.form_submit_button("Enviar", use_container_width=True, type="primary"):
                 if titulo_com and conteudo_com:
                     novo = pd.DataFrame([{
                         "ID":       str(uuid.uuid4())[:8].upper(),
@@ -654,7 +654,7 @@ def render_chefe(*args):
 
                 col_vm, col_rm = st.columns(2)
                 with col_vm:
-                    if st.button("🟢 Validar Todos", key="ch_val_todos",
+                    if st.button("Validar Todos", key="ch_val_todos",
                                  type="primary", use_container_width=True):
                         for tec in df_pend['Técnico'].unique():
                             registos_db.loc[
@@ -672,7 +672,7 @@ def render_chefe(*args):
                         st.session_state['_menu_locked'] = True
                         st.rerun()
                 with col_rm:
-                    if st.button("❌ Rejeitar Todos", key="ch_rej_todos",
+                    if st.button("Rejeitar Todos", key="ch_rej_todos",
                                  use_container_width=True):
                         for tec in df_pend['Técnico'].unique():
                             registos_db.loc[
@@ -725,7 +725,7 @@ def render_chefe(*args):
                     # Botões validar/rejeitar técnico
                     col_vt, col_rt = st.columns(2)
                     with col_vt:
-                        if st.button(f"🟢 Validar todos de {tecnico.split()[0]}",
+                        if st.button(f"Validar todos de {tecnico.split()[0]}",
                                      key=f"apr_{tecnico}", use_container_width=True,
                                      type="primary"):
                             registos_db.loc[
@@ -742,7 +742,7 @@ def render_chefe(*args):
                             st.session_state['_menu_locked'] = True
                             st.rerun()
                     with col_rt:
-                        if st.button(f"❌ Rejeitar todos de {tecnico.split()[0]}",
+                        if st.button(f"Rejeitar todos de {tecnico.split()[0]}",
                                      key=f"rej_{tecnico}", use_container_width=True):
                             registos_db.loc[
                                 (registos_db['Técnico'] == tecnico) &
@@ -779,7 +779,7 @@ def render_chefe(*args):
 
                         col_i, col_v, col_r = st.columns([6, 1, 1])
                         with col_v:
-                            if st.button("✅", key=f"val_ind_{reg_id}",
+                            if st.button("Sim", key=f"val_ind_{reg_id}",
                                          use_container_width=True, help="Validar"):
                                 registos_db.loc[
                                     registos_db['ID'] == reg_id, 'Status'] = '1'
@@ -794,7 +794,7 @@ def render_chefe(*args):
                                 st.session_state['_menu_locked'] = True
                                 st.rerun()
                         with col_r:
-                            if st.button("❌", key=f"rej_ind_{reg_id}",
+                            if st.button("Não", key=f"rej_ind_{reg_id}",
                                          use_container_width=True, help="Rejeitar"):
                                 registos_db.loc[
                                     registos_db['ID'] == reg_id, 'Status'] = '-1'
@@ -1214,7 +1214,7 @@ def render_chefe(*args):
             if st.session_state.pop('_pt_redirect_ch', False):
                 st.info("O registo de horas é feito na **CPS Ponto**.")
                 st.link_button(
-                    "🔗 Abrir CPS Ponto",
+                    "Abrir CPS Ponto",
                     "https://cps-ponto-773461449136.europe-west1.run.app",
                     use_container_width=True, type="primary")
 
@@ -1387,9 +1387,9 @@ def render_chefe(*args):
                 st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
                 col_c, col_g = st.columns(2)
                 with col_c:
-                    mais_per = st.form_submit_button("➕ Adicionar Período", use_container_width=True)
+                    mais_per = st.form_submit_button("Adicionar Período", use_container_width=True)
                 with col_g:
-                    guardar  = st.form_submit_button("💾 Guardar Ponto", use_container_width=True, type="primary")
+                    guardar  = st.form_submit_button("Guardar Ponto", use_container_width=True, type="primary")
 
             if st.button("← Voltar", key="ch_btn_voltar"):
                 st.session_state.show_reg_form_ch    = False
@@ -1534,7 +1534,7 @@ def render_chefe(*args):
                     </div>
                 </div>""", unsafe_allow_html=True)
 
-                if st.button("👁️ Gerar Preview da Folha →", use_container_width=True,
+                if st.button("Gerar Preview da Folha →", use_container_width=True,
                              type="primary", key="btn_fp_preview"):
                     if not nome_resp.strip():
                         st.warning("Indica o nome do responsável.")
@@ -1602,7 +1602,7 @@ def render_chefe(*args):
             nome_ficheiro = (f"folha_ponto_{st.session_state.fp_obra.replace(' ','_')}"
                              f"_{datetime.now().strftime('%Y%m%d')}.html")
             st.download_button(
-                "📥 Download da Folha (para imprimir e assinar manualmente)",
+                "Download da Folha (para imprimir e assinar manualmente)",
                 data=html_bytes,
                 file_name=nome_ficheiro,
                 mime="text/html",
@@ -1626,7 +1626,7 @@ def render_chefe(*args):
                         Confirma o nome e aprova online. Gera selo de autenticidade.
                     </div>
                 </div>""", unsafe_allow_html=True)
-                if st.button("✍️ Assinar Digitalmente", key="btn_modo_digital",
+                if st.button("Assinar Digitalmente", key="btn_modo_digital",
                              use_container_width=True, type="primary"):
                     st.session_state.fp_modo_assin = 'digital'
                     st.session_state.fp_step = 'assinar'
@@ -1645,7 +1645,7 @@ def render_chefe(*args):
                         Descarrega, imprime, assina e faz upload da folha assinada.
                     </div>
                 </div>""", unsafe_allow_html=True)
-                if st.button("🖊️ Upload Assinatura Manual", key="btn_modo_manual",
+                if st.button("Upload Assinatura Manual", key="btn_modo_manual",
                              use_container_width=True):
                     st.session_state.fp_modo_assin = 'manual'
                     st.session_state.fp_step = 'assinar'
@@ -1709,7 +1709,7 @@ def render_chefe(*args):
                         cancelar = st.form_submit_button("← Voltar",
                             use_container_width=True)
                     with col_s2:
-                        confirmar = st.form_submit_button("🔏 Assinar e Submeter",
+                        confirmar = st.form_submit_button("Assinar e Submeter",
                             use_container_width=True, type="primary")
 
                 if cancelar:
@@ -1790,7 +1790,7 @@ def render_chefe(*args):
                         "Nome do cliente / representante que assinou",
                         key="fp_nome_cliente_manual")
 
-                    if st.button("📤 Submeter Folha Assinada ao Admin",
+                    if st.button("Submeter Folha Assinada ao Admin",
                                  use_container_width=True, type="primary",
                                  key="btn_submeter_manual"):
                         folha_id    = str(uuid.uuid4())[:8].upper()
@@ -1868,7 +1868,7 @@ def render_chefe(*args):
 
             st.balloons()
 
-            if st.button("➕ Criar Nova Folha", use_container_width=True,
+            if st.button("Criar Nova Folha", use_container_width=True,
                          type="primary", key="btn_nova_folha"):
                 for k in ['fp_step','fp_html','fp_total_h','fp_obra','fp_periodo',
                           'fp_regs','fp_responsavel','fp_modo_assin','fp_folha_id']:
@@ -1904,7 +1904,7 @@ def render_chefe(*args):
                     obras_db['Obra'].unique().tolist() if not obras_db.empty else ["Geral"])
                 g_hse = st.selectbox("Gravidade", ["Baixa","Média","Alta (Crítica)"])
                 d_hse = st.text_area("Descrição")
-                if st.form_submit_button("🛡️ Submeter Alerta HSE",
+                if st.form_submit_button("Submeter Alerta HSE",
                                          use_container_width=True, type="primary"):
                     if d_hse:
                         ni = pd.DataFrame([{

@@ -1297,7 +1297,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                     )
                 with col_rd:
                     if st.button(
-                        "📊", key=f"radar_{obra}",
+                        "", key=f"radar_{obra}",
                         use_container_width=True,
                         help="Ver radar desta obra"
                     ):
@@ -1398,7 +1398,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
     col_p1, col_p2 = st.columns([4, 1])
     with col_p2:
         enviar = st.button(
-            "🚀 Perguntar",
+            "Perguntar",
             type="primary",
             use_container_width=True,
             key="btn_copiloto"

@@ -778,7 +778,7 @@ def render_admin_rh(*args):
         with col_titulo:
             st.markdown("### Todos os Colaboradores")
         with col_btn:
-            if st.button("➕ Novo", key="btn_novo_colab",
+            if st.button("Novo", key="btn_novo_colab",
                           type="primary", use_container_width=True):
                 st.session_state['show_criar_colab'] = True
                 st.rerun()
@@ -837,12 +837,12 @@ def render_admin_rh(*args):
                 c_sub, c_can = st.columns(2)
                 with c_sub:
                     submitted = st.form_submit_button(
-                        "💾 Criar Colaborador",
+                        "Criar Colaborador",
                         use_container_width=True, type="primary"
                     )
                 with c_can:
                     cancelar = st.form_submit_button(
-                        "✕ Cancelar", use_container_width=True
+                        "Cancelar", use_container_width=True
                     )
 
             if cancelar:
@@ -960,7 +960,7 @@ def render_admin_rh(*args):
                         unsafe_allow_html=True
                     )
                 with col_sel:
-                    if st.button("📋", key=f"sel_{nome_c}",
+                    if st.button("Abrir", key=f"sel_{nome_c}",
                                   use_container_width=True,
                                   help="Gerir colaborador"):
                         st.session_state['rh_colaborador_sel'] = nome_c
@@ -1011,7 +1011,7 @@ def render_admin_rh(*args):
         # ── Exportar Excel ────────────────────────────────────────
         excel_bytes = _exportar_excel_colaborador(row)
         st.download_button(
-            "📥 Exportar dados em Excel",
+            "Exportar dados em Excel",
             data=excel_bytes,
             file_name=f"colaborador_{nome_sel.replace(' ','_')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1069,7 +1069,7 @@ def render_admin_rh(*args):
                         value=_vg("Concelho"), key=f"gi_concelho_{_slug_gi}")
                     _gi_cp = st.text_input("Código Postal",
                         value=_vg("Codigo_Postal"), key=f"gi_cp_{_slug_gi}")
-                if st.form_submit_button("💾 Guardar Contactos & Morada",
+                if st.form_submit_button("Guardar Contactos & Morada",
                                          use_container_width=True, type="primary"):
                     if _save_dual(nome_sel, {
                         "Email": _gi_email, "Morada": _gi_morada,
@@ -1090,7 +1090,7 @@ def render_admin_rh(*args):
                     value=_vg("Banco_Nome"), key=f"gi_banco_{_slug_gi}")
                 _gi_iban = st.text_input("IBAN",
                     value=_vg("Banco_IBAN"), key=f"gi_iban_{_slug_gi}")
-                if st.form_submit_button("💾 Guardar Dados Bancários",
+                if st.form_submit_button("Guardar Dados Bancários",
                                          use_container_width=True, type="primary"):
                     if _save_dual(nome_sel, {
                         "Banco_Nome": _gi_banco, "Banco_IBAN": _gi_iban,
@@ -1113,7 +1113,7 @@ def render_admin_rh(*args):
                 with _gc3:
                     _gi_grau_em = st.text_input("Grau de Parentesco",
                         value=_vg("Grau_Parentesco"), key=f"gi_grauem_{_slug_gi}")
-                if st.form_submit_button("💾 Guardar Emergência",
+                if st.form_submit_button("Guardar Emergência",
                                          use_container_width=True, type="primary"):
                     if _save_gi({"Nome_Emergencia": _gi_nome_em,
                                   "Contacto_Emergencia": _gi_tel_em,
@@ -1153,7 +1153,7 @@ def render_admin_rh(*args):
                 idx_cargo     = cargos_opcoes.index(cargo_atual) if cargo_atual in cargos_opcoes else 0
                 novo_cargo = st.selectbox("🏷️ Permissões APP (Cargo)",
                     cargos_opcoes, index=idx_cargo, key="rh_novo_cargo")
-            if st.button("💾 Guardar Permissões APP",
+            if st.button("Guardar Permissões APP",
                          key="btn_guardar_funcao", type="primary"):
                 u_fn = _load_users_fresh()
                 mk_fn = u_fn["Nome"] == nome_sel
@@ -1229,7 +1229,7 @@ def render_admin_rh(*args):
                     _gi_ct_valid_data = st.text_input("Data Validação (DD/MM/AAAA)",
                         value=_vg("Contrato_Validado_Data"), key=f"gi_ctvaliddata_{_slug_gi}")
 
-                if st.form_submit_button("💾 Guardar Profissional",
+                if st.form_submit_button("Guardar Profissional",
                                          use_container_width=True, type="primary"):
                     if _save_gi({
                         "PrecoHora": _gi_preco, "Local_Obra": _gi_local,
@@ -1280,7 +1280,7 @@ def render_admin_rh(*args):
             try:
                 iban_bytes = base64.b64decode(iban_b64)
                 st.download_button(
-                    "📥 Descarregar Comprovativo IBAN",
+                    "Descarregar Comprovativo IBAN",
                     data=iban_bytes,
                     file_name=f"iban_{nome_sel.replace(' ','_')}.pdf",
                     mime="application/octet-stream",
@@ -1306,7 +1306,7 @@ def render_admin_rh(*args):
             todos_bloqueáveis, default=campos_bl,
             key="rh_campos_bl"
         )
-        if st.button("💾 Guardar Bloqueios",
+        if st.button("Guardar Bloqueios",
                       key="btn_guardar_bloqueios"):
             u_fresh = _load_users_fresh()
             mask    = u_fresh['Nome'] == nome_sel
@@ -1329,7 +1329,7 @@ def render_admin_rh(*args):
                 placeholder="Mínimo 4 caracteres")
             conf_pwd_admin = st.text_input(
                 "Confirmar Password *", type="password", key="rh_conf_pwd_admin")
-            if st.button("🔐 Redefinir Password", key="btn_redef_pwd",
+            if st.button("Redefinir Password", key="btn_redef_pwd",
                          type="primary"):
                 if not nova_pwd_admin.strip():
                     st.error("Introduz uma nova password.")
@@ -1380,7 +1380,7 @@ def render_admin_rh(*args):
             confirmar_rm = st.text_input(
                 f"Escreve '{nome_sel}' para confirmar",
                 key="rh_confirm_rm", placeholder="Nome completo")
-            if st.button("🗑️ Remover Definitivamente",
+            if st.button("Remover Definitivamente",
                          key="btn_remover_def"):
                 if confirmar_rm.strip() != nome_sel:
                     st.error("Nome não coincide. Operação cancelada.")
@@ -1436,7 +1436,7 @@ def render_admin_rh(*args):
                 "Motivo / Observações *",
                 key="rh_obs_ln", height=68,
                 placeholder="Ex: Abandono de posto, comportamento inadequado...")
-            if st.button("⛔ Enviar para Lista Negra",
+            if st.button("Enviar para Lista Negra",
                          key="btn_lista_negra"):
                 if not obs_ln.strip():
                     st.error("Indica o motivo.")
@@ -1495,7 +1495,7 @@ def render_admin_rh(*args):
                         unsafe_allow_html=True
                     )
                     # Opção de reactivar
-                    if st.button(f"🔓 Reactivar {ln_nome}",
+                    if st.button(f"Reactivar {ln_nome}",
                                  key=f"btn_reactivar_{ln_nome}"):
                         u_ra = _load_users_fresh()
                         mk_ra = u_ra["Nome"] == ln_nome
@@ -1616,7 +1616,7 @@ def render_admin_rh(*args):
                     _n_dep = st.text_input("Nº Dependentes", value=_v("N_Dependentes"), key=f"dl_ndep_{_slug}")
                     _n_dep_def = st.text_input("Nº Dependentes c/ Deficiência",
                         value=_v("N_Dependentes_Deficiencia"), key=f"dl_ndepdef_{_slug}")
-                if st.form_submit_button("💾 Guardar Identificação",
+                if st.form_submit_button("Guardar Identificação",
                                          use_container_width=True, type="primary"):
                     if _save_dual(_nome_dl, {
                         "NIF": _nif, "NISS": _niss, "CC": _cc, "CC_Validade": _ccval,
@@ -1662,7 +1662,7 @@ def render_admin_rh(*args):
                     _ess_opts, _ess_idx = _sel_opts(ENQUADRAMENTO_SS_OPTS, _v("Enquadramento_SS"))
                     _enq_ss = st.selectbox("Enquadramento SS", _ess_opts,
                         index=_ess_idx, key=f"dl_enqss_{_slug}")
-                if st.form_submit_button("💾 Guardar Dados Fiscais",
+                if st.form_submit_button("Guardar Dados Fiscais",
                                          use_container_width=True, type="primary"):
                     if _sync_rh_csv(_nome_dl, {
                         "IRS_Escalao": _irs_esc, "IRS_Percentagem": _irs_pct,
@@ -1740,7 +1740,7 @@ def render_admin_rh(*args):
                     _data_sai = st.text_input("Data Saída (DD/MM/AAAA)",
                         value=_v("Data_Saida"), key=f"dl_datasai_{_slug}")
 
-                if st.form_submit_button("💾 Guardar Dados Contratuais",
+                if st.form_submit_button("Guardar Dados Contratuais",
                                          use_container_width=True, type="primary"):
                     if _sync_rh_csv(_nome_dl, {
                         "Tipo_Contrato": _tp_ct, "Modalidade_Horario": _mod_hr,
@@ -1811,7 +1811,7 @@ def render_admin_rh(*args):
                               if _v("Pensionista") in ["","Sim","Não"] else 0,
                         key=f"dl_pensionista_{_slug}")
 
-                if st.form_submit_button("💾 Guardar Remuneração",
+                if st.form_submit_button("Guardar Remuneração",
                                          use_container_width=True, type="primary"):
                     if _sync_rh_csv(_nome_dl, {
                         "Subsidio_Alimentacao": _sub_al,
@@ -1852,7 +1852,7 @@ def render_admin_rh(*args):
                     valor_atual=_fc_c_atual,
                     em_uso=_u_dl["Categoria_Operacional"]
                            if "Categoria_Operacional" in _u_dl.columns else [])
-            if st.button("💾 Guardar Função/Categoria Operacional",
+            if st.button("Guardar Função/Categoria Operacional",
                          key=f"dl_fc_save_{_slug}", type="primary"):
                 if (_fc_f_novo and not _fc_f) or (_fc_c_novo and not _fc_c):
                     st.error("Introduz o novo valor antes de guardar.")
@@ -1938,7 +1938,7 @@ def render_admin_rh(*args):
                     _apol_at = st.text_input("Apólice AT",
                         value=_v("Apolice_AT"), key=f"dl_apolat_{_slug}")
 
-                if st.form_submit_button("💾 Guardar Dados Profissionais",
+                if st.form_submit_button("Guardar Dados Profissionais",
                                          use_container_width=True, type="primary"):
                     _profissao_code = _profissao.split(" – ")[0] if " – " in _profissao else _profissao
                     _cat_cct_code   = _cat_cct.split(" – ")[0]   if " – " in _cat_cct   else _cat_cct
@@ -1980,7 +1980,7 @@ def render_admin_rh(*args):
                         key=f"dl_regassinado_{_slug}")
                     _reg_data = st.text_input("Data Assinatura Regulamento (DD/MM/AAAA)",
                         value=_v("Regulamento_Data"), key=f"dl_regdata_{_slug}")
-                if st.form_submit_button("💾 Guardar Condução e Documentos",
+                if st.form_submit_button("Guardar Condução e Documentos",
                                          use_container_width=True, type="primary"):
                     if _sync_rh_csv(_nome_dl, {
                         "Carta_Conducao_Num": _carta_num, "Carta_Conducao_Validade": _carta_val,
@@ -2025,7 +2025,7 @@ def render_admin_rh(*args):
                                  "`Funçao;Categoria;NIF`.")
                     else:
                         st.markdown(f"**{len(_fc_imp)}** linha(s) no ficheiro.")
-                        if st.button("📥 Importar", key="dl_fc_import_btn",
+                        if st.button("Importar", key="dl_fc_import_btn",
                                      type="primary"):
                             _VAZIOS_FC = {"", "#n/a", "#n/d", "n/a", "#na", "#ref!"}
                             _u_imp = _load_users_fresh()
@@ -2141,7 +2141,7 @@ def render_admin_rh(*args):
                     for _l in _relatorio_mig:
                         st.markdown(_l)
 
-                    if st.button("✅ Aplicar migração", key="btn_migrar_schema",
+                    if st.button("Aplicar migração", key="btn_migrar_schema",
                                   type="primary"):
                         for _dup, _canon in _DUPLICADOS_MIGRACAO.items():
                             if _dup not in _df_mig.columns:
@@ -2321,7 +2321,7 @@ def render_admin_rh(*args):
                 )
                 for _nc in _res['novos']:
                     st.markdown(f"- **{_nc['Nome']}** → `{_nc['Password']}`")
-            if st.button("✓ Já guardei — fechar relatório",
+            if st.button("Já guardei — fechar relatório",
                          key="imp_fechar_relatorio"):
                 del st.session_state['eticadata_result']
                 st.rerun()
@@ -2350,7 +2350,7 @@ def render_admin_rh(*args):
                 st.success(f"Ficheiro carregado: **{len(_eti_df)}** registos, "
                            f"**{len(_eti_df.columns)}** colunas.")
             with _ecol_btn:
-                if st.button("🗑️ Limpar", key="imp_limpar"):
+                if st.button("Limpar", key="imp_limpar"):
                     del st.session_state['eticadata_df']
                     st.session_state['eti_upload_key'] = st.session_state.get('eti_upload_key', 0) + 1
                     st.rerun()
@@ -2781,7 +2781,7 @@ def render_admin_rh(*args):
                             value=date.today(), key="ct_data_doc"
                         )
 
-                    if st.form_submit_button("📄 Gerar Contrato",
+                    if st.form_submit_button("Gerar Contrato",
                         use_container_width=True, type="primary"):
                         if not ct_local or not ct_cliente:
                             st.error("Local e Cliente são obrigatórios.")
@@ -2846,7 +2846,7 @@ def render_admin_rh(*args):
                 try:
                     ct_bytes = base64.b64decode(ct_b64)
                     st.download_button(
-                        "📥 Descarregar contrato para rever",
+                        "Descarregar contrato para rever",
                         data=ct_bytes,
                         file_name=f"contrato_{nome_ct_sel.replace(' ','_')}.docx",
                         mime="application/vnd.openxmlformats-officedocument"
@@ -2864,7 +2864,7 @@ def render_admin_rh(*args):
                     key="ct_reupload"
                 )
                 if ct_novo:
-                    if st.button("💾 Guardar versão editada",
+                    if st.button("Guardar versão editada",
                                   key="btn_guardar_ct_editado",
                                   use_container_width=True):
                         novo_b64 = base64.b64encode(ct_novo.read()).decode()
@@ -2883,7 +2883,7 @@ def render_admin_rh(*args):
 
             col_env1, col_env2 = st.columns(2)
             with col_env1:
-                if st.button("📤 Marcar como Enviado ao Colaborador",
+                if st.button("Marcar como Enviado ao Colaborador",
                               key="btn_enviar_ct", type="primary",
                               use_container_width=True):
                     u_ct2 = _load_users_fresh()
@@ -2907,7 +2907,7 @@ def render_admin_rh(*args):
                         st.success("Colaborador notificado!")
                         st.rerun()
             with col_env2:
-                if st.button("🔄 Regenerar Contrato",
+                if st.button("Regenerar Contrato",
                               key="btn_regen_ct",
                               use_container_width=True):
                     u_ct2 = _load_users_fresh()
@@ -2938,7 +2938,7 @@ def render_admin_rh(*args):
                 try:
                     assin_bytes = base64.b64decode(assin_b64)
                     st.download_button(
-                        "📥 Ver contrato assinado pelo colaborador",
+                        "Ver contrato assinado pelo colaborador",
                         data=assin_bytes,
                         file_name=f"contrato_assinado_{nome_ct_sel.replace(' ','_')}.pdf",
                         mime="application/octet-stream",
@@ -2949,7 +2949,7 @@ def render_admin_rh(*args):
 
             col_val1, col_val2 = st.columns(2)
             with col_val1:
-                if st.button("✅ Validar e Arquivar",
+                if st.button("Validar e Arquivar",
                               key="btn_validar_ct", type="primary",
                               use_container_width=True):
                     u_ct3 = _load_users_fresh()
@@ -2980,7 +2980,7 @@ def render_admin_rh(*args):
                         st.success("Contrato arquivado!")
                         st.rerun()
             with col_val2:
-                if st.button("❌ Recusar (pedir nova assinatura)",
+                if st.button("Recusar (pedir nova assinatura)",
                               key="btn_recusar_ct",
                               use_container_width=True):
                     u_ct3 = _load_users_fresh()
@@ -3013,7 +3013,7 @@ def render_admin_rh(*args):
                 try:
                     ct_bytes_f = base64.b64decode(ct_b64_f)
                     st.download_button(
-                        "📥 Descarregar contrato original",
+                        "Descarregar contrato original",
                         data=ct_bytes_f,
                         file_name=f"contrato_final_{nome_ct_sel.replace(' ','_')}.docx",
                         mime="application/vnd.openxmlformats-officedocument"
@@ -3083,7 +3083,7 @@ def render_admin_rh(*args):
             template_bytes = _gcs_read_binary("contrato_template.docx")
             if template_bytes:
                 st.download_button(
-                    "📥 Descarregar template atual",
+                    "Descarregar template atual",
                     data=template_bytes,
                     file_name="contrato_template.docx",
                     mime="application/vnd.openxmlformats-officedocument"

@@ -87,7 +87,7 @@ class TestNovaObraDataTermino(unittest.TestCase):
             at.date_input(key="obra_data_fim").set_value(
                 pd.Timestamp("2027-01-31").date()).run()
         at.button(
-            key="FormSubmitter:form_nova_obra-💾 Criar Obra"
+            key="FormSubmitter:form_nova_obra-Criar Obra"
         ).click().run()
         self.assertFalse(at.exception, msg=str(at.exception))
 
@@ -182,7 +182,7 @@ class TestListaObrasAtivasAtual(unittest.TestCase):
 
     def test_existe_botao_fechar(self):
         labels = [b.label for b in self.at.button]
-        self.assertIn("🗄️ Fechar", labels)
+        self.assertIn("Fechar", labels)
 
 
 class TestEditarObra(unittest.TestCase):
@@ -200,7 +200,7 @@ class TestEditarObra(unittest.TestCase):
                 _script_com_obra, args=(_OBRAS_RECORDS,), default_timeout=30)
             at.run()
         labels = [b.label for b in at.button]
-        self.assertIn("✏️ Editar", labels)
+        self.assertIn("Editar", labels)
 
     def _abrir_editar(self):
         with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
@@ -258,7 +258,7 @@ class TestEditarObra(unittest.TestCase):
                 "Manutenção de instrumentação").run()
             at.button(
                 key="FormSubmitter:form_editar_obra_Obra Existente Teste-"
-                    "💾 Guardar Alterações"
+                    "Guardar Alterações"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         self.assertTrue(mock_save.called)
@@ -428,7 +428,7 @@ class TestResponsavelDeEquipa(unittest.TestCase):
             at.selectbox(key="ed_resp_Obra Existente Teste").set_value("Ana Alocada").run()
             at.button(
                 key="FormSubmitter:form_editar_obra_Obra Existente Teste-"
-                    "💾 Guardar Alterações"
+                    "Guardar Alterações"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         df_gravado = mock_save.call_args[0][0]
@@ -450,7 +450,7 @@ class TestResponsavelDeEquipa(unittest.TestCase):
             at.run()
             at.button(
                 key="FormSubmitter:form_editar_obra_Obra Existente Teste-"
-                    "💾 Guardar Alterações"
+                    "Guardar Alterações"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         df_gravado = mock_save.call_args[0][0]

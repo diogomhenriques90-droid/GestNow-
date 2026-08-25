@@ -552,7 +552,7 @@ def render_formacoes(users, obras_db, *_):
                     if cert_b and len(str(cert_b)) > 50:
                         try:
                             st.download_button(
-                                "📜",
+                                "",
                                 data=base64.b64decode(cert_b),
                                 file_name=(
                                     f"cert_"
@@ -579,7 +579,7 @@ def render_formacoes(users, obras_db, *_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar Formações",
+                    "Exportar Formações",
                     data=csv_f.encode('utf-8-sig'),
                     file_name=(
                         f"formacoes_"
@@ -697,7 +697,7 @@ def render_formacoes(users, obras_db, *_):
             nf_notas = st.text_area("Notas", key="nf_notas")
 
             if st.form_submit_button(
-                "💾 Registar Formação",
+                "Registar Formação",
                 use_container_width=True,
                 type="primary"
             ):
@@ -887,7 +887,7 @@ def render_formacoes(users, obras_db, *_):
                         with col_fc3:
                             # Gerar comprovativo PDF
                             if st.button(
-                                "📄",
+                                "",
                                 key=f"comp_{fid_c}",
                                 use_container_width=True,
                                 help="Gerar comprovativo"
@@ -907,7 +907,7 @@ def render_formacoes(users, obras_db, *_):
 
                             if st.session_state.get(f'comp_{fid_c}'):
                                 st.download_button(
-                                    "📥",
+                                    "",
                                     data=st.session_state[f'comp_{fid_c}'],
                                     file_name=(
                                         f"comprovativo_"
@@ -1012,7 +1012,7 @@ def render_formacoes(users, obras_db, *_):
                 pp_notas = st.text_area("Notas", key="pp_notas")
 
                 if st.form_submit_button(
-                    "➕ Adicionar ao Plano",
+                    "Adicionar ao Plano",
                     use_container_width=True,
                     type="primary"
                 ):
@@ -1142,7 +1142,7 @@ def render_formacoes(users, obras_db, *_):
                                 label_visibility="collapsed"
                             )
                             if st.button(
-                                "✅",
+                                "",
                                 key=f"upd_pp_{pid_p}",
                                 use_container_width=True
                             ):
@@ -1156,7 +1156,7 @@ def render_formacoes(users, obras_db, *_):
                 # PDF do plano
                 st.markdown("---")
                 if st.button(
-                    f"📄 Gerar Plano {ano_plan} PDF",
+                    f"Gerar Plano {ano_plan} PDF",
                     key="btn_pdf_plano",
                     use_container_width=True,
                     type="primary"
@@ -1166,7 +1166,7 @@ def render_formacoes(users, obras_db, *_):
                         form_db, empresa
                     )
                     st.download_button(
-                        "📥 Descarregar Plano",
+                        "Descarregar Plano",
                         data=pdf_plano,
                         file_name=(
                             f"plano_formacoes_{ano_plan}.pdf"
@@ -1336,7 +1336,7 @@ def render_formacoes(users, obras_db, *_):
                             )
                         with col_rp2:
                             if st.button(
-                                "✅ Marcar como reembolsado",
+                                "Marcar como reembolsado",
                                 key=f"reemb_form_{colab_r}",
                                 use_container_width=True,
                                 type="primary"
@@ -1381,7 +1381,7 @@ def render_formacoes(users, obras_db, *_):
             # Inicializar catálogo com padrão se vazio
             if cat_db.empty:
                 if st.button(
-                    "🚀 Inicializar com Catálogo Padrão",
+                    "Inicializar com Catálogo Padrão",
                     key="btn_init_catalogo",
                     use_container_width=True,
                     type="primary"
@@ -1426,7 +1426,7 @@ def render_formacoes(users, obras_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "➕ Adicionar",
+                    "Adicionar",
                     use_container_width=True,
                     type="primary"
                 ):
@@ -1523,7 +1523,7 @@ def render_formacoes(users, obras_db, *_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar Catálogo",
+                    "Exportar Catálogo",
                     data=csv_cat.encode('utf-8-sig'),
                     file_name="catalogo_formacoes.csv",
                     mime="text/csv",

@@ -893,7 +893,7 @@ def render_fat_tesouraria(obras_db, registos_db,
             index=False, encoding='utf-8-sig'
         )
         st.download_button(
-            "📥 Exportar Cash Flow CSV",
+            "Exportar Cash Flow CSV",
             data=csv_cf.encode('utf-8-sig'),
             file_name=(
                 f"cashflow_90d_"
@@ -947,7 +947,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Conta",
+                    "Guardar Conta",
                     use_container_width=True, type="primary"
                 ):
                     if not c_nome.strip():
@@ -1044,7 +1044,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                         )
                     with col_sb:
                         if st.button(
-                            "💾",
+                            "",
                             key=f"sal_btn_{ct_id}",
                             use_container_width=True,
                             help="Atualizar saldo"
@@ -1113,7 +1113,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                         )
 
                         if st.button(
-                            "🔄 Importar Movimentos",
+                            "Importar Movimentos",
                             key="btn_import_ext",
                             type="primary",
                             use_container_width=True
@@ -1195,7 +1195,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar",
+                    "Registar",
                     use_container_width=True, type="primary"
                 ):
                     if not mv_desc.strip():
@@ -1291,7 +1291,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                             )
                         with col_mc:
                             if st.button(
-                                "✅",
+                                "",
                                 key=f"concil_{mv_id}",
                                 use_container_width=True,
                                 help="Marcar como conciliado"
@@ -1311,7 +1311,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                     columns=['Fatura_ID'], errors='ignore'
                 ).to_csv(index=False, encoding='utf-8-sig')
                 st.download_button(
-                    "📥 Exportar Movimentos",
+                    "Exportar Movimentos",
                     data=csv_mv.encode('utf-8-sig'),
                     file_name="movimentos_bancarios.csv",
                     mime="text/csv",
@@ -1367,7 +1367,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "💰 Registar Adiantamento",
+                    "Registar Adiantamento",
                     use_container_width=True, type="primary"
                 ):
                     if not fm_resp.strip() or fm_adiant <= 0:
@@ -1433,7 +1433,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "🧾 Registar Gasto",
+                    "Registar Gasto",
                     use_container_width=True, type="primary"
                 ):
                     if fm_gasto_val <= 0 or not fm_gasto_desc.strip():
@@ -1523,7 +1523,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                         col_fma, col_fmb = st.columns(2)
                         with col_fma:
                             if st.button(
-                                "✅ Acertar / Fechar",
+                                "Acertar / Fechar",
                                 key=f"fm_fechar_{fm_rid}",
                                 use_container_width=True
                             ):
@@ -1637,7 +1637,7 @@ def render_fat_tesouraria(obras_db, registos_db,
         col_ia1, col_ia2 = st.columns([4,1])
         with col_ia2:
             analisar = st.button(
-                "🤖 Analisar",
+                "Analisar",
                 type="primary",
                 use_container_width=True,
                 key="btn_cf_ia"
@@ -1649,7 +1649,7 @@ def render_fat_tesouraria(obras_db, registos_db,
             expanded=True
         ):
             if st.button(
-                "🔄 Gerar Análise Completa",
+                "Gerar Análise Completa",
                 key="btn_analise_auto",
                 use_container_width=True
             ):

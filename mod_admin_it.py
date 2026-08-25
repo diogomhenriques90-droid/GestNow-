@@ -115,7 +115,7 @@ def render_it():
                 Instâncias Max: 10
                 """, language="yaml")
             
-            if st.button("🔄 Atualizar Custos", key="btn_update_custos"):
+            if st.button("Atualizar Custos", key="btn_update_custos"):
                 st.info("A sincronizar com Google Cloud Billing...")
                 st.success("Custos atualizados!")
     
@@ -200,7 +200,7 @@ def render_it():
             - **Economia potencial: € 12/mês**
             """)
         
-        if st.button("🤖 Aplicar Otimizações", key="btn_otimizar_ia"):
+        if st.button("Aplicar Otimizações", key="btn_otimizar_ia"):
             st.success("Otimizações aplicadas! Economia estimada: € 35/mês")
     
     # =============================================================================
@@ -227,7 +227,7 @@ def render_it():
                     key="email_tipo"
                 )
                 
-                if st.form_submit_button("📧 Criar Email", use_container_width=True):
+                if st.form_submit_button("Criar Email", use_container_width=True):
                     email_criado = f"{nome.lower().replace(' ', '.')}@gestnow.app"
                     st.success(f"Email criado: {email_criado}")
                     st.info(f"Password temporária enviada para administrador")
@@ -265,13 +265,13 @@ def render_it():
             st.markdown("#### Ações", unsafe_allow_html=True)
             col_a1, col_a2, col_a3 = st.columns(3)
             with col_a1:
-                if st.button("🔐 Reset Password", use_container_width=True, key="btn_reset_pass"):
+                if st.button("Reset Password", use_container_width=True, key="btn_reset_pass"):
                     st.info("Seleciona um utilizador para reset")
             with col_a2:
-                if st.button("📦 Aumentar Storage", use_container_width=True, key="btn_aum_storage"):
+                if st.button("Aumentar Storage", use_container_width=True, key="btn_aum_storage"):
                     st.info("Seleciona um utilizador para aumentar")
             with col_a3:
-                if st.button("🚫 Desativar Email", use_container_width=True, key="btn_desat_email", type="secondary"):
+                if st.button("Desativar Email", use_container_width=True, key="btn_desat_email", type="secondary"):
                     st.warning("Seleciona um utilizador para desativar")
     
     # =============================================================================
@@ -332,7 +332,7 @@ def render_it():
             
             st.divider()
             
-            if st.button("🔄 Verificar Licenças Expiras", key="btn_check_lic"):
+            if st.button("Verificar Licenças Expiras", key="btn_check_lic"):
                 st.warning("1 licença expira em 30 dias: AutoCAD")
         
         with tab_api:
@@ -362,7 +362,7 @@ def render_it():
             
             st.dataframe(api_df, use_container_width=True, hide_index=True)
             
-            if st.button("🔄 Rotacionar API Keys", key="btn_rotate_api", type="secondary"):
+            if st.button("Rotacionar API Keys", key="btn_rotate_api", type="secondary"):
                 st.warning("Isto vai invalidar as chaves atuais. Confirmar?")
     
     # =============================================================================
@@ -518,7 +518,7 @@ def render_it():
             # ── Criar e descarregar backup ────────────────────────
             st.markdown("#### Criar e Descarregar Backup")
 
-            if st.button("💾 Criar Backup Agora",
+            if st.button("Criar Backup Agora",
                           key="btn_backup_real", type="primary",
                           use_container_width=True):
                 with st.spinner("A criar backup..."):
@@ -583,7 +583,7 @@ def render_it():
                     f"{' ⚠️ ' + str(len(erros_bkp)) + ' erros.' if erros_bkp else ''}"
                 )
                 st.download_button(
-                    f"📥 Descarregar {fname}",
+                    f"Descarregar {fname}",
                     data=st.session_state['backup_zip_bytes'],
                     file_name=fname,
                     mime="application/zip",
@@ -593,7 +593,7 @@ def render_it():
                     with st.expander("⚠️ Ficheiros com erro"):
                         for e in erros_bkp:
                             st.text(e)
-                if st.button("🗑️ Limpar", key="btn_limpar_backup"):
+                if st.button("Limpar", key="btn_limpar_backup"):
                     st.session_state.pop('backup_zip_bytes', None)
                     st.rerun()             
 
@@ -626,7 +626,7 @@ def render_it():
                     key="chk_confirmar_restauro"
                 )
                 if confirmar:
-                    if st.button("🔄 RESTAURAR AGORA",
+                    if st.button("RESTAURAR AGORA",
                                   key="btn_restaurar_real",
                                   type="primary",
                                   use_container_width=True):
@@ -776,5 +776,5 @@ def render_it():
             alert_email = st.text_input("Email para Alertas", key="alert_email", value="it@gestnow.app")
             alert_sms = st.checkbox("Ativar Alertas SMS", key="alert_sms")
         
-        if st.button("💾 Guardar Configuração de Alertas", key="btn_save_alerts"):
+        if st.button("Guardar Configuração de Alertas", key="btn_save_alerts"):
             st.success("Configuração guardada!")

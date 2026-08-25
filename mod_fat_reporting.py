@@ -1085,7 +1085,7 @@ def render_fat_reporting(obras_db, registos_db,
         st.markdown("#### Narrativa Executiva IA")
 
         if st.button(
-            "🤖 Gerar Análise Executiva do Mês",
+            "Gerar Análise Executiva do Mês",
             key="btn_narrativa",
             type="primary",
             use_container_width=True
@@ -1211,7 +1211,7 @@ def render_fat_reporting(obras_db, registos_db,
         # Projeção IA
         st.markdown("---")
         if st.button(
-            "🤖 Análise IA da Projeção",
+            "Análise IA da Projeção",
             key="btn_pneg_ia",
             use_container_width=True
         ):
@@ -1387,7 +1387,7 @@ def render_fat_reporting(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Regra",
+                    "Guardar Regra",
                     use_container_width=True, type="primary"
                 ):
                     if not r_nome.strip() or not r_acao.strip():
@@ -1764,7 +1764,7 @@ def render_fat_reporting(obras_db, registos_db,
         col_btn1, col_btn2, col_btn3 = st.columns(3)
         with col_btn1:
             if st.button(
-                "📄 Gerar PDF Executivo",
+                "Gerar PDF Executivo",
                 key="btn_pdf_exec",
                 type="primary",
                 use_container_width=True
@@ -1791,7 +1791,7 @@ def render_fat_reporting(obras_db, registos_db,
         with col_btn2:
             if st.session_state.get('exec_pdf'):
                 st.download_button(
-                    "📥 Descarregar PDF",
+                    "Descarregar PDF",
                     data=st.session_state['exec_pdf'],
                     file_name=st.session_state.get(
                         'exec_pdf_nome','relatorio.pdf'
@@ -1821,7 +1821,7 @@ def render_fat_reporting(obras_db, registos_db,
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                "📥 Export CSV",
+                "Export CSV",
                 data=csv_exec.encode('utf-8-sig'),
                 file_name=(
                     f"kpis_exec_"

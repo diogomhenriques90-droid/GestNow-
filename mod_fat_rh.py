@@ -892,7 +892,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     )
 
                 if st.form_submit_button(
-                    "💾 Guardar Ficha",
+                    "Guardar Ficha",
                     use_container_width=True, type="primary"
                 ):
                     nome_final = nome_sel if users_lista \
@@ -1207,7 +1207,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    f"📥 Exportar Mapa {mes_mapa} {ano_mapa}",
+                    f"Exportar Mapa {mes_mapa} {ano_mapa}",
                     data=csv_mapa.encode('utf-8-sig'),
                     file_name=(
                         f"mapa_remuneracoes_"
@@ -1242,7 +1242,7 @@ def render_fat_rh(obras_db, registos_db, *_):
         else:
             # Gerar todos em ZIP
             if st.button(
-                f"📦 Gerar Todos os Recibos — {mes_rec} {ano_rec}",
+                f"Gerar Todos os Recibos — {mes_rec} {ano_rec}",
                 key="btn_recibos_todos",
                 type="primary",
                 use_container_width=True
@@ -1289,7 +1289,7 @@ def render_fat_rh(obras_db, registos_db, *_):
 
             if st.session_state.get('recibos_zip'):
                 st.download_button(
-                    f"📥 Descarregar ZIP Recibos",
+                    f"Descarregar ZIP Recibos",
                     data=st.session_state['recibos_zip'],
                     file_name=st.session_state.get(
                         'recibos_zip_nome','recibos.zip'
@@ -1343,7 +1343,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     )
 
                     if st.button(
-                        f"📄 Gerar Recibo — {colab_sel_r}",
+                        f"Gerar Recibo — {colab_sel_r}",
                         key="btn_recibo_ind",
                         type="primary",
                         use_container_width=True
@@ -1363,7 +1363,7 @@ def render_fat_rh(obras_db, registos_db, *_):
 
                     if st.session_state.get('recibo_ind_bytes'):
                         st.download_button(
-                            "📥 Descarregar Recibo",
+                            "Descarregar Recibo",
                             data=st.session_state['recibo_ind_bytes'],
                             file_name=st.session_state.get(
                                 'recibo_ind_nome','recibo.pdf'
@@ -1428,7 +1428,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Marcar Férias",
+                    "Marcar Férias",
                     use_container_width=True, type="primary"
                 ):
                     if not f_colab or f_fim < f_ini:
@@ -1628,7 +1628,7 @@ def render_fat_rh(obras_db, registos_db, *_):
 
                 # Botão registar provisão
                 if st.button(
-                    f"✅ Registar Provisão — "
+                    f"Registar Provisão — "
                     f"{meses_pt[mes_atual-1]} {ano_atual}",
                     key="btn_reg_prov",
                     use_container_width=True
@@ -1720,7 +1720,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    f"📥 Export IRS/SS {ano_irs}",
+                    f"Export IRS/SS {ano_irs}",
                     data=csv_irs.encode('utf-8-sig'),
                     file_name=f"mapa_irs_ss_{ano_irs}.csv",
                     mime="text/csv",
@@ -1735,7 +1735,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     key="dri_mes"
                 )
                 if st.button(
-                    f"📋 Gerar DRI — {mes_dri}",
+                    f"Gerar DRI — {mes_dri}",
                     key="btn_dri",
                     use_container_width=True
                 ):
@@ -1778,7 +1778,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                         index=False, encoding='utf-8-sig'
                     )
                     st.download_button(
-                        f"📥 DRI {mes_dri} {ano_irs}",
+                        f"DRI {mes_dri} {ano_irs}",
                         data=csv_dri.encode('utf-8-sig'),
                         file_name=(
                             f"DRI_{mes_dri_num:02d}_{ano_irs}.csv"

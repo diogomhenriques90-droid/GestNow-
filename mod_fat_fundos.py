@@ -1070,7 +1070,7 @@ def render_fat_fundos(*_):
             }
 
             if st.button(
-                "🎯 Encontrar Fundos",
+                "Encontrar Fundos",
                 key="btn_match",
                 type="primary",
                 use_container_width=True
@@ -1192,7 +1192,7 @@ def render_fat_fundos(*_):
 
                         if sc >= 40:
                             if st.button(
-                                "📋 Adicionar",
+                                "Adicionar",
                                 key=f"add_cand_{fundo_s['id']}",
                                 use_container_width=True,
                                 type="primary"
@@ -1378,7 +1378,7 @@ def render_fat_fundos(*_):
             index=False, encoding='utf-8-sig'
         )
         st.download_button(
-            "📥 Exportar Comparativo",
+            "Exportar Comparativo",
             data=csv_comp.encode('utf-8-sig'),
             file_name="comparativo_fundos.csv",
             mime="text/csv",
@@ -1502,7 +1502,7 @@ def render_fat_fundos(*_):
 
                 with col_fi3:
                     if st.button(
-                        "📋 Candidatar",
+                        "Candidatar",
                         key=f"cand_{fundo_f['id']}",
                         use_container_width=True,
                         type="primary"
@@ -1579,7 +1579,7 @@ def render_fat_fundos(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Candidatura",
+                    "Guardar Candidatura",
                     use_container_width=True, type="primary"
                 ):
                     if cand_invest <= 0:
@@ -1731,7 +1731,7 @@ def render_fat_fundos(*_):
                             label_visibility="collapsed"
                         )
                         if st.button(
-                            "✅",
+                            "",
                             key=f"c_upd_{cid}",
                             use_container_width=True
                         ):
@@ -1747,7 +1747,7 @@ def render_fat_fundos(*_):
 
                         # Gerar PDF
                         if st.button(
-                            "📄",
+                            "",
                             key=f"c_pdf_{cid}",
                             use_container_width=True,
                             help="Gerar ficha PDF"
@@ -1788,7 +1788,7 @@ def render_fat_fundos(*_):
 
                         if st.session_state.get(f'cand_pdf_{cid}'):
                             st.download_button(
-                                "📥",
+                                "",
                                 data=st.session_state[f'cand_pdf_{cid}'],
                                 file_name=f"candidatura_{cid}.pdf",
                                 mime="application/pdf",
@@ -1844,7 +1844,7 @@ def render_fat_fundos(*_):
             )
 
             if st.button(
-                "🔍 Pesquisar Avisos Abertos",
+                "Pesquisar Avisos Abertos",
                 key="btn_pesq_avisos",
                 type="primary",
                 use_container_width=True
@@ -1891,7 +1891,7 @@ def render_fat_fundos(*_):
             )
 
             if st.button(
-                "📋 Gerar Plano de Candidatura",
+                "Gerar Plano de Candidatura",
                 key="btn_plano_cand",
                 type="primary",
                 use_container_width=True
@@ -1943,7 +1943,7 @@ def render_fat_fundos(*_):
             label_visibility="collapsed"
         )
         if st.button(
-            "🤖 Perguntar",
+            "Perguntar",
             key="btn_pergunta_fundos",
             use_container_width=True
         ):

@@ -92,7 +92,7 @@ def render_dormidas():
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar Dormida",
+                    "Registar Dormida",
                     use_container_width=True, type="primary"
                 ):
                     if not hotel.strip():
@@ -198,7 +198,7 @@ def render_dormidas():
         )
 
         if st.button(
-            "🔍 Pesquisar Hotéis com IA",
+            "Pesquisar Hotéis com IA",
             key="btn_pesq_hotel", type="primary",
             use_container_width=True
         ):
@@ -295,7 +295,7 @@ Responde APENAS em JSON:
 
                                 # Botão registar diretamente
                                 if st.button(
-                                    f"📝 Registar {h.get('nome','')}",
+                                    f"Registar {h.get('nome','')}",
                                     key=f"reg_hotel_{h.get('nome','').replace(' ','_')[:20]}",
                                     use_container_width=True
                                 ):
@@ -370,7 +370,7 @@ Responde APENAS em JSON:
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                "📥 Exportar CSV",
+                "Exportar CSV",
                 data=csv_dorm.encode('utf-8-sig'),
                 file_name="dormidas_historico.csv",
                 mime="text/csv",

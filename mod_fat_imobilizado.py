@@ -735,7 +735,7 @@ def render_fat_imobilizado(*_):
                     )
 
                 if st.form_submit_button(
-                    "💾 Registar Ativo",
+                    "Registar Ativo",
                     use_container_width=True, type="primary"
                 ):
                     if not i_desc.strip() or i_valor <= 0:
@@ -876,7 +876,7 @@ def render_fat_imobilizado(*_):
                     col_ad1, col_ad2 = st.columns([3,1])
                     with col_ad2:
                         if st.button(
-                            "📊",
+                            "",
                             key=f"imob_det_{aid}",
                             use_container_width=True,
                             help="Ver timeline amortização"
@@ -907,7 +907,7 @@ def render_fat_imobilizado(*_):
                             hide_index=True
                         )
                         if st.button(
-                            "✖ Fechar",
+                            "Fechar",
                             key=f"fechar_imob_{aid}"
                         ):
                             st.session_state.pop(
@@ -947,7 +947,7 @@ def render_fat_imobilizado(*_):
             col_exp1, col_exp2 = st.columns(2)
             with col_exp1:
                 if st.button(
-                    "📄 Gerar Quadro PDF",
+                    "Gerar Quadro PDF",
                     key="btn_pdf_amort",
                     type="primary",
                     use_container_width=True
@@ -962,7 +962,7 @@ def render_fat_imobilizado(*_):
             with col_exp2:
                 if st.session_state.get('amort_pdf'):
                     st.download_button(
-                        "📥 Descarregar PDF",
+                        "Descarregar PDF",
                         data=st.session_state['amort_pdf'],
                         file_name=(
                             f"quadro_amortizacoes_{ano_qa}.pdf"
@@ -982,7 +982,7 @@ def render_fat_imobilizado(*_):
                 ] if c in imob_db.columns
             ]].to_csv(index=False, encoding='utf-8-sig')
             st.download_button(
-                "📥 Exportar CSV",
+                "Exportar CSV",
                 data=csv_imob.encode('utf-8-sig'),
                 file_name=f"imobilizado_{ano_qa}.csv",
                 mime="text/csv",
@@ -1052,7 +1052,7 @@ def render_fat_imobilizado(*_):
                     )
 
                 if st.form_submit_button(
-                    "💾 Guardar Seguro",
+                    "Guardar Seguro",
                     use_container_width=True, type="primary"
                 ):
                     if not s_ent.strip():
@@ -1209,7 +1209,7 @@ def render_fat_imobilizado(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar Caução",
+                    "Registar Caução",
                     use_container_width=True, type="primary"
                 ):
                     if not ca_obra.strip() or ca_val <= 0:
@@ -1330,7 +1330,7 @@ def render_fat_imobilizado(*_):
                     with col_cb:
                         if est_c != 'Libertada':
                             if st.button(
-                                "🔓",
+                                "",
                                 key=f"libertar_{cau_id}",
                                 use_container_width=True,
                                 help="Marcar como libertada"
@@ -1414,7 +1414,7 @@ def render_fat_imobilizado(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar Alvará",
+                    "Registar Alvará",
                     use_container_width=True, type="primary"
                 ):
                     if not al_num.strip():
@@ -1554,7 +1554,7 @@ def render_fat_imobilizado(*_):
                             label_visibility="collapsed"
                         )
                         if st.button(
-                            "✅",
+                            "",
                             key=f"al_upd_{al_id}",
                             use_container_width=True,
                             help="Atualizar estado"
@@ -1575,7 +1575,7 @@ def render_fat_imobilizado(*_):
                     ] if c in alvaras_db.columns
                 ]].to_csv(index=False, encoding='utf-8-sig')
                 st.download_button(
-                    "📥 Exportar Alvarás",
+                    "Exportar Alvarás",
                     data=csv_al.encode('utf-8-sig'),
                     file_name="alvaras_licencas.csv",
                     mime="text/csv",

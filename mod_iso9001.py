@@ -722,7 +722,7 @@ def render_iso9001(*_):
                 o_notas  = st.text_area("Notas", key="o_notas")
 
                 if st.form_submit_button(
-                    "💾 Guardar Objetivo",
+                    "Guardar Objetivo",
                     use_container_width=True, type="primary"
                 ):
                     if not o_obj.strip() or not o_ind.strip():
@@ -837,7 +837,7 @@ def render_iso9001(*_):
                         )
                     with col_es:
                         if st.button(
-                            "✅",
+                            "",
                             key=f"upd_obj_{oid}",
                             use_container_width=True,
                             help="Guardar progresso"
@@ -934,7 +934,7 @@ def render_iso9001(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar",
+                    "Registar",
                     use_container_width=True, type="primary"
                 ):
                     if not r_desc.strip():
@@ -1068,7 +1068,7 @@ def render_iso9001(*_):
                                 key=f"r_res_{rid}"
                             )
                             if st.button(
-                                "💾",
+                                "",
                                 key=f"r_upd_{rid}",
                                 use_container_width=True
                             ):
@@ -1139,7 +1139,7 @@ def render_iso9001(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar",
+                    "Registar",
                     use_container_width=True, type="primary"
                 ):
                     if not p_nome.strip():
@@ -1249,7 +1249,7 @@ def render_iso9001(*_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar",
+                    "Exportar",
                     data=csv_pi.encode('utf-8-sig'),
                     file_name="partes_interessadas.csv",
                     mime="text/csv",
@@ -1338,7 +1338,7 @@ def render_iso9001(*_):
                     )
 
                 if st.form_submit_button(
-                    "💾 Guardar Auditoria",
+                    "Guardar Auditoria",
                     use_container_width=True, type="primary"
                 ):
                     nova_a = pd.DataFrame([{
@@ -1661,7 +1661,7 @@ def render_iso9001(*_):
 
             # Gerar PDF
             if st.button(
-                "📄 Gerar Revisão pela Gestão PDF",
+                "Gerar Revisão pela Gestão PDF",
                 key="btn_rev_pdf",
                 type="primary",
                 use_container_width=True
@@ -1706,7 +1706,7 @@ def render_iso9001(*_):
 
             if st.session_state.get('rev_pdf'):
                 st.download_button(
-                    "📥 Descarregar Revisão pela Gestão",
+                    "Descarregar Revisão pela Gestão",
                     data=st.session_state['rev_pdf'],
                     file_name=st.session_state.get(
                         'rev_pdf_nome','revisao.pdf'
@@ -1720,7 +1720,7 @@ def render_iso9001(*_):
             # IA — análise do SGQ
             st.markdown("---")
             if st.button(
-                "🤖 Análise IA do SGQ",
+                "Análise IA do SGQ",
                 key="btn_ia_rev",
                 use_container_width=True
             ):
@@ -1892,7 +1892,7 @@ def render_iso9001(*_):
                 fa_notas = st.text_area("Notas", key="fa_notas")
 
                 if st.form_submit_button(
-                    "💾 Guardar Avaliação",
+                    "Guardar Avaliação",
                     use_container_width=True, type="primary"
                 ):
                     nova_fa = pd.DataFrame([{
@@ -2021,7 +2021,7 @@ def render_iso9001(*_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar Avaliações",
+                    "Exportar Avaliações",
                     data=csv_fa.encode('utf-8-sig'),
                     file_name="avaliacao_fornecedores_iso.csv",
                     mime="text/csv",

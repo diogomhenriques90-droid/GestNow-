@@ -508,7 +508,7 @@ def render_admin_diarias(*args):
 
         users_fresh = _load_users_fresh()
 
-        if st.button("🔄 Calcular Diárias",
+        if st.button("Calcular Diárias",
                      key="btn_calcular", type="primary",
                      use_container_width=True):
             st.session_state['diarias_calc'] = True
@@ -569,7 +569,7 @@ def render_admin_diarias(*args):
                                  f"{row['Técnico'].replace(' ','_')}_"
                                  f"{semana_ini.strftime('%Y%m%d')}.pdf")
                         st.download_button(
-                            "📄",
+                            "",
                             data=pdf_bytes,
                             file_name=fname,
                             mime="application/pdf",
@@ -587,7 +587,7 @@ def render_admin_diarias(*args):
                         df_calc, semana_ini, semana_fim
                     )
                     st.download_button(
-                        "📥 Excel (Secretária)",
+                        "Excel (Secretária)",
                         data=excel_bytes,
                         file_name=(f"diarias_"
                                    f"{semana_ini.strftime('%Y%m%d')}.xlsx"),
@@ -615,7 +615,7 @@ def render_admin_diarias(*args):
                             fname_xml = (f"montepio_diarias_"
                                          f"{semana_ini.strftime('%Y%m%d')}.xml")
                             st.download_button(
-                                "🏦 Montepio XML",
+                                "Montepio XML",
                                 data=xml_bytes,
                                 file_name=fname_xml,
                                 mime="application/xml",
@@ -645,7 +645,7 @@ def render_admin_diarias(*args):
                         st.success("Semana marcada como paga.")
                     else:
                         if st.button(
-                            "✅ Marcar como Paga",
+                            "Marcar como Paga",
                             key="btn_marcar_pago",
                             type="primary",
                             use_container_width=True
@@ -783,7 +783,7 @@ def render_admin_diarias(*args):
             col_sv1, col_sv2 = st.columns(2)
             with col_sv1:
                 if st.button(
-                    "💾 Guardar Configuração",
+                    "Guardar Configuração",
                     use_container_width=True,
                     type="primary",
                     key="btn_guardar_diarias_cfg"
@@ -861,7 +861,7 @@ def render_admin_diarias(*args):
                 )
 
             if st.form_submit_button(
-                "❌ Registar Falta Injustificada",
+                "Registar Falta Injustificada",
                 use_container_width=True, type="primary"
             ):
                 nova_falta = pd.DataFrame([{
@@ -919,7 +919,7 @@ def render_admin_diarias(*args):
                     )
                 with col_fd:
                     if st.button(
-                        "🗑️",
+                        "",
                         key=f"del_falta_{f.get('ID','')}",
                         help="Remover falta"
                     ):
@@ -981,7 +981,7 @@ def render_admin_diarias(*args):
                             if rec_b64:
                                 try:
                                     st.download_button(
-                                        "📄",
+                                        "",
                                         data=base64.b64decode(rec_b64),
                                         file_name=(
                                             f"recibo_"
@@ -1003,7 +1003,7 @@ def render_admin_diarias(*args):
                             s_fim = datetime.strptime(fim_sem, '%d/%m/%Y').date()
                             xl_h  = _gerar_excel_semana(pags_sem, s_ini, s_fim)
                             st.download_button(
-                                "📥 Excel",
+                                "Excel",
                                 data=xl_h,
                                 file_name=(f"diarias_"
                                            f"{semana.replace('/','')}.xlsx"),
@@ -1026,7 +1026,7 @@ def render_admin_diarias(*args):
                                     df_iban, s_ini, s_fim, cfg_h
                                 ).encode('utf-8')
                                 st.download_button(
-                                    "🏦 XML Montepio",
+                                    "XML Montepio",
                                     data=xml_h,
                                     file_name=(f"montepio_"
                                                f"{semana.replace('/','')}.xml"),
@@ -1099,7 +1099,7 @@ def render_admin_diarias(*args):
             )
 
             if st.form_submit_button(
-                "💾 Guardar Configuração",
+                "Guardar Configuração",
                 use_container_width=True, type="primary"
             ):
                 erros_emp = []

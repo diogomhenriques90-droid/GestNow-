@@ -699,7 +699,7 @@ def render_acessos_obras(users, obras_db, *_):
                         label_visibility="collapsed"
                     )
                     if st.button(
-                        "✅",
+                        "",
                         key=f"upd_ac_{aid}",
                         use_container_width=True,
                         help="Actualizar estado"
@@ -783,7 +783,7 @@ def render_acessos_obras(users, obras_db, *_):
                 na_notas  = st.text_area("Notas", key="na_notas")
 
                 if st.form_submit_button(
-                    "🔐 Conceder Acesso",
+                    "Conceder Acesso",
                     use_container_width=True,
                     type="primary"
                 ):
@@ -1012,7 +1012,7 @@ def render_acessos_obras(users, obras_db, *_):
                 da_notas  = st.text_area("Notas", key="da_notas")
 
                 if st.form_submit_button(
-                    "💾 Registar Documento",
+                    "Registar Documento",
                     use_container_width=True,
                     type="primary"
                 ):
@@ -1135,7 +1135,7 @@ def render_acessos_obras(users, obras_db, *_):
                             try:
                                 ext = "pdf"
                                 st.download_button(
-                                    "📎",
+                                    "",
                                     data=base64.b64decode(fich_b),
                                     file_name=(
                                         f"{doc.get('Tipo_Doc','doc')}_"
@@ -1160,7 +1160,7 @@ def render_acessos_obras(users, obras_db, *_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar Documentos",
+                    "Exportar Documentos",
                     data=csv_docs.encode('utf-8-sig'),
                     file_name="documentos_acesso_obras.csv",
                     mime="text/csv",
@@ -1409,7 +1409,7 @@ def render_acessos_obras(users, obras_db, *_):
                             if completude == 100 and \
                                estado == "Activo":
                                 if st.button(
-                                    "🎫 Cartão PDF",
+                                    "Cartão PDF",
                                     key=f"cartao_{ac.get('ID','')}",
                                     use_container_width=True,
                                     type="primary"
@@ -1434,7 +1434,7 @@ def render_acessos_obras(users, obras_db, *_):
                             ckey = f'cartao_{ac.get("ID","")}'
                             if st.session_state.get(ckey):
                                 st.download_button(
-                                    "📥 Descarregar",
+                                    "Descarregar",
                                     data=st.session_state[ckey],
                                     file_name=(
                                         f"cartao_acesso_"
@@ -1449,7 +1449,7 @@ def render_acessos_obras(users, obras_db, *_):
             # Relatório da obra
             st.markdown("---")
             if st.button(
-                f"📄 Relatório PDF — {obra_sel}",
+                f"Relatório PDF — {obra_sel}",
                 key="btn_rel_obra",
                 use_container_width=True,
                 type="primary"
@@ -1459,7 +1459,7 @@ def render_acessos_obras(users, obras_db, *_):
                         obra_sel, acessos_obra, docs_db, empresa
                     )
                     st.download_button(
-                        "📥 Descarregar Relatório",
+                        "Descarregar Relatório",
                         data=pdf_rel,
                         file_name=(
                             f"relatorio_acessos_"
@@ -1528,7 +1528,7 @@ def render_acessos_obras(users, obras_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Requisitos",
+                    "Guardar Requisitos",
                     use_container_width=True,
                     type="primary"
                 ):
@@ -1709,7 +1709,7 @@ def render_acessos_obras(users, obras_db, *_):
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                "📥 Exportar Alertas",
+                "Exportar Alertas",
                 data=csv_alertas.encode('utf-8-sig'),
                 file_name=f"alertas_acessos_{hoje.strftime('%Y%m%d')}.csv",
                 mime="text/csv",
@@ -1734,7 +1734,7 @@ def render_acessos_obras(users, obras_db, *_):
             )
 
         if st.button(
-            "📄 Gerar Relatório Completo PDF",
+            "Gerar Relatório Completo PDF",
             key="btn_rel_global",
             type="primary",
             use_container_width=True
@@ -1756,7 +1756,7 @@ def render_acessos_obras(users, obras_db, *_):
                     empresa
                 )
                 st.download_button(
-                    "📥 Descarregar Relatório",
+                    "Descarregar Relatório",
                     data=pdf_global,
                     file_name=(
                         f"relatorio_acessos_"
@@ -1791,7 +1791,7 @@ def render_acessos_obras(users, obras_db, *_):
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                "📥 Exportar Todos os Acessos",
+                "Exportar Todos os Acessos",
                 data=csv_ac.encode('utf-8-sig'),
                 file_name=(
                     f"acessos_obras_"

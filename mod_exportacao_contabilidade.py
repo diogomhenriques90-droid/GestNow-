@@ -889,7 +889,7 @@ def render_exportacao_contabilidade(*_):
 
         # Botão principal — gerar tudo
         if st.button(
-            f"⚙️ Gerar Export {mes_exp} {ano_exp}",
+            f"Gerar Export {mes_exp} {ano_exp}",
             key="btn_gerar_export",
             type="primary",
             use_container_width=True
@@ -956,7 +956,7 @@ def render_exportacao_contabilidade(*_):
             col_d1, col_d2, col_d3 = st.columns(3)
             with col_d1:
                 st.download_button(
-                    "📊 Excel Eticadata\n(3 sheets: lançamentos, resumo, balancete)",
+                    "Excel Eticadata\n(3 sheets: lançamentos, resumo, balancete)",
                     data=st.session_state['export_excel'],
                     file_name=(
                         f"eticadata_lancamentos_"
@@ -976,7 +976,7 @@ def render_exportacao_contabilidade(*_):
                 )
             with col_d2:
                 st.download_button(
-                    "📄 CSV Lançamentos SNC\n(separador ;  decimal ,)",
+                    "CSV Lançamentos SNC\n(separador ;  decimal ,)",
                     data=st.session_state['export_csv'],
                     file_name=(
                         f"lancamentos_snc_"
@@ -995,7 +995,7 @@ def render_exportacao_contabilidade(*_):
                 )
             with col_d3:
                 st.download_button(
-                    "📋 PDF Relatório TOC\n(resumo + detalhe completo)",
+                    "PDF Relatório TOC\n(resumo + detalhe completo)",
                     data=st.session_state['export_pdf'],
                     file_name=(
                         f"relatorio_contabilidade_"
@@ -1219,7 +1219,7 @@ def render_exportacao_contabilidade(*_):
             col_sv1, col_sv2 = st.columns(2)
             with col_sv1:
                 if st.form_submit_button(
-                    "💾 Guardar Plano de Contas",
+                    "Guardar Plano de Contas",
                     use_container_width=True, type="primary"
                 ):
                     _save_contas(contas_editadas)
@@ -1231,7 +1231,7 @@ def render_exportacao_contabilidade(*_):
                     st.rerun()
             with col_sv2:
                 if st.form_submit_button(
-                    "🔄 Repor Padrão SNC",
+                    "Repor Padrão SNC",
                     use_container_width=True
                 ):
                     _save_contas(CONTAS_SNC_PADRAO.copy())
@@ -1269,7 +1269,7 @@ def render_exportacao_contabilidade(*_):
             index=False, encoding='utf-8-sig'
         )
         st.download_button(
-            "📥 Exportar Plano de Contas",
+            "Exportar Plano de Contas",
             data=csv_contas.encode('utf-8-sig'),
             file_name="plano_contas_snc_gestnow.csv",
             mime="text/csv",
@@ -1379,7 +1379,7 @@ def render_exportacao_contabilidade(*_):
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                "📥 Exportar Histórico",
+                "Exportar Histórico",
                 data=csv_hist.encode('utf-8-sig'),
                 file_name="historico_exports_contabilidade.csv",
                 mime="text/csv",

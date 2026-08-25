@@ -170,7 +170,7 @@ def render_perfil(*args):
 
             st.info("Nome, Tipo, Cargo e IBAN são geridos pelo Admin e não são editáveis aqui.")
 
-            if st.form_submit_button("💾 Guardar Alterações", use_container_width=True, type="primary"):
+            if st.form_submit_button("Guardar Alterações", use_container_width=True, type="primary"):
                 updates = {
                     'Telefone': telefone, 'Email': email, 'Morada': morada,
                     'Localidade': localidade, 'Concelho': concelho, 'Codigo_Postal': cod_postal,
@@ -202,7 +202,7 @@ def render_perfil(*args):
             pwd_atual = st.text_input("Password Atual", type="password", key="pf_pwd_atual")
             pwd_nova  = st.text_input("Nova Password",  type="password", key="pf_pwd_nova")
             pwd_conf  = st.text_input("Confirmar Nova Password", type="password", key="pf_pwd_conf")
-            if st.form_submit_button("🔑 Alterar Password", use_container_width=True, type="primary"):
+            if st.form_submit_button("Alterar Password", use_container_width=True, type="primary"):
                 if not pwd_atual or not pwd_nova:
                     st.error("Preenche todos os campos.")
                 elif pwd_nova != pwd_conf:
@@ -228,7 +228,7 @@ def render_perfil(*args):
         with st.form("form_pin"):
             pin_novo  = st.text_input("Novo PIN (4 dígitos)", type="password", max_chars=4, key="pf_pin_novo")
             pin_conf  = st.text_input("Confirmar PIN", type="password", max_chars=4, key="pf_pin_conf")
-            if st.form_submit_button("🔢 Alterar PIN", use_container_width=True):
+            if st.form_submit_button("Alterar PIN", use_container_width=True):
                 if len(pin_novo) != 4 or not pin_novo.isdigit():
                     st.error("O PIN deve ter exatamente 4 dígitos.")
                 elif pin_novo != pin_conf:
@@ -274,6 +274,6 @@ def render_perfil(*args):
 
                 # Exportar CSV
                 csv = meus[cols_show].to_csv(index=False).encode('utf-8')
-                st.download_button("📥 Exportar CSV", csv, f"horas_{user_nome}.csv", "text/csv")
+                st.download_button("Exportar CSV", csv, f"horas_{user_nome}.csv", "text/csv")
         else:
             st.info("Sem registos de horas.")

@@ -206,7 +206,7 @@ class TestFusaoContactosMorada(unittest.TestCase):
             for key, valor in alteracoes.items():
                 at.text_input(key=key).set_value(valor).run()
             at.button(
-                key=f"FormSubmitter:gi_form_ident_{SLUG}-💾 Guardar Contactos & Morada"
+                key=f"FormSubmitter:gi_form_ident_{SLUG}-Guardar Contactos & Morada"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         return writes
@@ -251,7 +251,7 @@ class TestFusaoBancarios(unittest.TestCase):
             for key, valor in alteracoes.items():
                 at.text_input(key=key).set_value(valor).run()
             at.button(
-                key=f"FormSubmitter:gi_form_banco_{SLUG}-💾 Guardar Dados Bancários"
+                key=f"FormSubmitter:gi_form_banco_{SLUG}-Guardar Dados Bancários"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         return writes
@@ -292,7 +292,7 @@ class TestFusaoProfissional(unittest.TestCase):
                 except KeyError:
                     at.selectbox(key=key).set_value(valor).run()
             at.button(
-                key=f"FormSubmitter:gi_form_prof_{SLUG}-💾 Guardar Profissional"
+                key=f"FormSubmitter:gi_form_prof_{SLUG}-Guardar Profissional"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         return writes
@@ -365,7 +365,7 @@ class TestFusaoIdentificacao(unittest.TestCase):
             for key, valor in alteracoes.items():
                 at.text_input(key=key).set_value(valor).run()
             at.button(
-                key=f"FormSubmitter:dl_form_ident_{SLUG}-💾 Guardar Identificação"
+                key=f"FormSubmitter:dl_form_ident_{SLUG}-Guardar Identificação"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         return writes
@@ -531,7 +531,7 @@ class TestCriarColaboradorObraReal(unittest.TestCase):
             at.text_input(key="nc_pwd").set_value("segredo123").run()
             at.selectbox(key="nc_local").set_value("Obra Real Y").run()
             at.button(
-                key="FormSubmitter:form_criar_colab-💾 Criar Colaborador"
+                key="FormSubmitter:form_criar_colab-Criar Colaborador"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         gravado = writes.get("usuarios.csv", b"")
@@ -550,7 +550,7 @@ class TestCriarColaboradorObraReal(unittest.TestCase):
             at.text_input(key="nc_tel").set_value("911111111").run()
             at.text_input(key="nc_pwd").set_value("segredo123").run()
             at.button(
-                key="FormSubmitter:form_criar_colab-💾 Criar Colaborador"
+                key="FormSubmitter:form_criar_colab-Criar Colaborador"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         mock_write.assert_not_called()

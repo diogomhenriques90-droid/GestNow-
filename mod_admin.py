@@ -337,7 +337,7 @@ def _tab_qualidade():
             st.dataframe(logs_df[cols_show], use_container_width=True, hide_index=True)
             csv_logs = logs_df.to_csv(index=False).encode("utf-8")
             st.download_button(
-                "📥 Exportar Logs", csv_logs,
+                "Exportar Logs", csv_logs,
                 f"audit_logs_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
                 "text/csv", use_container_width=True
             )
@@ -380,7 +380,7 @@ def _tab_it():
                 "Email para teste", placeholder="exemplo@email.com",
                 key="smtp_test_email"
             )
-            if st.button("📧 Enviar Email de Teste",
+            if st.button("Enviar Email de Teste",
                          use_container_width=True, type="primary"):
                 if email_teste:
                     with st.spinner("A enviar..."):
@@ -489,7 +489,7 @@ def _tab_permissoes():
             )
 
     st.markdown("---")
-    if st.button("💾 Guardar Permissões", type="primary",
+    if st.button("Guardar Permissões", type="primary",
                  use_container_width=True, key="btn_guardar_perms"):
         rows = [{"utilizador": u, **{k: str(v) for k, v in perms.items()}}
                 for u, perms in novos.items()]
@@ -545,7 +545,7 @@ def _fragment_notificacoes():
                     f"</div>",
                     unsafe_allow_html=True
                 )
-            if st.button("✅ Marcar Todas como Lidas",
+            if st.button("Marcar Todas como Lidas",
                           key="marcar_todas_lidas"):
                 for _, notif in notifs_df.iterrows():
                     marcar_notificacao_lida(notif['ID'])
@@ -769,7 +769,7 @@ def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
                         )
                         img_bytes = base64.b64decode(img_b64)
                         st.download_button(
-                            "📥 Descarregar Imagem",
+                            "Descarregar Imagem",
                             data=img_bytes,
                             file_name=f"folha_{obra_fp}_{periodo_ver.replace('/','')}.jpg",
                             mime="image/jpeg",
@@ -912,7 +912,7 @@ def _render_emissao_mensal(
     )
 
     if st.button(
-        "📄 Gerar Resumo PDF",
+        "Gerar Resumo PDF",
         key="btn_gerar_fat_mensal",
         type="primary",
         use_container_width=True
@@ -974,7 +974,7 @@ def _render_emissao_mensal(
             buf.seek(0)
 
             st.download_button(
-                f"📥 Descarregar PDF — {mes_sel_em} {ano_em}",
+                f"Descarregar PDF — {mes_sel_em} {ano_em}",
                 data=buf.getvalue(),
                 file_name=(
                     f"faturacao_{obra_em.replace(' ','_')}_"

@@ -335,7 +335,7 @@ def render_dashboard(*args):
             st.info("Sem instalações recentes.")
 
     st.divider()
-    if st.button("🔄 Atualizar Dados", use_container_width=True,
+    if st.button("Atualizar Dados", use_container_width=True,
                  type="secondary", key="dash_refresh"):
         _load_instrumentos_cache.clear()
         inv()

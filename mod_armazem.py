@@ -169,7 +169,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         ca, cr = st.columns(2)
                         with ca:
                             if st.button(
-                                "✅ Aprovar",
+                                "Aprovar",
                                 key=f"apr_epi_{pid}",
                                 use_container_width=True
                             ):
@@ -182,7 +182,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                                 )
                         with cr:
                             if st.button(
-                                "❌ Rejeitar",
+                                "Rejeitar",
                                 key=f"rej_epi_{pid}",
                                 use_container_width=True,
                                 type="secondary"
@@ -227,7 +227,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         )
                     with col_e:
                         if st.button(
-                            "📬",
+                            "",
                             key=f"env_epi_{pid}",
                             use_container_width=True,
                             help="Marcar como enviado para obra"
@@ -314,7 +314,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         ca, cr = st.columns(2)
                         with ca:
                             if st.button(
-                                "✅ Aprovar",
+                                "Aprovar",
                                 key=f"apr_fer_{pid}",
                                 use_container_width=True
                             ):
@@ -327,7 +327,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                                 )
                         with cr:
                             if st.button(
-                                "❌ Rejeitar",
+                                "Rejeitar",
                                 key=f"rej_fer_{pid}",
                                 use_container_width=True,
                                 type="secondary"
@@ -365,7 +365,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         )
                     with col_e:
                         if st.button(
-                            "📬",
+                            "",
                             key=f"env_fer_{pid}",
                             use_container_width=True,
                             help="Marcar como enviado"
@@ -451,7 +451,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         ca, cr = st.columns(2)
                         with ca:
                             if st.button(
-                                "✅ Aprovar",
+                                "Aprovar",
                                 key=f"apr_mat_{pid}",
                                 use_container_width=True
                             ):
@@ -464,7 +464,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                                 )
                         with cr:
                             if st.button(
-                                "❌ Rejeitar",
+                                "Rejeitar",
                                 key=f"rej_mat_{pid}",
                                 use_container_width=True,
                                 type="secondary"
@@ -509,7 +509,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         )
                     with col_e:
                         if st.button(
-                            "📬",
+                            "",
                             key=f"env_mat_{pid}",
                             use_container_width=True,
                             help="Marcar como enviado"
@@ -642,7 +642,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                         )
 
                         if st.button(
-                            "✅ Confirmar Receção",
+                            "Confirmar Receção",
                             key=f"conf_rec_{iid}",
                             use_container_width=True,
                             type="primary"

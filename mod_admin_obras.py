@@ -80,7 +80,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                     value=None, key="obra_data_fim")
 
                 if st.form_submit_button(
-                    "💾 Criar Obra",
+                    "Criar Obra",
                     use_container_width=True, type="primary"
                 ):
                     if not nome.strip() or not cliente.strip():
@@ -150,7 +150,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                         col_ed, col_del = st.columns([3, 1])
                         with col_ed:
                             if st.button(
-                                "✏️ Editar",
+                                "Editar",
                                 key=f"editar_obra_{ob_nome}",
                                 use_container_width=True,
                                 help="Editar dados operacionais da obra"
@@ -160,7 +160,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     not st.session_state.get(chave_editar, False)
                         with col_del:
                             if st.button(
-                                "🗄️ Fechar",
+                                "Fechar",
                                 key=f"fechar_obra_{ob_nome}",
                                 use_container_width=True,
                                 help="Fechar obra e mover para histórico"
@@ -296,7 +296,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                 )
 
                                 if st.form_submit_button(
-                                    "💾 Guardar Alterações",
+                                    "Guardar Alterações",
                                     use_container_width=True, type="primary"
                                 ):
                                     mask_ed = obras_db['Obra'] == ob_nome
@@ -327,7 +327,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                             col_sim, col_nao = st.columns(2)
                             with col_sim:
                                 if st.button(
-                                    "✅ Sim, fechar",
+                                    "Sim, fechar",
                                     key=f"sim_fechar_{ob_nome}",
                                     type="primary",
                                     use_container_width=True
@@ -370,7 +370,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     st.rerun(scope="fragment")
                             with col_nao:
                                 if st.button(
-                                    "❌ Cancelar",
+                                    "Cancelar",
                                     key=f"nao_fechar_{ob_nome}",
                                     use_container_width=True
                                 ):
@@ -448,7 +448,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
         with col6:
             st.markdown("<div style='height:28px;'></div>",
                         unsafe_allow_html=True)
-            if st.button("💾 Guardar Função/Categoria",
+            if st.button("Guardar Função/Categoria",
                          key=f"aloc_fc_save_{tec_aloc}",
                          use_container_width=True):
                 if (fc_f_novo and not fc_f_aloc) or (fc_c_novo and not fc_c_aloc):
@@ -467,7 +467,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                         st.error("Erro ao guardar — verifica ligação ao GCS")
 
         if st.button(
-            "➕ Alocar Colaborador",
+            "Alocar Colaborador",
             key="btn_alocar", type="primary",
             use_container_width=True
         ):
@@ -543,7 +543,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                     with col_cm:
                         colab_idx = colab.name
                         if st.button(
-                            "🔄 Mover/Remover",
+                            "Mover/Remover",
                             key=f"mv_{colab_idx}",
                             use_container_width=True
                         ):
@@ -560,7 +560,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                 key=f"nova_obra_{colab_idx}"
                             )
                             if st.button(
-                                "✅ Mover",
+                                "Mover",
                                 key=f"confirmar_mv_{colab_idx}",
                                 type="primary",
                                 use_container_width=True
@@ -584,7 +584,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                 unsafe_allow_html=True
                             )
                             if st.button(
-                                "❌ Remover da Obra",
+                                "Remover da Obra",
                                 key=f"remover_{colab_idx}",
                                 use_container_width=True
                             ):
@@ -641,7 +641,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 key="obra_reativar"
             )
             if st.button(
-                "🔄 Reativar Obra",
+                "Reativar Obra",
                 key="btn_reativar",
                 use_container_width=True
             ):

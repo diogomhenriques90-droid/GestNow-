@@ -384,7 +384,7 @@ def render_tecnico(*args):
             if st.session_state.pop('_pt_redirect_msg', False):
                 st.info("O registo de horas é feito na **CPS Ponto**.")
                 st.link_button(
-                    "🔗 Abrir CPS Ponto",
+                    "Abrir CPS Ponto",
                     "https://cps-ponto-773461449136.europe-west1.run.app",
                     use_container_width=True, type="primary")
 
@@ -719,12 +719,12 @@ def render_tecnico(*args):
                 col_c, col_g = st.columns(2)
                 with col_c:
                     mais_per = st.form_submit_button(
-                        "➕ Adicionar Período",
+                        "Adicionar Período",
                         use_container_width=True
                     )
                 with col_g:
                     guardar = st.form_submit_button(
-                        "💾 Guardar Ponto",
+                        "Guardar Ponto",
                         use_container_width=True,
                         type="primary"
                     )
@@ -971,7 +971,7 @@ def render_tecnico(*args):
                     )
                 with col_masa2:
                     if st.button(
-                        "✅ Validar Todos",
+                        "Validar Todos",
                         key="val_todos",
                         use_container_width=True,
                         type="primary"
@@ -1011,7 +1011,7 @@ def render_tecnico(*args):
                         st.rerun()
                 with col_masa3:
                     if st.button(
-                        "❌ Rejeitar Todos",
+                        "Rejeitar Todos",
                         key="rej_todos",
                         use_container_width=True
                     ):
@@ -1122,7 +1122,7 @@ def render_tecnico(*args):
                             )
                         with col_rv:
                             if st.button(
-                                "✅",
+                                "",
                                 key=f"val_{rid}",
                                 use_container_width=True,
                                 help="Validar este registo"
@@ -1160,7 +1160,7 @@ def render_tecnico(*args):
                                 st.rerun()
                         with col_rr:
                             if st.button(
-                                "❌",
+                                "",
                                 key=f"rej_{rid}",
                                 use_container_width=True,
                                 help="Rejeitar este registo"
@@ -1263,7 +1263,7 @@ def render_tecnico(*args):
                         "Nome do Responsável", key="fp_resp"
                     )
                     if st.button(
-                        "🔒 Gerar Folha com Selo",
+                        "Gerar Folha com Selo",
                         use_container_width=True,
                         type="primary"
                     ):
@@ -1316,7 +1316,7 @@ def render_tecnico(*args):
             )
             d_hse = st.text_area("Descrição", key="hse_desc")
             if st.form_submit_button(
-                "📤 Submeter",
+                "Submeter",
                 use_container_width=True,
                 type="primary"
             ):
@@ -1547,7 +1547,7 @@ def render_tecnico(*args):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Perfil",
+                    "Guardar Perfil",
                     use_container_width=True,
                     type="primary"
                 ):
@@ -1624,7 +1624,7 @@ def render_tecnico(*args):
                     try:
                         ct_bytes = base64.b64decode(ct_b64)
                         st.download_button(
-                            "📥 Descarregar Contrato para Assinar",
+                            "Descarregar Contrato para Assinar",
                             data=ct_bytes,
                             file_name=(
                                 f"contrato_{user_nome.replace(' ', '_')}.docx"
@@ -1656,7 +1656,7 @@ def render_tecnico(*args):
                 )
                 if ficheiro_assin:
                     if st.button(
-                        "✅ Submeter assinatura",
+                        "Submeter assinatura",
                         key="btn_submeter_assin",
                         type="primary",
                         use_container_width=True
@@ -1753,7 +1753,7 @@ def render_tecnico(*args):
                                 if rec:
                                     try:
                                         st.download_button(
-                                            "📄",
+                                            "",
                                             data=base64.b64decode(rec),
                                             file_name=(
                                                 f"recibo_"
@@ -1807,7 +1807,7 @@ def render_tecnico(*args):
                     type=["png", "jpg", "jpeg"], key="ff_f"
                 )
                 if st.form_submit_button(
-                    "📤 Enviar",
+                    "Enviar",
                     use_container_width=True, type="primary"
                 ):
                     if d_:
@@ -1852,7 +1852,7 @@ def render_tecnico(*args):
                 with c2_:
                     q_ = st.number_input("Qtd", min_value=1, value=1, key="fe_q")
                 if st.form_submit_button(
-                    "📤 Enviar",
+                    "Enviar",
                     use_container_width=True, type="primary"
                 ):
                     n = pd.DataFrame([{
@@ -1891,7 +1891,7 @@ def render_tecnico(*args):
                     "Urgência", ["Baixa", "Média", "Alta"], key="fm_ug"
                 )
                 if st.form_submit_button(
-                    "📤 Enviar",
+                    "Enviar",
                     use_container_width=True, type="primary"
                 ):
                     if d_:
@@ -1941,7 +1941,7 @@ def render_tecnico(*args):
                 )
                 og_ = st.text_area("Observações", key="fg_obs")
                 if st.form_submit_button(
-                    "📤 Enviar",
+                    "Enviar",
                     use_container_width=True, type="primary"
                 ):
                     if rg_ and l_ > 0:
@@ -1998,7 +1998,7 @@ def render_tecnico(*args):
                     type=["png", "jpg", "jpeg", "pdf"], key="fa_f"
                 )
                 if st.form_submit_button(
-                    "📤 Enviar",
+                    "Enviar",
                     use_container_width=True, type="primary"
                 ):
                     if ft_ and d_:
