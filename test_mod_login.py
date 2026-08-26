@@ -52,8 +52,8 @@ class TestRenderLoginSemErro(unittest.TestCase):
     def test_os_dois_separadores_existem(self):
         at = _run()
         labels = [t.label for t in at.tabs]
-        self.assertIn("🔑 Password", labels)
-        self.assertIn("🔢 PIN", labels)
+        self.assertIn("Password", labels)
+        self.assertIn("PIN", labels)
 
 
 class TestLogotipoVarianteClara(unittest.TestCase):

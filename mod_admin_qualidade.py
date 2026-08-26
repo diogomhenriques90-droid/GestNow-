@@ -71,11 +71,11 @@ def render_qualidade(*_):
     st.divider()
 
     tab_nc, tab_nova_nc, tab_insp, tab_docs, tab_kpis = st.tabs([
-        "🔴 Não Conformidades",
-        "➕ Nova NC",
-        "🔍 Inspeções",
-        "📄 Docs SGQ",
-        "📊 Indicadores",
+        "Não Conformidades",
+        "Nova NC",
+        "Inspeções",
+        "Docs SGQ",
+        "Indicadores",
     ])
 
     # ════════════════════════════════════════════════════════════════

@@ -217,10 +217,10 @@ def render_tecnico(*args):
     """, unsafe_allow_html=True)
 
     # ── Tabs ──────────────────────────────────────────────────────
-    menu = ["📋 Pontos", "🛡️ HSE", "👤 Perfil", "📦 Pedidos"]
+    menu = ["Pontos", "HSE", "Perfil", "Pedidos"]
     if is_chefe:
-        menu.insert(1, "✅ Validar Horas")
-        menu.insert(2, "📊 Folha")
+        menu.insert(1, "Validar Horas")
+        menu.insert(2, "Folha")
     tabs = st.tabs(menu)
 
     # ════════════════════════════════════════════════════════════════
@@ -1779,8 +1779,8 @@ def render_tecnico(*args):
     with tabs[-1]:
         st.markdown("### Pedidos")
         s1, s2, s3, s4, s5, s6 = st.tabs([
-            "🔧 Ferramentas", "🦺 EPIs", "📦 Materiais",
-            "⛽ Gasóleo", "🔧 Avarias", "📋 Os Meus"
+            "Ferramentas", "EPIs", "Materiais",
+            "Gasóleo", "Avarias", "Os Meus"
         ])
 
         def _notif(t, m):

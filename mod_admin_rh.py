@@ -761,12 +761,12 @@ def render_admin_rh(*args):
 
     (tab_lista, tab_gestao, tab_eticadata,
      tab_contrato, tab_template, tab_formacoes) = st.tabs([
-        "👥 Colaboradores",
-        "📋 Ficha do Colaborador",
-        "📥 Importar Eticadata",
-        "📄 Contratos",
-        "⚙️ Templates & Config",
-        "🎓 Formações",
+        "Colaboradores",
+        "Ficha do Colaborador",
+        "Importar Eticadata",
+        "Contratos",
+        "Templates & Config",
+        "Formações",
     ])
 
     # ════════════════════════════════════════════════════════════════

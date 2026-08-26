@@ -283,7 +283,7 @@ def render_instrumentacao(*args):
 
     # ✅ TABS ATUALIZADAS COM SCAN QR
     t_conv, t_idx, t_scan, t_itra, t_itrb, t_hand = st.tabs([
-        "🤖 IA Vision", "📋 Index", "📱 Scan QR", "🔬 ITR-A", "🏗️ ITR-B & GPS", "📄 Handover"
+        "IA Vision", "Index", "Scan QR", "ITR-A", "ITR-B & GPS", "Handover"
     ])
 
     # --- TAB IA VISION ---

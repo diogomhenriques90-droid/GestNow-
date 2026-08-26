@@ -56,11 +56,11 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
 
     (tab_epis, tab_ferramentas, tab_materiais,
      tab_rececao, tab_compras) = st.tabs([
-        "🦺 EPIs",
-        "🔧 Ferramentas",
-        "📦 Materiais",
-        "📬 Receção / Entrega",
-        "🛒 Compras",
+        "EPIs",
+        "Ferramentas",
+        "Materiais",
+        "Receção / Entrega",
+        "Compras",
     ])
 
     # ═══ HELPERS COMUNS ══════════════════════════════════════════
@@ -130,7 +130,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
     with tab_epis:
         st.markdown("### EPIs")
         sub_pend, sub_aprov, sub_hist = st.tabs([
-            "🟠 Pendentes", "🔵 Aprovados", "📋 Histórico"
+            "Pendentes", "Aprovados", "Histórico"
         ])
 
         with sub_pend:
@@ -265,7 +265,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
     with tab_ferramentas:
         st.markdown("### Ferramentas")
         sub_pf, sub_af, sub_hf = st.tabs([
-            "🟠 Pendentes", "🔵 Aprovadas", "📋 Histórico"
+            "Pendentes", "Aprovadas", "Histórico"
         ])
 
         with sub_pf:
@@ -403,7 +403,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
     with tab_materiais:
         st.markdown("### Materiais")
         sub_pm, sub_am, sub_hm = st.tabs([
-            "🟠 Pendentes", "🔵 Aprovados", "📋 Histórico"
+            "Pendentes", "Aprovados", "Histórico"
         ])
 
         with sub_pm:

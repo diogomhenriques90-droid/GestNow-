@@ -39,7 +39,7 @@ def render_planeamento():
     user_nome = st.session_state.get('user', 'Admin')
 
     tab_producao, tab_cronograma, tab_recursos, tab_desenhos = st.tabs([
-        "🏭 Produção", "📅 Cronograma", "👷 Recursos", "📐 Desenhos"
+        "Produção", "Cronograma", "Recursos", "Desenhos"
     ])
 
     # ════════════════════════════════════════════════════════════════

@@ -472,11 +472,11 @@ def render_admin_diarias(*args):
     st.markdown("# Diárias & Ajudas de Custo")
 
     tab_semana, tab_config, tab_faltas, tab_historico, tab_empresa = st.tabs([
-        "📅 Semana Atual",
-        "⚙️ Configurar Valores",
-        "❌ Faltas Injustificadas",
-        "📋 Histórico",
-        "🏢 Empresa",
+        "Semana Atual",
+        "Configurar Valores",
+        "Faltas Injustificadas",
+        "Histórico",
+        "Empresa",
     ])
 
     # ════════════════════════════════════════════════════════════════

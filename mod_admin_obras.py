@@ -54,7 +54,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
     user_nome = st.session_state.get('user', 'Admin')
 
     tab_obras, tab_alocacoes, tab_historico = st.tabs([
-        "🏗️ Obras", "👷 Alocações", "📜 Histórico"
+        "Obras", "Alocações", "Histórico"
     ])
 
     # ════════════════════════════════════════════════════════════════

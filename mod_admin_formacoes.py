@@ -427,12 +427,12 @@ def render_formacoes(users, obras_db, *_):
     # ── Tabs ──────────────────────────────────────────────────────
     (t_reg, t_nova, t_colab,
      t_plano, t_custos, t_catalogo) = st.tabs([
-        "📋 Formações Registadas",
-        "➕ Registar Formação",
-        "👤 Por Colaborador",
-        "📅 Plano Anual",
-        "💰 Custos & Reembolsos",
-        "📚 Catálogo",
+        "Formações Registadas",
+        "Registar Formação",
+        "Por Colaborador",
+        "Plano Anual",
+        "Custos & Reembolsos",
+        "Catálogo",
     ])
 
     # ════════════════════════════════════════════════════════════════

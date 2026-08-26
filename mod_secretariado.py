@@ -76,12 +76,12 @@ def render_secretariado(*args):
     _n_2val = len(regs[regs['Status'] == '1']) if not regs.empty else 0
 
     tab_1val, tab_2val, tab_fat, tab_gasoleos, tab_avarias, tab_hist = st.tabs([
-        f"🟢 1ª Validação{f' ({_n_1val})' if _n_1val else ''}",
-        f"🔵 2ª Validação{f' ({_n_2val})' if _n_2val else ''}",
-        "📄 Faturação & Folhas",
-        "⛽ Gasóleo",
-        "🔧 Avarias Frota",
-        "📋 Histórico",
+        f"1ª Validação{f' ({_n_1val})' if _n_1val else ''}",
+        f"2ª Validação{f' ({_n_2val})' if _n_2val else ''}",
+        "Faturação & Folhas",
+        "Gasóleo",
+        "Avarias Frota",
+        "Histórico",
     ])
 
     # ════════════════════════════════════════════════════════════════
@@ -587,7 +587,7 @@ def render_secretariado(*args):
     # ════════════════════════════════════════════════════════════════
     with tab_gasoleos:
         st.markdown("### Validação de Gasóleo")
-        sub_p, sub_h = st.tabs(["🟠 Pendentes", "📋 Histórico"])
+        sub_p, sub_h = st.tabs(["Pendentes", "Histórico"])
 
         with sub_p:
             if not req_mat_db.empty:
@@ -680,7 +680,7 @@ def render_secretariado(*args):
     # ════════════════════════════════════════════════════════════════
     with tab_avarias:
         st.markdown("### Avarias de Frota")
-        sub_p, sub_h = st.tabs(["🟠 Pendentes", "📋 Histórico"])
+        sub_p, sub_h = st.tabs(["Pendentes", "Histórico"])
 
         with sub_p:
             if not incs_db.empty:

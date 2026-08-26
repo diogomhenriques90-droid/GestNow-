@@ -509,11 +509,11 @@ def render_fat_frota(*_):
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_rent, t_comb, t_tco,
      t_seguros, t_relatorio) = st.tabs([
-        "🏦 Contratos Renting",
-        "⛽ Combustível & KM",
-        "📊 Comparador TCO",
-        "🛡️ Seguros Frota",
-        "📋 Relatório Financeiro",
+        "Contratos Renting",
+        "Combustível & KM",
+        "Comparador TCO",
+        "Seguros Frota",
+        "Relatório Financeiro",
     ])
 
     # ════════════════════════════════════════════════════════════════

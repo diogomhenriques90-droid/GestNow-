@@ -639,10 +639,10 @@ def render_fat_imobilizado(*_):
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_imob, t_seg,
      t_caucoes, t_alvaras) = st.tabs([
-        "🏭 Imobilizado & Amortizações",
-        "🛡️ Seguros",
-        "🔒 Cauções Bancárias",
-        "📋 Alvarás & Licenças",
+        "Imobilizado & Amortizações",
+        "Seguros",
+        "Cauções Bancárias",
+        "Alvarás & Licenças",
     ])
 
     # ════════════════════════════════════════════════════════════════

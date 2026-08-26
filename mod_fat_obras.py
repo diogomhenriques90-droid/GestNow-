@@ -914,12 +914,12 @@ def render_fat_obras(obras_db, registos_db,
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_visao, t_pl, t_orc,
      t_wip, t_timeline, t_scatter) = st.tabs([
-        "📊 Visão Geral",
-        "💰 P&L por Obra",
-        "📋 Orçamento vs Real",
-        "🔄 WIP",
-        "📅 Timeline",
-        "🎯 Lucratividade",
+        "Visão Geral",
+        "P&L por Obra",
+        "Orçamento vs Real",
+        "WIP",
+        "Timeline",
+        "Lucratividade",
     ])
 
     # ════════════════════════════════════════════════════════════════

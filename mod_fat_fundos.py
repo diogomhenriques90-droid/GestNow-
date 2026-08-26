@@ -970,12 +970,12 @@ def render_fat_fundos(*_):
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_match, t_calc, t_fundos,
      t_cand, t_ia, t_calendario) = st.tabs([
-        "🎯 Matcher",
-        "💰 Calculadora",
-        "📚 Fundos Disponíveis",
-        "📋 Gestão Candidaturas",
-        "🤖 IA Consultora",
-        "📅 Calendário",
+        "Matcher",
+        "Calculadora",
+        "Fundos Disponíveis",
+        "Gestão Candidaturas",
+        "IA Consultora",
+        "Calendário",
     ])
 
     # ════════════════════════════════════════════════════════════════

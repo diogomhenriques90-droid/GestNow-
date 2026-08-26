@@ -519,12 +519,12 @@ def render_fat_clientes(obras_db, registos_db, *_):
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_emitir, t_lista, t_clientes,
      t_aging, t_contratos, t_nc) = st.tabs([
-        "➕ Emitir Fatura",
-        "📋 Histórico",
-        "🏢 Clientes",
-        "📊 Aging",
-        "📑 Contratos",
-        "🔄 Notas de Crédito",
+        "Emitir Fatura",
+        "Histórico",
+        "Clientes",
+        "Aging",
+        "Contratos",
+        "Notas de Crédito",
     ])
 
     # ════════════════════════════════════════════════════════════════

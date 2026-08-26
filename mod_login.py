@@ -73,7 +73,7 @@ def render_login():
     )
 
     st.markdown("<div class='login-card'>", unsafe_allow_html=True)
-    tab_pwd, tab_pin = st.tabs(["🔑 Password", "🔢 PIN"])
+    tab_pwd, tab_pin = st.tabs(["Password", "PIN"])
 
     # ═══════════════════════════════════════════════════════════════
     # TAB PASSWORD

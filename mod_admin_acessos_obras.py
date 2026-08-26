@@ -547,12 +547,12 @@ def render_acessos_obras(users, obras_db, *_):
     # ── Tabs ──────────────────────────────────────────────────────
     (t_painel, t_novo, t_docs,
      t_obra, t_requisitos, t_relatorio) = st.tabs([
-        "📊 Painel Geral",
-        "➕ Conceder Acesso",
-        "📋 Documentos",
-        "🏗️ Por Obra",
-        "⚙️ Requisitos por Obra",
-        "📄 Relatórios",
+        "Painel Geral",
+        "Conceder Acesso",
+        "Documentos",
+        "Por Obra",
+        "Requisitos por Obra",
+        "Relatórios",
     ])
 
     # ════════════════════════════════════════════════════════════════

@@ -26,12 +26,12 @@ def render_it():
     st.divider()
     
     tabs = st.tabs([
-        "💰 Custos App",
-        "🤖 Custos IA",
-        "📧 Gestão Emails",
-        "🔐 Acessos & Licenças",
-        "🖥️ Infraestrutura",
-        "📊 Monitorização"
+        "Custos App",
+        "Custos IA",
+        "Gestão Emails",
+        "Acessos & Licenças",
+        "Infraestrutura",
+        "Monitorização"
     ])
     
     # =============================================================================

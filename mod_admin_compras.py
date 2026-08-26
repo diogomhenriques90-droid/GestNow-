@@ -68,10 +68,10 @@ def render_compras(*_):
 
     # ── Tabs ──────────────────────────────────────────────────────
     tab_pend, tab_nova, tab_hist, tab_forn = st.tabs([
-        "🟠 Pendentes",
-        "➕ Nova Compra",
-        "📋 Histórico",
-        "🏢 Fornecedores",
+        "Pendentes",
+        "Nova Compra",
+        "Histórico",
+        "Fornecedores",
     ])
 
     # ════════════════════════════════════════════════════════════════

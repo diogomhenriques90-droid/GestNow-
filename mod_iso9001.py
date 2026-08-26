@@ -653,12 +653,12 @@ def render_iso9001(*_):
     # ── 6 Tabs ────────────────────────────────────────────────────
     (t_obj, t_ris, t_part,
      t_aud, t_rev, t_forn) = st.tabs([
-        "🎯 Objetivos",
-        "⚠️ Gestão de Riscos",
-        "🏢 Partes Interessadas",
-        "🔍 Auditorias Internas",
-        "📊 Revisão pela Gestão",
-        "🏭 Avaliação Fornecedores",
+        "Objetivos",
+        "Gestão de Riscos",
+        "Partes Interessadas",
+        "Auditorias Internas",
+        "Revisão pela Gestão",
+        "Avaliação Fornecedores",
     ])
 
     # ════════════════════════════════════════════════════════════════

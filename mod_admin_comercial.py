@@ -552,11 +552,11 @@ def render_comercial(*_):
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_pipeline, t_visitas, t_clientes,
      t_ranking, t_relatorio) = st.tabs([
-        "📊 Pipeline",
-        "🗓️ Visitas",
-        "👥 Clientes & Angariações",
-        "🏆 Ranking",
-        "📤 Relatório",
+        "Pipeline",
+        "Visitas",
+        "Clientes & Angariações",
+        "Ranking",
+        "Relatório",
     ])
 
     # ════════════════════════════════════════════════════════════════

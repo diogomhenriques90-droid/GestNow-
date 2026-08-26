@@ -5,16 +5,10 @@ from datetime import datetime
 from core import (init_session, check_timeout, load_all, inject_pwa_meta,
                   inject_global_css, hp, save_db, log_audit,
                   criar_notificacao, load_db, _gcs_read, inv, tem_permissao,
-                  _verificar_alerta_backup, _registar_backup,
+                  _verificar_alerta_backup, _registar_backup, THEME,
                   # FIX 1 — importar a versão cached de core em vez de redefinir
                   _load_users_cached)
 from translations import init_language, t, get_language_options, set_language
-
-try:
-    from streamlit_option_menu import option_menu
-    HAS_OPTION_MENU = True
-except ImportError:
-    HAS_OPTION_MENU = False
 
 st.set_page_config(
     page_title="GestNow — CPS Smart Solutions",
@@ -605,71 +599,68 @@ if st.session_state.get('user'):
 # =============================================================================
 # BOTTOM NAVIGATION BAR (MOBILE)
 # =============================================================================
-if st.session_state.get('user') and HAS_OPTION_MENU:
+if st.session_state.get('user'):
     tipo  = st.session_state.get('tipo', '')
     cargo = st.session_state.get('cargo', '')
     eh_cliente = (tipo == 'Cliente')
 
     if eh_cliente:
         nav_options = ["Portal", "Logout"]
-        nav_icons   = ["house", "box-arrow-right"]
     elif tipo == 'Admin':
         nav_options = ["Dashboard","Admin","Instrumentação","Perfil","Logout"]
-        nav_icons   = ["graph-up","gear","tools","person","box-arrow-right"]
         # Dashboard de Obra — só aparece a Admins com permissão (super-admin vê sempre)
         if tem_permissao(st.session_state.get('user',''), 'mod_dashboard_obra'):
             nav_options.insert(4, "Dashboard de Obra")
-            nav_icons.insert(4, "building")
     elif tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
         nav_options = ["Início","Obra","Instrumentação","Perfil","Logout"]
-        nav_icons   = ["house","tools","wrench","person","box-arrow-right"]
     else:
         nav_options = ["Início","Obra","Perfil","Logout"]
-        nav_icons   = ["house","tools","person","box-arrow-right"]
 
     current_menu  = st.session_state.get('menu_selected', '')
-    default_index = 0
+    default_opcao = nav_options[0]
     if tipo == 'Admin':
-        if   "Admin"          in current_menu: default_index = 1
-        elif "Instrumentação" in current_menu: default_index = 2
-        elif "Perfil"         in current_menu: default_index = 3
-        elif "Dashboard de Obra" in current_menu: default_index = 4
-        else:                                  default_index = 0
+        if   "Admin"             in current_menu: default_opcao = "Admin"
+        elif "Instrumentação"    in current_menu: default_opcao = "Instrumentação"
+        elif "Perfil"            in current_menu: default_opcao = "Perfil"
+        elif "Dashboard de Obra" in current_menu: default_opcao = "Dashboard de Obra"
     elif tipo in ['Chefe de Equipa','Gestor'] or cargo in ['Chefe de Equipa','Encarregado']:
-        if   "Obra"           in current_menu: default_index = 1
-        elif "Instrumentação" in current_menu: default_index = 2
-        elif "Perfil"         in current_menu: default_index = 3
-        else:                                  default_index = 0
+        if   "Obra"           in current_menu: default_opcao = "Obra"
+        elif "Instrumentação" in current_menu: default_opcao = "Instrumentação"
+        elif "Perfil"         in current_menu: default_opcao = "Perfil"
     else:
-        if   "Obra"           in current_menu: default_index = 1
-        elif "Perfil"         in current_menu: default_index = 2
-        else:                                  default_index = 0
+        if   "Obra"   in current_menu: default_opcao = "Obra"
+        elif "Perfil" in current_menu: default_opcao = "Perfil"
+    if default_opcao not in nav_options:
+        default_opcao = nav_options[0]
 
-    selected = option_menu(
-        menu_title=None, options=nav_options, icons=nav_icons,
-        menu_icon="cast", default_index=default_index, orientation="horizontal",
-        styles={
-            "container":        {"padding":"0!important","background-color":"#1E293B",
-                                 "position":"fixed","bottom":"0","width":"100%",
-                                 "z-index":"999","border-top":"1px solid rgba(255,255,255,0.1)"},
-            "icon":             {"color":"#F8FAFC","font-size":"20px"},
-            "nav-link":         {"color":"#F8FAFC","font-size":"11px","margin":"0px",
-                                 "text-align":"center","padding":"8px 4px"},
-            "nav-link-selected":{"background-color":"#DC2626","color":"#FFFFFF"},
-        }
-    )
+    # Widget de chave estável, sincronizado manualmente com menu_selected:
+    # só reescrevemos o valor do segmented_control quando a navegação mudou
+    # por uma via externa a ele (sidebar, etc.) — nunca no próprio ciclo em
+    # que o utilizador acabou de lhe tocar, para não perder o clique.
+    _NAV_KEY = "bottom_nav_sel"
+    if st.session_state.get('_bottom_nav_synced_menu') != current_menu:
+        st.session_state[_NAV_KEY] = default_opcao
+        st.session_state['_bottom_nav_synced_menu'] = current_menu
 
-    nav_map = {
-        "Início":         f"Início",
-        "Portal":         f"Portal",
-        "Obra":           f"Obra",
-        "Instrumentação": f"Instrumentação",
-        "Dashboard":      f"Dashboard",
-        "Admin":          f"Admin",
-        "Perfil":         f"Perfil",
-        "Dashboard de Obra": f"Dashboard de Obra",
-        "Logout":         "Logout",
-    }
+    st.markdown(f"""
+    <style>
+    .st-key-bottom_nav_bar {{
+        position: fixed; bottom: 0; left: 0; width: 100%; z-index: 999;
+        background-color: {THEME['surface']};
+        border-top: 1px solid {THEME['border']};
+        padding: 6px 4px;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+    with st.container(key="bottom_nav_bar"):
+        selected = st.segmented_control(
+            "Navegação", nav_options, required=True,
+            width="stretch", key=_NAV_KEY,
+            label_visibility="collapsed",
+        )
+
+    nav_map = {op: op for op in nav_options}
 
     if st.session_state.get('_menu_locked', False):
         st.session_state['_menu_locked'] = False
@@ -677,6 +668,7 @@ if st.session_state.get('user') and HAS_OPTION_MENU:
         new_menu = nav_map.get(selected, '')
         if new_menu and new_menu != st.session_state.get('menu_selected', ''):
             st.session_state.menu_selected = new_menu
+            st.session_state['_bottom_nav_synced_menu'] = new_menu
             if selected == "Logout":
                 st.session_state.clear()
             st.rerun()

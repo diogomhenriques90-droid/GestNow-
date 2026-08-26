@@ -1211,11 +1211,11 @@ def render_fat_auditoria(obras_db, registos_db,
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_check, t_inc, t_dossier,
      t_comp, t_export) = st.tabs([
-        "✅ Checklist",
-        "⚠️ Inconsistências",
-        "📁 Dossier Digital",
-        "📊 Comparativo Anual",
-        "📤 Export TOC/ROC",
+        "Checklist",
+        "Inconsistências",
+        "Dossier Digital",
+        "Comparativo Anual",
+        "Export TOC/ROC",
     ])
 
     # ════════════════════════════════════════════════════════════════

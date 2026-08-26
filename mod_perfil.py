@@ -74,7 +74,7 @@ def render_perfil(*args):
 
     st.divider()
 
-    tabs = st.tabs(["✏️ Editar Perfil", "🔐 Password & PIN", "📊 Histórico de Horas"])
+    tabs = st.tabs(["Editar Perfil", "Password & PIN", "Histórico de Horas"])
 
     # ── TAB 0: EDITAR PERFIL ─────────────────────────────────────────
     with tabs[0]:

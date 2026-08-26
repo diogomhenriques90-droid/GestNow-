@@ -161,10 +161,10 @@ def render_dashboard(*args):
     st.markdown("### Analytics")
 
     tab_g1, tab_g2, tab_g3, tab_g4 = st.tabs([
-        "📊 Progresso por Obra",
-        "⏱️ Horas por Semana",
-        "🔥 Incidentes",
-        "🏆 Ranking Técnicos"
+        "Progresso por Obra",
+        "Horas por Semana",
+        "Incidentes",
+        "Ranking Técnicos"
     ])
 
     # TAB 1

@@ -115,10 +115,10 @@ class TestEstruturaAbas(unittest.TestCase):
 
     def test_aba_ficha_do_colaborador_unifica_gestao_e_dados_legais(self):
         labels = [t.label for t in self.at.tabs]
-        self.assertIn("👥 Colaboradores", labels)
-        self.assertIn("📋 Ficha do Colaborador", labels)
-        self.assertNotIn("📋 Gestão Individual", labels)
-        self.assertNotIn("📋 Dados Legais", labels)
+        self.assertIn("Colaboradores", labels)
+        self.assertIn("Ficha do Colaborador", labels)
+        self.assertNotIn("Gestão Individual", labels)
+        self.assertNotIn("Dados Legais", labels)
         # Conteúdo de ambas as secções antigas continua presente, agora
         # dentro da mesma aba.
         markdown_textos = " ".join(m.value for m in self.at.markdown)

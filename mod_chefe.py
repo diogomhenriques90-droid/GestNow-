@@ -547,8 +547,8 @@ def render_chefe(*args):
 
     # ── Tabs ──────────────────────────────────────────────────────────────────
     tabs = st.tabs([
-        "👥 Equipa", "✅ Validar Horas", "📋 Meu Ponto",
-        "📊 Folha de Ponto", "🛡️ HSE", "📦 Pedidos"
+        "Equipa", "Validar Horas", "Meu Ponto",
+        "Folha de Ponto", "HSE", "Pedidos"
     ])
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -617,7 +617,7 @@ def render_chefe(*args):
     # ══════════════════════════════════════════════════════════════════════════
     with tabs[1]:
         st.markdown("### Validação de Horas da Equipa")
-        sub_p, sub_h = st.tabs(["🟠 Pendentes", "📅 Histórico Mensal"])
+        sub_p, sub_h = st.tabs(["Pendentes", "Histórico Mensal"])
 
         # ── Pendentes ─────────────────────────────────────────────────────────
         with sub_p:
@@ -1891,7 +1891,7 @@ def render_chefe(*args):
     # ══════════════════════════════════════════════════════════════════════════
     with tabs[4]:
         st.markdown("### Segurança & HSE")
-        sub_r, sub_rep, sub_list = st.tabs(["📋 Regras de Ouro","⚠️ Reportar","📊 Incidentes"])
+        sub_r, sub_rep, sub_list = st.tabs(["Regras de Ouro","Reportar","Incidentes"])
 
         with sub_r:
             for ic, tit, des in REGRAS_OURO:
@@ -1948,7 +1948,7 @@ def render_chefe(*args):
         tecnicos_equipa = regs_equipa['Técnico'].unique().tolist() \
                           if not regs_equipa.empty else []
 
-        sub_f, sub_e, sub_m = st.tabs(["🔧 Ferramentas","🦺 EPIs","📦 Materiais"])
+        sub_f, sub_e, sub_m = st.tabs(["Ferramentas","EPIs","Materiais"])
 
         _TOM_STATUS_PEDIDO = {"Pendente": "warning", "Aprovado": "success", "Rejeitado": "error"}
 

@@ -115,10 +115,10 @@ def render_contactos_iso(*_):
     st.divider()
 
     tab_lista, tab_novo, tab_timeline, tab_analytics = st.tabs([
-        "📋 Contactos",
-        "➕ Registar Contacto",
-        "🔗 Timeline por Cliente",
-        "📊 Analytics ISO",
+        "Contactos",
+        "Registar Contacto",
+        "Timeline por Cliente",
+        "Analytics ISO",
     ])
 
     # ══════════════════════════════════════════════════════════════════════════

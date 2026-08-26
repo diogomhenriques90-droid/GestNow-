@@ -57,14 +57,14 @@ def _apply(patches):
 
 class TestRenderAdminSemErro(unittest.TestCase):
     """Smoke test — o ecrã renderiza sem erro. Por omissão fica no
-    separador "📦 Armazém" (primeiro do segmented_control)."""
+    separador "Armazém" (primeiro do segmented_control)."""
 
     def test_sem_erro_separador_omissao(self):
         at = _run()
         self.assertFalse(at.exception, msg=str(at.exception))
 
     def test_sem_erro_separador_it(self):
-        at = _run(tab_sel="💻 IT")
+        at = _run(tab_sel="IT")
         self.assertFalse(at.exception, msg=str(at.exception))
 
 
@@ -105,7 +105,7 @@ class TestSmtpConfigSemErro(unittest.TestCase):
             "server": "smtp.exemplo.pt", "port": 587, "user": "geral@exemplo.pt",
             "password": "x", "from_name": "GestNow", "from_email": "geral@exemplo.pt",
         }
-        at = _run(tab_sel="💻 IT", extra_patches=[
+        at = _run(tab_sel="IT", extra_patches=[
             patch("core.get_smtp_config", return_value=config),
         ])
         self.assertFalse(at.exception, msg=str(at.exception))
@@ -172,7 +172,7 @@ class TestTemaClaroAplicado(unittest.TestCase):
             "server": "smtp.exemplo.pt", "port": 587, "user": "geral@exemplo.pt",
             "password": "x", "from_name": "GestNow", "from_email": "geral@exemplo.pt",
         }
-        at = _run(tab_sel="💻 IT", extra_patches=[
+        at = _run(tab_sel="IT", extra_patches=[
             patch("core.get_smtp_config", return_value=config),
         ])
         textos = " ".join(m.value for m in at.markdown)

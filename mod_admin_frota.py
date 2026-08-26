@@ -62,7 +62,7 @@ def render_frota():
     st.divider()
 
     tab_viaturas, tab_combustivel, tab_avarias = st.tabs([
-        "🚗 Viaturas", "⛽ Combustível", "⚠️ Avarias"
+        "Viaturas", "Combustível", "Avarias"
     ])
 
     # ════════════════════════════════════════════════════════════════

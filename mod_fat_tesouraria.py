@@ -767,11 +767,11 @@ def render_fat_tesouraria(obras_db, registos_db,
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_cf, t_contas, t_rec,
      t_fm, t_ia) = st.tabs([
-        "💵 Cash Flow 90 Dias",
-        "🏦 Contas Bancárias",
-        "🔄 Reconciliação Bancária",
-        "💼 Fundo de Maneio",
-        "🤖 Previsão IA",
+        "Cash Flow 90 Dias",
+        "Contas Bancárias",
+        "Reconciliação Bancária",
+        "Fundo de Maneio",
+        "Previsão IA",
     ])
 
     # ════════════════════════════════════════════════════════════════

@@ -35,7 +35,7 @@ def render_dormidas():
     user_nome = st.session_state.get('user', 'Admin')
 
     tab_registar, tab_pesquisar, tab_historico = st.tabs([
-        "📝 Registar", "🤖 IA Pesquisa Hotéis", "📋 Histórico"
+        "Registar", "IA Pesquisa Hotéis", "Histórico"
     ])
 
     # ════════════════════════════════════════════════════════════════

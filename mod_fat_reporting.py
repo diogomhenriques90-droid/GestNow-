@@ -1025,12 +1025,12 @@ def render_fat_reporting(obras_db, registos_db,
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_dash, t_pneg, t_benchm,
      t_regras, t_passaporte, t_export) = st.tabs([
-        "📊 Dashboard Executivo",
-        "📈 Plano de Negócios",
-        "🎯 Benchmarking",
-        "⚙️ Motor de Regras",
-        "🗂️ Passaporte Financeiro",
-        "📤 Exportar Relatório",
+        "Dashboard Executivo",
+        "Plano de Negócios",
+        "Benchmarking",
+        "Motor de Regras",
+        "Passaporte Financeiro",
+        "Exportar Relatório",
     ])
 
     # ════════════════════════════════════════════════════════════════

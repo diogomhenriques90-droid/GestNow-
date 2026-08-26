@@ -101,8 +101,8 @@ def render_cliente_portal():
     }
 
     tab_res, tab_inst, tab_qr, tab_apr, tab_docs, tab_punch = st.tabs([
-        "📋 Resumo", "🔧 Instrumentos", "📱 QR Codes",
-        "✅ Aprovações", "📄 Documentação", "💬 Punch List"
+        "Resumo", "Instrumentos", "QR Codes",
+        "Aprovações", "Documentação", "Punch List"
     ])
 
     # ── TAB RESUMO ───────────────────────────────────────────────────

@@ -105,7 +105,7 @@ def _tab_producao():
         _sem_permissao("Produção"); return
     st.markdown("## Produção")
     prod_tabs = st.tabs([
-        "🏗️ Obras", "🚗 Frota", "🗺️ Deslocações", "📋 Planeamento", "🔐 Acessos"
+        "Obras", "Frota", "Deslocações", "Planeamento", "Acessos"
     ])
     with prod_tabs[0]: _subtab_prod_obras()
     with prod_tabs[1]: _subtab_prod_frota()
@@ -296,7 +296,7 @@ def _tab_qualidade():
     d = _unpack()
     st.markdown("## Qualidade & Auditoria")
     qual_tabs = st.tabs([
-        "🎯 Qualidade Operacional", "🏆 ISO 9001:2015", "📋 Logs Audit"
+        "Qualidade Operacional", "ISO 9001:2015", "Logs Audit"
     ])
     with qual_tabs[0]:
         from mod_admin_qualidade import render_qualidade
@@ -350,7 +350,7 @@ def _tab_it():
     if not tem_permissao(st.session_state.get('user',''), 'mod_it'):
         _sem_permissao("IT"); return
     st.markdown("## IT & Sistemas")
-    it_tabs = st.tabs(["💻 IT & Infraestrutura", "📧 Config Email"])
+    it_tabs = st.tabs(["IT & Infraestrutura", "Config Email"])
     with it_tabs[0]:
         from mod_admin_it import render_it
         render_it()
@@ -400,7 +400,7 @@ def _tab_hse():
         _sem_permissao("HSE"); return
     d = _unpack()
     st.markdown("### Segurança e HSE")
-    tab_inc, tab_sw = st.tabs(["⚠️ Incidentes", "🚶 Safety Walks"])
+    tab_inc, tab_sw = st.tabs(["Incidentes", "Safety Walks"])
     with tab_inc:
         incs_db = d["incs_db"]
         if not incs_db.empty:
@@ -611,20 +611,20 @@ def render_admin(*args):
     # A selecção persiste em st.session_state["admin_tab_sel"] via a key.
     _e_super = st.session_state.get('user','') in _SUPER_ADMINS
     _ADMIN_TABS = [
-        ("📦 Armazém",       _tab_armazem),
-        ("👥 RH",            _tab_rh),
-        ("🗂️ Secretariado",  _tab_secretariado),
-        ("🏭 Produção",      _tab_producao),
-        ("💰 Faturação",     _tab_faturacao),
-        ("📊 Orçamentação",  _tab_orcamentacao),
-        ("💼 Comercial",     _tab_comercial),
-        ("🔗 Contactos ISO", _tab_contactos_iso),
-        ("🎯 Qualidade",     _tab_qualidade),
-        ("💻 IT",            _tab_it),
-        ("🛡️ HSE",           _tab_hse),
+        ("Armazém",       _tab_armazem),
+        ("RH",            _tab_rh),
+        ("Secretariado",  _tab_secretariado),
+        ("Produção",      _tab_producao),
+        ("Faturação",     _tab_faturacao),
+        ("Orçamentação",  _tab_orcamentacao),
+        ("Comercial",     _tab_comercial),
+        ("Contactos ISO", _tab_contactos_iso),
+        ("Qualidade",     _tab_qualidade),
+        ("IT",            _tab_it),
+        ("HSE",           _tab_hse),
     ]
     if _e_super:
-        _ADMIN_TABS.append(("🔐 Permissões", _tab_permissoes))
+        _ADMIN_TABS.append(("Permissões", _tab_permissoes))
     _admin_labels = [lbl for lbl, _ in _ADMIN_TABS]
     _admin_sel = st.segmented_control(
         "Módulo Admin", _admin_labels, default=_admin_labels[0],
@@ -786,7 +786,7 @@ def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
 
 
 def _render_horas_faturacao(registos_db):
-    st.markdown("### ⏱️ Horas por Obra (Faturação)")
+    st.markdown("### Horas por Obra (Faturação)")
     if registos_db.empty:
         st.info("Sem registos.")
         return

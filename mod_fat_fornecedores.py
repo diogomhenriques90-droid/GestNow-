@@ -506,12 +506,12 @@ def render_fat_fornecedores(obras_db, *_):
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_forn, t_fat_rec, t_sub,
      t_aging_f, t_ret, t_iban) = st.tabs([
-        "🏢 Fornecedores",
-        "📥 Faturas Recebidas",
-        "🔨 Subempreiteiros",
-        "📊 Aging & Pagamentos",
-        "📋 Retenções na Fonte",
-        "🔒 Controlo IBANs",
+        "Fornecedores",
+        "Faturas Recebidas",
+        "Subempreiteiros",
+        "Aging & Pagamentos",
+        "Retenções na Fonte",
+        "Controlo IBANs",
     ])
 
     # ════════════════════════════════════════════════════════════════

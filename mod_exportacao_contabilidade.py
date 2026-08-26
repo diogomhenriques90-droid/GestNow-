@@ -765,10 +765,10 @@ def render_exportacao_contabilidade(*_):
 
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_export, t_preview, t_contas, t_historico) = st.tabs([
-        "📤 Exportar Mês",
-        "👁️ Preview Lançamentos",
-        "⚙️ Plano de Contas SNC",
-        "📋 Histórico de Exports",
+        "Exportar Mês",
+        "Preview Lançamentos",
+        "Plano de Contas SNC",
+        "Histórico de Exports",
     ])
 
     # ════════════════════════════════════════════════════════════════

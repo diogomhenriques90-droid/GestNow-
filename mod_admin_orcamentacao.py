@@ -1542,9 +1542,9 @@ def _guardar_orcamento_arquivo(orc_db, numero, obra, cliente, valor_total,
 
 def _tab_catalogo(catalogo, tarifas, ref_precos):
     sub = st.tabs([
-        "⚡ Catálogo de Tempos",
-        "💶 Tarifas MO",
-        "🚐 Preços Referência",
+        "Catálogo de Tempos",
+        "Tarifas MO",
+        "Preços Referência",
     ])
 
     # ── Catálogo de Tempos ────────────────────────────────────
@@ -1940,11 +1940,11 @@ def render_orcamentacao(*_):
     st.divider()
 
     tab_cockpit, tab_lista, tab_novo, tab_cat, tab_analytics = st.tabs([
-        "🎯 Cockpit",
-        "📋 Orçamentos",
-        "➕ Novo Orçamento",
-        "⚡ Catálogo",
-        "📈 Analytics",
+        "Cockpit",
+        "Orçamentos",
+        "Novo Orçamento",
+        "Catálogo",
+        "Analytics",
     ])
 
     with tab_cockpit:

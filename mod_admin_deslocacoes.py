@@ -335,7 +335,7 @@ def _render_dormidas(obras_db, users):
 
     st.divider()
 
-    tab_nova_d, tab_lista_d = st.tabs(["➕ Nova Reserva","📋 Lista"])
+    tab_nova_d, tab_lista_d = st.tabs(["Nova Reserva","Lista"])
 
     with tab_nova_d:
         with st.form("form_dormida"):
@@ -583,10 +583,10 @@ def _render_bilhetes(obras_db, users):
     st.divider()
 
     tab_ia, tab_manual, tab_lista, tab_reembolsos = st.tabs([
-        "🤖 Pesquisa IA",
-        "✏️ Registar Manual",
-        "📋 Lista de Bilhetes",
-        "💰 Reembolsos",
+        "Pesquisa IA",
+        "Registar Manual",
+        "Lista de Bilhetes",
+        "Reembolsos",
     ])
 
     # ════════════════════════════════════════════════════════════════
@@ -1309,8 +1309,8 @@ def _render_bilhetes(obras_db, users):
 
             # Separar pendentes de processados
             tab_pend_r, tab_proc_r = st.tabs([
-                "⏳ Por Reembolsar",
-                "✅ Reembolsados"
+                "Por Reembolsar",
+                "Reembolsados"
             ])
 
             with tab_pend_r:
@@ -1671,9 +1671,9 @@ def render_deslocacoes(obras_db, users, *_):
     st.markdown("## Gestão de Deslocações")
 
     tab_dorm, tab_bil, tab_res = st.tabs([
-        "🏨 Dormidas",
-        "🎫 Bilhetes de Viagem",
-        "📊 Resumo por Deslocação",
+        "Dormidas",
+        "Bilhetes de Viagem",
+        "Resumo por Deslocação",
     ])
 
     with tab_dorm:

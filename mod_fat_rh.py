@@ -782,12 +782,12 @@ def render_fat_rh(obras_db, registos_db, *_):
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_colab, t_mapa, t_recibos,
      t_ferias, t_prov, t_irs) = st.tabs([
-        "👤 Colaboradores",
-        "💰 Mapa Remunerações",
-        "📄 Recibos Vencimento",
-        "🏖️ Férias & Subsídios",
-        "📊 Provisões",
-        "📋 Mapa IRS/SS",
+        "Colaboradores",
+        "Mapa Remunerações",
+        "Recibos Vencimento",
+        "Férias & Subsídios",
+        "Provisões",
+        "Mapa IRS/SS",
     ])
 
     # ════════════════════════════════════════════════════════════════

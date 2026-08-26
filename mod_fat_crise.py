@@ -996,12 +996,12 @@ def render_fat_crise(obras_db, registos_db,
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_semaforo, t_stress, t_simulador,
      t_altman, t_ajuda, t_contingencia) = st.tabs([
-        "🚦 Semáforo",
-        "⚡ Stress Tests",
-        "🎛️ Simulador E-se?",
-        "📐 Altman Z-Score",
-        "🆘 Fontes de Ajuda",
-        "📋 Plano Contingência",
+        "Semáforo",
+        "Stress Tests",
+        "Simulador E-se?",
+        "Altman Z-Score",
+        "Fontes de Ajuda",
+        "Plano Contingência",
     ])
 
     # ════════════════════════════════════════════════════════════════
