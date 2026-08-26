@@ -650,6 +650,12 @@ if st.session_state.get('user'):
         border-top: 1px solid {THEME['border']};
         padding: 6px 4px;
     }}
+    .bottom-nav-spacer {{ height: 70px; }}
+    /* Só ecrãs largura mobile: no desktop já existe a barra lateral. */
+    @media (min-width: 769px) {{
+        .st-key-bottom_nav_bar {{ display: none; }}
+        .bottom-nav-spacer {{ display: none; }}
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -669,11 +675,16 @@ if st.session_state.get('user'):
         if new_menu and new_menu != st.session_state.get('menu_selected', ''):
             st.session_state.menu_selected = new_menu
             st.session_state['_bottom_nav_synced_menu'] = new_menu
+            # Protege a mudança contra o próximo rerun: sem isto, a sidebar
+            # (radio com o seu próprio valor antigo, nunca tocado por este
+            # clique) reescreve menu_selected de volta ao ecrã anterior.
+            # Mesmo padrão já usado em mod_chefe.py e mod_inicio.py.
+            st.session_state['_menu_locked'] = True
             if selected == "Logout":
                 st.session_state.clear()
             st.rerun()
 
-    st.markdown("<div style='height:70px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='bottom-nav-spacer'></div>", unsafe_allow_html=True)
 
 # =============================================================================
 # ROUTING PRINCIPAL

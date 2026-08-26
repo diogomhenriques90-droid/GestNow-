@@ -111,5 +111,60 @@ class TestEncaminhamentoCliente(unittest.TestCase):
         self.assertIn("Portal do Cliente", _texto(at))
 
 
+class TestBarraInferiorNaoTrancaSidebar(unittest.TestCase):
+    """Lote 4 (barra inferior mobile, agora um st.segmented_control nativo
+    em vez do streamlit_option_menu): um clique na barra inferior tem de
+    sobreviver ao rerun que o próprio clique despoleta, sem o radio da
+    sidebar (que fica com o seu próprio valor antigo, porque não foi ele
+    que mudou) reverter menu_selected para o ecrã de onde se veio.
+
+    A proteção usada (`_menu_locked=True` antes do st.rerun()) é a mesma
+    já usada em mod_chefe.py/mod_inicio.py — cobre este rerun imediato,
+    não uma cadeia de reruns não relacionados depois disso (limitação
+    pré-existente da app, não introduzida aqui e fora do âmbito desta
+    correção).
+
+    Isto só passou a ser possível testar com um widget nativo — o
+    componente externo antigo não é "clicável" em AppTest (daí o
+    `_menu_locked=True` forçado em todos os outros testes desta
+    classe)."""
+
+    def test_clique_na_barra_sobrevive_ao_proprio_rerun(self):
+        with patch("core._gcs_read", return_value=None):
+            at = AppTest.from_file("app.py", default_timeout=30)
+            at.session_state["user"] = "Diogo Henriques"
+            at.session_state["tipo"] = "Admin"
+            at.session_state["cargo"] = "Administrador"
+            at.session_state["menu_selected"] = "Dashboard"
+            at.session_state["_fv"] = {}
+            at.run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+
+            # Clique real na barra inferior: "Dashboard" -> "Perfil".
+            at.segmented_control[0].set_value("Perfil").run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+            self.assertEqual(at.session_state["menu_selected"], "Perfil")
+            self.assertIn("Perfil", _texto(at))
+
+
+class TestBarraInferiorSoMobile(unittest.TestCase):
+    """A barra inferior é só para ecrãs estreitos — no desktop já existe a
+    barra lateral, e mostrar as duas ao mesmo tempo não faz sentido.
+    Confirmado por inspeção de git diff que esta limitação nunca existiu
+    (nem no streamlit_option_menu antigo, nem em mais lado nenhum do
+    código — sem @media anterior), por isso é uma correção nova, não uma
+    regressão do Lote 4."""
+
+    def test_media_query_esconde_barra_e_espacador_no_desktop(self):
+        with open("app.py", encoding="utf-8") as f:
+            src = f.read()
+        self.assertIn("@media (min-width: 769px)", src)
+        bloco = src[src.index("@media (min-width: 769px)"):]
+        bloco = bloco[:bloco.index("</style>")]
+        self.assertIn(".st-key-bottom_nav_bar", bloco)
+        self.assertIn("display: none", bloco)
+        self.assertIn(".bottom-nav-spacer", bloco)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
