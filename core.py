@@ -1297,13 +1297,17 @@ GLOBAL_CSS = f"""
 /* Logótipo da barra lateral (st.logo(), size="large" já é o máximo
    nativo do Streamlit) — aumentado via CSS para ficar bem legível.
    O contentor stSidebarHeader tem altura fixa por omissão; passa a
-   altura automática para não cortar o logótipo maior. */
+   altura automática para não cortar o logótipo maior.
+   O logótipo da SIDEBAR (ao contrário do logótipo genérico) sai do
+   Streamlit com data-testid="stSidebarLogo", não "stLogo" — por isso
+   o seletor tem de incluir os dois (a classe .stLogo é sempre igual
+   em ambos os casos, é o data-testid que muda consoante o contexto). */
 [data-testid="stSidebarHeader"] {{
     height: auto !important;
     padding: 0.6rem 0 !important;
 }}
-img[data-testid="stLogo"] {{
-    height: 3rem !important;
+img[data-testid="stLogo"], img[data-testid="stSidebarLogo"], img.stLogo {{
+    height: 6rem !important;
     max-width: 85% !important;
 }}
 .stTextInput > div > div > input,
