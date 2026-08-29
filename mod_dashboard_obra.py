@@ -92,14 +92,14 @@ def _card_html(row, n_colab):
         f'<span class="badge {badge}">{estado}</span></div>'
     )
     if local:
-        h.append(f'<div class="ob-loc">📍 {_esc(local)}</div>')
-    h.append(f'<div class="ob-line">🏢 <span class="k">Cliente:</span> {_esc(cliente) or "—"}</div>')
-    h.append('<div class="ob-line">👤 <span class="k">Chefe de Equipa:</span> —</div>')
+        h.append(f'<div class="ob-loc">Local: {_esc(local)}</div>')
+    h.append(f'<div class="ob-line"><span class="k">Cliente:</span> {_esc(cliente) or "—"}</div>')
+    h.append('<div class="ob-line"><span class="k">Chefe de Equipa:</span> —</div>')
     h.append('<div class="ob-foot">')
-    h.append(f'<div class="ob-line">📅 <span class="k">Início:</span> {_esc(dini)}</div>')
-    h.append(f'<div class="ob-line">⏱️ <span class="k">Duração:</span> {dur}</div>')
-    h.append(f'<div class="ob-line">👥 <span class="k">Colab.:</span> {n_colab}</div>')
-    h.append('<div class="ob-line">💰 <span class="k">Valor:</span> —</div>')
+    h.append(f'<div class="ob-line"><span class="k">Início:</span> {_esc(dini)}</div>')
+    h.append(f'<div class="ob-line"><span class="k">Duração:</span> {dur}</div>')
+    h.append(f'<div class="ob-line"><span class="k">Colab.:</span> {n_colab}</div>')
+    h.append('<div class="ob-line"><span class="k">Valor:</span> —</div>')
     h.append('</div></div>')
     return "".join(h)
 
@@ -117,7 +117,7 @@ def _money(v):
 
 def _render_detalhe(obra_nome, obras_db, inst_acessos_db, diarias_config_db):
     """Vista de detalhe de uma obra — só leitura. Substitui a grelha."""
-    if st.button("← Voltar", key="dob_voltar"):
+    if st.button("Voltar", key="dob_voltar"):
         st.session_state.pop("dash_obra_detalhe", None)
         st.rerun()
 
@@ -145,8 +145,8 @@ def _render_detalhe(obra_nome, obras_db, inst_acessos_db, diarias_config_db):
         f'<span class="badge {badge}">{estado}</span></div>'
     )
     if local:
-        h.append(f'<div class="ob-loc">📍 {_esc(local)}</div>')
-    h.append(f'<div class="ob-line">🏢 <span class="k">Cliente:</span> {_esc(cliente)}</div>')
+        h.append(f'<div class="ob-loc">Local: {_esc(local)}</div>')
+    h.append(f'<div class="ob-line"><span class="k">Cliente:</span> {_esc(cliente)}</div>')
     h.append("</div>")
     st.markdown("".join(h), unsafe_allow_html=True)
 
@@ -155,9 +155,9 @@ def _render_detalhe(obra_nome, obras_db, inst_acessos_db, diarias_config_db):
     dfim = _nz(row.get("DataFim", "")) or "—"
     dur  = _dur_meses(row.get("DataInicio", ""), row.get("DataFim", ""))
     h2 = ['<div class="ob-card">']
-    h2.append(f'<div class="ob-line">📅 <span class="k">Início:</span> {_esc(dini)}</div>')
-    h2.append(f'<div class="ob-line">🏁 <span class="k">Término:</span> {_esc(dfim)}</div>')
-    h2.append(f'<div class="ob-line">⏱️ <span class="k">Duração:</span> {dur}</div>')
+    h2.append(f'<div class="ob-line"><span class="k">Início:</span> {_esc(dini)}</div>')
+    h2.append(f'<div class="ob-line"><span class="k">Término:</span> {_esc(dfim)}</div>')
+    h2.append(f'<div class="ob-line"><span class="k">Duração:</span> {dur}</div>')
     h2.append("</div>")
     st.markdown("".join(h2), unsafe_allow_html=True)
 
@@ -167,7 +167,7 @@ def _render_detalhe(obra_nome, obras_db, inst_acessos_db, diarias_config_db):
     resp_equipa = _nz(row.get("Responsavel_Equipa", ""))
     if resp_equipa:
         st.markdown(
-            f'<div class="ob-line">👤 <span class="k">Responsável de Equipa:</span> '
+            f'<div class="ob-line"><span class="k">Responsável de Equipa:</span> '
             f'{_esc(resp_equipa)}</div>', unsafe_allow_html=True,
         )
     ia = inst_acessos_db if inst_acessos_db is not None else pd.DataFrame()
@@ -202,14 +202,14 @@ def _render_detalhe(obra_nome, obras_db, inst_acessos_db, diarias_config_db):
         dd = diarias_config_db[diarias_config_db["Obra"].astype(str).str.strip() == alvo]
         if not dd.empty:
             st.markdown(
-                f'<div class="ob-line">🗓️ <span class="k">Diária (valor):</span> '
+                f'<div class="ob-line"><span class="k">Diária (valor):</span> '
                 f'{_money(dd.iloc[0].get("Valor_Diaria", ""))}</div>',
                 unsafe_allow_html=True,
             )
             modalidade = _nz(dd.iloc[0].get("Modalidade", ""))
             if modalidade:
                 st.markdown(
-                    f'<div class="ob-line">🔁 <span class="k">Modalidade da Diária:</span> '
+                    f'<div class="ob-line"><span class="k">Modalidade da Diária:</span> '
                     f'{_esc(modalidade)}</div>', unsafe_allow_html=True,
                 )
 
@@ -217,11 +217,11 @@ def _render_detalhe(obra_nome, obras_db, inst_acessos_db, diarias_config_db):
     # operacionais gravados em Produção → Obras → Editar Obra. Só leitura
     # aqui; a edição continua lá.
     logistica = [
-        ("🏨 Alojamento", row.get("Alojamento", "")),
-        ("🚗 Viatura", row.get("Viatura", "")),
-        ("🔧 Ferramentas", row.get("Ferramentas", "")),
-        ("🦺 EPIs", row.get("EPIs", "")),
-        ("🏗️ Plataforma", row.get("Plataforma", "")),
+        ("Alojamento", row.get("Alojamento", "")),
+        ("Viatura", row.get("Viatura", "")),
+        ("Ferramentas", row.get("Ferramentas", "")),
+        ("EPIs", row.get("EPIs", "")),
+        ("Plataforma", row.get("Plataforma", "")),
     ]
     logistica_preenchida = [(k, _nz(v)) for k, v in logistica if _nz(v)]
     if logistica_preenchida:
@@ -310,7 +310,7 @@ def render_dashboard_obra(*args):
             unsafe_allow_html=True,
         )
     with c_b:
-        if st.button("↻ Atualizar", use_container_width=True, key="dob_refresh"):
+        if st.button("Atualizar", use_container_width=True, key="dob_refresh"):
             try:
                 from core import inv
                 inv("obras_lista.csv"); inv("inst_acessos.csv")
@@ -385,7 +385,7 @@ def render_dashboard_obra(*args):
             n = int(n_por_obra.get(obra_nome, 0))
             with cols[i % 3]:
                 st.markdown(_card_html(row, n), unsafe_allow_html=True)
-                if st.button("Ver detalhe →", key=f"detalhe_{obra_nome}",
+                if st.button("Ver detalhe", key=f"detalhe_{obra_nome}",
                              use_container_width=True):
                     st.session_state["dash_obra_detalhe"] = obra_nome
                     st.rerun()
