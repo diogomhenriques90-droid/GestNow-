@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import io, base64
 from datetime import datetime
-from core import cp, _gcs_read, inv
+from core import cp, _gcs_read, inv, THEME
 
 def _load_users_fresh():
     """Lê usuarios.csv SEMPRE do GCS sem cache, com strip de todos os valores."""
@@ -39,30 +39,41 @@ def render_login():
         if key not in st.session_state:
             st.session_state[key] = 0
 
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    #MainMenu {visibility: hidden;}
-    footer     {visibility: hidden;}
-    header     {visibility: hidden;}
-    .stApp {
-        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-        background-attachment: fixed;
-    }
+    #MainMenu {{visibility: hidden;}}
+    footer     {{visibility: hidden;}}
+    header     {{visibility: hidden;}}
     /* Fix para evitar flicker no segundo attempt */
-    .stAlert { animation: none !important; }
+    .stAlert {{ animation: none !important; }}
+
+    .login-wrap .block-container {{
+        max-width: 460px; margin: 0 auto; padding-top: 6vh;
+    }}
+    .login-card {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
+        border-radius: {THEME['radius']};
+        box-shadow: 0 1px 3px rgba(16,24,40,0.05), 0 8px 24px rgba(16,24,40,0.06);
+        padding: 32px 28px 24px;
+        margin-top: 8px;
+    }}
     </style>
     """, unsafe_allow_html=True)
 
-    with open("assets/logo_cps_tema_escuro.png", "rb") as _f:
+    st.markdown("<div class='login-wrap'>", unsafe_allow_html=True)
+
+    with open("assets/logo_cps_transparente.png", "rb") as _f:
         _logo_b64 = base64.b64encode(_f.read()).decode()
     st.markdown(
-        f"<div style='display:flex;justify-content:center;margin:8px 0 40px 0;'>"
+        f"<div style='display:flex;justify-content:center;margin:8px 0 4px 0;'>"
         f"<img src='data:image/png;base64,{_logo_b64}' alt='CPS Smart Solutions' "
         f"style='width:min(380px,80vw);height:auto;'/></div>",
         unsafe_allow_html=True
     )
 
-    tab_pwd, tab_pin = st.tabs(["🔑 Password", "🔢 PIN"])
+    st.markdown("<div class='login-card'>", unsafe_allow_html=True)
+    tab_pwd, tab_pin = st.tabs(["Password", "PIN"])
 
     # ═══════════════════════════════════════════════════════════════
     # TAB PASSWORD
@@ -79,7 +90,7 @@ def render_login():
 
         if submitted:
             if not username or not password:
-                st.warning("⚠️ Preenche o utilizador e a password.")
+                st.warning("Preenche o utilizador e a password.")
             else:
                 # ✅ Strip do input do utilizador antes de comparar
                 username_clean = username.strip()
@@ -90,10 +101,10 @@ def render_login():
 
                 if users.empty:
                     st.error(
-                        "❌ Não foi possível aceder à base de dados. "
+                        "Não foi possível aceder à base de dados. "
                         "Tenta novamente em alguns segundos."
                     )
-                    st.info("💡 Se o problema persistir, verifica a ligação à internet.")
+                    st.info("Se o problema persistir, verifica a ligação à internet.")
                 else:
                     # ✅ Comparação com strip nos dois lados
                     user_found  = False
@@ -107,7 +118,7 @@ def render_login():
                             break
 
                     if not user_found:
-                        st.error(f"❌ Utilizador '{username_clean}' não encontrado.")
+                        st.error(f"Utilizador '{username_clean}' não encontrado.")
                         # Debug: mostrar lista de nomes disponíveis (remover em produção)
                         # with st.expander("🔍 Debug — nomes no sistema"):
                         #     st.write(users['Nome'].tolist())
@@ -116,7 +127,7 @@ def render_login():
 
                         if not pwd_hash:
                             st.error(
-                                "❌ Este utilizador não tem password definida. "
+                                "Este utilizador não tem password definida. "
                                 "Contacta o administrador."
                             )
                         elif cp(password_clean, pwd_hash):
@@ -128,29 +139,29 @@ def render_login():
                             st.session_state['menu_selected'] = ''
                             # Limpar contadores de erro
                             st.session_state['login_tentativas'] = 0
-                            st.success("✅ Login bem-sucedido!")
+                            st.success("Login bem-sucedido!")
                             st.balloons()
                             st.rerun()
                         else:
-                            st.error("❌ Password incorreta.")
+                            st.error("Password incorreta.")
                             tentativas = st.session_state.get('login_tentativas', 0) + 1
                             st.session_state['login_tentativas'] = tentativas
                             if tentativas >= 3:
                                 st.warning(
-                                    "⚠️ Várias tentativas falhadas. "
+                                    "Várias tentativas falhadas. "
                                     "Contacta o administrador para resetar a tua password."
                                 )
 
         st.divider()
         st.markdown(
-            "<p style='text-align:center; color:#64748B; font-size:0.85rem;'>"
-            "Esqueceste a password? Contacta o administrador.</p>",
+            f"<p style='text-align:center; color:{THEME['text_secondary']}; font-size:0.85rem;'>"
+            f"Esqueceste a password? Contacta o administrador.</p>",
             unsafe_allow_html=True
         )
         st.markdown(
-            "<p style='text-align:center; font-size:0.8rem;'>"
-            "<a href='/?page=criar_admin' style='color:#3B82F6;'>"
-            "🔧 Criar utilizador Admin</a></p>",
+            f"<p style='text-align:center; font-size:0.8rem;'>"
+            f"<a href='/?page=criar_admin' style='color:{THEME['accent']};'>"
+            f"Criar utilizador Admin</a></p>",
             unsafe_allow_html=True
         )
 
@@ -170,9 +181,9 @@ def render_login():
 
         if submitted_pin:
             if not u_pin or not pin:
-                st.warning("⚠️ Preenche o utilizador e o PIN.")
+                st.warning("Preenche o utilizador e o PIN.")
             elif len(pin.strip()) != 4 or not pin.strip().isdigit():
-                st.error("❌ O PIN deve ter exatamente 4 dígitos numéricos.")
+                st.error("O PIN deve ter exatamente 4 dígitos numéricos.")
             else:
                 u_pin_clean = u_pin.strip()
                 pin_clean   = pin.strip()
@@ -181,7 +192,7 @@ def render_login():
                     users = _load_users_fresh()
 
                 if users.empty:
-                    st.error("❌ Não foi possível aceder à base de dados. Tenta novamente.")
+                    st.error("Não foi possível aceder à base de dados. Tenta novamente.")
                 else:
                     # ✅ Comparação com strip nos dois lados
                     if 'Nome' in users.columns and 'PIN' in users.columns:
@@ -199,7 +210,7 @@ def render_login():
                         st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()
                         st.session_state['last_activity'] = datetime.now()
                         st.session_state['menu_selected'] = ''
-                        st.success("✅ Login com PIN bem-sucedido!")
+                        st.success("Login com PIN bem-sucedido!")
                         st.rerun()
                     else:
                         # Verificar se o utilizador existe mas o PIN está errado
@@ -207,6 +218,8 @@ def render_login():
                             users['Nome'].str.strip().str.lower() == u_pin_clean.lower()
                         ]
                         if user_existe.empty:
-                            st.error(f"❌ Utilizador '{u_pin_clean}' não encontrado.")
+                            st.error(f"Utilizador '{u_pin_clean}' não encontrado.")
                         else:
-                            st.error("❌ PIN incorreto.")
+                            st.error("PIN incorreto.")
+
+    st.markdown("</div></div>", unsafe_allow_html=True)

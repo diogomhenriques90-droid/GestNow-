@@ -9,7 +9,7 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import json, os
 from datetime import datetime, date, timedelta
-from core import fh, load_db, inv
+from core import fh, load_db, inv, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -199,9 +199,9 @@ def _calcular_score_obra(obra, registos_db, faturas_cli,
 
 
 def _rag_cor(score):
-    if score >= 70: return "#10B981", "🟢"
-    if score >= 40: return "#F59E0B", "🟡"
-    return "#EF4444", "🔴"
+    if score >= 70: return THEME['success']
+    if score >= 40: return THEME['warning']
+    return THEME['error']
 
 
 def _calcular_saude_financeira(kpis, faturas_vencidas,
@@ -240,7 +240,7 @@ def _copiloto_ia(pergunta: str, contexto: dict) -> str:
         import anthropic
         api_key = os.environ.get("ANTHROPIC_API_KEY", "")
         if not api_key:
-            return "❌ API key não configurada."
+            return "API key não configurada."
 
         client = anthropic.Anthropic(api_key=api_key)
 
@@ -256,7 +256,7 @@ Formato das respostas:
 - Máximo 3 parágrafos curtos
 - Usa números concretos quando disponíveis
 - Termina sempre com 1 ação recomendada
-- Usa emojis moderadamente"""
+- Não uses emojis"""
 
         prompt = f"""Dados financeiros atuais da empresa:
 {json.dumps(contexto, ensure_ascii=False, indent=2)}
@@ -272,7 +272,7 @@ Pergunta do CFO: {pergunta}"""
         return resp.content[0].text
 
     except Exception as e:
-        return f"❌ Erro: {e}"
+        return f"Erro: {e}"
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -768,8 +768,7 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
     if kpis['faturas_vencidas'] > 0:
         alertas.append({
             "urgencia": 1,
-            "cor": "#EF4444",
-            "icone": "🔴",
+            "cor": THEME['error'],
             "titulo": f"{kpis['faturas_vencidas']} fatura(s) vencida(s)",
             "desc": "Clientes com pagamento em atraso",
             "acao": "Ver Aging"
@@ -779,8 +778,7 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
     if kpis['cash_flow_prev'] < 0:
         alertas.append({
             "urgencia": 1,
-            "cor": "#EF4444",
-            "icone": "🆘",
+            "cor": THEME['error'],
             "titulo": "Cash flow previsto NEGATIVO",
             "desc": f"Deficit de €{abs(kpis['cash_flow_prev']):,.0f}",
             "acao": "Ver Tesouraria"
@@ -790,8 +788,7 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
     if kpis['margem_pct'] < 15:
         alertas.append({
             "urgencia": 2,
-            "cor": "#F59E0B",
-            "icone": "⚠️",
+            "cor": THEME['warning'],
             "titulo": f"Margem baixa: {kpis['margem_pct']:.1f}%",
             "desc": "Margem abaixo do mínimo recomendado (20%)",
             "acao": "Ver P&L"
@@ -809,8 +806,7 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
         if not prox.empty:
             alertas.append({
                 "urgencia": 2,
-                "cor": "#F59E0B",
-                "icone": "🛡️",
+                "cor": THEME['warning'],
                 "titulo": f"{len(prox)} seguro(s) a expirar em 60 dias",
                 "desc": "Verificar renovação urgente",
                 "acao": "Ver Seguros"
@@ -829,8 +825,7 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
         if not recentes.empty:
             alertas.append({
                 "urgencia": 2,
-                "cor": "#F59E0B",
-                "icone": "🏦",
+                "cor": THEME['warning'],
                 "titulo": f"{len(recentes)} IBAN alterado(s) recentemente",
                 "desc": "Verificar antes de efetuar pagamentos",
                 "acao": "Ver IBANs"
@@ -848,8 +843,7 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
         if not prox_a.empty:
             alertas.append({
                 "urgencia": 3,
-                "cor": "#3B82F6",
-                "icone": "📋",
+                "cor": THEME['accent'],
                 "titulo": f"{len(prox_a)} alvará(s)/licença(s) a expirar",
                 "desc": "Renovação necessária em 90 dias",
                 "acao": "Ver Alvarás"
@@ -859,8 +853,7 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
     if not alertas:
         alertas.append({
             "urgencia": 5,
-            "cor": "#10B981",
-            "icone": "✅",
+            "cor": THEME['success'],
             "titulo": "Sem alertas críticos",
             "desc": "Todos os indicadores dentro dos parâmetros",
             "acao": ""
@@ -919,55 +912,59 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                 "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .kpi-card {
-        background: linear-gradient(135deg,
-            rgba(30,41,59,0.9), rgba(15,23,42,0.9));
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 16px;
+    .kpi-card {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
+        border-radius: {THEME['radius']};
+        box-shadow: 0 1px 3px rgba(16,24,40,0.05);
         padding: 20px;
         text-align: center;
         transition: transform 0.2s;
-    }
-    .kpi-card:hover { transform: translateY(-2px); }
-    .kpi-valor {
+    }}
+    .kpi-card:hover {{ transform: translateY(-2px); }}
+    .kpi-valor {{
         font-size: 1.8rem;
         font-weight: 900;
-        color: #F1F5F9;
+        color: {THEME['text']};
         margin: 6px 0 4px;
-    }
-    .kpi-label {
+    }}
+    .kpi-label {{
         font-size: 0.75rem;
-        color: #64748B;
+        color: {THEME['text_secondary']};
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-    }
-    .kpi-trend-up   { color: #10B981; font-size: 0.82rem; }
-    .kpi-trend-down { color: #EF4444; font-size: 0.82rem; }
-    .alerta-card {
+    }}
+    .kpi-trend-up   {{ color: {THEME['success']}; font-size: 0.82rem; }}
+    .kpi-trend-down {{ color: {THEME['error']}; font-size: 0.82rem; }}
+    .alerta-card {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
         border-radius: 10px;
         padding: 12px 16px;
         margin-bottom: 8px;
         border-left: 4px solid;
-    }
-    .score-obra {
-        background: rgba(30,41,59,0.8);
+    }}
+    .score-obra {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
         border-radius: 12px;
         padding: 14px;
         margin-bottom: 8px;
-    }
-    .copiloto-resp {
-        background: rgba(59,130,246,0.1);
-        border: 1px solid rgba(59,130,246,0.3);
+    }}
+    .copiloto-resp {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
+        border-left: 3px solid {THEME['accent']};
         border-radius: 12px;
         padding: 16px;
         margin-top: 12px;
-        color: #E2E8F0;
+        color: {THEME['text']};
         font-size: 0.9rem;
         line-height: 1.6;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -975,23 +972,23 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
     saude_icon = ('🟢' if score_saude >= 70
                   else '🟡' if score_saude >= 40 else '🔴')
     st.markdown(f"""
-    <div style="background:linear-gradient(135deg,#1E293B,#0F172A);
-        padding:24px;border-radius:16px;margin-bottom:20px;
-        border:1px solid rgba(255,255,255,0.08);">
+    <div style="background:{THEME['surface']};
+        padding:24px;border-radius:{THEME['radius']};margin-bottom:20px;
+        border:1px solid {THEME['border']};">
         <div style="display:flex;justify-content:space-between;
             align-items:center;">
             <div>
-                <h2 style="color:#F1F5F9;margin:0;font-size:1.6rem;">
-                    📊 Dashboard Executivo CFO
+                <h2 style="color:{THEME['text']};margin:0;font-size:1.6rem;">
+                    Dashboard Executivo CFO
                 </h2>
-                <p style="color:#64748B;margin:4px 0 0;font-size:0.85rem;">
+                <p style="color:{THEME['text_secondary']};margin:4px 0 0;font-size:0.85rem;">
                     {meses_pt[mes-1]} {ano} &nbsp;·&nbsp;
                     Atualizado: {datetime.now().strftime('%d/%m/%Y %H:%M')}
                 </p>
             </div>
             <div style="text-align:right;">
                 <div style="font-size:2rem;">{saude_icon}</div>
-                <div style="color:#64748B;font-size:0.75rem;">
+                <div style="color:{THEME['text_secondary']};font-size:0.75rem;">
                     Saúde: {score_saude}/100
                 </div>
             </div>
@@ -1000,43 +997,39 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
     """, unsafe_allow_html=True)
 
     # ── KPI Cards ─────────────────────────────────────────────────
-    trend_icon  = "↑" if kpis['trend_fat'] >= 0 else "↓"
     trend_class = "up" if kpis['trend_fat'] >= 0 else "down"
-    cf_icon     = "↑" if kpis['cash_flow_prev'] >= 0 else "↓"
     cf_class    = "up" if kpis['cash_flow_prev'] >= 0 else "down"
     mg_class    = "up" if kpis['margem_pct'] >= 20 else "down"
     venc_class  = "up" if kpis['faturas_vencidas'] == 0 else "down"
 
     c1,c2,c3,c4,c5,c6 = st.columns(6)
     cards = [
-        (c1, "💰 Faturação Mês",
+        (c1, "Faturação Mês",
          f"€{kpis['fat_mes']:,.0f}",
-         f"{trend_icon} {abs(kpis['trend_fat']):.1f}% vs mês ant.",
-         trend_class, "#3B82F6"),
-        (c2, "📥 A Receber",
+         f"{abs(kpis['trend_fat']):.1f}% vs mês ant.",
+         trend_class, THEME['accent']),
+        (c2, "A Receber",
          f"€{kpis['a_receber']:,.0f}",
          "Total em aberto",
-         "up" if kpis['a_receber'] > 0 else "down", "#10B981"),
-        (c3, "📤 A Pagar",
+         "up" if kpis['a_receber'] > 0 else "down", THEME['accent']),
+        (c3, "A Pagar",
          f"€{kpis['a_pagar']:,.0f}",
          "Fornecedores pendentes",
          "down" if kpis['a_pagar'] > kpis['a_receber'] else "up",
-         "#F59E0B"),
-        (c4, "📈 Margem Mês",
+         THEME['accent']),
+        (c4, "Margem Mês",
          f"{kpis['margem_pct']:.1f}%",
-         "↑ Bom" if kpis['margem_pct'] >= 20 else "↓ Atenção",
-         mg_class, "#8B5CF6"),
-        (c5, "💵 Cash Flow 30d",
+         "Bom" if kpis['margem_pct'] >= 20 else "Atenção",
+         mg_class, THEME['accent']),
+        (c5, "Cash Flow 30d",
          f"€{kpis['cash_flow_prev']:,.0f}",
-         f"{cf_icon} Previsional",
-         cf_class,
-         "#10B981" if kpis['cash_flow_prev'] >= 0 else "#EF4444"),
-        (c6, "🔴 Fat. Vencidas",
+         "Previsional",
+         cf_class, THEME['accent']),
+        (c6, "Fat. Vencidas",
          str(kpis['faturas_vencidas']),
-         "✅ Nenhuma" if kpis['faturas_vencidas'] == 0
-         else "❌ Urgente",
-         venc_class,
-         "#10B981" if kpis['faturas_vencidas'] == 0 else "#EF4444"),
+         "Nenhuma" if kpis['faturas_vencidas'] == 0
+         else "Urgente",
+         venc_class, THEME['accent']),
     ]
 
     for col, label, valor, trend_txt, t_class, cor in cards:
@@ -1062,23 +1055,23 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
         )
         # Nível de crise
         nivel_txt = {
-            range(70, 101): ("🟢 SAUDÁVEL",     "#10B981",
+            range(70, 101): ("SAUDÁVEL",     THEME['success'],
                               "Reserva e margens OK"),
-            range(40, 70):  ("🟡 ATENÇÃO",       "#F59E0B",
+            range(40, 70):  ("ATENÇÃO",       THEME['warning'],
                               "Monitorizar de perto"),
-            range(20, 40):  ("🔴 ALERTA",        "#EF4444",
+            range(20, 40):  ("ALERTA",        THEME['error'],
                               "Ação corretiva necessária"),
-            range(0, 20):   ("🆘 CRISE IMINENTE","#DC2626",
+            range(0, 20):   ("CRISE IMINENTE",THEME['error'],
                               "Ativar plano contingência"),
         }
         for r, (txt, cor, desc) in nivel_txt.items():
             if score_saude in r:
                 st.markdown(
-                    f"<div style='background:{cor}18;border:1px solid {cor};"
+                    f"<div style='background:{THEME['surface']};border:1px solid {cor};"
                     f"border-radius:8px;padding:10px;text-align:center;"
                     f"margin-top:-8px;'>"
                     f"<b style='color:{cor};font-size:0.9rem;'>{txt}</b><br>"
-                    f"<small style='color:#94A3B8;'>{desc}</small>"
+                    f"<small style='color:{THEME['text_secondary']};'>{desc}</small>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
@@ -1086,10 +1079,10 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
 
     with col_a:
         st.markdown(
-            "<p style='color:#94A3B8;font-size:0.75rem;"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
             "font-weight:700;letter-spacing:0.08em;"
             "text-transform:uppercase;margin:0 0 8px;'>"
-            "⚡ Alertas do Dia</p>",
+            "Alertas do Dia</p>",
             unsafe_allow_html=True
         )
         for alerta in alertas[:5]:
@@ -1098,7 +1091,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
             acao_val = alerta.get('acao', '')
             if acao_val:
                 acao_html = (
-                    "<small style='color:#3B82F6;cursor:pointer;'>→ "
+                    f"<small style='color:{THEME['accent']};cursor:pointer;'>"
                     + acao_val
                     + "</small>"
                 )
@@ -1107,14 +1100,13 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
 
             st.markdown(
                 f"<div class='alerta-card' "
-                f"style='background:{alerta['cor']}12;"
-                f"border-left-color:{alerta['cor']};'>"
+                f"style='border-left-color:{alerta['cor']};'>"
                 f"<div style='display:flex;justify-content:space-between;"
                 f"align-items:flex-start;'>"
                 f"<div>"
                 f"<b style='color:{alerta['cor']};font-size:0.88rem;'>"
-                f"{alerta['icone']} {alerta['titulo']}</b><br>"
-                f"<small style='color:#64748B;'>{alerta['desc']}</small>"
+                f"{alerta['titulo']}</b><br>"
+                f"<small style='color:{THEME['text_secondary']};'>{alerta['desc']}</small>"
                 f"</div>"
                 f"{acao_html}"
                 f"</div></div>",
@@ -1177,9 +1169,9 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
     # ── Scorecard Obras ───────────────────────────────────────────
     st.markdown("---")
     st.markdown(
-        "<p style='color:#F1F5F9;font-weight:700;"
+        f"<p style='color:{THEME['text']};font-weight:700;"
         "font-size:1rem;margin:0 0 12px;'>"
-        "🏗️ Scorecard de Obras</p>",
+        "Scorecard de Obras</p>",
         unsafe_allow_html=True
     )
 
@@ -1191,27 +1183,27 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
         if obras_ativas:
             # Header
             st.markdown(
-                "<div style='display:grid;"
+                f"<div style='display:grid;"
                 "grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;"
                 "gap:8px;padding:8px 12px;"
-                "background:rgba(30,41,59,0.5);"
+                f"background:{THEME['surface']};border:1px solid {THEME['border']};"
                 "border-radius:8px;margin-bottom:6px;'>"
-                "<span style='color:#64748B;font-size:0.72rem;"
+                f"<span style='color:{THEME['text_secondary']};font-size:0.72rem;"
                 "font-weight:700;text-transform:uppercase;'>"
                 "OBRA</span>"
-                "<span style='color:#64748B;font-size:0.72rem;"
+                f"<span style='color:{THEME['text_secondary']};font-size:0.72rem;"
                 "font-weight:700;text-align:center;'>"
                 "SCORE</span>"
-                "<span style='color:#64748B;font-size:0.72rem;"
+                f"<span style='color:{THEME['text_secondary']};font-size:0.72rem;"
                 "font-weight:700;text-align:center;'>"
                 "MARGEM</span>"
-                "<span style='color:#64748B;font-size:0.72rem;"
+                f"<span style='color:{THEME['text_secondary']};font-size:0.72rem;"
                 "font-weight:700;text-align:center;'>"
                 "VALIDAÇÃO</span>"
-                "<span style='color:#64748B;font-size:0.72rem;"
+                f"<span style='color:{THEME['text_secondary']};font-size:0.72rem;"
                 "font-weight:700;text-align:center;'>"
                 "COBRANÇA</span>"
-                "<span style='color:#64748B;font-size:0.72rem;"
+                f"<span style='color:{THEME['text_secondary']};font-size:0.72rem;"
                 "font-weight:700;text-align:center;'>"
                 "RADAR</span>"
                 "</div>",
@@ -1223,80 +1215,75 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                     obra, registos_db, faturas_cli,
                     pd.DataFrame(), obras_db
                 )
-                cor_o, ic_o = _rag_cor(score_o)
+                cor_o = _rag_cor(score_o)
 
                 # Métricas individuais
-                mg_c = "#10B981" if det_o.get('Margem',0) >= 15 \
-                       else "#F59E0B" if det_o.get('Margem',0) >= 8 \
-                       else "#EF4444"
-                vl_c = "#10B981" if det_o.get('Validação',0) >= 12 \
-                       else "#F59E0B" if det_o.get('Validação',0) >= 8 \
-                       else "#EF4444"
-                cb_c = "#10B981" if det_o.get('Cobrança',0) >= 12 \
-                       else "#F59E0B" if det_o.get('Cobrança',0) >= 8 \
-                       else "#EF4444"
-
-                # Ícones calculados antes dos f-strings
-                mg_ic = '🟢' if mg_c == '#10B981' else '🟡' if mg_c == '#F59E0B' else '🔴'
-                vl_ic = '🟢' if vl_c == '#10B981' else '🟡' if vl_c == '#F59E0B' else '🔴'
-                cb_ic = '🟢' if cb_c == '#10B981' else '🟡' if cb_c == '#F59E0B' else '🔴'
+                mg_c = THEME['success'] if det_o.get('Margem',0) >= 15 \
+                       else THEME['warning'] if det_o.get('Margem',0) >= 8 \
+                       else THEME['error']
+                vl_c = THEME['success'] if det_o.get('Validação',0) >= 12 \
+                       else THEME['warning'] if det_o.get('Validação',0) >= 8 \
+                       else THEME['error']
+                cb_c = THEME['success'] if det_o.get('Cobrança',0) >= 12 \
+                       else THEME['warning'] if det_o.get('Cobrança',0) >= 8 \
+                       else THEME['error']
 
                 col_nome, col_sc2, col_mg, col_vl, col_cb, col_rd = \
                     st.columns([2, 1, 1, 1, 1, 1])
 
                 with col_nome:
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:8px;padding:10px 12px;"
                         f"border-left:3px solid {cor_o};'>"
-                        f"<b style='color:#F1F5F9;font-size:0.85rem;'>"
+                        f"<b style='color:{THEME['text']};font-size:0.85rem;'>"
                         f"{obra[:25]}</b>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
                 with col_sc2:
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:8px;padding:10px;"
                         f"text-align:center;'>"
                         f"<b style='color:{cor_o};font-size:1.1rem;'>"
-                        f"{ic_o} {score_o}</b>"
+                        f"{score_o}</b>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
                 with col_mg:
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:8px;padding:10px;"
                         f"text-align:center;'>"
                         f"<span style='color:{mg_c};font-size:0.85rem;'>"
-                        f"{mg_ic} {det_o.get('Margem',0)}/20</span>"
+                        f"{det_o.get('Margem',0)}/20</span>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
                 with col_vl:
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:8px;padding:10px;"
                         f"text-align:center;'>"
                         f"<span style='color:{vl_c};font-size:0.85rem;'>"
-                        f"{vl_ic} {det_o.get('Validação',0)}/15</span>"
+                        f"{det_o.get('Validação',0)}/15</span>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
                 with col_cb:
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:8px;padding:10px;"
                         f"text-align:center;'>"
                         f"<span style='color:{cb_c};font-size:0.85rem;'>"
-                        f"{cb_ic} {det_o.get('Cobrança',0)}/15</span>"
+                        f"{det_o.get('Cobrança',0)}/15</span>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
                 with col_rd:
                     if st.button(
-                        "📊", key=f"radar_{obra}",
+                        "", key=f"radar_{obra}",
                         use_container_width=True,
                         help="Ver radar desta obra"
                     ):
@@ -1317,10 +1304,10 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                     )
                 with col_rad2:
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:16px;'>"
-                        f"<h4 style='color:#F1F5F9;margin:0 0 12px;'>"
-                        f"📋 Análise — {obra_r}</h4>",
+                        f"<h4 style='color:{THEME['text']};margin:0 0 12px;'>"
+                        f"Análise — {obra_r}</h4>",
                         unsafe_allow_html=True
                     )
                     for cat, val in det_r.items():
@@ -1328,16 +1315,16 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                                  'Equipa':10,'Atividade':10,'Segurança':10,
                                  'Orçamento':10,'Faturação':10}.get(cat,10)
                         pct = val / max_v * 100
-                        cor_b = "#10B981" if pct >= 70 \
-                                else "#F59E0B" if pct >= 40 else "#EF4444"
+                        cor_b = THEME['success'] if pct >= 70 \
+                                else THEME['warning'] if pct >= 40 else THEME['error']
                         st.markdown(
                             f"<div style='margin-bottom:8px;'>"
                             f"<div style='display:flex;justify-content:"
                             f"space-between;margin-bottom:3px;'>"
-                            f"<small style='color:#94A3B8;'>{cat}</small>"
+                            f"<small style='color:{THEME['text_secondary']};'>{cat}</small>"
                             f"<small style='color:{cor_b};font-weight:700;'>"
                             f"{val}/{max_v}</small></div>"
-                            f"<div style='background:#0F172A;"
+                            f"<div style='background:{THEME['background']};"
                             f"border-radius:4px;height:6px;'>"
                             f"<div style='background:{cor_b};"
                             f"width:{pct:.0f}%;height:6px;"
@@ -1347,15 +1334,15 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                         )
                     st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.info("📋 Sem obras ativas para analisar.")
+        st.info("Sem obras ativas para analisar.")
 
     # ── Co-Piloto IA ──────────────────────────────────────────────
     st.markdown("---")
     st.markdown(
-        "<p style='color:#F1F5F9;font-weight:700;"
+        f"<p style='color:{THEME['text']};font-weight:700;"
         "font-size:1rem;margin:0 0 4px;'>"
-        "🤖 Co-Piloto Financeiro IA</p>"
-        "<p style='color:#64748B;font-size:0.8rem;"
+        "Co-Piloto Financeiro IA</p>"
+        f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;"
         "margin:0 0 12px;'>"
         "Pergunta em linguagem natural sobre "
         "as finanças da empresa</p>",
@@ -1371,8 +1358,8 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
         "Qual o custo real do colaborador mais caro?",
     ]
     st.markdown(
-        "<p style='color:#475569;font-size:0.75rem;"
-        "margin:0 0 6px;'>💡 Sugestões:</p>",
+        f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
+        "margin:0 0 6px;'>Sugestões:</p>",
         unsafe_allow_html=True
     )
     cols_sug = st.columns(len(sugestoes))
@@ -1386,7 +1373,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                 st.session_state['copiloto_input'] = sug
 
     pergunta = st.text_input(
-        "💬 Pergunta ao Co-Piloto",
+        "Pergunta ao Co-Piloto",
         value=st.session_state.get('copiloto_input', ''),
         placeholder="Ex: Quando é que ficamos sem cash flow "
                     "se a BASF não pagar?",
@@ -1397,7 +1384,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
     col_p1, col_p2 = st.columns([4, 1])
     with col_p2:
         enviar = st.button(
-            "🚀 Perguntar",
+            "Perguntar",
             type="primary",
             use_container_width=True,
             key="btn_copiloto"
@@ -1424,14 +1411,14 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
             "mes_atual": f"{meses_pt[mes-1]} {ano}",
         }
 
-        with st.spinner("🤖 A analisar os dados..."):
+        with st.spinner("A analisar os dados..."):
             resposta = _copiloto_ia(pergunta, contexto_ia)
 
         st.markdown(
             f"<div class='copiloto-resp'>"
-            f"<p style='color:#3B82F6;font-size:0.75rem;"
+            f"<p style='color:{THEME['accent']};font-size:0.75rem;"
             f"font-weight:700;margin:0 0 8px;'>"
-            f"🤖 CO-PILOTO FINANCEIRO</p>"
+            f"CO-PILOTO FINANCEIRO</p>"
             f"{resposta.replace(chr(10), '<br>')}"
             f"</div>",
             unsafe_allow_html=True
@@ -1450,13 +1437,13 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
 
     if st.session_state['copiloto_hist']:
         with st.expander(
-            f"📚 Histórico ({len(st.session_state['copiloto_hist'])} pergunta(s))"
+            f"Histórico ({len(st.session_state['copiloto_hist'])} pergunta(s))"
         ):
             for item in reversed(
                 st.session_state['copiloto_hist'][-10:]
             ):
                 st.markdown(
-                    f"<small style='color:#475569;'>{item['hora']}</small> "
-                    f"<small style='color:#94A3B8;'>{item['p']}</small>",
+                    f"<small style='color:{THEME['text_secondary']};'>{item['hora']}</small> "
+                    f"<small style='color:{THEME['text_secondary']};'>{item['p']}</small>",
                     unsafe_allow_html=True
                 )

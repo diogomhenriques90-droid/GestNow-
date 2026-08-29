@@ -16,7 +16,7 @@ from reportlab.lib.units import cm
 from core import (save_db, inv, load_db, log_audit, criar_notificacao,
                   registar_novo_cliente, referencias_cliente,
                   migrar_clientes_existentes, _norm_nome_cliente,
-                  _CLIENTES_FINANCEIRO_COLS)
+                  _CLIENTES_FINANCEIRO_COLS, THEME)
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -451,7 +451,7 @@ def _validar_nif(nif: str) -> tuple[bool, str]:
     resto = total % 11
     check = 0 if resto in [0, 1] else 11 - resto
     if check == int(nif[8]):
-        return True, "NIF válido ✅"
+        return True, "NIF válido"
     return False, "Dígito de controlo inválido"
 
 
@@ -494,43 +494,44 @@ def render_fat_clientes(obras_db, registos_db, *_):
     user_nome = st.session_state.get('user', 'Admin')
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .fat-card {
-        background: #1E293B;
+    .fat-card {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
         border-radius: 12px;
         padding: 14px 16px;
         margin-bottom: 8px;
-        border-left: 4px solid #3B82F6;
+        border-left: 4px solid {THEME['accent']};
         transition: transform 0.15s;
-    }
-    .fat-card:hover { transform: translateX(3px); }
-    .estado-badge {
+    }}
+    .fat-card:hover {{ transform: translateX(3px); }}
+    .estado-badge {{
         display: inline-block;
         padding: 3px 10px;
         border-radius: 20px;
         font-size: 0.72rem;
         font-weight: 700;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_emitir, t_lista, t_clientes,
      t_aging, t_contratos, t_nc) = st.tabs([
-        "➕ Emitir Fatura",
-        "📋 Histórico",
-        "🏢 Clientes",
-        "📊 Aging",
-        "📑 Contratos",
-        "🔄 Notas de Crédito",
+        "Emitir Fatura",
+        "Histórico",
+        "Clientes",
+        "Aging",
+        "Contratos",
+        "Notas de Crédito",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB — EMITIR FATURA
     # ════════════════════════════════════════════════════════════════
     with t_emitir:
-        st.markdown("### ➕ Nova Fatura")
+        st.markdown("### Nova Fatura")
 
         col_form, col_prev = st.columns([1, 1])
 
@@ -546,16 +547,16 @@ def render_fat_clientes(obras_db, registos_db, *_):
             tipo_cod = tipo_doc[:2]
             num_auto = _proximo_numero(faturas_cli, tipo_cod)
             st.markdown(
-                f"<div style='background:rgba(59,130,246,0.1);"
-                f"border:1px solid #3B82F6;border-radius:8px;"
+                f"<div style='background:rgba(14,124,134,0.08);"
+                f"border:1px solid {THEME['accent']};border-radius:8px;"
                 f"padding:10px;margin-bottom:12px;'>"
-                f"<b style='color:#3B82F6;'>Número: {num_auto}</b>"
+                f"<b style='color:{THEME['accent']};'>Número: {num_auto}</b>"
                 f"</div>",
                 unsafe_allow_html=True
             )
 
             # Cliente
-            st.markdown("#### 👤 Cliente")
+            st.markdown("#### Cliente")
             if not clientes_db.empty:
                 _inativos_l = clientes_db['Activo'].astype(str).str.strip()\
                     .str.lower().isin(['não','nao','inativo','inactivo','0','false'])
@@ -637,7 +638,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
             )
 
             st.markdown("---")
-            st.markdown("#### 📋 Linhas da Fatura")
+            st.markdown("#### Linhas da Fatura")
 
             # Linhas dinâmicas
             if 'fat_linhas' not in st.session_state:
@@ -652,7 +653,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
 
             for i, linha in enumerate(linhas_atuais):
                 st.markdown(
-                    f"<p style='color:#64748B;font-size:0.75rem;"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
                     f"margin:4px 0;'>Linha {i+1}</p>",
                     unsafe_allow_html=True
                 )
@@ -696,7 +697,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 iva_total      += iva_l
 
                 st.markdown(
-                    f"<p style='text-align:right;color:#3B82F6;"
+                    f"<p style='text-align:right;color:{THEME['accent']};"
                     f"font-size:0.8rem;margin:0 0 6px;'>"
                     f"= €{sub_l:.2f} + IVA €{iva_l:.2f}"
                     f"</p>",
@@ -713,7 +714,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
 
             col_add, col_rem = st.columns(2)
             with col_add:
-                if st.button("➕ Linha", key="fat_add_linha",
+                if st.button("Linha", key="fat_add_linha",
                               use_container_width=True):
                     st.session_state['fat_linhas'].append(
                         {"Descricao":"","Quantidade":1.0,
@@ -722,7 +723,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     st.rerun()
             with col_rem:
                 if len(linhas_atuais) > 1:
-                    if st.button("➖ Remover", key="fat_rem_linha",
+                    if st.button("Remover", key="fat_rem_linha",
                                   use_container_width=True):
                         st.session_state['fat_linhas'].pop()
                         st.rerun()
@@ -730,25 +731,26 @@ def render_fat_clientes(obras_db, registos_db, *_):
             # Totais
             total_geral = subtotal_total + iva_total
             st.markdown(
-                f"<div style='background:#1E293B;border-radius:10px;"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
+                f"border-radius:10px;"
                 f"padding:14px;margin:12px 0;'>"
                 f"<div style='display:flex;justify-content:space-between;'>"
-                f"<span style='color:#94A3B8;'>Subtotal</span>"
-                f"<span style='color:#F1F5F9;"
+                f"<span style='color:{THEME['text_secondary']};'>Subtotal</span>"
+                f"<span style='color:{THEME['text']};"
                 f"font-weight:700;'>€{subtotal_total:.2f}</span>"
                 f"</div>"
                 f"<div style='display:flex;justify-content:space-between;"
                 f"margin-top:4px;'>"
-                f"<span style='color:#94A3B8;'>IVA</span>"
-                f"<span style='color:#F1F5F9;"
+                f"<span style='color:{THEME['text_secondary']};'>IVA</span>"
+                f"<span style='color:{THEME['text']};"
                 f"font-weight:700;'>€{iva_total:.2f}</span>"
                 f"</div>"
                 f"<div style='display:flex;justify-content:space-between;"
-                f"margin-top:8px;border-top:1px solid #334155;"
+                f"margin-top:8px;border-top:1px solid {THEME['border']};"
                 f"padding-top:8px;'>"
-                f"<span style='color:#3B82F6;font-size:1.1rem;"
+                f"<span style='color:{THEME['accent']};font-size:1.1rem;"
                 f"font-weight:900;'>TOTAL</span>"
-                f"<span style='color:#3B82F6;font-size:1.2rem;"
+                f"<span style='color:{THEME['accent']};font-size:1.2rem;"
                 f"font-weight:900;'>€{total_geral:.2f}</span>"
                 f"</div></div>",
                 unsafe_allow_html=True
@@ -764,23 +766,23 @@ def render_fat_clientes(obras_db, registos_db, *_):
             col_em, col_pf = st.columns(2)
             with col_em:
                 emitir = st.button(
-                    "🧾 Emitir Fatura",
+                    "Emitir Fatura",
                     type="primary",
                     use_container_width=True,
                     key="btn_emitir_fat"
                 )
             with col_pf:
                 proforma = st.button(
-                    "📄 Gerar Pró-forma",
+                    "Gerar Pró-forma",
                     use_container_width=True,
                     key="btn_proforma"
                 )
 
             if emitir or proforma:
                 if not cliente_sel or not str(cliente_sel).strip():
-                    st.error("❌ Cliente obrigatório.")
+                    st.error("Cliente obrigatório.")
                 elif total_geral <= 0:
-                    st.error("❌ Fatura não pode ter total €0.")
+                    st.error("Fatura não pode ter total €0.")
                 else:
                     tipo_final = "PF" if proforma else tipo_cod
                     num_final  = _proximo_numero(
@@ -884,7 +886,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             origem="Manual", criado_por=user_nome)
 
                     st.success(
-                        f"✅ {num_final} emitida! "
+                        f"{num_final} emitida! "
                         f"Total: €{total_geral:.2f}"
                     )
 
@@ -903,7 +905,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
             # Botão download depois de emitir
             if st.session_state.get('fat_pdf_bytes'):
                 st.download_button(
-                    "📥 Descarregar Fatura PDF",
+                    "Descarregar Fatura PDF",
                     data=st.session_state['fat_pdf_bytes'],
                     file_name=st.session_state.get(
                         'fat_pdf_nome', 'fatura.pdf'
@@ -915,15 +917,15 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 )
 
         with col_prev:
-            st.markdown("#### 👀 Pré-visualização")
+            st.markdown("#### Pré-visualização")
             st.markdown(
-                "<div style='background:#F8FAFC;border:1px solid #E2E8F0;"
-                "border-radius:12px;padding:20px;color:#1E293B;'>"
-                f"<div style='border-bottom:3px solid #3B82F6;"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
+                f"border-radius:12px;padding:20px;color:{THEME['text']};'>"
+                f"<div style='border-bottom:3px solid {THEME['accent']};"
                 f"padding-bottom:12px;margin-bottom:12px;'>"
-                f"<h3 style='color:#1E293B;margin:0;'>"
+                f"<h3 style='color:{THEME['text']};margin:0;'>"
                 f"{empresa.get('nome','')}</h3>"
-                f"<small style='color:#64748B;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"NIF: {empresa.get('nif','')} | "
                 f"{empresa.get('morada','')}</small>"
                 f"</div>",
@@ -935,17 +937,17 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 f"<div style='display:grid;"
                 f"grid-template-columns:1fr 1fr;"
                 f"gap:8px;margin-bottom:12px;'>"
-                f"<div style='background:#EFF6FF;"
+                f"<div style='background:rgba(14,124,134,0.08);"
                 f"border-radius:8px;padding:10px;'>"
-                f"<small style='color:#3B82F6;font-weight:700;'>"
+                f"<small style='color:{THEME['accent']};font-weight:700;'>"
                 f"NÚMERO</small><br>"
-                f"<b style='color:#1E293B;'>{num_prev}</b>"
+                f"<b style='color:{THEME['text']};'>{num_prev}</b>"
                 f"</div>"
-                f"<div style='background:#F0FDF4;"
+                f"<div style='background:rgba(21,128,61,0.08);"
                 f"border-radius:8px;padding:10px;'>"
-                f"<small style='color:#10B981;font-weight:700;'>"
+                f"<small style='color:{THEME['success']};font-weight:700;'>"
                 f"VENCIMENTO</small><br>"
-                f"<b style='color:#1E293B;'>"
+                f"<b style='color:{THEME['text']};'>"
                 f"{date.today() + timedelta(days=30)}"
                 f"</b></div></div>"
                 f"</div>",
@@ -966,9 +968,9 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         f"justify-content:space-between;"
                         f"padding:4px 0;border-bottom:"
                         f"1px solid rgba(0,0,0,0.05);'>"
-                        f"<small style='color:#374151;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{linha['Descricao'][:40]}</small>"
-                        f"<small style='color:#1E293B;"
+                        f"<small style='color:{THEME['text']};"
                         f"font-weight:700;'>"
                         f"€{sub_p:.2f}</small></div>",
                         unsafe_allow_html=True
@@ -976,7 +978,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
 
             st.markdown(
                 f"<div style='text-align:right;margin-top:12px;"
-                f"font-size:1.2rem;font-weight:900;color:#3B82F6;'>"
+                f"font-size:1.2rem;font-weight:900;color:{THEME['accent']};'>"
                 f"TOTAL: €{total_prev:.2f}</div>",
                 unsafe_allow_html=True
             )
@@ -985,10 +987,10 @@ def render_fat_clientes(obras_db, registos_db, *_):
     # TAB — HISTÓRICO
     # ════════════════════════════════════════════════════════════════
     with t_lista:
-        st.markdown("### 📋 Histórico de Faturas")
+        st.markdown("### Histórico de Faturas")
 
         if faturas_cli.empty:
-            st.info("📋 Ainda não há faturas emitidas.")
+            st.info("Ainda não há faturas emitidas.")
         else:
             # Filtros
             col_f1, col_f2, col_f3 = st.columns(3)
@@ -1023,14 +1025,14 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 df_show['Total'], errors='coerce'
             ).fillna(0).sum()
             c1, c2, c3 = st.columns(3)
-            with c1: st.metric("📋 Faturas",   len(df_show))
-            with c2: st.metric("💰 Total",     f"€{total_filt:,.2f}")
+            with c1: st.metric("Faturas",   len(df_show))
+            with c2: st.metric("Total",     f"€{total_filt:,.2f}")
             with c3:
                 pagas = df_show[
                     df_show['Estado'] == 'Paga'
                 ] if 'Estado' in df_show.columns else pd.DataFrame()
                 st.metric(
-                    "✅ Pagas",
+                    "Pagas",
                     f"€{pd.to_numeric(pagas['Total'], errors='coerce').fillna(0).sum():,.2f}"
                     if not pagas.empty else "€0"
                 )
@@ -1048,12 +1050,12 @@ def render_fat_clientes(obras_db, registos_db, *_):
 
             # Lista de faturas
             cor_estado = {
-                'Paga':       '#10B981',
-                'Enviada':    '#3B82F6',
-                'Emitida':    '#8B5CF6',
-                'Vencida':    '#EF4444',
-                'Rascunho':   '#64748B',
-                'Em Análise': '#F59E0B',
+                'Paga':       THEME['success'],
+                'Enviada':    THEME['accent'],
+                'Emitida':    THEME['accent'],
+                'Vencida':    THEME['error'],
+                'Rascunho':   THEME['text_secondary'],
+                'Em Análise': THEME['warning'],
             }
 
             for _, fat in df_show.sort_values(
@@ -1062,7 +1064,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 fat_id = fat.get('ID','')
                 total_f = float(fat.get('Total', 0) or 0)
                 estado  = fat.get('Estado','')
-                cor_f   = cor_estado.get(estado, '#6B7280')
+                cor_f   = cor_estado.get(estado, THEME['text_secondary'])
                 dias_v  = _dias_vencimento(
                     fat.get('Data_Vencimento','')
                 )
@@ -1073,15 +1075,15 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     if estado not in ['Paga','Anulada','Rascunho']:
                         if dias_v > 0:
                             venc_txt = (
-                                f"<span style='color:#EF4444;"
+                                f"<span style='color:{THEME['error']};"
                                 f"font-size:0.72rem;'>"
-                                f"⚠️ Vencida há {dias_v} dias</span>"
+                                f"Vencida há {dias_v} dias</span>"
                             )
                         elif dias_v > -7:
                             venc_txt = (
-                                f"<span style='color:#F59E0B;"
+                                f"<span style='color:{THEME['warning']};"
                                 f"font-size:0.72rem;'>"
-                                f"⏰ Vence em breve</span>"
+                                f"Vence em breve</span>"
                             )
 
                     st.markdown(
@@ -1091,18 +1093,18 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         f"justify-content:space-between;"
                         f"align-items:flex-start;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.9rem;'>"
                         f"{fat.get('Numero','')} — "
                         f"{fat.get('Cliente','')}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{fat.get('Obra','')} · "
                         f"Emissão: {fat.get('Data_Emissao','')} · "
                         f"Venc.: {fat.get('Data_Vencimento','')}"
                         f"</small><br>{venc_txt}"
                         f"</div>"
                         f"<div style='text-align:right;'>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:1.05rem;'>"
                         f"€{total_f:,.2f}</b><br>"
                         f"<span class='estado-badge' "
@@ -1122,7 +1124,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         label_visibility="collapsed"
                     )
                     if st.button(
-                        "✅", key=f"upd_est_{fat_id}",
+                        "", key=f"upd_est_{fat_id}",
                         use_container_width=True,
                         help="Atualizar estado"
                     ):
@@ -1147,7 +1149,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                                 ' ','_'
                             ).replace('/','_')
                             st.download_button(
-                                "📄",
+                                "",
                                 data=pdf_dl,
                                 file_name=f"{num_fn}.pdf",
                                 mime="application/pdf",
@@ -1162,12 +1164,12 @@ def render_fat_clientes(obras_db, registos_db, *_):
     # TAB — CLIENTES
     # ════════════════════════════════════════════════════════════════
     with t_clientes:
-        st.markdown("### 🏢 Registo de Clientes")
+        st.markdown("### Registo de Clientes")
 
         col_form_c, col_lista_c = st.columns([1, 2])
 
         with col_form_c:
-            st.markdown("#### ➕ Novo Cliente")
+            st.markdown("#### Novo Cliente")
             with st.form("form_novo_cliente"):
                 cli_nome  = st.text_input("Nome *",   key="cli_nome")
                 cli_nif   = st.text_input("NIF *",    key="cli_nif",
@@ -1176,7 +1178,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     v, m = _validar_nif(cli_nif)
                     st.markdown(
                         f"<small style='color:"
-                        f"{'#10B981' if v else '#EF4444'};'>"
+                        f"{THEME['success'] if v else THEME['error']};'>"
                         f"{m}</small>",
                         unsafe_allow_html=True
                     )
@@ -1197,16 +1199,16 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Cliente",
+                    "Guardar Cliente",
                     use_container_width=True, type="primary"
                 ):
                     _dup_c = (not clientes_db.empty and any(
                         n.strip() and _norm_nome_cliente(n) == _norm_nome_cliente(cli_nome)
                         for n in clientes_db['Nome'].astype(str)))
                     if not cli_nome.strip() or not cli_nif.strip():
-                        st.error("❌ Nome e NIF obrigatórios.")
+                        st.error("Nome e NIF obrigatórios.")
                     elif _dup_c:
-                        st.error("❌ Já existe um cliente com este nome "
+                        st.error("Já existe um cliente com este nome "
                                  "(verifica a lista — a comparação ignora "
                                  "maiúsculas e acentos).")
                     else:
@@ -1231,14 +1233,14 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         save_db(updated_c, "clientes_financeiro.csv")
                         inv("clientes_financeiro.csv")
                         st.success(
-                            f"✅ Cliente {cli_nome} guardado!"
+                            f"Cliente {cli_nome} guardado!"
                         )
                         st.rerun()
 
         with col_lista_c:
-            st.markdown("#### 📋 Clientes Registados")
+            st.markdown("#### Clientes Registados")
             if clientes_db.empty:
-                st.info("📋 Sem clientes registados.")
+                st.info("Sem clientes registados.")
             else:
                 for _, cli in clientes_db.iterrows():
                     # Volume faturado a este cliente
@@ -1258,23 +1260,24 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     limite_cli = limite_cli if pd.notna(limite_cli) else 0
 
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:14px;"
                         f"margin-bottom:8px;"
-                        f"border-left:3px solid #3B82F6;'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"border-left:3px solid {THEME['accent']};'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"{cli.get('Nome','')}</b>"
-                        f"<span style='float:right;color:#10B981;"
+                        f"<span style='float:right;color:{THEME['success']};"
                         f"font-weight:700;'>"
                         f"€{vol_cli:,.2f} faturado</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"NIF: {cli.get('NIF','')} · "
                         f"{cli.get('Condicoes_Pagamento',30)} dias · "
                         f"Limite: €{limite_cli:,.0f}"
                         f"</small><br>"
-                        f"<small style='color:#475569;'>"
-                        f"📧 {cli.get('Email','')} · "
-                        f"📞 {cli.get('Telefone','')}"
+                        f"<small style='color:{THEME['text_secondary']};'>"
+                        f"{cli.get('Email','')} · "
+                        f"{cli.get('Telefone','')}"
                         f"</small></div>",
                         unsafe_allow_html=True
                     )
@@ -1285,7 +1288,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     )
                     if fig_tl:
                         with st.expander(
-                            f"📈 Timeline — {cli.get('Nome','')}",
+                            f"Timeline — {cli.get('Nome','')}",
                             expanded=False
                         ):
                             st.plotly_chart(fig_tl, key=f"tl_{cli.get('Nome','')}")
@@ -1294,7 +1297,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
         # GESTÃO DE CLIENTES — fonte canónica única (secção aditiva)
         # ════════════════════════════════════════════════════════════
         st.divider()
-        st.markdown("### 🛠️ Gestão de Clientes")
+        st.markdown("### Gestão de Clientes")
         st.caption(
             "Fonte canónica única (`clientes_financeiro.csv`) — alimenta os "
             "selectbox de Cliente em toda a app. Clientes inactivos "
@@ -1302,10 +1305,10 @@ def render_fat_clientes(obras_db, registos_db, *_):
         )
 
         if clientes_db.empty:
-            st.info("📋 Sem clientes na fonte canónica.")
+            st.info("Sem clientes na fonte canónica.")
         else:
             gc_pesq = st.text_input(
-                "🔍 Pesquisar cliente", key="gc_pesquisa",
+                "Pesquisar cliente", key="gc_pesquisa",
                 placeholder="Nome ou NIF..."
             )
             cli_gestao = clientes_db.copy()
@@ -1324,7 +1327,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 ativo_g = str(cli_g.get('Activo','Sim')).strip().lower() \
                           not in ['não','nao','inativo','inactivo','0','false']
                 with st.expander(
-                    f"{'🟢' if ativo_g else '🔴'} {nome_g} — "
+                    f"{'Ativo' if ativo_g else 'Inativo'} — {nome_g} — "
                     f"{cli_g.get('Origem','') or '—'} · "
                     f"{cli_g.get('Data_Criacao','') or '—'}"
                 ):
@@ -1353,7 +1356,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         g_notas = st.text_area("Notas",
                             value=str(cli_g.get('Notas','')), key=f"gc_notas_{cid_g}")
 
-                        if st.form_submit_button("💾 Guardar Alterações",
+                        if st.form_submit_button("Guardar Alterações",
                                                  use_container_width=True):
                             upd_g  = clientes_db.copy()
                             mask_g = upd_g['ID'].astype(str) == cid_g
@@ -1370,14 +1373,14 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             inv("clientes_financeiro.csv")
                             log_audit(user_nome, "EDITAR_CLIENTE",
                                       "clientes_financeiro.csv", cid_g, nome_g, "")
-                            st.success("✅ Cliente actualizado.")
+                            st.success("Cliente actualizado.")
                             st.rerun()
 
                     # ── Pessoas de Contacto (contactos_clientes.csv) ────
                     # Ligadas por Cliente_ID (não por nome) — evita a
                     # divergência que a limpeza de clientes_financeiro.csv
                     # corrigiu. Um cliente pode ter mais do que uma pessoa.
-                    st.markdown("##### 👥 Pessoas de Contacto")
+                    st.markdown("##### Pessoas de Contacto")
                     contactos_cli = contactos_db[
                         contactos_db['Cliente_ID'].astype(str) == cid_g
                     ] if not contactos_db.empty else pd.DataFrame()
@@ -1393,17 +1396,18 @@ def render_fat_clientes(obras_db, registos_db, *_):
                                 if ct.get('Cargo', ''):
                                     linha_ct += f" — {ct.get('Cargo', '')}"
                                 st.markdown(
-                                    f"<div style='background:#1E293B;border-radius:8px;"
+                                    f"<div style='background:{THEME['surface']};"
+                                    f"border:1px solid {THEME['border']};border-radius:8px;"
                                     f"padding:8px 12px;margin-bottom:4px;'>"
-                                    f"<b style='color:#F1F5F9;'>{linha_ct}</b><br>"
-                                    f"<small style='color:#64748B;'>"
-                                    f"📧 {ct.get('Email','') or '—'} · "
-                                    f"📞 {ct.get('Telefone','') or '—'}</small>"
+                                    f"<b style='color:{THEME['text']};'>{linha_ct}</b><br>"
+                                    f"<small style='color:{THEME['text_secondary']};'>"
+                                    f"{ct.get('Email','') or '—'} · "
+                                    f"{ct.get('Telefone','') or '—'}</small>"
                                     f"</div>",
                                     unsafe_allow_html=True
                                 )
                             with col_ct2:
-                                if st.button("🗑️", key=f"gc_ct_del_{ct_id}",
+                                if st.button("X", key=f"gc_ct_del_{ct_id}",
                                              help="Remover contacto"):
                                     upd_ct = contactos_db[
                                         contactos_db['ID'].astype(str) != ct_id
@@ -1421,10 +1425,10 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         with ct_c2:
                             ct_email = st.text_input("Email", key=f"gc_ct_email_{cid_g}")
                             ct_tel = st.text_input("Telefone", key=f"gc_ct_tel_{cid_g}")
-                        if st.form_submit_button("➕ Adicionar Pessoa de Contacto",
+                        if st.form_submit_button("Adicionar Pessoa de Contacto",
                                                  use_container_width=True):
                             if not ct_nome.strip():
-                                st.error("❌ Nome obrigatório.")
+                                st.error("Nome obrigatório.")
                             else:
                                 novo_ct = pd.DataFrame([{
                                     "ID": str(uuid.uuid4())[:8].upper(),
@@ -1442,14 +1446,14 @@ def render_fat_clientes(obras_db, registos_db, *_):
                                 ) if not contactos_db.empty else novo_ct
                                 save_db(upd_ct, "contactos_clientes.csv")
                                 inv("contactos_clientes.csv")
-                                st.success(f"✅ {ct_nome} adicionado(a).")
+                                st.success(f"{ct_nome} adicionado(a).")
                                 st.rerun()
 
                     # Eliminação protegida — verifica referências em toda a app
                     refs_g = referencias_cliente(nome_g)
                     if refs_g:
                         st.warning(
-                            "🔒 **Eliminação bloqueada** — cliente referenciado em: "
+                            "**Eliminação bloqueada** — cliente referenciado em: "
                             + "; ".join(f"{d} ({n}×)" for d, n in refs_g)
                             + ". Em alternativa, desactiva-o (Activo=Não): "
                             "desaparece dos selectbox e o histórico fica intacto."
@@ -1459,7 +1463,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             f"Confirmo a eliminação definitiva de «{nome_g}»",
                             key=f"gc_conf_{cid_g}"
                         )
-                        if st.button("🗑️ Eliminar Cliente",
+                        if st.button("Eliminar Cliente",
                                      key=f"gc_del_{cid_g}", disabled=not conf_g):
                             upd_g = clientes_db[
                                 clientes_db['ID'].astype(str) != cid_g
@@ -1469,19 +1473,19 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             inv("clientes_financeiro.csv")
                             log_audit(user_nome, "ELIMINAR_CLIENTE",
                                       "clientes_financeiro.csv", cid_g, nome_g, "")
-                            st.success(f"🗑️ Cliente «{nome_g}» eliminado.")
+                            st.success(f"Cliente «{nome_g}» eliminado.")
                             st.rerun()
 
         # ── Migração de clientes em texto livre (só Admin) ──────────
         if st.session_state.get('tipo') == 'Admin':
-            with st.expander("🔄 Migração — importar clientes em texto livre (Admin)"):
+            with st.expander("Migração — importar clientes em texto livre (Admin)"):
                 st.caption(
                     "Recolhe nomes de cliente espalhados por obras, orçamentos, "
                     "contactos ISO, oportunidades, clientes angariados e RH, e "
                     "cria os que faltam na fonte canónica (Origem=Migração). "
                     "Idempotente — não altera os ficheiros de origem."
                 )
-                if st.button("🔍 Analisar fontes", key="gc_mig_analisar"):
+                if st.button("Analisar fontes", key="gc_mig_analisar"):
                     _mig_nomes, _mig_exist = migrar_clientes_existentes(executar=False)
                     st.session_state['gc_mig_preview'] = _mig_nomes
                     st.session_state['gc_mig_exist']   = _mig_exist
@@ -1491,7 +1495,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     _mig_exist = st.session_state.get('gc_mig_exist', 0)
                     if not _mig_nomes:
                         st.success(
-                            f"✅ Nada a migrar — {_mig_exist} cliente(s) "
+                            f"Nada a migrar — {_mig_exist} cliente(s) "
                             "já registados na fonte canónica."
                         )
                     else:
@@ -1501,7 +1505,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         )
                         st.markdown("\n".join(f"- {n}" for n in _mig_nomes))
                         if st.button(
-                            f"✅ Confirmar criação de {len(_mig_nomes)} cliente(s)",
+                            f"Confirmar criação de {len(_mig_nomes)} cliente(s)",
                             key="gc_mig_exec", type="primary"
                         ):
                             _criados, _ = migrar_clientes_existentes(executar=True)
@@ -1510,19 +1514,19 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             log_audit(user_nome, "MIGRAR_CLIENTES",
                                       "clientes_financeiro.csv", "",
                                       f"{len(_criados)} clientes migrados", "")
-                            st.success(f"✅ {len(_criados)} cliente(s) migrados!")
+                            st.success(f"{len(_criados)} cliente(s) migrados!")
                             st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB — AGING
     # ════════════════════════════════════════════════════════════════
     with t_aging:
-        st.markdown("### 📊 Aging de Clientes")
+        st.markdown("### Aging de Clientes")
 
         hoje_ts = pd.Timestamp(date.today())
 
         if faturas_cli.empty:
-            st.info("📋 Sem faturas para analisar.")
+            st.info("Sem faturas para analisar.")
         else:
             # Gráfico
             st.plotly_chart(
@@ -1531,7 +1535,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
             )
 
             # Tabela de aging
-            st.markdown("#### 📋 Detalhe por Fatura")
+            st.markdown("#### Detalhe por Fatura")
             aging_rows = []
 
             if 'Data_Vencimento' in faturas_cli.columns:
@@ -1550,20 +1554,20 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     dias = (hoje_ts - row['Venc_d']).days \
                            if pd.notna(row['Venc_d']) else 0
                     if dias <= 0:
-                        escalao = "✅ Não vencida"
-                        cor_a = "#10B981"
+                        escalao = "Não vencida"
+                        cor_a = THEME['success']
                     elif dias <= 30:
-                        escalao = "🟡 0-30 dias"
-                        cor_a = "#F59E0B"
+                        escalao = "0-30 dias"
+                        cor_a = THEME['warning']
                     elif dias <= 60:
-                        escalao = "🟠 31-60 dias"
-                        cor_a = "#F97316"
+                        escalao = "31-60 dias"
+                        cor_a = THEME['warning']
                     elif dias <= 90:
-                        escalao = "🔴 61-90 dias"
-                        cor_a = "#EF4444"
+                        escalao = "61-90 dias"
+                        cor_a = THEME['error']
                     else:
-                        escalao = "🆘 +90 dias"
-                        cor_a = "#DC2626"
+                        escalao = "+90 dias"
+                        cor_a = THEME['error']
 
                     aging_rows.append({
                         "Fatura":   row.get('Numero',''),
@@ -1595,16 +1599,16 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         key="aging_lem_cli"
                     )
                     if st.button(
-                        "📧 Enviar Lembrete de Pagamento",
+                        "Enviar Lembrete de Pagamento",
                         key="btn_lem_pag",
                         type="primary",
                         use_container_width=True
                     ):
                         st.success(
-                            f"✅ Lembrete enviado para: {cli_lem}"
+                            f"Lembrete enviado para: {cli_lem}"
                         )
                         st.info(
-                            "ℹ️ Configura o SMTP no tab IT para "
+                            "Configura o SMTP no tab IT para "
                             "envio real de emails."
                         )
 
@@ -1612,7 +1616,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
     # TAB — CONTRATOS
     # ════════════════════════════════════════════════════════════════
     with t_contratos:
-        st.markdown("### 📑 Contratos & Cauções")
+        st.markdown("### Contratos & Cauções")
 
         contratos_db = _load("contratos_financeiro.csv", [
             "ID","Cliente","Obra","Valor_Total","Valor_Faturado",
@@ -1623,7 +1627,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
         col_c1, col_c2 = st.columns([1, 2])
 
         with col_c1:
-            st.markdown("#### ➕ Novo Contrato")
+            st.markdown("#### Novo Contrato")
             with st.form("form_contrato"):
                 ct_cli  = st.selectbox(
                     "Cliente",
@@ -1663,7 +1667,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Contrato",
+                    "Guardar Contrato",
                     use_container_width=True, type="primary"
                 ):
                     novo_ct = pd.DataFrame([{
@@ -1684,13 +1688,13 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     ) if not contratos_db.empty else novo_ct
                     save_db(upd_ct, "contratos_financeiro.csv")
                     inv("contratos_financeiro.csv")
-                    st.success("✅ Contrato guardado!")
+                    st.success("Contrato guardado!")
                     st.rerun()
 
         with col_c2:
-            st.markdown("#### 📋 Contratos Ativos")
+            st.markdown("#### Contratos Ativos")
             if contratos_db.empty:
-                st.info("📋 Sem contratos registados.")
+                st.info("Sem contratos registados.")
             else:
                 hoje_ts2 = pd.Timestamp(date.today())
                 for _, ct in contratos_db.iterrows():
@@ -1709,40 +1713,41 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         dias_lib = (lib_d.date() - date.today()).days
                         if 0 <= dias_lib <= 30:
                             alerta_lib = (
-                                f"<span style='color:#10B981;"
+                                f"<span style='color:{THEME['success']};"
                                 f"font-size:0.75rem;'>"
-                                f"🔓 Retenção liberta em {dias_lib} dias!"
+                                f"Retenção liberta em {dias_lib} dias!"
                                 f"</span>"
                             )
                         elif dias_lib < 0:
                             alerta_lib = (
-                                f"<span style='color:#F59E0B;"
+                                f"<span style='color:{THEME['warning']};"
                                 f"font-size:0.75rem;'>"
-                                f"⚠️ Retenção deveria ter sido libertada"
+                                f"Retenção deveria ter sido libertada"
                                 f"</span>"
                             )
                     except:
                         pass
 
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:14px;"
                         f"margin-bottom:8px;"
-                        f"border-left:4px solid #8B5CF6;'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"border-left:4px solid {THEME['accent']};'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"{ct.get('Obra','')} — {ct.get('Cliente','')}"
                         f"</b>"
-                        f"<span style='float:right;color:#8B5CF6;"
+                        f"<span style='float:right;color:{THEME['accent']};"
                         f"font-weight:700;'>"
                         f"€{val_t:,.2f}</span><br>"
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['background']};"
                         f"border-radius:4px;height:8px;"
                         f"margin:8px 0;'>"
-                        f"<div style='background:#8B5CF6;"
+                        f"<div style='background:{THEME['accent']};"
                         f"width:{min(pct_ex,100):.0f}%;"
                         f"height:8px;border-radius:4px;'>"
                         f"</div></div>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Faturado: €{val_fat:,.2f} ({pct_ex:.1f}%) · "
                         f"Retido: €{val_ret:,.2f} · "
                         f"Libertação: {ct.get('Data_Libertacao','')}"
@@ -1755,7 +1760,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
     # TAB — NOTAS DE CRÉDITO
     # ════════════════════════════════════════════════════════════════
     with t_nc:
-        st.markdown("### 🔄 Notas de Crédito")
+        st.markdown("### Notas de Crédito")
         st.info(
             "Uma nota de crédito anula total ou parcialmente "
             "uma fatura emitida. O saldo do cliente é atualizado "
@@ -1768,7 +1773,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
           else faturas_cli
 
         if faturas_emitidas.empty:
-            st.info("📋 Sem faturas disponíveis para nota de crédito.")
+            st.info("Sem faturas disponíveis para nota de crédito.")
         else:
             with st.form("form_nc"):
                 fat_nc = st.selectbox(
@@ -1788,7 +1793,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             fat_sel.iloc[0].get('Total', 0) or 0
                         )
                         st.markdown(
-                            f"<small style='color:#3B82F6;'>"
+                            f"<small style='color:{THEME['accent']};'>"
                             f"Valor original: €{val_orig:,.2f}</small>",
                             unsafe_allow_html=True
                         )
@@ -1810,11 +1815,11 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "🔄 Emitir Nota de Crédito",
+                    "Emitir Nota de Crédito",
                     use_container_width=True, type="primary"
                 ):
                     if not nc_desc.strip() or nc_valor <= 0:
-                        st.error("❌ Valor e descrição obrigatórios.")
+                        st.error("Valor e descrição obrigatórios.")
                     else:
                         num_nc = _proximo_numero(faturas_cli, "NC")
                         # Criar NC como fatura com valor negativo
@@ -1868,7 +1873,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         )
                         inv("faturas_clientes.csv")
                         st.success(
-                            f"✅ {num_nc} emitida — "
+                            f"{num_nc} emitida — "
                             f"€{nc_valor:.2f} creditados ao cliente!"
                         )
                         st.rerun()

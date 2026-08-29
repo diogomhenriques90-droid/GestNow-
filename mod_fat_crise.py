@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db
+from core import save_db, inv, load_db, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -72,20 +72,17 @@ def _altman_z_score(ativo_total: float,
         zona         = "saudável"
         prob         = max(2, round((3.5 - z) * 10, 1))
         descricao    = "Empresa financeiramente sólida"
-        cor          = "#10B981"
-        emoji        = "🟢"
+        cor          = THEME['success']
     elif z >= 1.23:
         zona         = "atenção"
         prob         = round(20 + (2.9 - z) * 18, 1)
         descricao    = "Zona cinzenta — monitorizar"
-        cor          = "#F59E0B"
-        emoji        = "🟡"
+        cor          = THEME['warning']
     else:
         zona         = "perigo"
         prob         = min(90, round(60 + (1.23 - z) * 20, 1))
         descricao    = "Risco elevado de insolvência"
-        cor          = "#EF4444"
-        emoji        = "🔴"
+        cor          = THEME['error']
 
     return {
         "z_score":      z,
@@ -93,7 +90,6 @@ def _altman_z_score(ativo_total: float,
         "probabilidade":max(0, min(99, prob)),
         "descricao":    descricao,
         "cor":          cor,
-        "emoji":        emoji,
         "x1":           round(x1, 4),
         "x2":           round(x2, 4),
         "x3":           round(x3, 4),
@@ -275,7 +271,6 @@ FONTES_AJUDA = [
         "contacto":    "808 200 115",
         "url":         "www.iapmei.pt",
         "urgencia":    "média",
-        "cor":         "#3B82F6"
     },
     {
         "nome":        "IEFP — Lay-off Simplificado",
@@ -287,7 +282,6 @@ FONTES_AJUDA = [
         "contacto":    "300 010 001",
         "url":         "www.iefp.pt",
         "urgencia":    "alta",
-        "cor":         "#EF4444"
     },
     {
         "nome":        "Linha PME Crescimento",
@@ -300,7 +294,6 @@ FONTES_AJUDA = [
         "contacto":    "Via banco habitual",
         "url":         "www.spgm.pt",
         "urgencia":    "média",
-        "cor":         "#10B981"
     },
     {
         "nome":        "Factoring — Antecipação de Faturas",
@@ -313,7 +306,6 @@ FONTES_AJUDA = [
         "contacto":    "Via banco habitual",
         "url":         "—",
         "urgencia":    "alta",
-        "cor":         "#F59E0B"
     },
     {
         "nome":        "Mediador de Crédito (Banco de Portugal)",
@@ -326,7 +318,6 @@ FONTES_AJUDA = [
         "contacto":    "213 130 000",
         "url":         "www.bportugal.pt/mediador-credito",
         "urgencia":    "crítica",
-        "cor":         "#DC2626"
     },
     {
         "nome":        "Norgarante / Garval / Lisgarante",
@@ -339,7 +330,6 @@ FONTES_AJUDA = [
         "contacto":    "Via IAPMEI ou banco",
         "url":         "www.spgm.pt",
         "urgencia":    "média",
-        "cor":         "#8B5CF6"
     },
     {
         "nome":        "PRR — Plano de Recuperação e Resiliência",
@@ -352,7 +342,6 @@ FONTES_AJUDA = [
         "contacto":    "Via IAPMEI",
         "url":         "www.recuperarportugal.gov.pt",
         "urgencia":    "baixa",
-        "cor":         "#06B6D4"
     },
     {
         "nome":        "APOIAR.PT — Programa de Apoio",
@@ -365,9 +354,15 @@ FONTES_AJUDA = [
         "contacto":    "Via IAPMEI / CCDR",
         "url":         "www.iapmei.pt/apoiar",
         "urgencia":    "alta",
-        "cor":         "#EF4444"
     },
 ]
+
+_COR_URGENCIA = {
+    "crítica": THEME['error'],
+    "alta":    THEME['error'],
+    "média":   THEME['warning'],
+    "baixa":   THEME['accent'],
+}
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -638,10 +633,10 @@ def _gerar_pdf_contingencia(score_global: int,
     )
 
     cor_map = {
-        "🟢 SAUDÁVEL":   '#10B981',
-        "🟡 ATENÇÃO":    '#F59E0B',
-        "🔴 ALERTA":     '#EF4444',
-        "🆘 CRISE":      '#DC2626',
+        "SAUDÁVEL":   '#10B981',
+        "ATENÇÃO":    '#F59E0B',
+        "ALERTA":     '#EF4444',
+        "CRISE":      '#DC2626',
     }
     cor_nivel = cor_map.get(nivel, '#64748B')
 
@@ -679,9 +674,9 @@ def _gerar_pdf_contingencia(score_global: int,
     ind_data = [["Indicador","Score","Status"]]
     for ind in indicadores:
         sc  = ind['score']
-        st  = "🟢 OK" if sc >= 70 \
-              else "🟡 Atenção" if sc >= 40 \
-              else "🔴 Risco"
+        st  = "OK" if sc >= 70 \
+              else "Atenção" if sc >= 40 \
+              else "Risco"
         ind_data.append([ind['nome'], f"{sc}/100", st])
 
     it = Table(ind_data, colWidths=[8*cm, 3*cm, 6*cm])
@@ -795,24 +790,24 @@ def render_fat_crise(obras_db, registos_db,
     hoje      = date.today()
 
     # ── Calcular métricas base ────────────────────────────────────
-    saldo_atual = pd.to_numeric(
+    saldo_atual = float(pd.to_numeric(
         contas_db.get('Saldo', pd.Series()), errors='coerce'
-    ).fillna(0).sum() if not contas_db.empty else 0.0
+    ).fillna(0).sum()) if not contas_db.empty else 0.0
 
     custo_sal_mes = 0.0
     if not rh_db.empty and 'Salario_Base' in rh_db.columns:
-        custo_sal_mes = pd.to_numeric(
+        custo_sal_mes = float(pd.to_numeric(
             rh_db['Salario_Base'], errors='coerce'
-        ).fillna(0).sum() * 1.2375
+        ).fillna(0).sum() * 1.2375)
 
     renda_mes = 0.0
     if not renting_db.empty and 'Valor_Mensal' in renting_db.columns:
         at = renting_db[
             renting_db.get('Estado','') != 'Terminado'
         ] if 'Estado' in renting_db.columns else renting_db
-        renda_mes = pd.to_numeric(
+        renda_mes = float(pd.to_numeric(
             at['Valor_Mensal'], errors='coerce'
-        ).fillna(0).sum()
+        ).fillna(0).sum())
 
     custos_fixos_mes = custo_sal_mes + renda_mes
 
@@ -829,16 +824,16 @@ def render_fat_crise(obras_db, registos_db,
             (fc['Data_d'].dt.month == hoje.month) &
             (fc['Data_d'].dt.year  == hoje.year)
         )
-        fat_mes = fc[mask_m]['Total_Num'].sum()
+        fat_mes = float(fc[mask_m]['Total_Num'].sum())
 
     a_receber = 0.0
     if not faturas_cli.empty and 'Estado' in faturas_cli.columns:
         nao_pagas = faturas_cli[
             ~faturas_cli['Estado'].isin(['Paga','Anulada'])
         ]
-        a_receber = pd.to_numeric(
+        a_receber = float(pd.to_numeric(
             nao_pagas.get('Total',0), errors='coerce'
-        ).fillna(0).sum()
+        ).fillna(0).sum())
 
     autonomia = round(
         saldo_atual / custos_fixos_mes, 1
@@ -918,42 +913,44 @@ def render_fat_crise(obras_db, registos_db,
 
     # Nível de alerta
     if score_global >= 70:
-        nivel      = "🟢 SAUDÁVEL"
-        cor_nivel  = "#10B981"
+        nivel      = "SAUDÁVEL"
+        cor_nivel  = THEME['success']
         nivel_desc = "Empresa em boa situação financeira."
     elif score_global >= 50:
-        nivel      = "🟡 ATENÇÃO"
-        cor_nivel  = "#F59E0B"
+        nivel      = "ATENÇÃO"
+        cor_nivel  = THEME['warning']
         nivel_desc = "Monitorizar de perto. Alguns indicadores em risco."
     elif score_global >= 30:
-        nivel      = "🔴 ALERTA"
-        cor_nivel  = "#EF4444"
+        nivel      = "ALERTA"
+        cor_nivel  = THEME['error']
         nivel_desc = "Ação corretiva necessária com urgência."
     else:
-        nivel      = "🆘 CRISE"
-        cor_nivel  = "#DC2626"
+        nivel      = "CRISE"
+        cor_nivel  = THEME['error']
         nivel_desc = "ATIVAR PLANO DE CONTINGÊNCIA IMEDIATAMENTE!"
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .crise-card {
-        background:#1E293B; border-radius:12px;
+    .crise-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:16px; margin-bottom:10px;
-    }
-    .fonte-card {
-        background:#1E293B; border-radius:10px;
+    }}
+    .fonte-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:10px;
         padding:14px; margin-bottom:8px;
         border-left:4px solid;
         transition:transform 0.15s;
-    }
-    .fonte-card:hover { transform:translateX(3px); }
-    .acao-item {
-        background:rgba(30,41,59,0.8);
+    }}
+    .fonte-card:hover {{ transform:translateX(3px); }}
+    .acao-item {{
+        background:{THEME['border']};
         border-radius:8px; padding:10px 14px;
         margin-bottom:6px;
-        border-left:3px solid #3B82F6;
-    }
+        border-left:3px solid {THEME['accent']};
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -968,7 +965,7 @@ def render_fat_crise(obras_db, registos_db,
         f"<div>"
         f"<h2 style='color:{cor_nivel};margin:0;"
         f"font-size:1.8rem;'>{nivel}</h2>"
-        f"<p style='color:#94A3B8;margin:4px 0 0;'>"
+        f"<p style='color:{THEME['text_secondary']};margin:4px 0 0;'>"
         f"{nivel_desc}</p>"
         f"</div>"
         f"<div style='text-align:center;"
@@ -984,30 +981,30 @@ def render_fat_crise(obras_db, registos_db,
 
     # ── KPIs ──────────────────────────────────────────────────────
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("🏦 Saldo",         f"€{saldo_atual:,.2f}")
-    with c2: st.metric("📅 Autonomia",      f"{autonomia:.1f}m")
-    with c3: st.metric("📈 Margem",         f"{margem_pct:.1f}%")
-    with c4: st.metric("🔴 Fat. Vencidas",  fat_venc)
-    with c5: st.metric("🎯 Score Saúde",    f"{score_global}/100")
+    with c1: st.metric("Saldo",         f"€{saldo_atual:,.2f}")
+    with c2: st.metric("Autonomia",      f"{autonomia:.1f}m")
+    with c3: st.metric("Margem",         f"{margem_pct:.1f}%")
+    with c4: st.metric("Fat. Vencidas",  fat_venc)
+    with c5: st.metric("Score Saúde",    f"{score_global}/100")
 
     st.divider()
 
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_semaforo, t_stress, t_simulador,
      t_altman, t_ajuda, t_contingencia) = st.tabs([
-        "🚦 Semáforo",
-        "⚡ Stress Tests",
-        "🎛️ Simulador E-se?",
-        "📐 Altman Z-Score",
-        "🆘 Fontes de Ajuda",
-        "📋 Plano Contingência",
+        "Semáforo",
+        "Stress Tests",
+        "Simulador E-se?",
+        "Altman Z-Score",
+        "Fontes de Ajuda",
+        "Plano Contingência",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB — SEMÁFORO DE SAÚDE
     # ════════════════════════════════════════════════════════════════
     with t_semaforo:
-        st.markdown("### 🚦 Semáforo de Saúde Financeira")
+        st.markdown("### Semáforo de Saúde Financeira")
 
         col_g1, col_g2 = st.columns(2)
         with col_g1:
@@ -1030,22 +1027,19 @@ def render_fat_crise(obras_db, registos_db,
         )
 
         # Cards por indicador
-        st.markdown("#### 📊 Detalhe dos Indicadores")
+        st.markdown("#### Detalhe dos Indicadores")
         cols_ind = st.columns(3)
         for i, ind in enumerate(indicadores):
             with cols_ind[i % 3]:
                 sc  = ind['score']
-                cor_i = "#10B981" if sc >= 70 \
-                        else "#F59E0B" if sc >= 40 \
-                        else "#EF4444"
-                ic_i  = "🟢" if sc >= 70 \
-                        else "🟡" if sc >= 40 \
-                        else "🔴"
+                cor_i = THEME['success'] if sc >= 70 \
+                        else THEME['warning'] if sc >= 40 \
+                        else THEME['error']
                 # Barra progresso
                 st.markdown(
                     f"<div class='crise-card' "
                     f"style='border-top:3px solid {cor_i};'>"
-                    f"<p style='color:#64748B;"
+                    f"<p style='color:{THEME['text_secondary']};"
                     f"font-size:0.72rem;font-weight:700;"
                     f"text-transform:uppercase;"
                     f"margin:0 0 4px;'>"
@@ -1055,19 +1049,19 @@ def render_fat_crise(obras_db, registos_db,
                     f"align-items:center;margin-bottom:6px;'>"
                     f"<b style='color:{cor_i};"
                     f"font-size:1.2rem;'>"
-                    f"{ic_i} {sc}/100</b>"
-                    f"<small style='color:#94A3B8;'>"
+                    f"{sc}/100</b>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"{ind['valor']}</small>"
                     f"</div>"
-                    f"<div style='background:#0F172A;"
+                    f"<div style='background:{THEME['border']};"
                     f"border-radius:4px;height:8px;'>"
                     f"<div style='background:{cor_i};"
                     f"width:{sc}%;height:8px;"
                     f"border-radius:4px;transition:width 0.5s;'>"
                     f"</div></div>"
-                    f"<small style='color:#475569;"
+                    f"<small style='color:{THEME['text_secondary']};"
                     f"font-size:0.7rem;'>"
-                    f"{'✅ OK' if ind['ok'] else '⚠️ Atenção'}"
+                    f"{'OK' if ind['ok'] else 'Atenção'}"
                     f"</small></div>",
                     unsafe_allow_html=True
                 )
@@ -1076,18 +1070,18 @@ def render_fat_crise(obras_db, registos_db,
         alertas_ativos = [i for i in indicadores if not i['ok']]
         if alertas_ativos:
             st.markdown("---")
-            st.markdown("#### ⚡ Alertas Ativos")
+            st.markdown("#### Alertas Ativos")
             for al in alertas_ativos:
                 sc_a  = al['score']
-                cor_a = "#F59E0B" if sc_a >= 40 else "#EF4444"
+                cor_a = THEME['warning'] if sc_a >= 40 else THEME['error']
                 st.markdown(
                     f"<div style='background:{cor_a}12;"
                     f"border-left:4px solid {cor_a};"
                     f"border-radius:8px;padding:10px 14px;"
                     f"margin-bottom:6px;'>"
                     f"<b style='color:{cor_a};'>"
-                    f"⚠️ {al['nome']}</b> — "
-                    f"<span style='color:#94A3B8;'>"
+                    f"{al['nome']}</b> — "
+                    f"<span style='color:{THEME['text_secondary']};'>"
                     f"{al['valor']}</span>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -1095,7 +1089,7 @@ def render_fat_crise(obras_db, registos_db,
 
         # Outros alertas operacionais
         st.markdown("---")
-        st.markdown("#### 🔔 Alertas Operacionais")
+        st.markdown("#### Alertas Operacionais")
 
         alertas_op = []
 
@@ -1112,9 +1106,9 @@ def render_fat_crise(obras_db, registos_db,
             ]
             if not prox_seg.empty:
                 alertas_op.append({
-                    "msg": f"🛡️ {len(prox_seg)} seguro(s) "
+                    "msg": f"{len(prox_seg)} seguro(s) "
                            f"a expirar em 60 dias",
-                    "cor": "#F59E0B"
+                    "cor": THEME['warning']
                 })
 
         # Alvarás a expirar
@@ -1131,9 +1125,9 @@ def render_fat_crise(obras_db, registos_db,
             ]
             if not prox_alv.empty:
                 alertas_op.append({
-                    "msg": f"📋 {len(prox_alv)} alvará(s)/licença(s) "
+                    "msg": f"{len(prox_alv)} alvará(s)/licença(s) "
                            f"a expirar em 90 dias",
-                    "cor": "#EF4444"
+                    "cor": THEME['error']
                 })
 
         # IBANs alterados recentemente
@@ -1150,9 +1144,9 @@ def render_fat_crise(obras_db, registos_db,
             ]
             if not rec_iban.empty:
                 alertas_op.append({
-                    "msg": f"🏦 {len(rec_iban)} IBAN(s) alterado(s) "
+                    "msg": f"{len(rec_iban)} IBAN(s) alterado(s) "
                            f"nos últimos 30 dias",
-                    "cor": "#EF4444"
+                    "cor": THEME['error']
                 })
 
         # Renting a terminar
@@ -1168,9 +1162,9 @@ def render_fat_crise(obras_db, registos_db,
             ]
             if not prox_rent.empty:
                 alertas_op.append({
-                    "msg": f"🚗 {len(prox_rent)} contrato(s) renting "
+                    "msg": f"{len(prox_rent)} contrato(s) renting "
                            f"a terminar em 60 dias",
-                    "cor": "#F59E0B"
+                    "cor": THEME['warning']
                 })
 
         if alertas_op:
@@ -1185,13 +1179,13 @@ def render_fat_crise(obras_db, registos_db,
                     unsafe_allow_html=True
                 )
         else:
-            st.success("✅ Sem alertas operacionais.")
+            st.success("Sem alertas operacionais.")
 
     # ════════════════════════════════════════════════════════════════
     # TAB — STRESS TESTS
     # ════════════════════════════════════════════════════════════════
     with t_stress:
-        st.markdown("### ⚡ Stress Tests — 5 Cenários")
+        st.markdown("### Stress Tests — 5 Cenários")
         st.info(
             "Cada cenário simula um choque financeiro e calcula "
             "o impacto real no cash flow e saldo da empresa."
@@ -1200,9 +1194,8 @@ def render_fat_crise(obras_db, registos_db,
         cenarios_config = [
             {
                 "id":     "cliente_nao_paga",
-                "titulo": "📭 Cliente Não Paga",
+                "titulo": "Cliente Não Paga",
                 "desc":   "O principal cliente atrasa o pagamento",
-                "cor":    "#F59E0B",
                 "params": {
                     "atraso_dias": st.session_state.get(
                         "st_atraso", 60
@@ -1212,30 +1205,26 @@ def render_fat_crise(obras_db, registos_db,
             },
             {
                 "id":     "perda_obra_principal",
-                "titulo": "🏗️ Perda de Obra Principal",
+                "titulo": "Perda de Obra Principal",
                 "desc":   "A obra mais importante é cancelada",
-                "cor":    "#EF4444",
                 "params": {"pct_receita": 0.60}
             },
             {
                 "id":     "aumento_custos",
-                "titulo": "📈 Aumento de Custos",
+                "titulo": "Aumento de Custos",
                 "desc":   "Salários +5% e combustível +20%",
-                "cor":    "#8B5CF6",
                 "params": {"pct_sal":0.05,"pct_comb":0.20}
             },
             {
                 "id":     "quebra_sazonal",
-                "titulo": "📉 Quebra Sazonal",
+                "titulo": "Quebra Sazonal",
                 "desc":   "Quebra de 35% durante 2 meses (verão)",
-                "cor":    "#3B82F6",
                 "params": {"pct_quebra":0.35,"meses_duracao":2}
             },
             {
                 "id":     "crise_global",
-                "titulo": "🌍 Crise Global",
+                "titulo": "Crise Global",
                 "desc":   "Quebra de 70% de faturação (COVID-like)",
-                "cor":    "#DC2626",
                 "params": {"pct_impacto":0.70}
             },
         ]
@@ -1247,9 +1236,9 @@ def render_fat_crise(obras_db, registos_db,
                 a_receber, cen['params']
             )
 
-            cor_c = cen['cor']
+            cor_c = THEME['accent']
             critico = res.get('critico', False)
-            cor_c2  = "#EF4444" if critico else "#10B981"
+            cor_c2  = THEME['error'] if critico else THEME['success']
 
             with st.expander(
                 f"{cen['titulo']} — {cen['desc']}",
@@ -1261,9 +1250,9 @@ def render_fat_crise(obras_db, registos_db,
                     st.markdown(
                         f"<div class='crise-card' "
                         f"style='border-left:4px solid {cor_c};'>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:1rem;'>{cen['titulo']}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{cen['desc']}</small>"
                         f"</div>",
                         unsafe_allow_html=True
@@ -1272,71 +1261,71 @@ def render_fat_crise(obras_db, registos_db,
                     # Métricas específicas por cenário
                     if cen['id'] == 'cliente_nao_paga':
                         st.metric(
-                            "💸 Gap de Cash Flow",
+                            "Gap de Cash Flow",
                             f"€{res.get('impacto_imediato',0):,.2f}"
                         )
                         st.metric(
-                            "🏦 Saldo Após Impacto",
+                            "Saldo Após Impacto",
                             f"€{res.get('saldo_apos',0):,.2f}",
-                            delta=f"{'🔴 Crítico' if critico else '🟢 OK'}"
+                            delta=f"{'Crítico' if critico else 'OK'}"
                         )
                         if res.get('financiamento_nec',0) > 0:
                             st.error(
-                                f"💰 Financiamento necessário: "
+                                f"Financiamento necessário: "
                                 f"€{res.get('financiamento_nec',0):,.2f}"
                             )
 
                     elif cen['id'] == 'perda_obra_principal':
                         st.metric(
-                            "📉 Receita Perdida/Mês",
+                            "Receita Perdida/Mês",
                             f"€{res.get('fat_perdida',0):,.2f}"
                         )
                         m_nova = res.get('margem_nova',0)
                         st.metric(
-                            "📈 Margem Nova",
+                            "Margem Nova",
                             f"{m_nova:.1f}%",
-                            delta="🔴 Negativa" if m_nova < 0
+                            delta="Negativa" if m_nova < 0
                             else f"↓ {margem_pct-m_nova:.1f}%"
                         )
                         st.metric(
-                            "📅 Autonomia Restante",
+                            "Autonomia Restante",
                             f"{res.get('autonomia_meses',0):.1f} meses"
                         )
 
                     elif cen['id'] == 'aumento_custos':
                         st.metric(
-                            "💸 Aumento Mensal",
+                            "Aumento Mensal",
                             f"€{res.get('aumento_total',0):,.2f}"
                         )
                         st.metric(
-                            "📈 Margem Nova",
+                            "Margem Nova",
                             f"{res.get('margem_nova',0):.1f}%"
                         )
                         st.metric(
-                            "💸 Impacto Anual",
+                            "Impacto Anual",
                             f"€{res.get('impacto_anual',0):,.2f}"
                         )
 
                     elif cen['id'] == 'quebra_sazonal':
                         suf = res.get('suficiente', False)
                         st.metric(
-                            "💰 Reserva Necessária",
+                            "Reserva Necessária",
                             f"€{res.get('reserva_necessaria',0):,.2f}"
                         )
                         st.metric(
-                            "🏦 Reserva Atual",
+                            "Reserva Atual",
                             f"€{res.get('reserva_atual',0):,.2f}",
-                            delta="✅ Suficiente" if suf
-                            else f"❌ Déficit €{res.get('deficit',0):,.2f}"
+                            delta="Suficiente" if suf
+                            else f"Déficit €{res.get('deficit',0):,.2f}"
                         )
 
                     elif cen['id'] == 'crise_global':
                         st.metric(
-                            "📅 Meses que Aguenta",
+                            "Meses que Aguenta",
                             f"{res.get('meses_aguenta',0):.1f}"
                         )
                         st.metric(
-                            "💸 Déficit Mensal",
+                            "Déficit Mensal",
                             f"€{res.get('deficit_mensal',0):,.2f}"
                         )
 
@@ -1347,7 +1336,7 @@ def render_fat_crise(obras_db, registos_db,
                         f"border-radius:8px;padding:8px;"
                         f"text-align:center;margin-top:8px;'>"
                         f"<b style='color:{cor_c2};'>"
-                        f"{'🔴 CENÁRIO CRÍTICO' if critico else '🟢 Manejável'}"
+                        f"{'CENÁRIO CRÍTICO' if critico else 'Manejável'}"
                         f"</b></div>",
                         unsafe_allow_html=True
                     )
@@ -1385,10 +1374,10 @@ def render_fat_crise(obras_db, registos_db,
 
                     # Ações recomendadas
                     st.markdown(
-                        "<p style='color:#64748B;"
-                        "font-size:0.8rem;font-weight:700;"
-                        "text-transform:uppercase;"
-                        "margin:8px 0 6px;'>Ações Recomendadas:</p>",
+                        f"<p style='color:{THEME['text_secondary']};"
+                        f"font-size:0.8rem;font-weight:700;"
+                        f"text-transform:uppercase;"
+                        f"margin:8px 0 6px;'>Ações Recomendadas:</p>",
                         unsafe_allow_html=True
                     )
                     for j, acao in enumerate(
@@ -1396,9 +1385,9 @@ def render_fat_crise(obras_db, registos_db,
                     ):
                         st.markdown(
                             f"<div class='acao-item'>"
-                            f"<small style='color:#3B82F6;"
+                            f"<small style='color:{THEME['accent']};"
                             f"font-weight:700;'>{j}.</small>"
-                            f"<small style='color:#E2E8F0;"
+                            f"<small style='color:{THEME['text']};"
                             f"margin-left:6px;'>{acao}</small>"
                             f"</div>",
                             unsafe_allow_html=True
@@ -1408,7 +1397,7 @@ def render_fat_crise(obras_db, registos_db,
     # TAB — SIMULADOR E-SE?
     # ════════════════════════════════════════════════════════════════
     with t_simulador:
-        st.markdown("### 🎛️ Simulador Interativo — E se?")
+        st.markdown("### Simulador Interativo — E se?")
         st.info(
             "Ajusta os sliders e vê o impacto em tempo real "
             "no saldo e na margem da empresa."
@@ -1416,7 +1405,7 @@ def render_fat_crise(obras_db, registos_db,
 
         col_sl1, col_sl2 = st.columns(2)
         with col_sl1:
-            st.markdown("#### 📉 Choques Negativos")
+            st.markdown("#### Choques Negativos")
             pct_fat_reduz = st.slider(
                 "Redução de faturação (%)",
                 0, 90, 0, 5, key="sim_fat"
@@ -1436,7 +1425,7 @@ def render_fat_crise(obras_db, registos_db,
             )
 
         with col_sl2:
-            st.markdown("#### 📈 Melhorias")
+            st.markdown("#### Melhorias")
             pct_fat_aum = st.slider(
                 "Aumento de faturação (%)",
                 0, 100, 0, 5, key="sim_fat_aum"
@@ -1473,7 +1462,7 @@ def render_fat_crise(obras_db, registos_db,
         ) if cust_sim > 0 else 99.0
 
         st.markdown("---")
-        st.markdown("#### 📊 Resultado da Simulação")
+        st.markdown("#### Resultado da Simulação")
 
         col_r1,col_r2,col_r3,col_r4 = st.columns(4)
         delta_fat  = fat_sim  - fat_mes
@@ -1483,26 +1472,26 @@ def render_fat_crise(obras_db, registos_db,
 
         with col_r1:
             st.metric(
-                "💰 Faturação",
+                "Faturação",
                 f"€{fat_sim:,.0f}",
                 delta=f"€{delta_fat:+,.0f}"
             )
         with col_r2:
             st.metric(
-                "💸 Custos",
+                "Custos",
                 f"€{cust_sim:,.0f}",
                 delta=f"€{delta_cust:+,.0f}",
                 delta_color="inverse"
             )
         with col_r3:
             st.metric(
-                "📈 Margem",
+                "Margem",
                 f"{margem_sim:.1f}%",
                 delta=f"{delta_marg:+.1f}%"
             )
         with col_r4:
             st.metric(
-                "📅 Autonomia",
+                "Autonomia",
                 f"{auto_sim:.1f}m",
                 delta=f"{delta_auto:+.1f}m"
             )
@@ -1524,14 +1513,14 @@ def render_fat_crise(obras_db, registos_db,
 
         # Veredito
         if fat_sim >= cust_sim * 1.2 and auto_sim >= 3:
-            verdict_cor = "#10B981"
-            verdict     = "✅ Simulação positiva — empresa sustentável"
+            verdict_cor = THEME['success']
+            verdict     = "Simulação positiva — empresa sustentável"
         elif fat_sim >= cust_sim:
-            verdict_cor = "#F59E0B"
-            verdict     = "⚠️ Margem estreita — monitorizar de perto"
+            verdict_cor = THEME['warning']
+            verdict     = "Margem estreita — monitorizar de perto"
         else:
-            verdict_cor = "#EF4444"
-            verdict     = "🔴 Insustentável — ação corretiva necessária"
+            verdict_cor = THEME['error']
+            verdict     = "Insustentável — ação corretiva necessária"
 
         st.markdown(
             f"<div style='background:{verdict_cor}18;"
@@ -1548,7 +1537,7 @@ def render_fat_crise(obras_db, registos_db,
     # TAB — ALTMAN Z-SCORE
     # ════════════════════════════════════════════════════════════════
     with t_altman:
-        st.markdown("### 📐 Modelo Altman Z-Score")
+        st.markdown("### Modelo Altman Z-Score")
         st.info(
             "O Altman Z-Score é um modelo académico validado "
             "que estima a probabilidade de dificuldades financeiras "
@@ -1560,12 +1549,12 @@ def render_fat_crise(obras_db, registos_db,
         col_az1, col_az2 = st.columns(2)
 
         with col_az1:
-            st.markdown("#### 📥 Dados Financeiros")
+            st.markdown("#### Dados Financeiros")
             st.markdown(
-                "<small style='color:#64748B;'>"
-                "Preenche com os valores do último balanço. "
-                "Se não tiveres os dados exactos, usa estimativas."
-                "</small>",
+                f"<small style='color:{THEME['text_secondary']};'>"
+                f"Preenche com os valores do último balanço. "
+                f"Se não tiveres os dados exactos, usa estimativas."
+                f"</small>",
                 unsafe_allow_html=True
             )
 
@@ -1638,21 +1627,20 @@ def render_fat_crise(obras_db, registos_db,
             )
 
             # Resultado
-            cor_alt = altman.get('cor','#64748B')
+            cor_alt = altman.get('cor', THEME['text_secondary'])
             st.markdown(
                 f"<div style='background:{cor_alt}18;"
                 f"border:2px solid {cor_alt};"
                 f"border-radius:12px;padding:16px;"
                 f"text-align:center;'>"
                 f"<h2 style='color:{cor_alt};margin:0;'>"
-                f"{altman.get('emoji','')} "
                 f"Z = {altman['z_score']:.3f}</h2>"
-                f"<p style='color:#94A3B8;margin:4px 0;'>"
+                f"<p style='color:{THEME['text_secondary']};margin:4px 0;'>"
                 f"{altman['descricao']}</p>"
                 f"<b style='color:{cor_alt};"
                 f"font-size:1.2rem;'>"
                 f"Zona: {altman['zona'].upper()}</b><br>"
-                f"<p style='color:#64748B;margin:6px 0 0;'>"
+                f"<p style='color:{THEME['text_secondary']};margin:6px 0 0;'>"
                 f"Prob. dificuldades: "
                 f"<b style='color:{cor_alt};'>"
                 f"~{altman['probabilidade']}%</b></p>"
@@ -1662,28 +1650,28 @@ def render_fat_crise(obras_db, registos_db,
 
             # Referências
             st.markdown(
-                "<div style='background:#1E293B;"
-                "border-radius:8px;padding:12px;margin-top:10px;'>"
-                "<p style='color:#64748B;font-size:0.75rem;"
-                "font-weight:700;text-transform:uppercase;"
-                "margin:0 0 6px;'>Referências Z-Score:</p>"
-                "<div style='display:flex;"
-                "justify-content:space-between;"
-                "margin:3px 0;'>"
-                "<small style='color:#10B981;'>🟢 Z > 2.9</small>"
-                "<small style='color:#94A3B8;'>Saudável</small>"
-                "</div>"
-                "<div style='display:flex;"
-                "justify-content:space-between;margin:3px 0;'>"
-                "<small style='color:#F59E0B;'>"
-                "🟡 1.23 ≤ Z < 2.9</small>"
-                "<small style='color:#94A3B8;'>Atenção</small>"
-                "</div>"
-                "<div style='display:flex;"
-                "justify-content:space-between;margin:3px 0;'>"
-                "<small style='color:#EF4444;'>🔴 Z < 1.23</small>"
-                "<small style='color:#94A3B8;'>Perigo</small>"
-                "</div></div>",
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
+                f"border-radius:8px;padding:12px;margin-top:10px;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
+                f"font-weight:700;text-transform:uppercase;"
+                f"margin:0 0 6px;'>Referências Z-Score:</p>"
+                f"<div style='display:flex;"
+                f"justify-content:space-between;"
+                f"margin:3px 0;'>"
+                f"<small style='color:{THEME['success']};'>Z > 2.9</small>"
+                f"<small style='color:{THEME['text_secondary']};'>Saudável</small>"
+                f"</div>"
+                f"<div style='display:flex;"
+                f"justify-content:space-between;margin:3px 0;'>"
+                f"<small style='color:{THEME['warning']};'>"
+                f"1.23 ≤ Z < 2.9</small>"
+                f"<small style='color:{THEME['text_secondary']};'>Atenção</small>"
+                f"</div>"
+                f"<div style='display:flex;"
+                f"justify-content:space-between;margin:3px 0;'>"
+                f"<small style='color:{THEME['error']};'>Z < 1.23</small>"
+                f"<small style='color:{THEME['text_secondary']};'>Perigo</small>"
+                f"</div></div>",
                 unsafe_allow_html=True
             )
 
@@ -1694,7 +1682,7 @@ def render_fat_crise(obras_db, registos_db,
         )
 
         # Explicação das componentes
-        st.markdown("#### 📋 Interpretação das Componentes")
+        st.markdown("#### Interpretação das Componentes")
         comp_exp = [
             ("X1 = Capital Circulante / Ativo Total",
              f"{altman.get('x1',0):.4f}",
@@ -1719,12 +1707,12 @@ def render_fat_crise(obras_db, registos_db,
         ]
         for label, val, exp in comp_exp:
             st.markdown(
-                f"<div style='background:#1E293B;"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                 f"border-radius:8px;padding:10px 14px;"
                 f"margin-bottom:6px;'>"
-                f"<b style='color:#3B82F6;"
+                f"<b style='color:{THEME['accent']};"
                 f"font-size:0.85rem;'>{label}: {val}</b><br>"
-                f"<small style='color:#64748B;'>{exp}</small>"
+                f"<small style='color:{THEME['text_secondary']};'>{exp}</small>"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -1733,7 +1721,7 @@ def render_fat_crise(obras_db, registos_db,
     # TAB — FONTES DE AJUDA
     # ════════════════════════════════════════════════════════════════
     with t_ajuda:
-        st.markdown("### 🆘 Fontes de Ajuda em Crise")
+        st.markdown("### Fontes de Ajuda em Crise")
         st.info(
             "Listagem de entidades e instrumentos disponíveis "
             "em Portugal para empresas em dificuldade. "
@@ -1762,11 +1750,9 @@ def render_fat_crise(obras_db, registos_db,
         )
 
         for fonte in fontes_show:
-            cor_f  = fonte['cor']
-            urg_ic = {
-                "crítica":"🆘","alta":"🔴","média":"🟡","baixa":"🔵"
-            }.get(fonte['urgencia'],"⚪")
-
+            cor_f  = _COR_URGENCIA.get(
+                fonte['urgencia'], THEME['text_secondary']
+            )
             st.markdown(
                 f"<div class='fonte-card' "
                 f"style='border-left-color:{cor_f};'>"
@@ -1774,15 +1760,15 @@ def render_fat_crise(obras_db, registos_db,
                 f"justify-content:space-between;"
                 f"align-items:flex-start;'>"
                 f"<div>"
-                f"<b style='color:#F1F5F9;"
+                f"<b style='color:{THEME['text']};"
                 f"font-size:0.95rem;'>"
-                f"{urg_ic} {fonte['nome']}</b><br>"
-                f"<small style='color:#64748B;'>"
-                f"🏷️ {fonte['tipo']} · "
-                f"💰 {fonte['valor_max']} · "
-                f"⏱️ {fonte['prazo_resp']}"
+                f"{fonte['nome']}</b><br>"
+                f"<small style='color:{THEME['text_secondary']};'>"
+                f"{fonte['tipo']} · "
+                f"{fonte['valor_max']} · "
+                f"{fonte['prazo_resp']}"
                 f"</small><br>"
-                f"<small style='color:#94A3B8;"
+                f"<small style='color:{THEME['text_secondary']};"
                 f"margin-top:4px;display:block;'>"
                 f"{fonte['descricao']}"
                 f"</small>"
@@ -1795,18 +1781,18 @@ def render_fat_crise(obras_db, registos_db,
                 f"font-weight:700;'>"
                 f"Urgência: {fonte['urgencia'].upper()}"
                 f"</span><br>"
-                f"<small style='color:#64748B;"
+                f"<small style='color:{THEME['text_secondary']};"
                 f"margin-top:4px;display:block;'>"
-                f"📞 {fonte['contacto']}</small>"
-                f"<small style='color:#3B82F6;'>"
-                f"🌐 {fonte['url']}</small>"
+                f"{fonte['contacto']}</small>"
+                f"<small style='color:{THEME['accent']};'>"
+                f"{fonte['url']}</small>"
                 f"</div></div></div>",
                 unsafe_allow_html=True
             )
 
         # Calculadora de financiamento rápido
         st.markdown("---")
-        st.markdown("#### 💰 Calculadora de Necessidade de Financiamento")
+        st.markdown("#### Calculadora de Necessidade de Financiamento")
 
         col_calc1, col_calc2 = st.columns(2)
         with col_calc1:
@@ -1824,21 +1810,21 @@ def render_fat_crise(obras_db, registos_db,
         with col_calc2:
             total_nec = calc_gap + custos_fixos_mes * calc_meses
             st.markdown(
-                f"<div style='background:#1E293B;"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                 f"border-radius:10px;padding:16px;"
-                f"border-left:4px solid #3B82F6;'>"
-                f"<p style='color:#64748B;margin:0 0 6px;'>"
+                f"border-left:4px solid {THEME['accent']};'>"
+                f"<p style='color:{THEME['text_secondary']};margin:0 0 6px;'>"
                 f"Financiamento total necessário:</p>"
-                f"<b style='color:#3B82F6;"
+                f"<b style='color:{THEME['accent']};"
                 f"font-size:1.8rem;'>"
                 f"€{total_nec:,.2f}</b><br>"
-                f"<small style='color:#64748B;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"Gap: €{calc_gap:,.0f} + "
                 f"{calc_meses} meses × "
                 f"€{custos_fixos_mes:,.0f}</small><br><br>"
-                f"<b style='color:#F1F5F9;"
+                f"<b style='color:{THEME['text']};"
                 f"font-size:0.85rem;'>Opções:</b><br>"
-                f"<small style='color:#94A3B8;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"• Factoring: €{total_nec*0.95:,.0f} "
                 f"(em 48h, custo ~3%)<br>"
                 f"• Linha PME: €{min(total_nec,1500000):,.0f} "
@@ -1853,7 +1839,7 @@ def render_fat_crise(obras_db, registos_db,
     # TAB — PLANO DE CONTINGÊNCIA
     # ════════════════════════════════════════════════════════════════
     with t_contingencia:
-        st.markdown("### 📋 Plano de Contingência")
+        st.markdown("### Plano de Contingência")
         st.info(
             "Plano automático gerado com base no nível de crise "
             "atual. Pode ser editado e descarregado em PDF "
@@ -1862,7 +1848,7 @@ def render_fat_crise(obras_db, registos_db,
 
         # Ações por nível
         acoes_por_nivel = {
-            "🟢 SAUDÁVEL": [
+            "SAUDÁVEL": [
                 "Manter reserva mínima de 3 meses de custos fixos",
                 "Diversificar carteira de clientes "
                 "(objetivo: nenhum >40% receita)",
@@ -1871,7 +1857,7 @@ def render_fat_crise(obras_db, registos_db,
                 "(PT2030/PRR)",
                 "Implementar monitorização mensal do Z-Score",
             ],
-            "🟡 ATENÇÃO": [
+            "ATENÇÃO": [
                 "Acelerar cobranças — contactar clientes "
                 "em atraso imediatamente",
                 "Suspender despesas discricionárias (>€500 "
@@ -1883,7 +1869,7 @@ def render_fat_crise(obras_db, registos_db,
                 "Convocar reunião de gestão para revisão do budget",
                 "Avaliar redução temporária de frota",
             ],
-            "🔴 ALERTA": [
+            "ALERTA": [
                 "URGENTE: Contactar banco para renegociar créditos",
                 "Ativar factoring para faturas pendentes "
                 "— liquidez imediata",
@@ -1896,7 +1882,7 @@ def render_fat_crise(obras_db, registos_db,
                 "Contactar mediador de crédito "
                 "(Banco de Portugal — 213 130 000)",
             ],
-            "🆘 CRISE": [
+            "CRISE": [
                 "IMEDIATO: Contactar mediador de crédito "
                 "(213 130 000)",
                 "IMEDIATO: Submeter pedido lay-off simplificado "
@@ -1913,7 +1899,7 @@ def render_fat_crise(obras_db, registos_db,
         acoes_nivel = acoes_por_nivel.get(nivel, [])
 
         # Ações editáveis
-        st.markdown(f"#### ⚡ Ações para Nível {nivel}")
+        st.markdown(f"#### Ações para Nível {nivel}")
 
         acoes_editadas = []
         for i, acao in enumerate(acoes_nivel):
@@ -1925,7 +1911,7 @@ def render_fat_crise(obras_db, registos_db,
             acoes_editadas.append(ac_edit)
 
         # Adicionar ação personalizada
-        if st.button("➕ Adicionar Ação", key="btn_add_acao"):
+        if st.button("Adicionar Ação", key="btn_add_acao"):
             st.session_state['n_acoes_extra'] = \
                 st.session_state.get('n_acoes_extra', 0) + 1
 
@@ -1938,10 +1924,10 @@ def render_fat_crise(obras_db, registos_db,
 
         # Fontes recomendadas para o nível atual
         urgencias_nivel = {
-            "🟢 SAUDÁVEL": ["baixa","média"],
-            "🟡 ATENÇÃO":  ["média","alta"],
-            "🔴 ALERTA":   ["alta","crítica"],
-            "🆘 CRISE":    ["crítica","alta"],
+            "SAUDÁVEL": ["baixa","média"],
+            "ATENÇÃO":  ["média","alta"],
+            "ALERTA":   ["alta","crítica"],
+            "CRISE":    ["crítica","alta"],
         }
         urgs_rec = urgencias_nivel.get(nivel, ["média"])
         fontes_rec = [
@@ -1953,7 +1939,7 @@ def render_fat_crise(obras_db, registos_db,
         col_pdf1, col_pdf2 = st.columns(2)
         with col_pdf1:
             if st.button(
-                "📄 Gerar Plano PDF",
+                "Gerar Plano PDF",
                 key="btn_contingencia_pdf",
                 type="primary",
                 use_container_width=True
@@ -1974,7 +1960,7 @@ def render_fat_crise(obras_db, registos_db,
         with col_pdf2:
             if st.session_state.get('cont_pdf'):
                 st.download_button(
-                    "📥 Descarregar PDF",
+                    "Descarregar PDF",
                     data=st.session_state['cont_pdf'],
                     file_name=st.session_state.get(
                         'cont_pdf_nome','plano.pdf'
@@ -1987,17 +1973,17 @@ def render_fat_crise(obras_db, registos_db,
 
         # Co-Piloto IA para contingência
         st.markdown("---")
-        st.markdown("#### 🤖 Conselho IA para a Situação Atual")
+        st.markdown("#### Conselho IA para a Situação Atual")
 
         if st.button(
-            "🤖 Pedir Análise e Recomendações IA",
+            "Pedir Análise e Recomendações IA",
             key="btn_ia_contingencia",
             use_container_width=True
         ):
             import anthropic
             api_key = os.environ.get("ANTHROPIC_API_KEY","")
             if not api_key:
-                st.error("❌ API key não configurada.")
+                st.error("API key não configurada.")
             else:
                 ctx_ia = {
                     "nivel":          nivel,
@@ -2032,7 +2018,7 @@ def render_fat_crise(obras_db, registos_db,
                     f"Tom: direto, sem rodeios, como um consultor "
                     f"de confiança. Máximo 5 parágrafos."
                 )
-                with st.spinner("🤖 A pensar como CFO..."):
+                with st.spinner("A pensar como CFO..."):
                     try:
                         client = anthropic.Anthropic(api_key=api_key)
                         resp   = client.messages.create(
@@ -2047,18 +2033,18 @@ def render_fat_crise(obras_db, registos_db,
                         st.session_state['ia_conselho'] = conselho
                         st.rerun()
                     except Exception as e:
-                        st.error(f"❌ Erro: {e}")
+                        st.error(f"Erro: {e}")
 
         if st.session_state.get('ia_conselho'):
             st.markdown(
-                f"<div style='background:rgba(59,130,246,0.1);"
-                f"border:1px solid #3B82F6;"
+                f"<div style='background:{THEME['accent']}1A;"
+                f"border:1px solid {THEME['accent']};"
                 f"border-radius:12px;padding:20px;"
-                f"color:#E2E8F0;font-size:0.9rem;"
+                f"color:{THEME['text']};font-size:0.9rem;"
                 f"line-height:1.7;'>"
-                f"<p style='color:#3B82F6;font-weight:700;"
+                f"<p style='color:{THEME['accent']};font-weight:700;"
                 f"margin:0 0 10px;'>"
-                f"🤖 CONSELHO CFO IA — {nivel}</p>"
+                f"CONSELHO CFO IA — {nivel}</p>"
                 f"{st.session_state['ia_conselho'].replace(chr(10),'<br>')}"
                 f"</div>",
                 unsafe_allow_html=True

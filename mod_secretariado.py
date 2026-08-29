@@ -14,7 +14,7 @@ import streamlit as st
 import pandas as pd
 import base64, io
 from datetime import datetime, date, timedelta
-from core import save_db, inv, log_audit, criar_notificacao, fh
+from core import save_db, inv, log_audit, criar_notificacao, fh, THEME
 
 _STATUS_COR = {
     "0": "#F97316",
@@ -23,10 +23,10 @@ _STATUS_COR = {
     "3": "#6B7280",
 }
 _STATUS_LABEL = {
-    "0": "🟠 Pendente",
-    "1": "🟢 Validado",
-    "2": "🔵 Faturação",
-    "3": "⚫ Processado",
+    "0": "Pendente",
+    "1": "Validado",
+    "2": "Faturação",
+    "3": "Processado",
 }
 
 
@@ -63,7 +63,7 @@ def render_secretariado(*args):
 
     user_nome = st.session_state.get('user', '')
 
-    st.markdown("# 🗂️ Secretariado")
+    st.markdown("# Secretariado")
 
     regs = _regs_com_data(registos_db) if not registos_db.empty else pd.DataFrame()
 
@@ -76,33 +76,33 @@ def render_secretariado(*args):
     _n_2val = len(regs[regs['Status'] == '1']) if not regs.empty else 0
 
     tab_1val, tab_2val, tab_fat, tab_gasoleos, tab_avarias, tab_hist = st.tabs([
-        f"🟢 1ª Validação{f' ({_n_1val})' if _n_1val else ''}",
-        f"🔵 2ª Validação{f' ({_n_2val})' if _n_2val else ''}",
-        "📄 Faturação & Folhas",
-        "⛽ Gasóleo",
-        "🔧 Avarias Frota",
-        "📋 Histórico",
+        f"1ª Validação{f' ({_n_1val})' if _n_1val else ''}",
+        f"2ª Validação{f' ({_n_2val})' if _n_2val else ''}",
+        "Faturação & Folhas",
+        "Gasóleo",
+        "Avarias Frota",
+        "Histórico",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB 1 — 1ª VALIDAÇÃO
     # ════════════════════════════════════════════════════════════════
     with tab_1val:
-        st.markdown("### 🟢 Primeira Validação de Horas")
+        st.markdown("### Primeira Validação de Horas")
         st.info(
             "Aqui validas as horas de obras **sem Chefe de Equipa** ou registos "
-            "que o chefe não validou. Após validação a bolinha fica **🟢 verde**."
+            "que o chefe não validou. Após validação a bolinha fica **verde**."
         )
 
         if registos_db.empty:
-            st.info("📋 Sem registos.")
+            st.info("Sem registos.")
         else:
             pendentes = regs[
                 (regs['Status'] == '0') & (~regs['Obra'].isin(obras_com_chefe))
             ].copy()
 
             if pendentes.empty:
-                st.success("✅ Sem horas pendentes de 1ª validação.")
+                st.success("Sem horas pendentes de 1ª validação.")
             else:
                 col_f1, col_f2 = st.columns(2)
                 with col_f1:
@@ -120,7 +120,7 @@ def render_secretariado(*args):
 
                 col_va, col_vr = st.columns(2)
                 with col_va:
-                    if st.button("🟢 Validar Todos (filtro)",
+                    if st.button("Validar Todos (filtro)",
                                   key="s1_val_todos", type="primary",
                                   use_container_width=True):
                         ids = df_view.index
@@ -130,7 +130,7 @@ def render_secretariado(*args):
                         save_db(registos_db, "registos.csv")
                         for _, r in df_view.iterrows():
                             criar_notificacao(destinatario=r['Técnico'],
-                                titulo="🟢 Horas Validadas",
+                                titulo="Horas Validadas",
                                 mensagem=f"{r['Horas_Total']}h em {r['Obra']} validadas.",
                                 tipo="success", acao_url="/")
                         log_audit(usuario=user_nome, acao="VALIDACAO1_HORAS",
@@ -140,10 +140,10 @@ def render_secretariado(*args):
                         inv("registos.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.success(f"✅ {len(ids)} registos validados!")
+                        st.success(f"{len(ids)} registos validados!")
                         st.rerun()
                 with col_vr:
-                    if st.button("❌ Rejeitar Todos (filtro)",
+                    if st.button("Rejeitar Todos (filtro)",
                                   key="s1_rej_todos",
                                   use_container_width=True):
                         ids = df_view.index
@@ -151,13 +151,13 @@ def render_secretariado(*args):
                         save_db(registos_db, "registos.csv")
                         for _, r in df_view.iterrows():
                             criar_notificacao(destinatario=r['Técnico'],
-                                titulo="❌ Horas Rejeitadas",
+                                titulo="Horas Rejeitadas",
                                 mensagem=f"{r['Horas_Total']}h em {r['Obra']} rejeitadas.",
                                 tipo="error", acao_url="/")
                         inv("registos.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.error(f"❌ {len(ids)} registos rejeitados.")
+                        st.error(f"{len(ids)} registos rejeitados.")
                         st.rerun()
 
                 st.markdown("---")
@@ -167,26 +167,26 @@ def render_secretariado(*args):
                     col_i, col_v, col_r = st.columns([5, 1, 1])
                     with col_i:
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:8px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:8px;"
                             f"padding:10px 14px;margin-bottom:4px;'>"
-                            f"<b style='color:#F1F5F9;'>{row.get('Técnico','')}</b>"
-                            f"<span style='float:right;color:#F59E0B;font-weight:700;'>"
+                            f"<b style='color:{THEME['text']};'>{row.get('Técnico','')}</b>"
+                            f"<span style='float:right;color:{THEME['warning']};font-weight:700;'>"
                             f"{fh(row.get('Horas_Total',0))}</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{row.get('Data','')} · {row.get('Obra','')} · "
                             f"{row.get('Frente','')} · {row.get('Turnos','')}"
                             f"</small></div>",
                             unsafe_allow_html=True
                         )
                     with col_v:
-                        if st.button("✅", key=f"s1_val_{reg_id}_{idx1}",
+                        if st.button("Sim", key=f"s1_val_{reg_id}_{idx1}",
                                       use_container_width=True, help="Validar"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status']         = '1'
                             registos_db.loc[registos_db['ID'] == reg_id, 'Validado1_Por']  = user_nome
                             registos_db.loc[registos_db['ID'] == reg_id, 'Validado1_Data'] = datetime.now().strftime('%d/%m/%Y %H:%M')
                             save_db(registos_db, "registos.csv")
                             criar_notificacao(destinatario=row.get('Técnico',''),
-                                titulo="🟢 Horas Validadas",
+                                titulo="Horas Validadas",
                                 mensagem=f"{fh(row.get('Horas_Total',0))} em {row.get('Obra','')} validadas.",
                                 tipo="success", acao_url="/")
                             inv("registos.csv")
@@ -194,12 +194,12 @@ def render_secretariado(*args):
                             _cached_load_all.clear()
                             st.rerun()
                     with col_r:
-                        if st.button("❌", key=f"s1_rej_{reg_id}_{idx1}",
+                        if st.button("Não", key=f"s1_rej_{reg_id}_{idx1}",
                                       use_container_width=True, help="Rejeitar"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status'] = '-1'
                             save_db(registos_db, "registos.csv")
                             criar_notificacao(destinatario=row.get('Técnico',''),
-                                titulo="❌ Horas Rejeitadas",
+                                titulo="Horas Rejeitadas",
                                 mensagem=f"{fh(row.get('Horas_Total',0))} em {row.get('Obra','')} rejeitadas.",
                                 tipo="error", acao_url="/")
                             inv("registos.csv")
@@ -211,19 +211,19 @@ def render_secretariado(*args):
     # TAB 2 — 2ª VALIDAÇÃO
     # ════════════════════════════════════════════════════════════════
     with tab_2val:
-        st.markdown("### 🔵 Segunda Validação — Enviar para Faturação")
+        st.markdown("### Segunda Validação — Enviar para Faturação")
         st.info(
             "Aqui validas horas já aprovadas pelo Chefe/Secretariado. "
-            "Após esta validação a bolinha fica **🔵 azul** e os dados entram na faturação."
+            "Após esta validação a bolinha fica **azul** e os dados entram na faturação."
         )
 
         if registos_db.empty:
-            st.info("📋 Sem registos.")
+            st.info("Sem registos.")
         else:
             verdes = regs[regs['Status'] == '1'].copy()
 
             if verdes.empty:
-                st.success("✅ Sem horas a aguardar 2ª validação.")
+                st.success("Sem horas a aguardar 2ª validação.")
             else:
                 col_f1, col_f2 = st.columns(2)
                 with col_f1:
@@ -239,12 +239,12 @@ def render_secretariado(*args):
 
                 total_h = df_view2['Horas_Total'].sum()
                 col_k1, col_k2 = st.columns(2)
-                with col_k1: st.metric("📋 Registos", len(df_view2))
-                with col_k2: st.metric("⏱️ Total Horas", fh(total_h))
+                with col_k1: st.metric("Registos", len(df_view2))
+                with col_k2: st.metric("Total Horas", fh(total_h))
 
                 col_va2, col_vr2 = st.columns(2)
                 with col_va2:
-                    if st.button("🔵 Enviar Todos para Faturação",
+                    if st.button("Enviar Todos para Faturação",
                                   key="s2_val_todos", type="primary",
                                   use_container_width=True):
                         ids2 = df_view2.index
@@ -259,10 +259,10 @@ def render_secretariado(*args):
                         inv("registos.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.success(f"✅ {len(ids2)} registos enviados para faturação!")
+                        st.success(f"{len(ids2)} registos enviados para faturação!")
                         st.rerun()
                 with col_vr2:
-                    if st.button("🟠 Devolver (anular 1ª validação)",
+                    if st.button("Devolver (anular 1ª validação)",
                                   key="s2_dev_todos",
                                   use_container_width=True):
                         ids2 = df_view2.index
@@ -271,7 +271,7 @@ def render_secretariado(*args):
                         inv("registos.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.warning("⚠️ Registos devolvidos para pendente.")
+                        st.warning("Registos devolvidos para pendente.")
                         st.rerun()
 
                 st.markdown("---")
@@ -281,19 +281,19 @@ def render_secretariado(*args):
                     col_i, col_v, col_d = st.columns([5, 1, 1])
                     with col_i:
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:8px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:8px;"
                             f"padding:10px 14px;margin-bottom:4px;"
-                            f"border-left:3px solid #10B981;'>"
-                            f"<b style='color:#F1F5F9;'>{row.get('Técnico','')}</b>"
-                            f"<span style='float:right;color:#3B82F6;font-weight:700;'>"
+                            f"border-left:3px solid {THEME['success']};'>"
+                            f"<b style='color:{THEME['text']};'>{row.get('Técnico','')}</b>"
+                            f"<span style='float:right;color:{THEME['accent']};font-weight:700;'>"
                             f"{fh(row.get('Horas_Total',0))}</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{row.get('Data','')} · {row.get('Obra','')} · "
                             f"{row.get('Turnos','')}</small></div>",
                             unsafe_allow_html=True
                         )
                     with col_v:
-                        if st.button("🔵", key=f"s2_val_{reg_id}_{idx2}",
+                        if st.button("Sim", key=f"s2_val_{reg_id}_{idx2}",
                                       use_container_width=True,
                                       help="Enviar para faturação"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status']         = '2'
@@ -305,7 +305,7 @@ def render_secretariado(*args):
                             _cached_load_all.clear()
                             st.rerun()
                     with col_d:
-                        if st.button("🟠", key=f"s2_dev_{reg_id}_{idx2}",
+                        if st.button("Não", key=f"s2_dev_{reg_id}_{idx2}",
                                       use_container_width=True,
                                       help="Devolver"):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status'] = '0'
@@ -319,15 +319,15 @@ def render_secretariado(*args):
     # TAB 3 — FATURAÇÃO & FOLHAS DE PONTO
     # ════════════════════════════════════════════════════════════════
     with tab_fat:
-        st.markdown("### 📄 Faturação — Comparação com Folhas de Ponto")
+        st.markdown("### Faturação — Comparação com Folhas de Ponto")
 
         if registos_db.empty:
-            st.info("📋 Sem registos.")
+            st.info("Sem registos.")
         else:
             azuis = regs[regs['Status'] == '2'].copy()
 
             if azuis.empty:
-                st.info("📋 Sem horas com 🔵 status de faturação.")
+                st.info("Sem horas com status de faturação.")
             else:
                 obras_fat = sorted(azuis['Obra'].dropna().unique().tolist())
                 obra_sel  = st.selectbox("Selecionar Obra", obras_fat, key="fat_obra")
@@ -335,7 +335,7 @@ def render_secretariado(*args):
                 azuis_obra = azuis[azuis['Obra'] == obra_sel]
                 total_app  = azuis_obra['Horas_Total'].sum()
 
-                st.markdown(f"#### 📱 Horas na App — {obra_sel}")
+                st.markdown(f"#### Horas na App — {obra_sel}")
                 c1, c2 = st.columns(2)
                 with c1: st.metric("Total Registos", len(azuis_obra))
                 with c2: st.metric("Total Horas (App)", fh(total_app))
@@ -347,7 +347,7 @@ def render_secretariado(*args):
                 st.dataframe(resumo_tec, use_container_width=True, hide_index=True)
 
                 st.markdown("---")
-                st.markdown("#### 📋 Folha de Ponto Física")
+                st.markdown("#### Folha de Ponto Física")
 
                 folhas_obra = pd.DataFrame()
                 if not folhas_db.empty and 'Obra' in folhas_db.columns:
@@ -359,21 +359,21 @@ def render_secretariado(*args):
                         resp    = fp.get('Responsavel','')
                         selo    = fp.get('Selo','')
                         status  = fp.get('Status','')
-                        cor_fp  = "#10B981" if status == 'Conferido' else "#F59E0B"
+                        cor_fp  = THEME['success'] if status == 'Conferido' else THEME['warning']
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:10px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                             f"padding:12px 16px;margin-bottom:8px;"
                             f"border-left:4px solid {cor_fp};'>"
-                            f"<b style='color:#F1F5F9;'>📋 {periodo}</b>"
+                            f"<b style='color:{THEME['text']};'>{periodo}</b>"
                             f"<span style='float:right;color:{cor_fp};font-size:0.8rem;'>"
                             f"{status}</span><br>"
-                            f"<small style='color:#64748B;'>Responsável: {resp} · Selo: {selo}</small>"
+                            f"<small style='color:{THEME['text_secondary']};'>Responsável: {resp} · Selo: {selo}</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
 
                 st.markdown("---")
-                st.markdown("#### ⚖️ Comparação App vs Folha de Ponto (IA)")
+                st.markdown("#### Comparação App vs Folha de Ponto (IA)")
 
                 from core import load_db as _load_ocr
                 try:
@@ -396,7 +396,7 @@ def render_secretariado(*args):
 
                 if ocr_obra.empty:
                     st.warning(
-                        "⚠️ Sem folha de ponto extraída por IA para esta obra. "
+                        "Sem folha de ponto extraída por IA para esta obra. "
                         "O Chefe precisa de fazer upload da foto no seu módulo."
                     )
                     for _, tec_row in resumo_tec.iterrows():
@@ -405,13 +405,13 @@ def render_secretariado(*args):
                         col_tn, col_happ, col_hfp, col_diff = st.columns([3,1,1,1])
                         with col_tn:
                             st.markdown(
-                                f"<p style='color:#F1F5F9;font-size:0.88rem;"
+                                f"<p style='color:{THEME['text']};font-size:0.88rem;"
                                 f"padding:8px 0;margin:0;'>{tec_nome}</p>",
                                 unsafe_allow_html=True
                             )
                         with col_happ:
                             st.markdown(
-                                f"<p style='color:#3B82F6;font-size:0.82rem;"
+                                f"<p style='color:{THEME['accent']};font-size:0.82rem;"
                                 f"padding:8px 0;margin:0;'>App: <b>{fh(horas_app)}</b></p>",
                                 unsafe_allow_html=True
                             )
@@ -436,18 +436,18 @@ def render_secretariado(*args):
                                     "Sentido":     "App > Folha" if diff > 0 else "Folha > App"
                                 })
                                 st.markdown(
-                                    f"<p style='color:#EF4444;font-size:0.8rem;"
-                                    f"padding:8px 0;margin:0;'>⚠️ {fh(abs(diff))}</p>",
+                                    f"<p style='color:{THEME['error']};font-size:0.8rem;"
+                                    f"padding:8px 0;margin:0;'>{fh(abs(diff))}</p>",
                                     unsafe_allow_html=True
                                 )
                             else:
                                 st.markdown(
-                                    "<p style='color:#10B981;font-size:0.8rem;"
-                                    "padding:8px 0;margin:0;'>✅ OK</p>",
+                                    f"<p style='color:{THEME['success']};font-size:0.8rem;"
+                                    "padding:8px 0;margin:0;'>OK</p>",
                                     unsafe_allow_html=True
                                 )
                 else:
-                    st.success("✅ Folha extraída por IA disponível — comparação automática!")
+                    st.success("Folha extraída por IA disponível — comparação automática!")
 
                     periodos_disp = ocr_obra['Semana_Inicio'].unique().tolist()
                     if len(periodos_disp) > 1:
@@ -479,18 +479,18 @@ def render_secretariado(*args):
                             inconformes.append({
                                 "Técnico": tec_nome, "Horas App": fh(horas_app),
                                 "Horas Folha": "—", "Diferença": "—",
-                                "Sentido": "❌ Não encontrado na folha"
+                                "Sentido": "Não encontrado na folha"
                             })
                             with col_i: st.markdown(f"**{tec_nome}**")
-                            with col_a: st.markdown(f"🔵 {fh(horas_app)}")
+                            with col_a: st.markdown(f"App: {fh(horas_app)}")
                             with col_f: st.markdown("—")
                             with col_d: st.markdown("—")
-                            with col_e: st.markdown("❌ Não na folha")
+                            with col_e: st.markdown("Não na folha")
                         else:
                             diff = round(horas_app - h_folha, 2)
                             with col_i: st.markdown(f"**{tec_nome}**")
-                            with col_a: st.markdown(f"🔵 {fh(horas_app)}")
-                            with col_f: st.markdown(f"📋 {fh(h_folha)}")
+                            with col_a: st.markdown(f"App: {fh(horas_app)}")
+                            with col_f: st.markdown(f"Folha: {fh(h_folha)}")
                             if abs(diff) > 0.25:
                                 todos_ok = False
                                 inconformes.append({
@@ -500,20 +500,20 @@ def render_secretariado(*args):
                                 })
                                 with col_d:
                                     st.markdown(
-                                        f"<span style='color:#EF4444;font-weight:700;'>"
-                                        f"⚠️ {fh(abs(diff))}</span>",
+                                        f"<span style='color:{THEME['error']};font-weight:700;'>"
+                                        f"{fh(abs(diff))}</span>",
                                         unsafe_allow_html=True
                                     )
                                 with col_e:
                                     st.markdown(
-                                        f"<span style='color:#EF4444;'>"
+                                        f"<span style='color:{THEME['error']};'>"
                                         f"{'App > Folha' if diff>0 else 'Folha > App'}"
                                         f"</span>",
                                         unsafe_allow_html=True
                                     )
                             else:
-                                with col_d: st.markdown("✅ OK")
-                                with col_e: st.markdown("✅")
+                                with col_d: st.markdown("OK")
+                                with col_e: st.markdown("OK")
 
                     nomes_app = set(resumo_tec['Técnico'].str.lower().tolist())
                     for nome_ocr, h_ocr in folha_dict.items():
@@ -526,12 +526,13 @@ def render_secretariado(*args):
                             inconformes.append({
                                 "Técnico": nome_ocr, "Horas App": "—",
                                 "Horas Folha": fh(h_ocr), "Diferença": "—",
-                                "Sentido": "❌ Só na folha, não na app"
+                                "Sentido": "Só na folha, não na app"
                             })
                             st.markdown(
-                                f"<div style='background:rgba(239,68,68,0.1);"
+                                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
+                                f"border-left:3px solid {THEME['error']};"
                                 f"border-radius:8px;padding:8px;margin-top:4px;'>"
-                                f"⚠️ <b>{nome_ocr}</b> — na folha ({fh(h_ocr)}) "
+                                f"<b>{nome_ocr}</b> — na folha ({fh(h_ocr)}) "
                                 f"mas <b>sem registo na app</b></div>",
                                 unsafe_allow_html=True
                             )
@@ -540,22 +541,22 @@ def render_secretariado(*args):
 
                 if not todos_ok:
                     st.error(
-                        f"🚨 **{len(inconformes)} inconformidade(s) detetada(s)** — "
+                        f"**{len(inconformes)} inconformidade(s) detetada(s)** — "
                         f"Pagamento bloqueado até resolução manual."
                     )
                     st.dataframe(pd.DataFrame(inconformes),
                                  use_container_width=True, hide_index=True)
                     st.warning(
-                        "⚠️ Verifica com o Chefe de Equipa se houve erro "
+                        "Verifica com o Chefe de Equipa se houve erro "
                         "na app, na folha ou no registo do técnico."
                     )
-                    with st.expander("🔓 Forçar aprovação com justificação"):
+                    with st.expander("Forçar aprovação com justificação"):
                         justificacao = st.text_area(
                             "Justificação obrigatória *",
                             key="fat_just",
                             placeholder="Descreve o motivo..."
                         )
-                        if st.button("⚠️ Aprovar com Inconformidade",
+                        if st.button("Aprovar com Inconformidade",
                                       key="fat_forcar", type="secondary",
                                       use_container_width=True):
                             if justificacao.strip():
@@ -564,13 +565,13 @@ def render_secretariado(*args):
                                     user_nome, justificacao, inconformes
                                 )
                                 inv("registos.csv")
-                                st.success("✅ Processado com ressalva.")
+                                st.success("Processado com ressalva.")
                                 st.rerun()
                             else:
-                                st.error("❌ Justificação obrigatória.")
+                                st.error("Justificação obrigatória.")
                 else:
-                    st.success("✅ Todos os registos conferem com a folha de ponto!")
-                    if st.button("✅ Processar Pagamento",
+                    st.success("Todos os registos conferem com a folha de ponto!")
+                    if st.button("Processar Pagamento",
                                   key="fat_processar", type="primary",
                                   use_container_width=True):
                         _processar_pagamento(
@@ -578,15 +579,15 @@ def render_secretariado(*args):
                             user_nome, "Conferido sem inconformidades", []
                         )
                         inv("registos.csv")
-                        st.success(f"✅ Pagamento processado para {obra_sel}!")
+                        st.success(f"Pagamento processado para {obra_sel}!")
                         st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB 4 — GASÓLEO (migrado do armazém)
     # ════════════════════════════════════════════════════════════════
     with tab_gasoleos:
-        st.markdown("### ⛽ Validação de Gasóleo")
-        sub_p, sub_h = st.tabs(["🟠 Pendentes", "📋 Histórico"])
+        st.markdown("### Validação de Gasóleo")
+        sub_p, sub_h = st.tabs(["Pendentes", "Histórico"])
 
         with sub_p:
             if not req_mat_db.empty:
@@ -601,12 +602,12 @@ def render_secretariado(*args):
                     for idx, ped in pend_gas.iterrows():
                         ped_id = ped.get('ID', f"GAS_{idx}")
                         with st.expander(
-                            f"⛽ {ped.get('Litros',0)}L — "
+                            f"{ped.get('Litros',0)}L — "
                             f"{ped.get('Solicitante','N/A')} ({ped.get('Obra','N/A')})",
                             expanded=True
                         ):
                             st.markdown(f"""
-                            <div style="background:rgba(255,255,255,0.05);
+                            <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
                                 padding:15px;border-radius:10px;">
                                 <p><strong>Solicitante:</strong> {ped.get('Solicitante','N/A')}</p>
                                 <p><strong>Obra:</strong> {ped.get('Obra','N/A')}</p>
@@ -617,7 +618,7 @@ def render_secretariado(*args):
                             if ped.get('Recibo_b64'):
                                 recibo_str = str(ped.get('Recibo_b64',''))
                                 if recibo_str.startswith('JVBER'):
-                                    st.info("📄 Recibo PDF — descarrega para visualizar")
+                                    st.info("Recibo PDF — descarrega para visualizar")
                                 else:
                                     try:
                                         st.image(
@@ -628,7 +629,7 @@ def render_secretariado(*args):
                                         pass
                             ca, cr = st.columns(2)
                             with ca:
-                                if st.button("✅ Validar", key=f"sec_apr_gas_{ped_id}",
+                                if st.button("Validar", key=f"sec_apr_gas_{ped_id}",
                                               use_container_width=True):
                                     req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Status']         = 'Aprovado'
                                     req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -636,16 +637,16 @@ def render_secretariado(*args):
                                     save_db(req_mat_db, "req_materiais.csv")
                                     criar_notificacao(
                                         destinatario=ped.get('Solicitante',''),
-                                        titulo="✅ Gasóleo Validado",
+                                        titulo="Gasóleo Validado",
                                         mensagem=f"{ped.get('Litros')}L validados!",
                                         tipo="success", acao_url="/tecnico"
                                     )
                                     inv("req_materiais.csv")
                                     from core import _cached_load_all
                                     _cached_load_all.clear()
-                                    st.success("✅"); st.rerun()
+                                    st.success(""); st.rerun()
                             with cr:
-                                if st.button("❌ Rejeitar", key=f"sec_rej_gas_{ped_id}",
+                                if st.button("Rejeitar", key=f"sec_rej_gas_{ped_id}",
                                               use_container_width=True, type="secondary"):
                                     req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Status']         = 'Rejeitado'
                                     req_mat_db.loc[req_mat_db['ID'] == ped_id, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -654,11 +655,11 @@ def render_secretariado(*args):
                                     inv("req_materiais.csv")
                                     from core import _cached_load_all
                                     _cached_load_all.clear()
-                                    st.error("❌"); st.rerun()
+                                    st.error(""); st.rerun()
                 else:
-                    st.success("✅ Sem gasóleos pendentes!")
+                    st.success("Sem gasóleos pendentes!")
             else:
-                st.info("📋 Sem registos de gasóleo.")
+                st.info("Sem registos de gasóleo.")
 
         with sub_h:
             if not req_mat_db.empty:
@@ -672,14 +673,14 @@ def render_secretariado(*args):
                             if c in hist_gas.columns]
                     st.dataframe(hist_gas[cols], use_container_width=True, hide_index=True)
                 else:
-                    st.info("📋 Sem histórico de gasóleo.")
+                    st.info("Sem histórico de gasóleo.")
 
     # ════════════════════════════════════════════════════════════════
     # TAB 5 — AVARIAS FROTA (migrado do armazém)
     # ════════════════════════════════════════════════════════════════
     with tab_avarias:
-        st.markdown("### 🔧 Avarias de Frota")
-        sub_p, sub_h = st.tabs(["🟠 Pendentes", "📋 Histórico"])
+        st.markdown("### Avarias de Frota")
+        sub_p, sub_h = st.tabs(["Pendentes", "Histórico"])
 
         with sub_p:
             if not incs_db.empty:
@@ -693,16 +694,16 @@ def render_secretariado(*args):
                     st.markdown(f"**{len(pend_av)} avaria(s) pendente(s)**")
                     for idx, ped in pend_av.iterrows():
                         ped_id = ped.get('ID', f"AVAR_{idx}")
-                        cor_u  = {"Baixa":"#10B981","Média":"#F59E0B",
-                                  "Alta":"#EF4444","Crítica - Paragem":"#DC2626"}.get(
-                                      ped.get('Urgencia','Média'),"#6B7280")
+                        cor_u  = {"Baixa":THEME['success'],"Média":THEME['warning'],
+                                  "Alta":THEME['error'],"Crítica - Paragem":THEME['error']}.get(
+                                      ped.get('Urgencia','Média'),THEME['text_secondary'])
                         with st.expander(
-                            f"🔧 {str(ped.get('Equipamento','Equipamento'))[:40]} — "
+                            f"{str(ped.get('Equipamento','Equipamento'))[:40]} — "
                             f"{ped.get('Solicitante','N/A')}",
                             expanded=True
                         ):
                             st.markdown(f"""
-                            <div style="background:rgba(255,255,255,0.05);
+                            <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
                                 padding:15px;border-radius:10px;
                                 border-left:4px solid {cor_u};">
                                 <p><strong>Solicitante:</strong> {ped.get('Solicitante','N/A')}</p>
@@ -718,7 +719,7 @@ def render_secretariado(*args):
                             if ped.get('Fatura_b64'):
                                 fat_str = str(ped.get('Fatura_b64',''))
                                 if fat_str.startswith('JVBER'):
-                                    st.info("📄 Fatura PDF")
+                                    st.info("Fatura PDF")
                                 else:
                                     try:
                                         st.image(
@@ -729,7 +730,7 @@ def render_secretariado(*args):
                                         pass
                             ca, cr = st.columns(2)
                             with ca:
-                                if st.button("✅ Aprovar", key=f"sec_apr_av_{ped_id}",
+                                if st.button("Aprovar", key=f"sec_apr_av_{ped_id}",
                                               use_container_width=True):
                                     incs_db.loc[incs_db.index == idx, 'Status']         = 'Aprovado'
                                     incs_db.loc[incs_db.index == idx, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -737,16 +738,16 @@ def render_secretariado(*args):
                                     save_db(incs_db, "incidentes.csv")
                                     criar_notificacao(
                                         destinatario=ped.get('Solicitante',''),
-                                        titulo="✅ Reparação Aprovada",
+                                        titulo="Reparação Aprovada",
                                         mensagem=f"A tua reparação de {ped.get('Equipamento')} foi aprovada!",
                                         tipo="success", acao_url="/tecnico"
                                     )
                                     inv("incidentes.csv")
                                     from core import _cached_load_all
                                     _cached_load_all.clear()
-                                    st.success("✅"); st.rerun()
+                                    st.success(""); st.rerun()
                             with cr:
-                                if st.button("❌ Rejeitar", key=f"sec_rej_av_{ped_id}",
+                                if st.button("Rejeitar", key=f"sec_rej_av_{ped_id}",
                                               use_container_width=True, type="secondary"):
                                     incs_db.loc[incs_db.index == idx, 'Status']         = 'Rejeitado'
                                     incs_db.loc[incs_db.index == idx, 'Data_Validacao'] = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -755,11 +756,11 @@ def render_secretariado(*args):
                                     inv("incidentes.csv")
                                     from core import _cached_load_all
                                     _cached_load_all.clear()
-                                    st.error("❌"); st.rerun()
+                                    st.error(""); st.rerun()
                 else:
-                    st.success("✅ Sem avarias pendentes!")
+                    st.success("Sem avarias pendentes!")
             else:
-                st.info("📋 Sem avarias registadas.")
+                st.info("Sem avarias registadas.")
 
         with sub_h:
             if not incs_db.empty:
@@ -773,16 +774,16 @@ def render_secretariado(*args):
                             if c in hist_av.columns]
                     st.dataframe(hist_av[cols], use_container_width=True, hide_index=True)
                 else:
-                    st.info("📋 Sem histórico de avarias.")
+                    st.info("Sem histórico de avarias.")
 
     # ════════════════════════════════════════════════════════════════
     # TAB 6 — HISTÓRICO
     # ════════════════════════════════════════════════════════════════
     with tab_hist:
-        st.markdown("### 📋 Histórico de Horas Processadas")
+        st.markdown("### Histórico de Horas Processadas")
 
         if registos_db.empty:
-            st.info("📋 Sem registos.")
+            st.info("Sem registos.")
         else:
             col_h1, col_h2, col_h3 = st.columns(3)
             with col_h1:
@@ -805,15 +806,15 @@ def render_secretariado(*args):
             with col_h3:
                 status_sel = st.selectbox(
                     "Estado",
-                    ["Todos","🟢 Verde (1)","🔵 Azul (2)","⚫ Processado (3)","❌ Rejeitado"],
+                    ["Todos","Verde (1)","Azul (2)","Processado (3)","Rejeitado"],
                     key="hist_status"
                 )
 
             status_map = {
-                "🟢 Verde (1)":     "1",
-                "🔵 Azul (2)":      "2",
-                "⚫ Processado (3)": "3",
-                "❌ Rejeitado":     "-1",
+                "Verde (1)":     "1",
+                "Azul (2)":      "2",
+                "Processado (3)": "3",
+                "Rejeitado":     "-1",
             }
 
             hist_all = regs[regs['Status'].isin(['1','2','3','-1'])].copy()
@@ -837,8 +838,8 @@ def render_secretariado(*args):
             if not hist_all.empty:
                 total_h_hist = hist_all['Horas_Total'].sum()
                 col_m1, col_m2 = st.columns(2)
-                with col_m1: st.metric("📋 Registos", len(hist_all))
-                with col_m2: st.metric("⏱️ Total", fh(total_h_hist))
+                with col_m1: st.metric("Registos", len(hist_all))
+                with col_m2: st.metric("Total", fh(total_h_hist))
 
                 cols_show = [c for c in ['Data','Técnico','Obra','Horas_Total','Estado']
                              if c in hist_all.columns]
@@ -849,14 +850,14 @@ def render_secretariado(*args):
 
                 csv = hist_all[cols_show].to_csv(index=False, encoding='utf-8-sig')
                 st.download_button(
-                    "📥 Exportar CSV",
+                    "Exportar CSV",
                     data=csv.encode('utf-8-sig'),
                     file_name=f"historico_{ano_sel}_{mes_sel[:2] if mes_sel!='Todos' else 'all'}.csv",
                     mime="text/csv",
                     key="hist_export"
                 )
             else:
-                st.info("📋 Sem registos com este filtro.")
+                st.info("Sem registos com este filtro.")
 
 
 def _processar_pagamento(
@@ -885,7 +886,7 @@ def _processar_pagamento(
     for tec in azuis_obra['Técnico'].unique():
         criar_notificacao(
             destinatario=tec,
-            titulo="⚫ Horas Processadas",
+            titulo="Horas Processadas",
             mensagem=f"As tuas horas em {obra} foram processadas para pagamento.",
             tipo="info", acao_url="/"
         )

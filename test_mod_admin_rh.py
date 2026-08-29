@@ -115,10 +115,10 @@ class TestEstruturaAbas(unittest.TestCase):
 
     def test_aba_ficha_do_colaborador_unifica_gestao_e_dados_legais(self):
         labels = [t.label for t in self.at.tabs]
-        self.assertIn("👥 Colaboradores", labels)
-        self.assertIn("📋 Ficha do Colaborador", labels)
-        self.assertNotIn("📋 Gestão Individual", labels)
-        self.assertNotIn("📋 Dados Legais", labels)
+        self.assertIn("Colaboradores", labels)
+        self.assertIn("Ficha do Colaborador", labels)
+        self.assertNotIn("Gestão Individual", labels)
+        self.assertNotIn("Dados Legais", labels)
         # Conteúdo de ambas as secções antigas continua presente, agora
         # dentro da mesma aba.
         markdown_textos = " ".join(m.value for m in self.at.markdown)
@@ -206,7 +206,7 @@ class TestFusaoContactosMorada(unittest.TestCase):
             for key, valor in alteracoes.items():
                 at.text_input(key=key).set_value(valor).run()
             at.button(
-                key=f"FormSubmitter:gi_form_ident_{SLUG}-💾 Guardar Contactos & Morada"
+                key=f"FormSubmitter:gi_form_ident_{SLUG}-Guardar Contactos & Morada"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         return writes
@@ -251,7 +251,7 @@ class TestFusaoBancarios(unittest.TestCase):
             for key, valor in alteracoes.items():
                 at.text_input(key=key).set_value(valor).run()
             at.button(
-                key=f"FormSubmitter:gi_form_banco_{SLUG}-💾 Guardar Dados Bancários"
+                key=f"FormSubmitter:gi_form_banco_{SLUG}-Guardar Dados Bancários"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         return writes
@@ -292,7 +292,7 @@ class TestFusaoProfissional(unittest.TestCase):
                 except KeyError:
                     at.selectbox(key=key).set_value(valor).run()
             at.button(
-                key=f"FormSubmitter:gi_form_prof_{SLUG}-💾 Guardar Profissional"
+                key=f"FormSubmitter:gi_form_prof_{SLUG}-Guardar Profissional"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         return writes
@@ -365,7 +365,7 @@ class TestFusaoIdentificacao(unittest.TestCase):
             for key, valor in alteracoes.items():
                 at.text_input(key=key).set_value(valor).run()
             at.button(
-                key=f"FormSubmitter:dl_form_ident_{SLUG}-💾 Guardar Identificação"
+                key=f"FormSubmitter:dl_form_ident_{SLUG}-Guardar Identificação"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         return writes
@@ -531,7 +531,7 @@ class TestCriarColaboradorObraReal(unittest.TestCase):
             at.text_input(key="nc_pwd").set_value("segredo123").run()
             at.selectbox(key="nc_local").set_value("Obra Real Y").run()
             at.button(
-                key="FormSubmitter:form_criar_colab-💾 Criar Colaborador"
+                key="FormSubmitter:form_criar_colab-Criar Colaborador"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         gravado = writes.get("usuarios.csv", b"")
@@ -550,10 +550,61 @@ class TestCriarColaboradorObraReal(unittest.TestCase):
             at.text_input(key="nc_tel").set_value("911111111").run()
             at.text_input(key="nc_pwd").set_value("segredo123").run()
             at.button(
-                key="FormSubmitter:form_criar_colab-💾 Criar Colaborador"
+                key="FormSubmitter:form_criar_colab-Criar Colaborador"
             ).click().run()
             self.assertFalse(at.exception, msg=str(at.exception))
         mock_write.assert_not_called()
+
+
+class TestTemaClaroAplicado(unittest.TestCase):
+    """Fase 3 da Identidade Visual: mod_admin_rh.py lê as suas cores
+    de core.THEME — nunca mais hexadecimais soltos, um só cinzento
+    secundário, sem fundos escuros forçados nos cartões de
+    colaborador, cabeçalho da ficha, aviso de remoção e cartão da
+    Lista Negra. Também remove um bloco CSS local redundante (fundo/
+    texto do dropdown e do botão de download) — core.py já define os
+    mesmos seletores (data-baseweb) centralmente via THEME desde a
+    Fase 1.
+
+    A aba "🎓 Gestão de Formações" (dentro do RH, a última) chama
+    render_formacoes(), de mod_admin_formacoes.py — módulo à parte,
+    ainda por migrar (~99 cores, mais à frente na lista da Fase 3).
+    st.tabs() desenha o conteúdo de todas as abas de uma vez, por
+    isso o texto dessa aba aparece sempre a seguir ao de
+    mod_admin_rh.py no AppTest — os testes abaixo param a recolha no
+    início dessa aba (marcador "Gestão de Formações"), para não
+    apanhar cores que não são deste módulo."""
+
+    @classmethod
+    def setUpClass(cls):
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            cls.at = _run()
+        partes = []
+        for m in cls.at.markdown:
+            if "Gestão de Formações" in m.value:
+                break
+            partes.append(m.value)
+        cls.textos = " ".join(partes)
+
+    def test_css_local_redundante_removido(self):
+        self.assertFalse(self.at.exception, msg=str(self.at.exception))
+        self.assertNotIn("#111827", self.textos)
+        self.assertNotIn("#D1D5DB", self.textos)
+
+    def test_css_usa_theme(self):
+        for chave in ("surface", "border", "text", "text_secondary", "error"):
+            self.assertIn(core.THEME[chave], self.textos)
+
+    def test_um_so_cinzento_secundario(self):
+        self.assertNotIn("#64748B", self.textos)
+        self.assertNotIn("#94A3B8", self.textos)
+        self.assertIn(core.THEME["text_secondary"], self.textos)
+
+    def test_sem_fundo_escuro_forcado(self):
+        self.assertNotIn("#334155", self.textos)
+        self.assertNotIn("#FCA5A5", self.textos)
 
 
 if __name__ == "__main__":

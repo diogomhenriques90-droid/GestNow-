@@ -1,14 +1,14 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta, date
-from core import fh, ICONS, load_db
+from core import fh, load_db, THEME, escape_html
 
 _DOT_COLOR = {
-    "0": "#F97316",
-    "1": "#10B981",
-    "2": "#3B82F6",
-    "3": "#6B7280",
-    "4": "#6B7280",
+    "0": THEME["warning"],
+    "1": THEME["success"],
+    "2": THEME["accent"],
+    "3": THEME["text_secondary"],
+    "4": THEME["text_secondary"],
 }
 _DIAS_PT = ['D','S','T','Q','Q','S','S']
 
@@ -29,35 +29,34 @@ def render_inicio(*args):
     saudacao   = "Bom dia" if hora < 12 else "Boa tarde" if hora < 19 else "Boa noite"
 
     # ── CSS ───────────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .stApp { background: #0F172A !important; }
-    .main .block-container { padding-top: 0.5rem !important; }
-    h1,h2,h3,h4,h5,h6 { color: #F1F5F9 !important; }
-    p, div, span { color: #CBD5E1; }
-    .stButton > button {
-        border-radius: 12px !important;
+    .main .block-container {{ padding-top: 0.5rem !important; }}
+    h1,h2,h3,h4,h5,h6 {{ color: {THEME['text']} !important; }}
+    p, div, span {{ color: {THEME['text_secondary']}; }}
+    .stButton > button {{
+        border-radius: {THEME['radius']} !important;
         font-weight: 700 !important;
         height: 46px !important;
-    }
-    .stButton > button[kind="primary"] {
-        background: #DC2626 !important;
+    }}
+    .stButton > button[kind="primary"] {{
+        background: {THEME['accent']} !important;
         color: white !important;
         border: none !important;
-    }
-    .stButton > button[kind="secondary"] {
-        background: #1E293B !important;
-        color: #CBD5E1 !important;
-        border: 1px solid #334155 !important;
-    }
-    [data-testid="stMetric"] {
-        background: #1E293B !important;
-        border: 1px solid #334155 !important;
-        border-radius: 12px !important;
+    }}
+    .stButton > button[kind="secondary"] {{
+        background: {THEME['surface']} !important;
+        color: {THEME['text_secondary']} !important;
+        border: 1px solid {THEME['border']} !important;
+    }}
+    [data-testid="stMetric"] {{
+        background: {THEME['surface']} !important;
+        border: 1px solid {THEME['border']} !important;
+        border-radius: {THEME['radius']} !important;
         padding: 12px !important;
-    }
-    [data-testid="stMetricValue"] { color: #DC2626 !important; font-weight: 900 !important; }
-    [data-testid="stMetricLabel"] { color: #64748B !important; font-size: 0.75rem !important; }
+    }}
+    [data-testid="stMetricValue"] {{ color: {THEME['accent']} !important; font-weight: 900 !important; }}
+    [data-testid="stMetricLabel"] {{ color: {THEME['text_secondary']} !important; font-size: 0.75rem !important; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -92,17 +91,17 @@ def render_inicio(*args):
 
     # ── Header ────────────────────────────────────────────────────────
     st.markdown(
-        f"<p style='color:#94A3B8;font-size:0.82rem;margin:0 0 0px;'>{saudacao}</p>",
+        f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;margin:0 0 0px;'>{saudacao}</p>",
         unsafe_allow_html=True
     )
     st.markdown(
-        f"<p style='color:#F1F5F9;font-size:1.8rem;font-weight:900;"
-        f"margin:0 0 2px;line-height:1.1;'>{user_nome.split()[0]}</p>",
+        f"<p style='color:{THEME['text']};font-size:1.8rem;font-weight:900;"
+        f"margin:0 0 2px;line-height:1.1;'>{escape_html(user_nome.split()[0])}</p>",
         unsafe_allow_html=True
     )
     st.markdown(
-        f"<p style='color:#64748B;font-size:0.78rem;margin:0 0 16px;'>"
-        f"{cargo} &nbsp;·&nbsp; {user_tipo}</p>",
+        f"<p style='color:{THEME['text_secondary']};font-size:0.78rem;margin:0 0 16px;'>"
+        f"{escape_html(cargo)} &nbsp;·&nbsp; {escape_html(user_tipo)}</p>",
         unsafe_allow_html=True
     )
 
@@ -111,23 +110,23 @@ def render_inicio(*args):
 
     with col_h:
         st.markdown(
-            f"<div style='background:rgba(220,38,38,0.12);"
-            f"border:1px solid rgba(220,38,38,0.3);"
+            f"<div style='background:rgba(14,124,134,0.10);"
+            f"border:1px solid rgba(14,124,134,0.3);"
             f"border-radius:14px;padding:14px 12px;text-align:left;'>"
-            f"<p style='color:#94A3B8;font-size:0.7rem;margin:0 0 4px;'>⏱️ Horas este mês</p>"
-            f"<p style='color:#F1F5F9;font-size:1.5rem;font-weight:900;margin:0;'>"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.7rem;margin:0 0 4px;'>Horas este mês</p>"
+            f"<p style='color:{THEME['text']};font-size:1.5rem;font-weight:900;margin:0;'>"
             f"{fh(horas_mes)}</p></div>",
             unsafe_allow_html=True
         )
 
     with col_p:
-        cor = "rgba(249,115,22,0.15)" if horas_pend > 0 else "rgba(16,185,129,0.1)"
-        brd = "rgba(249,115,22,0.4)"  if horas_pend > 0 else "rgba(16,185,129,0.3)"
+        cor = "rgba(180,83,9,0.12)" if horas_pend > 0 else "rgba(21,128,61,0.10)"
+        brd = "rgba(180,83,9,0.35)" if horas_pend > 0 else "rgba(21,128,61,0.3)"
         st.markdown(
             f"<div style='background:{cor};border:1px solid {brd};"
             f"border-radius:14px;padding:14px 12px;text-align:left;'>"
-            f"<p style='color:#94A3B8;font-size:0.7rem;margin:0 0 4px;'>📋 Por validar</p>"
-            f"<p style='color:#F1F5F9;font-size:1.5rem;font-weight:900;margin:0;'>"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.7rem;margin:0 0 4px;'>Por validar</p>"
+            f"<p style='color:{THEME['text']};font-size:1.5rem;font-weight:900;margin:0;'>"
             f"{fh(horas_pend)}</p></div>",
             unsafe_allow_html=True
         )
@@ -149,40 +148,40 @@ def render_inicio(*args):
             n_regs = int((dc2 >= ts_inicio_mes).sum())
 
     c1, c2, c3 = st.columns(3)
-    with c1: st.metric("🏭 Obras",    n_obras)
-    with c2: st.metric("📦 Pedidos",  n_pend)
-    with c3: st.metric("📋 Registos", n_regs)
+    with c1: st.metric("Obras",    n_obras)
+    with c2: st.metric("Pedidos",  n_pend)
+    with c3: st.metric("Registos", n_regs)
 
     st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
 
     # ── Acesso Rápido ─────────────────────────────────────────────────
     st.markdown(
-        "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
-        "letter-spacing:0.08em;text-transform:uppercase;margin:0 0 8px;'>"
-        "Acesso Rápido</p>",
+        f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
+        f"letter-spacing:0.08em;text-transform:uppercase;margin:0 0 8px;'>"
+        f"Acesso Rápido</p>",
         unsafe_allow_html=True
     )
 
     col_r1, col_r2 = st.columns(2)
     with col_r1:
-        if st.button("📋 Registar Ponto",
+        if st.button("Registar Ponto",
                      use_container_width=True, type="primary", key="btn_rp"):
-            st.session_state['menu_selected'] = f"{ICONS['technician']} Obra"
+            st.session_state['menu_selected'] = f"Obra"
             st.session_state['_menu_locked']  = True
             st.rerun()
     with col_r2:
-        if st.button("👤 O Meu Perfil",
+        if st.button("O Meu Perfil",
                      use_container_width=True, type="secondary", key="btn_mp"):
-            st.session_state['menu_selected'] = f"{ICONS['profile']} Perfil"
+            st.session_state['menu_selected'] = f"Perfil"
             st.session_state['_menu_locked']  = True
             st.rerun()
 
     tem_inst = (user_tipo in ['Chefe de Equipa','Admin','Gestor'] or
                 cargo in ['Chefe de Equipa','Encarregado','Instrumentista'])
     if tem_inst:
-        if st.button("🧪 Instrumentação",
+        if st.button("Instrumentação",
                      use_container_width=True, type="secondary", key="btn_inst"):
-            st.session_state['menu_selected'] = f"{ICONS['instrumentation']} Instrumentação"
+            st.session_state['menu_selected'] = f"Instrumentação"
             st.session_state['_menu_locked']  = True
             st.rerun()
 
@@ -190,9 +189,9 @@ def render_inicio(*args):
 
     # ── Mini-calendário 7 dias ────────────────────────────────────────
     st.markdown(
-        "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
-        "letter-spacing:0.08em;text-transform:uppercase;margin:0 0 8px;'>"
-        "Últimos 7 dias</p>",
+        f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
+        f"letter-spacing:0.08em;text-transform:uppercase;margin:0 0 8px;'>"
+        f"Últimos 7 dias</p>",
         unsafe_allow_html=True
     )
 
@@ -204,7 +203,7 @@ def render_inicio(*args):
             # dias_regs tem keys como date objects
             dot_cor = _DOT_COLOR.get(dias_regs.get(d, ''), '')
             eh_hoje = d == hoje
-            num_col = "#DC2626" if eh_hoje else "#94A3B8"
+            num_col = THEME['accent'] if eh_hoje else THEME['text_secondary']
             num_wt  = "900"     if eh_hoje else "400"
             dl      = _DIAS_PT[(d.weekday() + 1) % 7]
             dot_html = (
@@ -215,7 +214,7 @@ def render_inicio(*args):
             )
             st.markdown(
                 f"<div style='text-align:center;padding:4px 0;'>"
-                f"<p style='color:#475569;font-size:0.58rem;font-weight:600;"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.58rem;font-weight:600;"
                 f"margin:0;text-transform:uppercase;'>{dl}</p>"
                 f"<p style='color:{num_col};font-size:0.8rem;font-weight:{num_wt};"
                 f"margin:3px 0 0;'>{d.day}</p>"
@@ -232,12 +231,12 @@ def render_inicio(*args):
         col_tl, col_tv = st.columns([3, 1])
         with col_tl:
             st.markdown(
-                "<p style='color:#64748B;font-size:0.78rem;margin:0;'>Registos aprovados</p>",
+                f"<p style='color:{THEME['text_secondary']};font-size:0.78rem;margin:0;'>Registos aprovados</p>",
                 unsafe_allow_html=True
             )
         with col_tv:
             st.markdown(
-                f"<p style='color:#10B981;font-weight:800;font-size:0.82rem;"
+                f"<p style='color:{THEME['success']};font-weight:800;font-size:0.82rem;"
                 f"text-align:right;margin:0;'>{fh(total_7)}</p>",
                 unsafe_allow_html=True
             )
@@ -255,31 +254,31 @@ def render_inicio(*args):
             col_i, col_hv = st.columns([4, 1])
             with col_i:
                 st.markdown(
-                    f"<div style='border-left:3px solid #10B981;"
-                    f"padding:8px 12px;background:#1E293B;"
+                    f"<div style='border-left:3px solid {THEME['success']};"
+                    f"padding:8px 12px;background:{THEME['surface']};"
+                    f"border:1px solid {THEME['border']};border-left:3px solid {THEME['success']};"
                     f"border-radius:0 10px 10px 0;margin-bottom:6px;'>"
-                    f"<p style='margin:0;font-weight:700;color:#F1F5F9;font-size:0.86rem;'>"
-                    f"{r.get('Obra','')}</p>"
-                    f"<p style='margin:2px 0 0;color:#64748B;font-size:0.73rem;'>{sub}</p>"
+                    f"<p style='margin:0;font-weight:700;color:{THEME['text']};font-size:0.86rem;'>"
+                    f"{escape_html(r.get('Obra',''))}</p>"
+                    f"<p style='margin:2px 0 0;color:{THEME['text_secondary']};font-size:0.73rem;'>{escape_html(sub)}</p>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
             with col_hv:
                 st.markdown(
-                    f"<p style='color:#10B981;font-weight:900;font-size:0.92rem;"
+                    f"<p style='color:{THEME['success']};font-weight:900;font-size:0.92rem;"
                     f"text-align:right;margin:12px 0 0;'>{fh(r.get('Horas_Total', 0))}</p>",
                     unsafe_allow_html=True
                 )
     else:
         st.markdown(
-            "<div style='background:#1E293B;border-radius:14px;padding:36px 20px;"
-            "text-align:center;border:1px dashed #334155;'>"
-            "<p style='font-size:2rem;margin:0 0 8px;opacity:0.3;'>📋</p>"
-            "<p style='color:#475569;font-size:0.84rem;margin:0;font-weight:600;'>"
-            "Sem registos aprovados nos últimos 7 dias</p>"
-            "<p style='color:#334155;font-size:0.75rem;margin:5px 0 0;'>"
-            "Clica em Registar Ponto para começar</p>"
-            "</div>",
+            f"<div style='background:{THEME['surface']};border-radius:14px;padding:36px 20px;"
+            f"text-align:center;border:1px dashed {THEME['border']};'>"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.84rem;margin:0;font-weight:600;'>"
+            f"Sem registos aprovados nos últimos 7 dias</p>"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:5px 0 0;'>"
+            f"Clica em Registar Ponto para começar</p>"
+            f"</div>",
             unsafe_allow_html=True
         )
 
@@ -291,10 +290,10 @@ def render_inicio(*args):
         if not m_.empty:
             row = m_.iloc[0]
             if row.get('PDFs_Validados', 'Não') != 'Sim':
-                st.warning("📄 Tens documentos obrigatórios por validar.")
+                st.warning("Tens documentos obrigatórios por validar.")
             if row.get('PrecoHoraStatus', '') == '':
-                st.warning("💰 Tens o preço hora por aceitar.")
+                st.warning("Tens o preço hora por aceitar.")
             elif row.get('PrecoHoraStatus', '') == 'Recusado':
-                st.error("❌ Preço hora recusado — contacta o administrador.")
+                st.error("Preço hora recusado — contacta o administrador.")
     except:
         pass

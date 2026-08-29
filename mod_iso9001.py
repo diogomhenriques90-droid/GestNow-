@@ -16,7 +16,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit, criar_notificacao
+from core import save_db, inv, load_db, log_audit, criar_notificacao, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -41,9 +41,9 @@ def _dias_para(data_str):
         return 999
 
 def _cor_rag(pct):
-    if pct >= 80: return "#10B981"
-    if pct >= 50: return "#F59E0B"
-    return "#EF4444"
+    if pct >= 80: return THEME['success']
+    if pct >= 50: return THEME['warning']
+    return THEME['error']
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -447,23 +447,23 @@ def _gerar_pdf_revisao(
         ["NCs abertas",
          str(dados.get('n_nc_aber',0)),
          "0",
-         "✅ OK" if dados.get('n_nc_aber',0)==0 else "⚠️"],
+         "OK" if dados.get('n_nc_aber',0)==0 else "Atenção"],
         ["Taxa conformidade inspeções",
          f"{dados.get('taxa_conf',0):.0f}%",
          "≥ 95%",
-         "✅ OK" if dados.get('taxa_conf',0)>=95 else "⚠️"],
+         "OK" if dados.get('taxa_conf',0)>=95 else "Atenção"],
         ["Objetivos atingidos",
          f"{dados.get('obj_ating',0)}/{dados.get('obj_total',0)}",
          "100%",
-         "✅ OK" if dados.get('obj_ating',0)==dados.get('obj_total',1) else "⚠️"],
+         "OK" if dados.get('obj_ating',0)==dados.get('obj_total',1) else "Atenção"],
         ["Fornecedores qualificados",
          f"{dados.get('forn_qual',0)}/{dados.get('forn_total',0)}",
          "≥ 80%",
-         "✅ OK"],
+         "OK"],
         ["Auditorias realizadas",
          str(dados.get('aud_real',0)),
          str(dados.get('aud_plan',0)),
-         "✅ OK" if dados.get('aud_real',0)>=dados.get('aud_plan',1) else "⚠️"],
+         "OK" if dados.get('aud_real',0)>=dados.get('aud_plan',1) else "Atenção"],
     ]
     it = Table(ind_data, colWidths=[7*cm,3.5*cm,3.5*cm,3*cm])
     it.setStyle(TableStyle([
@@ -604,32 +604,34 @@ def render_iso9001(*_):
         taxa_conf = round(conf_i/tot_i*100,1) if tot_i > 0 else 0.0
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .iso-card {
-        background:#1E293B; border-radius:12px;
+    .iso-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:14px 16px; margin-bottom:8px;
-    }
-    .iso-badge {
+    }}
+    .iso-badge {{
         display:inline-block; padding:3px 10px;
         border-radius:20px; font-size:0.72rem; font-weight:700;
-    }
-    .clausula-item {
-        background:#1E293B; border-radius:8px;
+    }}
+    .clausula-item {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:8px;
         padding:10px 14px; margin-bottom:6px;
         border-left:3px solid;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── Header ────────────────────────────────────────────────────
     st.markdown(
-        "<div style='background:linear-gradient(135deg,#1E293B,#0F172A);"
-        "padding:20px;border-radius:14px;margin-bottom:16px;"
-        "border:1px solid rgba(255,255,255,0.08);'>"
-        "<h2 style='color:#F1F5F9;margin:0;font-size:1.5rem;'>"
-        "🏆 ISO 9001:2015 — Sistema de Gestão da Qualidade</h2>"
-        "<p style='color:#64748B;margin:4px 0 0;font-size:0.85rem;'>"
+        f"<div style='background:{THEME['surface']};"
+        f"padding:20px;border-radius:14px;margin-bottom:16px;"
+        f"border:1px solid {THEME['border']};'>"
+        f"<h2 style='color:{THEME['text']};margin:0;font-size:1.5rem;'>"
+        "ISO 9001:2015 — Sistema de Gestão da Qualidade</h2>"
+        f"<p style='color:{THEME['text_secondary']};margin:4px 0 0;font-size:0.85rem;'>"
         f"{empresa.get('nome','')} · Atualizado: "
         f"{datetime.now().strftime('%d/%m/%Y %H:%M')}"
         "</p></div>",
@@ -638,32 +640,32 @@ def render_iso9001(*_):
 
     # KPIs
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("🎯 Objetivos",
+    with c1: st.metric("Objetivos",
                        f"{n_obj_ok}/{n_obj_tot}",
                        delta="atingidos")
-    with c2: st.metric("⚠️ Riscos Altos",  n_riscos_altos)
-    with c3: st.metric("🔍 Auditorias/Ano",n_aud_ano)
-    with c4: st.metric("🔴 NCs Abertas",   nc_abertas)
-    with c5: st.metric("✅ Taxa Conformidade",f"{taxa_conf:.0f}%")
+    with c2: st.metric("Riscos Altos",  n_riscos_altos)
+    with c3: st.metric("Auditorias/Ano",n_aud_ano)
+    with c4: st.metric("NCs Abertas",   nc_abertas)
+    with c5: st.metric("Taxa Conformidade",f"{taxa_conf:.0f}%")
 
     st.divider()
 
     # ── 6 Tabs ────────────────────────────────────────────────────
     (t_obj, t_ris, t_part,
      t_aud, t_rev, t_forn) = st.tabs([
-        "🎯 Objetivos",
-        "⚠️ Gestão de Riscos",
-        "🏢 Partes Interessadas",
-        "🔍 Auditorias Internas",
-        "📊 Revisão pela Gestão",
-        "🏭 Avaliação Fornecedores",
+        "Objetivos",
+        "Gestão de Riscos",
+        "Partes Interessadas",
+        "Auditorias Internas",
+        "Revisão pela Gestão",
+        "Avaliação Fornecedores",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB 1 — OBJETIVOS DA QUALIDADE (Cláusula 6.2)
     # ════════════════════════════════════════════════════════════════
     with t_obj:
-        st.markdown("### 🎯 Objetivos da Qualidade")
+        st.markdown("### Objetivos da Qualidade")
         st.info(
             "ISO 9001:2015 Cláusula 6.2 — Os objetivos devem ser "
             "mensuráveis, monitorizados, comunicados e atualizados."
@@ -672,7 +674,7 @@ def render_iso9001(*_):
         col_of, col_ol = st.columns([1, 2])
 
         with col_of:
-            st.markdown("#### ➕ Novo Objetivo")
+            st.markdown("#### Novo Objetivo")
             with st.form("form_obj_iso"):
                 o_ano    = st.number_input(
                     "Ano", min_value=2024,
@@ -720,11 +722,11 @@ def render_iso9001(*_):
                 o_notas  = st.text_area("Notas", key="o_notas")
 
                 if st.form_submit_button(
-                    "💾 Guardar Objetivo",
+                    "Guardar Objetivo",
                     use_container_width=True, type="primary"
                 ):
                     if not o_obj.strip() or not o_ind.strip():
-                        st.error("❌ Objetivo e indicador obrigatórios.")
+                        st.error("Objetivo e indicador obrigatórios.")
                     else:
                         novo_o = pd.DataFrame([{
                             "ID":         str(uuid.uuid4())[:8].upper(),
@@ -751,10 +753,10 @@ def render_iso9001(*_):
                             detalhes=f"{o_obj[:50]} | Meta:{o_meta}",
                             ip=""
                         )
-                        inv("iso_objetivos.csv"); st.success("✅ Objetivo criado!"); st.rerun()
+                        inv("iso_objetivos.csv"); st.success("Objetivo criado!"); st.rerun()
 
         with col_ol:
-            st.markdown("#### 📊 Objetivos em Curso")
+            st.markdown("#### Objetivos em Curso")
 
             # Filtro ano
             anos_obj = [ano_atual]
@@ -779,7 +781,7 @@ def render_iso9001(*_):
                 )
 
             if df_o.empty:
-                st.info("📋 Sem objetivos para este ano.")
+                st.info("Sem objetivos para este ano.")
             else:
                 for _, obj in df_o.iterrows():
                     oid   = obj.get('ID','')
@@ -788,11 +790,11 @@ def render_iso9001(*_):
                     pct   = round(prog/meta*100,1) if meta>0 else 0
                     stat  = obj.get('Status','')
                     cor_s = {
-                        'Atingido':    '#10B981',
-                        'Em Curso':    '#3B82F6',
-                        'Não Atingido':'#EF4444',
-                        'Cancelado':   '#64748B'
-                    }.get(stat,'#6B7280')
+                        'Atingido':    THEME['success'],
+                        'Em Curso':    THEME['accent'],
+                        'Não Atingido':THEME['error'],
+                        'Cancelado':   THEME['text_secondary']
+                    }.get(stat,THEME['text_secondary'])
                     cor_p = _cor_rag(pct)
 
                     st.markdown(
@@ -800,18 +802,18 @@ def render_iso9001(*_):
                         f"style='border-left:3px solid {cor_p};'>"
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.88rem;'>"
                         f"{obj.get('Objetivo','')[:50]}</b>"
                         f"<span class='iso-badge' "
                         f"style='background:{cor_s}22;color:{cor_s};'>"
                         f"{stat}</span>"
                         f"</div>"
-                        f"<small style='color:#64748B;'>"
-                        f"📊 {obj.get('Indicador','')} · "
+                        f"<small style='color:{THEME['text_secondary']};'>"
+                        f"{obj.get('Indicador','')} · "
                         f"Meta: {meta} {obj.get('Unidade','')} · "
                         f"Responsável: {obj.get('Responsavel','')}</small>"
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['border']};"
                         f"border-radius:3px;height:6px;margin:8px 0 4px;'>"
                         f"<div style='background:{cor_p};width:{min(pct,100):.0f}%;"
                         f"height:6px;border-radius:3px;'></div></div>"
@@ -835,7 +837,7 @@ def render_iso9001(*_):
                         )
                     with col_es:
                         if st.button(
-                            "✅",
+                            "",
                             key=f"upd_obj_{oid}",
                             use_container_width=True,
                             help="Guardar progresso"
@@ -855,7 +857,7 @@ def render_iso9001(*_):
     # TAB 2 — GESTÃO DE RISCOS (Cláusula 6.1)
     # ════════════════════════════════════════════════════════════════
     with t_ris:
-        st.markdown("### ⚠️ Gestão de Riscos e Oportunidades")
+        st.markdown("### Gestão de Riscos e Oportunidades")
         st.info(
             "ISO 9001:2015 Cláusula 6.1 — Identificar riscos e "
             "oportunidades que podem afetar a conformidade "
@@ -865,7 +867,7 @@ def render_iso9001(*_):
         col_rf, col_rl = st.columns([1, 2])
 
         with col_rf:
-            st.markdown("#### ➕ Novo Risco / Oportunidade")
+            st.markdown("#### Novo Risco / Oportunidade")
             with st.form("form_risco"):
                 r_proc   = st.selectbox(
                     "Processo *",
@@ -903,9 +905,9 @@ def render_iso9001(*_):
                 }
                 score_calc = nivel_map[r_prob] * nivel_map[r_imp]
                 cor_sc = (
-                    "#10B981" if score_calc <= 4  else
-                    "#F59E0B" if score_calc <= 9  else
-                    "#EF4444"
+                    THEME['success'] if score_calc <= 4  else
+                    THEME['warning'] if score_calc <= 9  else
+                    THEME['error']
                 )
                 st.markdown(
                     f"<div style='background:{cor_sc}18;"
@@ -932,11 +934,11 @@ def render_iso9001(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar",
+                    "Registar",
                     use_container_width=True, type="primary"
                 ):
                     if not r_desc.strip():
-                        st.error("❌ Descrição obrigatória.")
+                        st.error("Descrição obrigatória.")
                     else:
                         novo_r = pd.DataFrame([{
                             "ID":           str(uuid.uuid4())[:8].upper(),
@@ -959,7 +961,7 @@ def render_iso9001(*_):
                         save_db(upd_r,"iso_riscos.csv")
                         inv("iso_riscos.csv")
                         st.success(
-                            f"✅ {r_tipo} registado! Score: {score_calc}"
+                            f"{r_tipo} registado! Score: {score_calc}"
                         )
                         st.rerun()
 
@@ -969,7 +971,7 @@ def render_iso9001(*_):
             if fig_mat:
                 st.plotly_chart(fig_mat)
             else:
-                st.info("📋 Sem riscos para mostrar na matriz.")
+                st.info("Sem riscos para mostrar na matriz.")
 
             # Lista de riscos
             if not riscos_db.empty:
@@ -1004,14 +1006,12 @@ def render_iso9001(*_):
                     rid   = ris.get('ID','')
                     score = float(ris.get('Score_N',0))
                     cor_s = (
-                        "#10B981" if score<=4  else
-                        "#F59E0B" if score<=9  else
-                        "#EF4444"
+                        THEME['success'] if score<=4  else
+                        THEME['warning'] if score<=9  else
+                        THEME['error']
                     )
-                    ic_t  = "⚠️" if ris.get('Tipo')=='Risco' else "✨"
-
                     with st.expander(
-                        f"{ic_t} [{ris.get('Processo','')}] "
+                        f"{ris.get('Tipo','')} [{ris.get('Processo','')}] "
                         f"{str(ris.get('Descricao',''))[:45]} "
                         f"| Score: {score:.0f}",
                         expanded=(score >= 12)
@@ -1020,15 +1020,15 @@ def render_iso9001(*_):
                         with col_ri1:
                             st.markdown(
                                 f"<div class='iso-card'>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Tipo:</b> {ris.get('Tipo','')} · "
                                 f"<b>Processo:</b> {ris.get('Processo','')}</p>"
-                                f"<p style='color:#94A3B8;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text_secondary']};margin:2px 0;'>"
                                 f"{ris.get('Descricao','')}</p>"
-                                f"<p style='color:#3B82F6;margin:2px 0;'>"
+                                f"<p style='color:{THEME['accent']};margin:2px 0;'>"
                                 f"<b>Tratamento:</b> "
                                 f"{ris.get('Tratamento','')}</p>"
-                                f"<p style='color:#64748B;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text_secondary']};margin:2px 0;'>"
                                 f"Responsável: {ris.get('Responsavel','')} · "
                                 f"Prazo: {ris.get('Prazo','')}</p>"
                                 f"</div>",
@@ -1043,7 +1043,7 @@ def render_iso9001(*_):
                                 f"<b style='color:{cor_s};"
                                 f"font-size:1.5rem;'>"
                                 f"{score:.0f}</b><br>"
-                                f"<small style='color:#64748B;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"{ris.get('Probabilidade','')} × "
                                 f"{ris.get('Impacto','')}</small>"
                                 f"</div>",
@@ -1066,7 +1066,7 @@ def render_iso9001(*_):
                                 key=f"r_res_{rid}"
                             )
                             if st.button(
-                                "💾",
+                                "",
                                 key=f"r_upd_{rid}",
                                 use_container_width=True
                             ):
@@ -1083,7 +1083,7 @@ def render_iso9001(*_):
     # TAB 3 — PARTES INTERESSADAS (Cláusula 4.2)
     # ════════════════════════════════════════════════════════════════
     with t_part:
-        st.markdown("### 🏢 Partes Interessadas")
+        st.markdown("### Partes Interessadas")
         st.info(
             "ISO 9001:2015 Cláusula 4.2 — Identificar partes "
             "interessadas relevantes e as suas expectativas e "
@@ -1093,7 +1093,7 @@ def render_iso9001(*_):
         col_pf, col_pl = st.columns([1, 2])
 
         with col_pf:
-            st.markdown("#### ➕ Nova Parte Interessada")
+            st.markdown("#### Nova Parte Interessada")
             with st.form("form_parte"):
                 p_nome  = st.text_input(
                     "Nome *", key="p_nome",
@@ -1137,11 +1137,11 @@ def render_iso9001(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar",
+                    "Registar",
                     use_container_width=True, type="primary"
                 ):
                     if not p_nome.strip():
-                        st.error("❌ Nome obrigatório.")
+                        st.error("Nome obrigatório.")
                     else:
                         nova_p = pd.DataFrame([{
                             "ID":              str(uuid.uuid4())[:8].upper(),
@@ -1159,14 +1159,14 @@ def render_iso9001(*_):
                         ) if not partes_db.empty else nova_p
                         save_db(upd_p,"iso_partes_interessadas.csv")
                         inv("iso_partes_interessadas.csv")
-                        st.success(f"✅ {p_nome} registado!")
+                        st.success(f"{p_nome} registado!")
                         st.rerun()
 
         with col_pl:
-            st.markdown("#### 📋 Mapa de Partes Interessadas")
+            st.markdown("#### Mapa de Partes Interessadas")
 
             if partes_db.empty:
-                st.info("📋 Sem partes interessadas registadas.")
+                st.info("Sem partes interessadas registadas.")
             else:
                 # Matriz Influência × Interesse
                 inf_map  = {"Baixo":1,"Médio":2,"Alto":3}
@@ -1247,7 +1247,7 @@ def render_iso9001(*_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar",
+                    "Exportar",
                     data=csv_pi.encode('utf-8-sig'),
                     file_name="partes_interessadas.csv",
                     mime="text/csv",
@@ -1258,7 +1258,7 @@ def render_iso9001(*_):
     # TAB 4 — AUDITORIAS INTERNAS (Cláusula 9.2)
     # ════════════════════════════════════════════════════════════════
     with t_aud:
-        st.markdown("### 🔍 Auditorias Internas")
+        st.markdown("### Auditorias Internas")
         st.info(
             "ISO 9001:2015 Cláusula 9.2 — Realizar auditorias "
             "internas planeadas para verificar conformidade "
@@ -1268,7 +1268,7 @@ def render_iso9001(*_):
         col_af2, col_al2 = st.columns([1, 2])
 
         with col_af2:
-            st.markdown("#### ➕ Planear Auditoria")
+            st.markdown("#### Planear Auditoria")
             with st.form("form_aud"):
                 a_tipo  = st.selectbox(
                     "Tipo *",
@@ -1336,7 +1336,7 @@ def render_iso9001(*_):
                     )
 
                 if st.form_submit_button(
-                    "💾 Guardar Auditoria",
+                    "Guardar Auditoria",
                     use_container_width=True, type="primary"
                 ):
                     nova_a = pd.DataFrame([{
@@ -1373,11 +1373,11 @@ def render_iso9001(*_):
                         ip=""
                     )
                     inv("iso_auditorias.csv")
-                    st.success("✅ Auditoria registada!")
+                    st.success("Auditoria registada!")
                     st.rerun()
 
         with col_al2:
-            st.markdown("#### 📊 Plano Anual de Auditorias")
+            st.markdown("#### Plano Anual de Auditorias")
 
             # Calendário anual
             ano_aud = st.number_input(
@@ -1395,7 +1395,7 @@ def render_iso9001(*_):
                 ]
 
                 if adb2.empty:
-                    st.info(f"📋 Sem auditorias planeadas para {ano_aud}.")
+                    st.info(f"Sem auditorias planeadas para {ano_aud}.")
                 else:
                     # KPIs
                     n_plan  = len(adb2)
@@ -1405,9 +1405,9 @@ def render_iso9001(*_):
                     ).fillna(0).sum()
 
                     c1,c2,c3 = st.columns(3)
-                    with c1: st.metric("📋 Planeadas", n_plan)
-                    with c2: st.metric("✅ Concluídas",n_conc)
-                    with c3: st.metric("🔴 NCs Total", int(n_nc_t))
+                    with c1: st.metric("Planeadas", n_plan)
+                    with c2: st.metric("Concluídas",n_conc)
+                    with c3: st.metric("NCs Total", int(n_nc_t))
 
                     # Radar maturidade (se há dados por cláusula)
                     result_map = {
@@ -1445,31 +1445,31 @@ def render_iso9001(*_):
                         aid    = aud_r.get('ID','')
                         res    = aud_r.get('Resultado','Pendente')
                         cor_r  = {
-                            'Conforme':          '#10B981',
-                            'Conforme c/ Obs.':  '#F59E0B',
-                            'Não Conforme':      '#EF4444',
-                            'Pendente':          '#64748B',
-                            'Suspenso':          '#94A3B8',
-                        }.get(res,'#6B7280')
+                            'Conforme':          THEME['success'],
+                            'Conforme c/ Obs.':  THEME['warning'],
+                            'Não Conforme':      THEME['error'],
+                            'Pendente':          THEME['text_secondary'],
+                            'Suspenso':          THEME['text_secondary'],
+                        }.get(res,THEME['text_secondary'])
 
                         with st.expander(
-                            f"🔍 {aud_r.get('Data_Planeada','')} — "
+                            f"{aud_r.get('Data_Planeada','')} — "
                             f"{aud_r.get('Tipo','')} | {res}",
                             expanded=False
                         ):
                             st.markdown(
                                 f"<div class='iso-card' "
                                 f"style='border-left:3px solid {cor_r};'>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Auditor:</b> {aud_r.get('Auditor','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Cláusulas:</b> "
                                 f"{aud_r.get('Clausulas','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Âmbito:</b> {aud_r.get('Scope','')}</p>"
-                                f"<p style='color:#94A3B8;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text_secondary']};margin:2px 0;'>"
                                 f"{aud_r.get('Achados','')}</p>"
-                                f"<small style='color:#64748B;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"NCs Abertas: {aud_r.get('NCs_Aber',0)} · "
                                 f"NCs Menores: {aud_r.get('NCs_Men',0)} · "
                                 f"Obs. Positivas: "
@@ -1479,13 +1479,13 @@ def render_iso9001(*_):
                             )
 
             else:
-                st.info("📋 Sem auditorias registadas.")
+                st.info("Sem auditorias registadas.")
 
     # ════════════════════════════════════════════════════════════════
     # TAB 5 — REVISÃO PELA GESTÃO (Cláusula 9.3)
     # ════════════════════════════════════════════════════════════════
     with t_rev:
-        st.markdown("### 📊 Revisão pela Gestão")
+        st.markdown("### Revisão pela Gestão")
         st.info(
             "ISO 9001:2015 Cláusula 9.3 — A gestão de topo deve "
             "rever o SGQ a intervalos planeados para assegurar "
@@ -1495,7 +1495,7 @@ def render_iso9001(*_):
         col_rv1, col_rv2 = st.columns([1, 1])
 
         with col_rv1:
-            st.markdown("#### ⚙️ Parâmetros")
+            st.markdown("#### Parâmetros")
 
             ano_rev  = st.number_input(
                 "Ano", min_value=2024,
@@ -1517,9 +1517,9 @@ def render_iso9001(*_):
             )
 
             st.markdown("---")
-            st.markdown("#### 📝 Conteúdo das Secções")
+            st.markdown("#### Conteúdo das Secções")
             st.markdown(
-                "<small style='color:#64748B;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 "Preenche cada secção — os dados dos módulos "
                 "são preenchidos automaticamente onde possível."
                 "</small>",
@@ -1610,32 +1610,32 @@ def render_iso9001(*_):
             )
 
         with col_rv2:
-            st.markdown("#### 📊 Resumo Automático")
+            st.markdown("#### Resumo Automático")
 
             # Dashboard indicadores
             indicadores_rev = [
-                ("🔍 Auditorias Realizadas",
+                ("Auditorias Realizadas",
                  n_aud_r, f"de {n_aud_ano} planeadas",
-                 "#3B82F6"),
-                ("🔴 NCs Abertas",
+                 THEME['accent']),
+                ("NCs Abertas",
                  nc_abertas, "devem ser 0",
-                 "#10B981" if nc_abertas==0 else "#EF4444"),
-                ("✅ Taxa Conformidade",
+                 THEME['success'] if nc_abertas==0 else THEME['error']),
+                ("Taxa Conformidade",
                  f"{taxa_conf:.0f}%", "objetivo ≥ 95%",
-                 "#10B981" if taxa_conf>=95 else "#F59E0B"),
-                ("🎯 Objetivos Atingidos",
+                 THEME['success'] if taxa_conf>=95 else THEME['warning']),
+                ("Objetivos Atingidos",
                  f"{n_obj_ok}/{n_obj_tot}",
                  "do plano anual",
-                 "#10B981" if n_obj_ok==n_obj_tot and n_obj_tot>0
-                 else "#F59E0B"),
-                ("⚠️ Riscos Altos",
+                 THEME['success'] if n_obj_ok==n_obj_tot and n_obj_tot>0
+                 else THEME['warning']),
+                ("Riscos Altos",
                  n_riscos_altos,
                  "riscos score ≥ 12",
-                 "#10B981" if n_riscos_altos==0 else "#EF4444"),
-                ("🏭 Fornecedores Avaliados",
+                 THEME['success'] if n_riscos_altos==0 else THEME['error']),
+                ("Fornecedores Avaliados",
                  len(forn_aval_db),
                  "registos este período",
-                 "#3B82F6"),
+                 THEME['accent']),
             ]
 
             cols_rev = st.columns(2)
@@ -1645,12 +1645,12 @@ def render_iso9001(*_):
                         f"<div class='iso-card' "
                         f"style='border-top:3px solid {cor};"
                         f"text-align:center;'>"
-                        f"<p style='color:#64748B;font-size:0.72rem;"
+                        f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;"
                         f"margin:0 0 4px;text-transform:uppercase;'>"
                         f"{label}</p>"
                         f"<b style='color:{cor};"
                         f"font-size:1.4rem;'>{val}</b><br>"
-                        f"<small style='color:#64748B;'>{sub}</small>"
+                        f"<small style='color:{THEME['text_secondary']};'>{sub}</small>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1659,14 +1659,14 @@ def render_iso9001(*_):
 
             # Gerar PDF
             if st.button(
-                "📄 Gerar Revisão pela Gestão PDF",
+                "Gerar Revisão pela Gestão PDF",
                 key="btn_rev_pdf",
                 type="primary",
                 use_container_width=True
             ):
                 if not elab_rev.strip() or not aprov_rev.strip():
                     st.error(
-                        "❌ Elaborado por e Aprovado por obrigatórios."
+                        "Elaborado por e Aprovado por obrigatórios."
                     )
                 else:
                     dados_rev = {
@@ -1699,12 +1699,12 @@ def render_iso9001(*_):
                         f"Revisao_Gestao_ISO9001_"
                         f"{ano_rev}_{sem_rev.replace(' ','')}.pdf"
                     )
-                    st.success("✅ Documento gerado!")
+                    st.success("Documento gerado!")
                     st.rerun()
 
             if st.session_state.get('rev_pdf'):
                 st.download_button(
-                    "📥 Descarregar Revisão pela Gestão",
+                    "Descarregar Revisão pela Gestão",
                     data=st.session_state['rev_pdf'],
                     file_name=st.session_state.get(
                         'rev_pdf_nome','revisao.pdf'
@@ -1718,7 +1718,7 @@ def render_iso9001(*_):
             # IA — análise do SGQ
             st.markdown("---")
             if st.button(
-                "🤖 Análise IA do SGQ",
+                "Análise IA do SGQ",
                 key="btn_ia_rev",
                 use_container_width=True
             ):
@@ -1734,7 +1734,7 @@ def render_iso9001(*_):
                         "empresa":        empresa.get('nome',''),
                         "setor":          "Instrumentação Industrial"
                     }
-                    with st.spinner("🤖 A analisar o SGQ..."):
+                    with st.spinner("A analisar o SGQ..."):
                         try:
                             client = anthropic.Anthropic(
                                 api_key=api_key
@@ -1767,25 +1767,25 @@ def render_iso9001(*_):
                                 }]
                             )
                             st.markdown(
-                                f"<div style='background:rgba(59,130,246,0.08);"
-                                f"border:1px solid #3B82F6;"
+                                f"<div style='background:{THEME['accent']}14;"
+                                f"border:1px solid {THEME['accent']};"
                                 f"border-radius:12px;padding:16px;"
-                                f"color:#E2E8F0;font-size:0.88rem;"
+                                f"color:{THEME['text']};font-size:0.88rem;"
                                 f"line-height:1.7;'>"
-                                f"<b style='color:#3B82F6;'>🤖 Consultor ISO IA</b>"
+                                f"<b style='color:{THEME['accent']};'>Consultor ISO IA</b>"
                                 f"<br><br>"
                                 f"{resp.content[0].text.replace(chr(10),'<br>')}"
                                 f"</div>",
                                 unsafe_allow_html=True
                             )
                         except Exception as e:
-                            st.error(f"❌ {e}")
+                            st.error(f"{e}")
 
     # ════════════════════════════════════════════════════════════════
     # TAB 6 — AVALIAÇÃO DE FORNECEDORES (Cláusula 8.4)
     # ════════════════════════════════════════════════════════════════
     with t_forn:
-        st.markdown("### 🏭 Avaliação e Qualificação de Fornecedores")
+        st.markdown("### Avaliação e Qualificação de Fornecedores")
         st.info(
             "ISO 9001:2015 Cláusula 8.4 — Controlar processos, "
             "produtos e serviços de fornecedores externos. "
@@ -1795,7 +1795,7 @@ def render_iso9001(*_):
         col_ff2, col_fl2 = st.columns([1, 2])
 
         with col_ff2:
-            st.markdown("#### ➕ Nova Avaliação")
+            st.markdown("#### Nova Avaliação")
 
             # Lista de fornecedores disponíveis
             forn_lista = []
@@ -1828,7 +1828,7 @@ def render_iso9001(*_):
                 )
 
                 st.markdown(
-                    "<p style='color:#94A3B8;"
+                    f"<p style='color:{THEME['text_secondary']};"
                     "font-size:0.8rem;margin:8px 0 4px;'>"
                     "Avaliação por critério (1=Muito Mau → 5=Excelente):"
                     "</p>",
@@ -1836,11 +1836,11 @@ def render_iso9001(*_):
                 )
 
                 criterios = [
-                    ("Q_Qualidade",     "🎯 Qualidade do produto/serviço"),
-                    ("Q_Prazo",         "⏱️ Cumprimento de prazos"),
-                    ("Q_Preco",         "💰 Competitividade de preço"),
-                    ("Q_Comunicacao",   "📞 Comunicação e suporte"),
-                    ("Q_Documentacao",  "📋 Documentação e certificações"),
+                    ("Q_Qualidade",     "Qualidade do produto/serviço"),
+                    ("Q_Prazo",         "Cumprimento de prazos"),
+                    ("Q_Preco",         "Competitividade de preço"),
+                    ("Q_Comunicacao",   "Comunicação e suporte"),
+                    ("Q_Documentacao",  "Documentação e certificações"),
                 ]
                 scores_crit = {}
                 for k, label in criterios:
@@ -1863,9 +1863,9 @@ def render_iso9001(*_):
                     ), 1
                 )
                 class_forn = (
-                    "✅ Qualificado"    if score_tot >= 70 else
-                    "⚠️ Condicional"   if score_tot >= 50 else
-                    "❌ Desqualificado"
+                    "Qualificado"    if score_tot >= 70 else
+                    "Condicional"   if score_tot >= 50 else
+                    "Desqualificado"
                 )
                 cor_score_f = _cor_rag(score_tot)
 
@@ -1890,7 +1890,7 @@ def render_iso9001(*_):
                 fa_notas = st.text_area("Notas", key="fa_notas")
 
                 if st.form_submit_button(
-                    "💾 Guardar Avaliação",
+                    "Guardar Avaliação",
                     use_container_width=True, type="primary"
                 ):
                     nova_fa = pd.DataFrame([{
@@ -1923,20 +1923,20 @@ def render_iso9001(*_):
                     )
                     inv("iso_fornecedores_aval.csv")
                     st.success(
-                        f"✅ {fa_forn} avaliado! "
+                        f"{fa_forn} avaliado! "
                         f"Score: {score_tot}/100 — {class_forn}"
                     )
                     st.rerun()
 
         with col_fl2:
-            st.markdown("#### 📊 Painel de Fornecedores")
+            st.markdown("#### Painel de Fornecedores")
 
             fig_forn = _grafico_fornecedores_score(forn_aval_db)
             if fig_forn:
                 st.plotly_chart(fig_forn)
 
             if forn_aval_db.empty:
-                st.info("📋 Sem avaliações registadas.")
+                st.info("Sem avaliações registadas.")
             else:
                 # Última avaliação por fornecedor
                 forn_aval_db['Score_N'] = pd.to_numeric(
@@ -1948,7 +1948,7 @@ def render_iso9001(*_):
                     'Data_Aval', ascending=False
                 ).drop_duplicates('Fornecedor')
 
-                st.markdown("#### 📋 Estado Actual dos Fornecedores")
+                st.markdown("#### Estado Actual dos Fornecedores")
 
                 # KPIs
                 n_qual = len(ultimo_por_forn[
@@ -1964,11 +1964,11 @@ def render_iso9001(*_):
 
                 c1,c2,c3 = st.columns(3)
                 with c1:
-                    st.metric("✅ Qualificados", n_qual)
+                    st.metric("Qualificados", n_qual)
                 with c2:
-                    st.metric("⚠️ Condicionais", n_cond)
+                    st.metric("Condicionais", n_cond)
                 with c3:
-                    st.metric("❌ Desqualificados", n_desq)
+                    st.metric("Desqualificados", n_desq)
 
                 # Lista
                 for _, fa in ultimo_por_forn.sort_values(
@@ -1984,12 +1984,12 @@ def render_iso9001(*_):
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"{fa.get('Fornecedor','')}</b><br>"
-                        f"<small style='color:#64748B;'>"
-                        f"🏷️ {fa.get('Categoria','')} · "
-                        f"🏗️ {fa.get('Obra','')} · "
-                        f"📅 {fa.get('Data_Aval','')}</small>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
+                        f"{fa.get('Categoria','')} · "
+                        f"{fa.get('Obra','')} · "
+                        f"{fa.get('Data_Aval','')}</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
                         f"<b style='color:{cor_f};"
@@ -2019,7 +2019,7 @@ def render_iso9001(*_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar Avaliações",
+                    "Exportar Avaliações",
                     data=csv_fa.encode('utf-8-sig'),
                     file_name="avaliacao_fornecedores_iso.csv",
                     mime="text/csv",

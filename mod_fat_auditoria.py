@@ -14,7 +14,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit
+from core import save_db, inv, load_db, log_audit, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -39,21 +39,21 @@ def _num(df, col):
 CHECKLIST_AUDITORIA = [
     # ── FATURAÇÃO ─────────────────────────────────────────────────
     {
-        "categoria": "📄 Faturação",
+        "categoria": "Faturação",
         "item":      "Todas as faturas emitidas registadas no sistema",
         "critico":   True,
         "csv":       "faturas_clientes.csv",
         "verificar": lambda dfs: not dfs.get('faturas_cli',pd.DataFrame()).empty
     },
     {
-        "categoria": "📄 Faturação",
+        "categoria": "Faturação",
         "item":      "Sequência numérica de faturas sem lacunas",
         "critico":   True,
         "csv":       "faturas_clientes.csv",
         "verificar": lambda dfs: True  # verificação manual
     },
     {
-        "categoria": "📄 Faturação",
+        "categoria": "Faturação",
         "item":      "NIF de todos os clientes preenchido e válido",
         "critico":   True,
         "csv":       "faturas_clientes.csv",
@@ -64,21 +64,21 @@ CHECKLIST_AUDITORIA = [
         )
     },
     {
-        "categoria": "📄 Faturação",
+        "categoria": "Faturação",
         "item":      "Todas as faturas emitidas têm PDF associado",
         "critico":   False,
         "csv":       "faturas_clientes.csv",
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "📄 Faturação",
+        "categoria": "Faturação",
         "item":      "Notas de crédito associadas a faturas originais",
         "critico":   True,
         "csv":       "faturas_clientes.csv",
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "📄 Faturação",
+        "categoria": "Faturação",
         "item":      "SAF-T entregue mensalmente à AT",
         "critico":   True,
         "csv":       None,
@@ -86,14 +86,14 @@ CHECKLIST_AUDITORIA = [
     },
     # ── FORNECEDORES ──────────────────────────────────────────────
     {
-        "categoria": "📥 Fornecedores",
+        "categoria": "Fornecedores",
         "item":      "Todas as faturas de fornecedores registadas",
         "critico":   True,
         "csv":       "faturas_fornecedores.csv",
         "verificar": lambda dfs: not dfs.get('fat_forn',pd.DataFrame()).empty
     },
     {
-        "categoria": "📥 Fornecedores",
+        "categoria": "Fornecedores",
         "item":      "NIF de todos os fornecedores validado",
         "critico":   True,
         "csv":       "fornecedores.csv",
@@ -103,21 +103,21 @@ CHECKLIST_AUDITORIA = [
         )
     },
     {
-        "categoria": "📥 Fornecedores",
+        "categoria": "Fornecedores",
         "item":      "Retenções na fonte calculadas e entregues à AT",
         "critico":   True,
         "csv":       "faturas_fornecedores.csv",
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "📥 Fornecedores",
+        "categoria": "Fornecedores",
         "item":      "IBANs de fornecedores validados e histórico limpo",
         "critico":   True,
         "csv":       "iban_historico.csv",
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "📥 Fornecedores",
+        "categoria": "Fornecedores",
         "item":      "Faturas de fornecedores com comprovativo digital",
         "critico":   False,
         "csv":       "faturas_fornecedores.csv",
@@ -125,49 +125,49 @@ CHECKLIST_AUDITORIA = [
     },
     # ── COLABORADORES / RH ────────────────────────────────────────
     {
-        "categoria": "👥 Recursos Humanos",
+        "categoria": "Recursos Humanos",
         "item":      "Ficheiros de remunerações completos (12 meses)",
         "critico":   True,
         "csv":       "colaboradores_rh.csv",
         "verificar": lambda dfs: not dfs.get('rh',pd.DataFrame()).empty
     },
     {
-        "categoria": "👥 Recursos Humanos",
+        "categoria": "Recursos Humanos",
         "item":      "Recibos de vencimento entregues a todos os colaboradores",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "👥 Recursos Humanos",
+        "categoria": "Recursos Humanos",
         "item":      "DRI entregue mensalmente ao ISS (dia 10)",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "👥 Recursos Humanos",
+        "categoria": "Recursos Humanos",
         "item":      "IRS retido e entregue à AT (dia 20)",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "👥 Recursos Humanos",
+        "categoria": "Recursos Humanos",
         "item":      "Contratos de trabalho arquivados digitalmente",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "👥 Recursos Humanos",
+        "categoria": "Recursos Humanos",
         "item":      "Subsídios de férias e natal pagos",
         "critico":   True,
         "csv":       "provisoes_db.csv",
         "verificar": lambda dfs: not dfs.get('provisoes',pd.DataFrame()).empty
     },
     {
-        "categoria": "👥 Recursos Humanos",
+        "categoria": "Recursos Humanos",
         "item":      "Folhas de ponto assinadas e arquivadas",
         "critico":   True,
         "csv":       "folhas_ponto.csv",
@@ -175,49 +175,49 @@ CHECKLIST_AUDITORIA = [
     },
     # ── FISCAL ────────────────────────────────────────────────────
     {
-        "categoria": "🧾 Fiscal",
+        "categoria": "Fiscal",
         "item":      "Declaração IVA entregue todos os meses",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "🧾 Fiscal",
+        "categoria": "Fiscal",
         "item":      "Modelo 22 IRC entregue (prazo: 31/05)",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "🧾 Fiscal",
+        "categoria": "Fiscal",
         "item":      "Pagamentos por conta IRC efetuados (jul/set)",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "🧾 Fiscal",
+        "categoria": "Fiscal",
         "item":      "Modelo 10 IRS entregue (rendimentos a terceiros)",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "🧾 Fiscal",
+        "categoria": "Fiscal",
         "item":      "IES/Declaração Anual entregue (prazo: 15/07)",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "🧾 Fiscal",
+        "categoria": "Fiscal",
         "item":      "Certidão de não dívida AT atualizada",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "🧾 Fiscal",
+        "categoria": "Fiscal",
         "item":      "Certidão de não dívida SS atualizada",
         "critico":   True,
         "csv":       None,
@@ -225,42 +225,42 @@ CHECKLIST_AUDITORIA = [
     },
     # ── CONTABILIDADE ─────────────────────────────────────────────
     {
-        "categoria": "📊 Contabilidade",
+        "categoria": "Contabilidade",
         "item":      "Balancete anual fechado pelo TOC",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "📊 Contabilidade",
+        "categoria": "Contabilidade",
         "item":      "Balanço e demonstração resultados aprovados",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "📊 Contabilidade",
+        "categoria": "Contabilidade",
         "item":      "Relatório & Contas aprovado em AG (prazo: 31/03)",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "📊 Contabilidade",
+        "categoria": "Contabilidade",
         "item":      "Depósito R&C no IRN (prazo: 15/07)",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "📊 Contabilidade",
+        "categoria": "Contabilidade",
         "item":      "Quadro de imobilizado e amortizações atualizado",
         "critico":   True,
         "csv":       "imobilizado_db.csv",
         "verificar": lambda dfs: not dfs.get('imob',pd.DataFrame()).empty
     },
     {
-        "categoria": "📊 Contabilidade",
+        "categoria": "Contabilidade",
         "item":      "Reconciliação bancária efetuada (todos os meses)",
         "critico":   True,
         "csv":       "movimentos_bancarios.csv",
@@ -268,42 +268,42 @@ CHECKLIST_AUDITORIA = [
     },
     # ── JURÍDICO ──────────────────────────────────────────────────
     {
-        "categoria": "⚖️ Jurídico",
+        "categoria": "Jurídico",
         "item":      "Pacto social / estatutos atualizados",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "⚖️ Jurídico",
+        "categoria": "Jurídico",
         "item":      "Livro de atas de assembleias atualizado",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "⚖️ Jurídico",
+        "categoria": "Jurídico",
         "item":      "Contratos com clientes assinados e arquivados",
         "critico":   True,
         "csv":       "contratos_financeiro.csv",
         "verificar": lambda dfs: not dfs.get('contratos',pd.DataFrame()).empty
     },
     {
-        "categoria": "⚖️ Jurídico",
+        "categoria": "Jurídico",
         "item":      "Contratos de trabalho de todos os colaboradores",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "⚖️ Jurídico",
+        "categoria": "Jurídico",
         "item":      "Seguros obrigatórios válidos (RC, acidentes)",
         "critico":   True,
         "csv":       "seguros_db.csv",
         "verificar": lambda dfs: not dfs.get('seguros',pd.DataFrame()).empty
     },
     {
-        "categoria": "⚖️ Jurídico",
+        "categoria": "Jurídico",
         "item":      "Alvará de construção válido e renovado",
         "critico":   True,
         "csv":       "alvaras_db.csv",
@@ -311,35 +311,35 @@ CHECKLIST_AUDITORIA = [
     },
     # ── OBRAS ─────────────────────────────────────────────────────
     {
-        "categoria": "🏗️ Obras",
+        "categoria": "Obras",
         "item":      "Todas as obras com registo de horas completo",
         "critico":   True,
         "csv":       "registos.csv",
         "verificar": lambda dfs: not dfs.get('registos',pd.DataFrame()).empty
     },
     {
-        "categoria": "🏗️ Obras",
+        "categoria": "Obras",
         "item":      "Orçamentos de obra arquivados",
         "critico":   True,
         "csv":       "obras_orcamento.csv",
         "verificar": lambda dfs: not dfs.get('orc_obras',pd.DataFrame()).empty
     },
     {
-        "categoria": "🏗️ Obras",
+        "categoria": "Obras",
         "item":      "Cauções bancárias constituídas e controladas",
         "critico":   True,
         "csv":       "caucoes_db.csv",
         "verificar": lambda dfs: not dfs.get('caucoes',pd.DataFrame()).empty
     },
     {
-        "categoria": "🏗️ Obras",
+        "categoria": "Obras",
         "item":      "Autos de medição assinados",
         "critico":   False,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "🏗️ Obras",
+        "categoria": "Obras",
         "item":      "Diárias e deslocações documentadas",
         "critico":   True,
         "csv":       "diarias_pagamentos.csv",
@@ -347,28 +347,28 @@ CHECKLIST_AUDITORIA = [
     },
     # ── FROTA ─────────────────────────────────────────────────────
     {
-        "categoria": "🚗 Frota",
+        "categoria": "Frota",
         "item":      "Contratos de renting arquivados",
         "critico":   True,
         "csv":       "renting_contratos.csv",
         "verificar": lambda dfs: not dfs.get('renting',pd.DataFrame()).empty
     },
     {
-        "categoria": "🚗 Frota",
+        "categoria": "Frota",
         "item":      "Registos de combustível com recibo",
         "critico":   False,
         "csv":       "frota_combustivel.csv",
         "verificar": lambda dfs: not dfs.get('comb',pd.DataFrame()).empty
     },
     {
-        "categoria": "🚗 Frota",
+        "categoria": "Frota",
         "item":      "IUC pago para todas as viaturas",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "🚗 Frota",
+        "categoria": "Frota",
         "item":      "Seguros automóvel válidos para todas as viaturas",
         "critico":   True,
         "csv":       "seguros_db.csv",
@@ -376,21 +376,21 @@ CHECKLIST_AUDITORIA = [
     },
     # ── HSE ───────────────────────────────────────────────────────
     {
-        "categoria": "🛡️ HSE",
+        "categoria": "HSE",
         "item":      "Relatório anual de acidentes de trabalho",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "🛡️ HSE",
+        "categoria": "HSE",
         "item":      "Fichas de aptidão médica atualizadas",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "🛡️ HSE",
+        "categoria": "HSE",
         "item":      "Formação obrigatória HSE documentada",
         "critico":   False,
         "csv":       None,
@@ -398,28 +398,28 @@ CHECKLIST_AUDITORIA = [
     },
     # ── DIGITAL / GDPR ────────────────────────────────────────────
     {
-        "categoria": "💻 Digital / GDPR",
+        "categoria": "Digital / GDPR",
         "item":      "Backups de dados realizados e verificados",
         "critico":   True,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "💻 Digital / GDPR",
+        "categoria": "Digital / GDPR",
         "item":      "Política de privacidade (RGPD) atualizada",
         "critico":   False,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "💻 Digital / GDPR",
+        "categoria": "Digital / GDPR",
         "item":      "Registo de tratamento de dados (CNPD)",
         "critico":   False,
         "csv":       None,
         "verificar": lambda dfs: True
     },
     {
-        "categoria": "💻 Digital / GDPR",
+        "categoria": "Digital / GDPR",
         "item":      "Logs de auditoria do sistema arquivados",
         "critico":   True,
         "csv":       None,
@@ -668,7 +668,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
                 "gravidade":"Alta",
                 "desc":     f"{len(sem_nif)} fatura(s) sem NIF cliente",
                 "acao":     "Atualizar NIF nas faturas em falta",
-                "cor":      "#EF4444"
+                "cor":      THEME['error']
             })
 
     # 2. Faturas não pagas há mais de 90 dias
@@ -691,7 +691,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
                 "desc":     f"{len(vencidas_90)} fatura(s) vencida(s) >90 dias "
                             f"(€{val:,.2f})",
                 "acao":     "Contactar clientes — risco incobrável",
-                "cor":      "#EF4444"
+                "cor":      THEME['error']
             })
 
     # 3. Pagamentos a fornecedores sem fatura
@@ -705,7 +705,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
                 "gravidade":"Média",
                 "desc":     f"{len(sem_num)} pagamento(s) sem número de fatura",
                 "acao":     "Solicitar fatura ao fornecedor",
-                "cor":      "#F59E0B"
+                "cor":      THEME['warning']
             })
 
     # 4. IBANs alterados recentemente
@@ -725,7 +725,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
                 "gravidade":"Alta",
                 "desc":     f"{len(recentes)} IBAN(s) alterado(s) nos últimos 90 dias",
                 "acao":     "Verificar legitimidade das alterações",
-                "cor":      "#EF4444"
+                "cor":      THEME['error']
             })
 
     # 5. Colaboradores sem ficha RH
@@ -735,7 +735,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
             "gravidade":"Alta",
             "desc":     "Sem fichas RH financeiras registadas",
             "acao":     "Criar fichas no tab RH Financeiro",
-            "cor":      "#EF4444"
+            "cor":      THEME['error']
         })
 
     # 6. Registos sem obra associada
@@ -749,7 +749,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
                 "gravidade":"Média",
                 "desc":     f"{len(sem_obra)} registo(s) de horas sem obra",
                 "acao":     "Associar horas às obras respetivas",
-                "cor":      "#F59E0B"
+                "cor":      THEME['warning']
             })
 
     # 7. Duplicados (mesma fatura, mesmo valor, mesmo dia)
@@ -764,7 +764,7 @@ def _detetar_inconsistencias(fat_cli, fat_forn,
                 "gravidade":"Alta",
                 "desc":     f"{dupl.sum()} possível(is) fatura(s) duplicada(s)",
                 "acao":     "Verificar manualmente e anular duplicados",
-                "cor":      "#EF4444"
+                "cor":      THEME['error']
             })
 
     return inconsistencias
@@ -915,7 +915,7 @@ def _gerar_pdf_dossier(ano: int,
         check_data.append([
             item['categoria'] if item['categoria'] not in cats_feitas else "",
             item['item'][:55],
-            "✅ OK" if ok else "❌ Falta",
+            "OK" if ok else "Falta",
             "Sim" if item['critico'] else "Não"
         ])
         cats_feitas.add(item['categoria'])
@@ -969,7 +969,7 @@ def _gerar_pdf_dossier(ano: int,
         story.append(it)
     else:
         story.append(Paragraph(
-            "✅ Sem inconsistências detetadas.", normal_s
+            "Sem inconsistências detetadas.", normal_s
         ))
 
     story.append(PageBreak())
@@ -1169,59 +1169,60 @@ def render_fat_auditoria(obras_db, registos_db,
     }
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .aud-card {
-        background:#1E293B; border-radius:10px;
+    .aud-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:10px;
         padding:12px 16px; margin-bottom:6px;
-    }
-    .check-item {
+    }}
+    .check-item {{
         display:flex; justify-content:space-between;
         align-items:center; padding:8px 12px;
         border-radius:8px; margin-bottom:4px;
         border-left:3px solid;
-    }
-    .inc-card {
+    }}
+    .inc-card {{
         border-radius:8px; padding:10px 14px;
         margin-bottom:6px; border-left:4px solid;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── KPIs ──────────────────────────────────────────────────────
-    cor_pct = "#10B981" if pct_prep >= 80 \
-              else "#F59E0B" if pct_prep >= 50 \
-              else "#EF4444"
+    cor_pct = THEME['success'] if pct_prep >= 80 \
+              else THEME['warning'] if pct_prep >= 50 \
+              else THEME['error']
 
     c1,c2,c3,c4,c5 = st.columns(5)
     with c1:
-        st.metric("✅ Preparação",    f"{pct_prep:.0f}%")
+        st.metric("Preparação",    f"{pct_prep:.0f}%")
     with c2:
-        st.metric("📋 Itens OK",      f"{itens_ok}/{total_itens}")
+        st.metric("Itens OK",      f"{itens_ok}/{total_itens}")
     with c3:
-        st.metric("🔴 Críticos Falta",len(itens_criticos))
+        st.metric("Críticos Falta",len(itens_criticos))
     with c4:
-        st.metric("⚠️ Inconsistências",len(inconsistencias))
+        st.metric("Inconsistências",len(inconsistencias))
     with c5:
-        st.metric("💰 Faturação Ano", f"€{fat_total:,.0f}")
+        st.metric("Faturação Ano", f"€{fat_total:,.0f}")
 
     st.divider()
 
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_check, t_inc, t_dossier,
      t_comp, t_export) = st.tabs([
-        "✅ Checklist",
-        "⚠️ Inconsistências",
-        "📁 Dossier Digital",
-        "📊 Comparativo Anual",
-        "📤 Export TOC/ROC",
+        "Checklist",
+        "Inconsistências",
+        "Dossier Digital",
+        "Comparativo Anual",
+        "Export TOC/ROC",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB — CHECKLIST
     # ════════════════════════════════════════════════════════════════
     with t_check:
-        st.markdown("### ✅ Checklist de Auditoria")
+        st.markdown("### Checklist de Auditoria")
 
         # Seletor de ano
         ano_aud = st.number_input(
@@ -1237,17 +1238,17 @@ def render_fat_auditoria(obras_db, registos_db,
             )
             # Nível de preparação
             if pct_prep >= 80:
-                nivel_txt = "🟢 PRONTO para auditoria"
-                cor_n     = "#10B981"
+                nivel_txt = "PRONTO para auditoria"
+                cor_n     = THEME['success']
             elif pct_prep >= 60:
-                nivel_txt = "🟡 Quase pronto — faltam poucos itens"
-                cor_n     = "#F59E0B"
+                nivel_txt = "Quase pronto — faltam poucos itens"
+                cor_n     = THEME['warning']
             elif pct_prep >= 40:
-                nivel_txt = "🟠 Em preparação — ação necessária"
-                cor_n     = "#F97316"
+                nivel_txt = "Em preparação — ação necessária"
+                cor_n     = THEME['warning']
             else:
-                nivel_txt = "🔴 NÃO pronto — muitos itens em falta"
-                cor_n     = "#EF4444"
+                nivel_txt = "NÃO pronto — muitos itens em falta"
+                cor_n     = THEME['error']
 
             st.markdown(
                 f"<div style='background:{cor_n}18;"
@@ -1282,12 +1283,12 @@ def render_fat_auditoria(obras_db, registos_db,
         with col_cf2:
             estado_filt = st.selectbox(
                 "Estado",
-                ["Todos","✅ Concluído","❌ Por fazer"],
+                ["Todos","Concluído","Por fazer"],
                 key="aud_est_filt"
             )
 
         # Listar itens
-        st.markdown("#### 📋 Itens da Checklist")
+        st.markdown("#### Itens da Checklist")
 
         cat_atual = ""
         for item in CHECKLIST_AUDITORIA:
@@ -1297,25 +1298,30 @@ def render_fat_auditoria(obras_db, registos_db,
             k  = f"{item['categoria']}||{item['item']}"
             ok = resultados.get(k, False)
 
-            if estado_filt == "✅ Concluído" and not ok:
+            if estado_filt == "Concluído" and not ok:
                 continue
-            if estado_filt == "❌ Por fazer" and ok:
+            if estado_filt == "Por fazer" and ok:
                 continue
 
             # Header de categoria
             if item['categoria'] != cat_atual:
                 cat_atual = item['categoria']
                 st.markdown(
-                    f"<p style='color:#3B82F6;"
+                    f"<p style='color:{THEME['accent']};"
                     f"font-weight:700;font-size:0.85rem;"
                     f"margin:12px 0 4px;'>"
                     f"{cat_atual}</p>",
                     unsafe_allow_html=True
                 )
 
-            cor_item = "#10B981" if ok else \
-                       "#EF4444" if item['critico'] else \
-                       "#F59E0B"
+            cor_item = THEME['success'] if ok else \
+                       THEME['error'] if item['critico'] else \
+                       THEME['warning']
+
+            critico_html = (
+                f"<span style='color:{THEME['error']};font-size:0.7rem;"
+                f"margin-left:6px;'>CRÍTICO</span>"
+            ) if item['critico'] and not ok else ""
 
             col_ci, col_cb = st.columns([7,1])
             with col_ci:
@@ -1326,20 +1332,20 @@ def render_fat_auditoria(obras_db, registos_db,
                     f"<div>"
                     f"<span style='color:{cor_item};"
                     f"font-size:1rem;margin-right:8px;'>"
-                    f"{'✅' if ok else '❌'}</span>"
-                    f"<span style='color:#F1F5F9;"
+                    f"{'OK' if ok else 'Falta'}</span>"
+                    f"<span style='color:{THEME['text']};"
                     f"font-size:0.85rem;'>"
                     f"{item['item']}</span>"
-                    f"{'<span style=color:#EF4444;font-size:0.7rem;margin-left:6px;>★ CRÍTICO</span>' if item['critico'] and not ok else ''}"
+                    f"{critico_html}"
                     f"</div>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"{'CSV: ' + item['csv'] if item['csv'] else 'Manual'}"
                     f"</small></div>",
                     unsafe_allow_html=True
                 )
             with col_cb:
                 if st.button(
-                    "✅" if not ok else "↩️",
+                    "" if not ok else "Anular",
                     key=f"aud_{uuid.uuid4().hex[:6]}_{k[:20].replace(' ','_')}",
                     use_container_width=True,
                     help="Marcar/desmarcar"
@@ -1352,17 +1358,17 @@ def render_fat_auditoria(obras_db, registos_db,
         if itens_criticos:
             st.markdown("---")
             st.error(
-                f"🔴 **{len(itens_criticos)} item(s) crítico(s) "
+                f"**{len(itens_criticos)} item(s) crítico(s) "
                 f"por completar!** A auditoria não está pronta."
             )
             for ic in itens_criticos[:5]:
                 st.markdown(
-                    f"<div style='background:rgba(239,68,68,0.1);"
-                    f"border-left:3px solid #EF4444;"
+                    f"<div style='background:rgba(185,28,28,0.08);"
+                    f"border-left:3px solid {THEME['error']};"
                     f"border-radius:6px;padding:8px 12px;"
                     f"margin-bottom:4px;'>"
-                    f"<small style='color:#EF4444;'>"
-                    f"❌ {ic['item']}</small>"
+                    f"<small style='color:{THEME['error']};'>"
+                    f"{ic['item']}</small>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
@@ -1372,7 +1378,7 @@ def render_fat_auditoria(obras_db, registos_db,
         col_r1, col_r2 = st.columns(2)
         with col_r1:
             if st.button(
-                "✅ Marcar todos como OK",
+                "Marcar todos como OK",
                 key="btn_all_ok",
                 use_container_width=True
             ):
@@ -1383,7 +1389,7 @@ def render_fat_auditoria(obras_db, registos_db,
                 st.rerun()
         with col_r2:
             if st.button(
-                "🔄 Reset Checklist",
+                "Reset Checklist",
                 key="btn_reset_check",
                 use_container_width=True
             ):
@@ -1394,7 +1400,7 @@ def render_fat_auditoria(obras_db, registos_db,
     # TAB — INCONSISTÊNCIAS
     # ════════════════════════════════════════════════════════════════
     with t_inc:
-        st.markdown("### ⚠️ Relatório de Inconsistências")
+        st.markdown("### Relatório de Inconsistências")
         st.info(
             "O sistema verifica automaticamente os dados "
             "e identifica potenciais problemas para corrigir "
@@ -1410,7 +1416,7 @@ def render_fat_auditoria(obras_db, registos_db,
                 )
             else:
                 st.success(
-                    "✅ Sem inconsistências detetadas! "
+                    "Sem inconsistências detetadas! "
                     "Dossier limpo."
                 )
         with col_ig2:
@@ -1423,11 +1429,11 @@ def render_fat_auditoria(obras_db, registos_db,
                            if i['gravidade']=='Baixa'])
             c1,c2,c3 = st.columns(3)
             with c1:
-                st.metric("🔴 Alta",  n_alta)
+                st.metric("Alta",  n_alta)
             with c2:
-                st.metric("🟡 Média", n_media)
+                st.metric("Média", n_media)
             with c3:
-                st.metric("🟢 Baixa", n_baixa)
+                st.metric("Baixa", n_baixa)
 
             if inconsistencias:
                 st.markdown(
@@ -1442,12 +1448,12 @@ def render_fat_auditoria(obras_db, registos_db,
                         f"border-left-color:{cor_i};'>"
                         f"<b style='color:{cor_i};"
                         f"font-size:0.85rem;'>"
-                        f"⚠️ {inc['desc']}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"{inc['desc']}</b><br>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Tipo: {inc['tipo']} · "
                         f"Gravidade: {inc['gravidade']}</small><br>"
-                        f"<small style='color:#94A3B8;'>"
-                        f"💡 {inc['acao']}</small>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
+                        f"{inc['acao']}</small>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1456,7 +1462,7 @@ def render_fat_auditoria(obras_db, registos_db,
         # Detalhe por tipo
         if inconsistencias:
             st.markdown("---")
-            st.markdown("#### 📋 Detalhe Completo")
+            st.markdown("#### Detalhe Completo")
 
             df_inc = pd.DataFrame([{
                 "Tipo":      i['tipo'],
@@ -1472,7 +1478,7 @@ def render_fat_auditoria(obras_db, registos_db,
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                "📥 Exportar Inconsistências",
+                "Exportar Inconsistências",
                 data=csv_inc.encode('utf-8-sig'),
                 file_name=(
                     f"inconsistencias_"
@@ -1485,14 +1491,14 @@ def render_fat_auditoria(obras_db, registos_db,
         # Análise IA
         st.markdown("---")
         if st.button(
-            "🤖 Análise IA das Inconsistências",
+            "Análise IA das Inconsistências",
             key="btn_ia_inc",
             use_container_width=True
         ):
             import anthropic
             api_key = os.environ.get("ANTHROPIC_API_KEY","")
             if api_key and inconsistencias:
-                with st.spinner("🤖 A analisar..."):
+                with st.spinner("A analisar..."):
                     try:
                         client = anthropic.Anthropic(
                             api_key=api_key
@@ -1525,26 +1531,26 @@ def render_fat_auditoria(obras_db, registos_db,
                             }]
                         )
                         st.markdown(
-                            f"<div style='background:rgba(59,130,246,0.1);"
-                            f"border:1px solid #3B82F6;"
+                            f"<div style='background:rgba(14,124,134,0.08);"
+                            f"border:1px solid {THEME['accent']};"
                             f"border-radius:10px;padding:14px;"
-                            f"color:#E2E8F0;font-size:0.88rem;"
+                            f"color:{THEME['text']};font-size:0.88rem;"
                             f"line-height:1.6;'>"
-                            f"<b style='color:#3B82F6;'>🤖 TOC IA</b><br><br>"
+                            f"<b style='color:{THEME['accent']};'>TOC IA</b><br><br>"
                             f"{resp.content[0].text.replace(chr(10),'<br>')}"
                             f"</div>",
                             unsafe_allow_html=True
                         )
                     except Exception as e:
-                        st.error(f"❌ {e}")
+                        st.error(f"{e}")
             elif not inconsistencias:
-                st.success("✅ Sem inconsistências para analisar!")
+                st.success("Sem inconsistências para analisar!")
 
     # ════════════════════════════════════════════════════════════════
     # TAB — DOSSIER DIGITAL
     # ════════════════════════════════════════════════════════════════
     with t_dossier:
-        st.markdown("### 📁 Dossier Digital de Auditoria")
+        st.markdown("### Dossier Digital de Auditoria")
         st.info(
             "O dossier digital organiza todos os documentos "
             "necessários para a auditoria anual. "
@@ -1659,29 +1665,32 @@ def render_fat_auditoria(obras_db, registos_db,
         cols_pastas = st.columns(3)
         for i, pasta in enumerate(pastas):
             with cols_pastas[i % 3]:
+                # Cor decorativa única (acento) — 12 pastas excedem
+                # os tons semânticos disponíveis, mesmo critério de
+                # mod_admin_formacoes.py para etiquetas de categoria.
                 tem_docs = pasta['n_docs'] > 0
-                cor_p    = pasta['cor'] if tem_docs else "#334155"
+                cor_p    = THEME['accent'] if tem_docs else THEME['border']
                 st.markdown(
                     f"<div class='aud-card' "
                     f"style='border-left:3px solid {cor_p};'>"
-                    f"<p style='color:#64748B;"
+                    f"<p style='color:{THEME['text_secondary']};"
                     f"font-size:0.7rem;margin:0 0 2px;'>"
                     f"PASTA {pasta['num']}</p>"
-                    f"<b style='color:#F1F5F9;"
+                    f"<b style='color:{THEME['text']};"
                     f"font-size:0.85rem;'>"
                     f"{pasta['nome']}</b><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"{pasta['desc']}</small><br>"
                     f"<span style='color:{cor_p};"
                     f"font-size:0.8rem;font-weight:700;'>"
-                    f"{'📄 ' + str(pasta['n_docs']) + ' doc(s)' if tem_docs else '⚠️ Sem documentos'}"
+                    f"{str(pasta['n_docs']) + ' doc(s)' if tem_docs else 'Sem documentos'}"
                     f"</span></div>",
                     unsafe_allow_html=True
                 )
 
         # Gerar ZIP do dossier
         st.markdown("---")
-        st.markdown("#### 📦 Exportar Dossier Completo")
+        st.markdown("#### Exportar Dossier Completo")
 
         col_zip1, col_zip2 = st.columns(2)
         with col_zip1:
@@ -1696,7 +1705,7 @@ def render_fat_auditoria(obras_db, registos_db,
             )
 
         if st.button(
-            "📦 Gerar ZIP Dossier Auditoria",
+            "Gerar ZIP Dossier Auditoria",
             key="btn_zip_dossier",
             type="primary",
             use_container_width=True
@@ -1769,14 +1778,14 @@ def render_fat_auditoria(obras_db, registos_db,
                     f"{empresa.get('nif','')}.zip"
                 )
                 st.success(
-                    f"✅ Dossier compilado com "
+                    f"Dossier compilado com "
                     f"{sum(p['n_docs'] for p in pastas)} documentos!"
                 )
                 st.rerun()
 
         if st.session_state.get('dossier_zip'):
             st.download_button(
-                "📥 Descarregar ZIP Dossier",
+                "Descarregar ZIP Dossier",
                 data=st.session_state['dossier_zip'],
                 file_name=st.session_state.get(
                     'dossier_zip_nome','dossier.zip'
@@ -1791,7 +1800,7 @@ def render_fat_auditoria(obras_db, registos_db,
     # TAB — COMPARATIVO ANUAL
     # ════════════════════════════════════════════════════════════════
     with t_comp:
-        st.markdown("### 📊 Comparativo Anual")
+        st.markdown("### Comparativo Anual")
 
         ano_comp = st.number_input(
             "Ano", min_value=2020,
@@ -1807,7 +1816,7 @@ def render_fat_auditoria(obras_db, registos_db,
         )
 
         # Tabela resumo
-        st.markdown("#### 📋 Resumo do Exercício")
+        st.markdown("#### Resumo do Exercício")
         resumo_rows = [
             {
                 "Indicador":    "Faturação Total",
@@ -1859,7 +1868,7 @@ def render_fat_auditoria(obras_db, registos_db,
             index=False, encoding='utf-8-sig'
         )
         st.download_button(
-            "📥 Exportar Resumo CSV",
+            "Exportar Resumo CSV",
             data=csv_res.encode('utf-8-sig'),
             file_name=f"resumo_exercicio_{ano_comp}.csv",
             mime="text/csv",
@@ -1870,7 +1879,7 @@ def render_fat_auditoria(obras_db, registos_db,
     # TAB — EXPORT TOC/ROC
     # ════════════════════════════════════════════════════════════════
     with t_export:
-        st.markdown("### 📤 Export para TOC / ROC")
+        st.markdown("### Export para TOC / ROC")
         st.info(
             "Gera o dossier completo em formato adequado "
             "para entrega ao Técnico Oficial de Contas (TOC) "
@@ -1904,33 +1913,33 @@ def render_fat_auditoria(obras_db, registos_db,
 
         with col_e2:
             # Resumo do que vai no dossier
-            st.markdown("#### 📋 Conteúdo do Export")
+            st.markdown("#### Conteúdo do Export")
             conteudo = [
-                ("📄 Relatório PDF completo",          True),
-                ("✅ Checklist de auditoria",           True),
-                ("⚠️ Relatório de inconsistências",     True),
-                ("📊 Resumo financeiro anual",          True),
-                (f"🧾 Faturas clientes ({len(fat_cli)})",
+                ("Relatório PDF completo",          True),
+                ("Checklist de auditoria",           True),
+                ("Relatório de inconsistências",     True),
+                ("Resumo financeiro anual",          True),
+                (f"Faturas clientes ({len(fat_cli)})",
                  not fat_cli.empty),
-                (f"📥 Faturas fornecedores ({len(fat_forn)})",
+                (f"Faturas fornecedores ({len(fat_forn)})",
                  not fat_forn.empty),
-                (f"👥 Fichas RH ({len(rh_db)})",
+                (f"Fichas RH ({len(rh_db)})",
                  not rh_db.empty),
-                (f"🏭 Imobilizado ({len(imob_db)} ativos)",
+                (f"Imobilizado ({len(imob_db)} ativos)",
                  not imob_db.empty),
-                (f"🔒 Cauções ({len(caucoes_db)})",
+                (f"Cauções ({len(caucoes_db)})",
                  not caucoes_db.empty),
             ]
             for desc, ok in conteudo:
-                cor_c = "#10B981" if ok else "#64748B"
-                ic_c  = "✅" if ok else "⚪"
+                cor_c = THEME['success'] if ok else THEME['text_secondary']
+                ic_c  = "OK" if ok else "Vazio"
                 st.markdown(
                     f"<div style='display:flex;"
                     f"align-items:center;"
                     f"padding:3px 0;'>"
                     f"<span style='color:{cor_c};"
                     f"margin-right:6px;'>{ic_c}</span>"
-                    f"<small style='color:#94A3B8;'>{desc}</small>"
+                    f"<small style='color:{THEME['text_secondary']};'>{desc}</small>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
@@ -1940,7 +1949,7 @@ def render_fat_auditoria(obras_db, registos_db,
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
             if st.button(
-                "📄 Gerar Relatório PDF Completo",
+                "Gerar Relatório PDF Completo",
                 key="btn_pdf_toc",
                 type="primary",
                 use_container_width=True
@@ -1955,13 +1964,13 @@ def render_fat_auditoria(obras_db, registos_db,
                     f"Dossier_Auditoria_"
                     f"{empresa.get('nif','')}_{ano_toc}.pdf"
                 )
-                st.success("✅ Relatório PDF gerado!")
+                st.success("Relatório PDF gerado!")
                 st.rerun()
 
         with col_btn2:
             if st.session_state.get('toc_pdf'):
                 st.download_button(
-                    "📥 Descarregar PDF Dossier",
+                    "Descarregar PDF Dossier",
                     data=st.session_state['toc_pdf'],
                     file_name=st.session_state.get(
                         'toc_pdf_nome','dossier.pdf'
@@ -1975,16 +1984,16 @@ def render_fat_auditoria(obras_db, registos_db,
         # Nota de confidencialidade
         st.markdown("---")
         st.markdown(
-            "<div style='background:rgba(59,130,246,0.08);"
-            "border:1px solid #3B82F6;border-radius:8px;"
-            "padding:12px;'>"
-            "<small style='color:#93C5FD;'>"
-            "📋 <b>Nota:</b> Este dossier foi gerado "
-            "automaticamente pelo GESTNOW v3.0. "
-            "Os dados financeiros são estimativas baseadas nos "
-            "registos do sistema. O TOC/ROC deve confirmar "
-            "com os documentos originais e a contabilidade "
-            "oficial. Documento confidencial — "
-            "uso restrito ao destinatário.</small></div>",
+            f"<div style='background:rgba(14,124,134,0.06);"
+            f"border:1px solid {THEME['accent']};border-radius:8px;"
+            f"padding:12px;'>"
+            f"<small style='color:{THEME['accent']};'>"
+            f"<b>Nota:</b> Este dossier foi gerado "
+            f"automaticamente pelo GESTNOW v3.0. "
+            f"Os dados financeiros são estimativas baseadas nos "
+            f"registos do sistema. O TOC/ROC deve confirmar "
+            f"com os documentos originais e a contabilidade "
+            f"oficial. Documento confidencial — "
+            f"uso restrito ao destinatário.</small></div>",
             unsafe_allow_html=True
         )

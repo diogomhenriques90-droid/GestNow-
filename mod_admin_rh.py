@@ -7,10 +7,11 @@ from io import BytesIO
 from core import (
     save_db, inv, load_db, log_audit, criar_notificacao,
     hp, _gcs_read, _gcs_write_binary, _gcs_read_binary,
-    _fill_contrato_template, ICONS, logger,
+    _fill_contrato_template, logger,
     cliente_select, registar_cliente_do_select,
     obra_select, get_cliente_da_obra,
-    lista_rh_select, registar_valor_lista_rh, set_funcao_categoria
+    lista_rh_select, registar_valor_lista_rh, set_funcao_categoria,
+    THEME
 )
 
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
@@ -680,27 +681,7 @@ def render_admin_rh(*args):
 
     admin_nome = st.session_state.get('user', 'Admin')
 
-    st.markdown("""
-    <style>
-    [data-baseweb="select"] [role="option"] {
-        color: #111827 !important;
-        background: #FFFFFF !important;
-    }
-    [data-baseweb="menu"] {
-        background: #FFFFFF !important;
-    }
-    [data-baseweb="menu"] li {
-        color: #111827 !important;
-    }
-    .stDownloadButton > button {
-        color: #111827 !important;
-        background: #FFFFFF !important;
-        border: 1px solid #D1D5DB !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown("# 👥 Recursos Humanos")
+    st.markdown("# Recursos Humanos")
 
     # ── Painel de alertas de validade ─────────────────────────────────
     _today = date.today()
@@ -755,37 +736,37 @@ def render_admin_rh(*args):
 
     if _n_exp + _n_prox + _n_ct + _n_inc + _n_reg > 0:
         _ca1, _ca2, _ca3, _ca4, _ca5 = st.columns(5)
-        _ca1.metric("🔴 Expirados",   _n_exp)
-        _ca2.metric("🟡 A expirar",   _n_prox)
-        _ca3.metric("🟠 Contratos",   _n_ct)
-        _ca4.metric("⚪ Incompletos", _n_inc)
-        _ca5.metric("⚪ Regulamento", _n_reg)
-        with st.expander("📋 Ver detalhes dos alertas"):
+        _ca1.metric("Expirados",   _n_exp)
+        _ca2.metric("A expirar",   _n_prox)
+        _ca3.metric("Contratos",   _n_ct)
+        _ca4.metric("Incompletos", _n_inc)
+        _ca5.metric("Regulamento", _n_reg)
+        with st.expander("Ver detalhes dos alertas"):
             if _det_exp:
-                st.markdown("**🔴 Documentos Expirados**")
+                st.markdown("**Documentos Expirados**")
                 for _d in _det_exp: st.markdown(f"- {_d}")
             if _det_prox:
-                st.markdown("**🟡 A Expirar nos próximos 60 dias**")
+                st.markdown("**A Expirar nos próximos 60 dias**")
                 for _d in _det_prox: st.markdown(f"- {_d}")
             if _det_ct:
-                st.markdown("**🟠 Contratos a Terminar (≤ 90 dias)**")
+                st.markdown("**Contratos a Terminar (≤ 90 dias)**")
                 for _d in _det_ct: st.markdown(f"- {_d}")
             if _det_inc:
-                st.markdown("**⚪ Fichas Incompletas**")
+                st.markdown("**Fichas Incompletas**")
                 for _d in _det_inc: st.markdown(f"- {_d}")
             if _det_reg:
-                st.markdown("**⚪ Regulamento Interno por Assinar**")
+                st.markdown("**Regulamento Interno por Assinar**")
                 for _d in _det_reg: st.markdown(f"- {_d}")
         st.markdown("---")
 
     (tab_lista, tab_gestao, tab_eticadata,
      tab_contrato, tab_template, tab_formacoes) = st.tabs([
-        "👥 Colaboradores",
-        "📋 Ficha do Colaborador",
-        "📥 Importar Eticadata",
-        "📄 Contratos",
-        "⚙️ Templates & Config",
-        "🎓 Formações",
+        "Colaboradores",
+        "Ficha do Colaborador",
+        "Importar Eticadata",
+        "Contratos",
+        "Templates & Config",
+        "Formações",
     ])
 
     # ════════════════════════════════════════════════════════════════
@@ -795,9 +776,9 @@ def render_admin_rh(*args):
 
         col_titulo, col_btn = st.columns([4, 1])
         with col_titulo:
-            st.markdown("### 👥 Todos os Colaboradores")
+            st.markdown("### Todos os Colaboradores")
         with col_btn:
-            if st.button("➕ Novo", key="btn_novo_colab",
+            if st.button("Novo", key="btn_novo_colab",
                           type="primary", use_container_width=True):
                 st.session_state['show_criar_colab'] = True
                 st.rerun()
@@ -807,7 +788,7 @@ def render_admin_rh(*args):
         # ── Formulário de criação ─────────────────────────────────
         if st.session_state.get('show_criar_colab', False):
             st.markdown("---")
-            st.markdown("#### ➕ Criar Novo Colaborador")
+            st.markdown("#### Criar Novo Colaborador")
 
             with st.form("form_criar_colab"):
                 st.markdown("**Dados obrigatórios**")
@@ -856,12 +837,12 @@ def render_admin_rh(*args):
                 c_sub, c_can = st.columns(2)
                 with c_sub:
                     submitted = st.form_submit_button(
-                        "💾 Criar Colaborador",
+                        "Criar Colaborador",
                         use_container_width=True, type="primary"
                     )
                 with c_can:
                     cancelar = st.form_submit_button(
-                        "✕ Cancelar", use_container_width=True
+                        "Cancelar", use_container_width=True
                     )
 
             if cancelar:
@@ -879,12 +860,12 @@ def render_admin_rh(*args):
                 if not novo_cliente:         erros.append("Cliente (a Obra escolhida não tem Cliente associado)")
 
                 if erros:
-                    st.error(f"❌ Campos obrigatórios em falta: {', '.join(erros)}")
+                    st.error(f"Campos obrigatórios em falta: {', '.join(erros)}")
                 else:
                     # Verificar nome duplicado
                     if not users_live.empty and \
                        novo_nome.strip() in users_live['Nome'].values:
-                        st.error(f"❌ Já existe um colaborador com o nome '{novo_nome.strip()}'")
+                        st.error(f"Já existe um colaborador com o nome '{novo_nome.strip()}'")
                     else:
                         novo_id  = str(uuid.uuid4())[:8].upper()
                         pwd_hash = hp(novo_pwd.strip())
@@ -926,7 +907,7 @@ def render_admin_rh(*args):
                                            f"({novo_tipo} / {novo_cargo})",
                                   ip="")
 
-                        st.success(f"✅ Colaborador **{novo_nome.strip()}** criado com sucesso!")
+                        st.success(f"Colaborador **{novo_nome.strip()}** criado com sucesso!")
                         st.session_state['show_criar_colab'] = False
                         inv("usuarios.csv")
                         st.rerun()
@@ -956,30 +937,39 @@ def render_admin_rh(*args):
                 nome_c    = row.get('Nome','')
                 tipo_c    = row.get('Tipo','')
                 cargo_c   = row.get('Cargo','')
-                estado_pdf = "✅" if row.get('PDFs_Validados','') == 'Sim' else "⏳"
-                estado_pfx = "✅" if row.get('Perfil_Completo','') == 'Sim' else "⏳"
-                estado_iban= "✅" if row.get('IBAN_Comprovativo_b64','') else "⏳"
-                estado_ct  = "✅" if row.get('Contrato_Validado_Admin','') == 'Sim' \
-                             else "🔵" if row.get('Contrato_Assinado','') == 'Sim' \
-                             else "📄" if row.get('Contrato_Gerado','') == 'Sim' \
-                             else "⬜"
+                c_pdf,  estado_pdf  = (THEME['success'], "OK") \
+                    if row.get('PDFs_Validados','') == 'Sim' else (THEME['warning'], "Pendente")
+                c_pfx,  estado_pfx  = (THEME['success'], "OK") \
+                    if row.get('Perfil_Completo','') == 'Sim' else (THEME['warning'], "Pendente")
+                c_iban, estado_iban = (THEME['success'], "OK") \
+                    if row.get('IBAN_Comprovativo_b64','') else (THEME['warning'], "Pendente")
+                if row.get('Contrato_Validado_Admin','') == 'Sim':
+                    c_ct, estado_ct = THEME['success'], "Validado"
+                elif row.get('Contrato_Assinado','') == 'Sim':
+                    c_ct, estado_ct = THEME['accent'], "Assinado"
+                elif row.get('Contrato_Gerado','') == 'Sim':
+                    c_ct, estado_ct = THEME['warning'], "Gerado"
+                else:
+                    c_ct, estado_ct = THEME['text_secondary'], "Pendente"
 
                 col_info, col_sel = st.columns([5, 1])
                 with col_info:
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:6px;'>"
-                        f"<b style='color:#F1F5F9;'>{nome_c}</b> "
-                        f"<span style='color:#64748B;font-size:0.8rem;'>"
+                        f"<b style='color:{THEME['text']};'>{nome_c}</b> "
+                        f"<span style='color:{THEME['text_secondary']};font-size:0.8rem;'>"
                         f"· {tipo_c} · {cargo_c}</span><br>"
-                        f"<span style='font-size:0.75rem;color:#94A3B8;'>"
-                        f"PDFs {estado_pdf} &nbsp; Perfil {estado_pfx} &nbsp; "
-                        f"IBAN {estado_iban} &nbsp; Contrato {estado_ct}</span>"
+                        f"<span style='font-size:0.75rem;color:{THEME['text_secondary']};'>"
+                        f"PDFs <span style='color:{c_pdf};font-weight:600;'>{estado_pdf}</span> &nbsp; "
+                        f"Perfil <span style='color:{c_pfx};font-weight:600;'>{estado_pfx}</span> &nbsp; "
+                        f"IBAN <span style='color:{c_iban};font-weight:600;'>{estado_iban}</span> &nbsp; "
+                        f"Contrato <span style='color:{c_ct};font-weight:600;'>{estado_ct}</span></span>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
                 with col_sel:
-                    if st.button("📋", key=f"sel_{nome_c}",
+                    if st.button("Abrir", key=f"sel_{nome_c}",
                                   use_container_width=True,
                                   help="Gerir colaborador"):
                         st.session_state['rh_colaborador_sel'] = nome_c
@@ -1016,11 +1006,11 @@ def render_admin_rh(*args):
 
         # ── Cabeçalho do colaborador ──────────────────────────────
         st.markdown(
-            f"<div style='background:#1E293B;border-radius:14px;"
-            f"padding:16px;margin-bottom:16px;border:1px solid #334155;'>"
-            f"<p style='color:#F1F5F9;font-size:1.2rem;font-weight:900;margin:0;'>"
+            f"<div style='background:{THEME['surface']};border-radius:14px;"
+            f"padding:16px;margin-bottom:16px;border:1px solid {THEME['border']};'>"
+            f"<p style='color:{THEME['text']};font-size:1.2rem;font-weight:900;margin:0;'>"
             f"{nome_sel}</p>"
-            f"<p style='color:#64748B;font-size:0.85rem;margin:3px 0 0;'>"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;margin:3px 0 0;'>"
             f"{row.get('Tipo','')} · {row.get('Cargo','')} · "
             f"{row.get('Local_Obra','')} → {row.get('Cliente_Obra','')}</p>"
             f"</div>",
@@ -1030,7 +1020,7 @@ def render_admin_rh(*args):
         # ── Exportar Excel ────────────────────────────────────────
         excel_bytes = _exportar_excel_colaborador(row)
         st.download_button(
-            "📥 Exportar dados em Excel",
+            "Exportar dados em Excel",
             data=excel_bytes,
             file_name=f"colaborador_{nome_sel.replace(' ','_')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1068,7 +1058,7 @@ def render_admin_rh(*args):
         # Email, Morada, Localidade e Codigo_Postal são dual-write
         # (usuarios.csv fonte, espelho em colaboradores_rh.csv). Telefone
         # e Concelho só existem em usuarios.csv.
-        with st.expander("📍 Contactos & Morada", expanded=True):
+        with st.expander("Contactos & Morada", expanded=True):
             with st.form(f"gi_form_ident_{_slug_gi}"):
                 st.text_input("Nome", value=nome_sel, disabled=True,
                     key=f"gi_nome_{_slug_gi}",
@@ -1088,39 +1078,39 @@ def render_admin_rh(*args):
                         value=_vg("Concelho"), key=f"gi_concelho_{_slug_gi}")
                     _gi_cp = st.text_input("Código Postal",
                         value=_vg("Codigo_Postal"), key=f"gi_cp_{_slug_gi}")
-                if st.form_submit_button("💾 Guardar Contactos & Morada",
+                if st.form_submit_button("Guardar Contactos & Morada",
                                          use_container_width=True, type="primary"):
                     if _save_dual(nome_sel, {
                         "Email": _gi_email, "Morada": _gi_morada,
                         "Localidade": _gi_localidade, "Codigo_Postal": _gi_cp,
                     }, extra_usuarios={"Telefone": _gi_tel, "Concelho": _gi_concelho}):
-                        st.success("✅ Contactos & Morada guardados.")
+                        st.success("Contactos & Morada guardados.")
                         st.rerun()
                     else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 4. Bancários (fundida) ────────────────────────────────────
         # Banco_Nome e Banco_IBAN são dual-write (usuarios.csv fonte,
         # espelho em colaboradores_rh.csv). Os restantes campos de
         # remuneração ficam na secção "💰 Remuneração e Pagamento" abaixo.
-        with st.expander("🏦 Bancários"):
+        with st.expander("Bancários"):
             with st.form(f"gi_form_banco_{_slug_gi}"):
                 _gi_banco = st.text_input("Banco (Nome)",
                     value=_vg("Banco_Nome"), key=f"gi_banco_{_slug_gi}")
                 _gi_iban = st.text_input("IBAN",
                     value=_vg("Banco_IBAN"), key=f"gi_iban_{_slug_gi}")
-                if st.form_submit_button("💾 Guardar Dados Bancários",
+                if st.form_submit_button("Guardar Dados Bancários",
                                          use_container_width=True, type="primary"):
                     if _save_dual(nome_sel, {
                         "Banco_Nome": _gi_banco, "Banco_IBAN": _gi_iban,
                     }):
-                        st.success("✅ Dados bancários guardados.")
+                        st.success("Dados bancários guardados.")
                         st.rerun()
                     else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 5. Emergência ───────────────────────────────────────────
-        with st.expander("🆘 Emergência"):
+        with st.expander("Emergência"):
             with st.form(f"gi_form_emerg_{_slug_gi}"):
                 _gc1, _gc2, _gc3 = st.columns(3)
                 with _gc1:
@@ -1132,15 +1122,15 @@ def render_admin_rh(*args):
                 with _gc3:
                     _gi_grau_em = st.text_input("Grau de Parentesco",
                         value=_vg("Grau_Parentesco"), key=f"gi_grauem_{_slug_gi}")
-                if st.form_submit_button("💾 Guardar Emergência",
+                if st.form_submit_button("Guardar Emergência",
                                          use_container_width=True, type="primary"):
                     if _save_gi({"Nome_Emergencia": _gi_nome_em,
                                   "Contacto_Emergencia": _gi_tel_em,
                                   "Grau_Parentesco": _gi_grau_em}):
-                        st.success("✅ Dados de emergência guardados.")
+                        st.success("Dados de emergência guardados.")
                         st.rerun()
                     else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 6. Profissional (fundida) ─────────────────────────────────
         # Tipo/Cargo (Permissões APP), PrecoHora/Salario_Base e
@@ -1154,7 +1144,7 @@ def render_admin_rh(*args):
         def _vrh_prof(campo, default=""):
             return _row_rh_prof.get(campo, default)
 
-        with st.expander("💼 Profissional", expanded=True):
+        with st.expander("Profissional", expanded=True):
             st.markdown("**Permissões APP**")
             col_f1, col_f2 = st.columns(2)
             with col_f1:
@@ -1162,7 +1152,7 @@ def render_admin_rh(*args):
                                 "Gestor", "Secretariado"]
                 tipo_atual   = row.get("Tipo", "Técnico")
                 idx_tipo     = tipos_opcoes.index(tipo_atual) if tipo_atual in tipos_opcoes else 0
-                novo_tipo = st.selectbox("👤 Permissões APP (Tipo)",
+                novo_tipo = st.selectbox("Permissões APP (Tipo)",
                     tipos_opcoes, index=idx_tipo, key="rh_novo_tipo")
             with col_f2:
                 cargos_opcoes = ["Técnico", "Instrumentista", "Eletricista",
@@ -1170,9 +1160,9 @@ def render_admin_rh(*args):
                                  "Engenheiro", "QA/QC", "Admin", "Outro"]
                 cargo_atual   = row.get("Cargo", "")
                 idx_cargo     = cargos_opcoes.index(cargo_atual) if cargo_atual in cargos_opcoes else 0
-                novo_cargo = st.selectbox("🏷️ Permissões APP (Cargo)",
+                novo_cargo = st.selectbox("Permissões APP (Cargo)",
                     cargos_opcoes, index=idx_cargo, key="rh_novo_cargo")
-            if st.button("💾 Guardar Permissões APP",
+            if st.button("Guardar Permissões APP",
                          key="btn_guardar_funcao", type="primary"):
                 u_fn = _load_users_fresh()
                 mk_fn = u_fn["Nome"] == nome_sel
@@ -1188,7 +1178,7 @@ def render_admin_rh(*args):
                               tabela="usuarios.csv",
                               registro_id=nome_sel,
                               detalhes=f"Tipo={novo_tipo}, Cargo={novo_cargo}")
-                    st.success(f"✅ Permissões APP actualizadas: {novo_tipo} / {novo_cargo}")
+                    st.success(f"Permissões APP actualizadas: {novo_tipo} / {novo_cargo}")
                     st.rerun()
 
             st.markdown("---")
@@ -1248,7 +1238,7 @@ def render_admin_rh(*args):
                     _gi_ct_valid_data = st.text_input("Data Validação (DD/MM/AAAA)",
                         value=_vg("Contrato_Validado_Data"), key=f"gi_ctvaliddata_{_slug_gi}")
 
-                if st.form_submit_button("💾 Guardar Profissional",
+                if st.form_submit_button("Guardar Profissional",
                                          use_container_width=True, type="primary"):
                     if _save_gi({
                         "PrecoHora": _gi_preco, "Local_Obra": _gi_local,
@@ -1262,13 +1252,13 @@ def render_admin_rh(*args):
                     }) and _sync_rh_csv(nome_sel, {
                         "Salario_Base": _gi_salb, "Local_Trabalho": _gi_local_trab,
                     }):
-                        st.success("✅ Dados profissionais guardados.")
+                        st.success("Dados profissionais guardados.")
                         st.rerun()
                     else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── Estado do perfil (só leitura) ─────────────────────────
-        with st.expander("ℹ️ Estado do Perfil (só leitura)"):
+        with st.expander("Estado do Perfil (só leitura)"):
             _onboarding_campos = next(
                 (campos for secao, campos in CAMPOS_PERFIL if secao == "Onboarding"), []
             )
@@ -1276,30 +1266,30 @@ def render_admin_rh(*args):
             for i, campo in enumerate(_onboarding_campos):
                 valor = row.get(campo, '')
                 if campo.endswith('_b64'):
-                    valor = "✅ Ficheiro presente" if valor else "❌ Não submetido"
+                    valor = "Ficheiro presente" if valor else "Não submetido"
                 elif not valor:
                     valor = "—"
                 col_use = c_left if i % 2 == 0 else c_right
                 with col_use:
                     st.markdown(
-                        f"<p style='color:#94A3B8;font-size:0.72rem;"
+                        f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;"
                         f"margin:0;text-transform:uppercase;'>{campo}</p>"
-                        f"<p style='color:#F1F5F9;font-size:0.9rem;"
+                        f"<p style='color:{THEME['text']};font-size:0.9rem;"
                         f"font-weight:600;margin:0 0 10px;'>{valor}</p>",
                         unsafe_allow_html=True
                     )
 
         # ── Download Comprovativo IBAN ────────────────────────────
         st.markdown("---")
-        st.markdown("#### 🏦 Comprovativo IBAN")
+        st.markdown("#### Comprovativo IBAN")
         iban_b64 = row.get('IBAN_Comprovativo_b64', '')
         iban_data = row.get('IBAN_Data_Upload', '')
         if iban_b64:
-            st.success(f"✅ Comprovativo submetido em {iban_data}")
+            st.success(f"Comprovativo submetido em {iban_data}")
             try:
                 iban_bytes = base64.b64decode(iban_b64)
                 st.download_button(
-                    "📥 Descarregar Comprovativo IBAN",
+                    "Descarregar Comprovativo IBAN",
                     data=iban_bytes,
                     file_name=f"iban_{nome_sel.replace(' ','_')}.pdf",
                     mime="application/octet-stream",
@@ -1308,11 +1298,11 @@ def render_admin_rh(*args):
             except:
                 st.error("Erro ao processar o ficheiro IBAN.")
         else:
-            st.warning("⏳ Colaborador ainda não submeteu o comprovativo bancário.")
+            st.warning("Colaborador ainda não submeteu o comprovativo bancário.")
 
         # ── Bloquear/Desbloquear campos ───────────────────────────
         st.markdown("---")
-        st.markdown("#### 🔒 Campos Bloqueados")
+        st.markdown("#### Campos Bloqueados")
         try:
             campos_bl = json.loads(row.get('Campos_Bloqueados', '[]'))
         except:
@@ -1325,7 +1315,7 @@ def render_admin_rh(*args):
             todos_bloqueáveis, default=campos_bl,
             key="rh_campos_bl"
         )
-        if st.button("💾 Guardar Bloqueios",
+        if st.button("Guardar Bloqueios",
                       key="btn_guardar_bloqueios"):
             u_fresh = _load_users_fresh()
             mask    = u_fresh['Nome'] == nome_sel
@@ -1335,27 +1325,27 @@ def render_admin_rh(*args):
                 inv("usuarios.csv")
                 from core import _cached_load_all
                 _cached_load_all.clear()
-                st.success("✅ Campos bloqueados atualizados.")
+                st.success("Campos bloqueados atualizados.")
                 st.rerun()
 
         # ── Redefinir Password ─────────────────────────────────────
         # Permissões APP (Tipo/Cargo) mudaram para a secção "💼 Profissional"
         # acima, lado a lado com PrecoHora/Local_Obra.
         st.markdown("---")
-        with st.expander("🔐 Redefinir Password"):
+        with st.expander("Redefinir Password"):
             nova_pwd_admin = st.text_input(
                 "Nova Password *", type="password", key="rh_nova_pwd_admin",
                 placeholder="Mínimo 4 caracteres")
             conf_pwd_admin = st.text_input(
                 "Confirmar Password *", type="password", key="rh_conf_pwd_admin")
-            if st.button("🔐 Redefinir Password", key="btn_redef_pwd",
+            if st.button("Redefinir Password", key="btn_redef_pwd",
                          type="primary"):
                 if not nova_pwd_admin.strip():
-                    st.error("⚠️ Introduz uma nova password.")
+                    st.error("Introduz uma nova password.")
                 elif len(nova_pwd_admin.strip()) < 4:
-                    st.error("⚠️ Mínimo 4 caracteres.")
+                    st.error("Mínimo 4 caracteres.")
                 elif nova_pwd_admin != conf_pwd_admin:
-                    st.error("⚠️ As passwords não coincidem.")
+                    st.error("As passwords não coincidem.")
                 else:
                     u_pw = _load_users_fresh()
                     mk_pw = u_pw["Nome"] == nome_sel
@@ -1370,18 +1360,18 @@ def render_admin_rh(*args):
                                   tabela="usuarios.csv",
                                   registro_id=nome_sel,
                                   detalhes="Password redefinida pelo Admin")
-                        st.success(f"✅ Password de {nome_sel} redefinida.")
+                        st.success(f"Password de {nome_sel} redefinida.")
                         st.rerun()
 
         # ── Remover ou Lista Negra ────────────────────────────────
         st.markdown("---")
-        st.markdown("#### 🚫 Remover Colaborador")
+        st.markdown("#### Remover Colaborador")
 
         st.markdown(
-            "<div style='background:rgba(239,68,68,0.08);border-radius:10px;"
-            "padding:12px 16px;border-left:3px solid #EF4444;margin-bottom:12px;'>"
-            "<p style='color:#FCA5A5;font-size:0.82rem;margin:0;'>"
-            "⚠️ <b>Atenção:</b> Estas acções são permanentes ou têm impacto "
+            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
+            f"padding:12px 16px;border-left:3px solid {THEME['error']};margin-bottom:12px;'>"
+            f"<p style='color:{THEME['error']};font-size:0.82rem;margin:0;'>"
+            "<b>Atenção:</b> Estas acções são permanentes ou têm impacto "
             "no acesso do colaborador à plataforma.</p></div>",
             unsafe_allow_html=True
         )
@@ -1390,19 +1380,19 @@ def render_admin_rh(*args):
 
         with col_rm1:
             st.markdown(
-                "<p style='color:#F1F5F9;font-weight:700;margin:0 0 6px;'>"
-                "🗑️ Remover Permanentemente</p>"
-                "<p style='color:#64748B;font-size:0.78rem;'>"
+                f"<p style='color:{THEME['text']};font-weight:700;margin:0 0 6px;'>"
+                "Remover Permanentemente</p>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.78rem;'>"
                 "Apaga o colaborador de forma definitiva. "
                 "Registos de horas são mantidos.</p>",
                 unsafe_allow_html=True)
             confirmar_rm = st.text_input(
                 f"Escreve '{nome_sel}' para confirmar",
                 key="rh_confirm_rm", placeholder="Nome completo")
-            if st.button("🗑️ Remover Definitivamente",
+            if st.button("Remover Definitivamente",
                          key="btn_remover_def"):
                 if confirmar_rm.strip() != nome_sel:
-                    st.error("⚠️ Nome não coincide. Operação cancelada.")
+                    st.error("Nome não coincide. Operação cancelada.")
                 else:
                     u_rm = _load_users_fresh()
                     _row_rm = u_rm[u_rm["Nome"] == nome_sel]
@@ -1439,15 +1429,15 @@ def render_admin_rh(*args):
                               tabela="usuarios.csv",
                               registro_id=nome_sel,
                               detalhes="Removido permanentemente pelo Admin")
-                    st.success(f"✅ {nome_sel} removido da plataforma.")
+                    st.success(f"{nome_sel} removido da plataforma.")
                     st.session_state.pop("rh_colaborador_sel", None)
                     st.rerun()
 
         with col_rm2:
             st.markdown(
-                "<p style='color:#F1F5F9;font-weight:700;margin:0 0 6px;'>"
-                "⛔ Adicionar à Lista Negra</p>"
-                "<p style='color:#64748B;font-size:0.78rem;'>"
+                f"<p style='color:{THEME['text']};font-weight:700;margin:0 0 6px;'>"
+                "Adicionar à Lista Negra</p>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.78rem;'>"
                 "Bloqueia o acesso mas mantém o registo. "
                 "Fica vísivel na Lista Negra com observações.</p>",
                 unsafe_allow_html=True)
@@ -1455,10 +1445,10 @@ def render_admin_rh(*args):
                 "Motivo / Observações *",
                 key="rh_obs_ln", height=68,
                 placeholder="Ex: Abandono de posto, comportamento inadequado...")
-            if st.button("⛔ Enviar para Lista Negra",
+            if st.button("Enviar para Lista Negra",
                          key="btn_lista_negra"):
                 if not obs_ln.strip():
-                    st.error("⚠️ Indica o motivo.")
+                    st.error("Indica o motivo.")
                 else:
                     # 1. Bloquear utilizador (Tipo → Bloqueado)
                     u_ln = _load_users_fresh()
@@ -1479,7 +1469,7 @@ def render_admin_rh(*args):
                             tabela="usuarios.csv",
                             registro_id=nome_sel,
                             detalhes=f"Lista negra: {obs_ln[:100]}")
-                        st.success(f"⛔ {nome_sel} adicionado à lista negra.")
+                        st.success(f"{nome_sel} adicionado à lista negra.")
                         st.rerun()
 
         # ── Ver Lista Negra ───────────────────────────────────────
@@ -1490,7 +1480,7 @@ def render_admin_rh(*args):
         ] if not u_all_ln.empty and "Lista_Negra" in u_all_ln.columns else pd.DataFrame()
 
         if not ln_users.empty:
-            with st.expander(f"📋 Lista Negra ({len(ln_users)} colaborador(es))",
+            with st.expander(f"Lista Negra ({len(ln_users)} colaborador(es))",
                              expanded=False):
                 for _, ln_row in ln_users.iterrows():
                     ln_nome = ln_row.get("Nome","")
@@ -1498,23 +1488,23 @@ def render_admin_rh(*args):
                     ln_por  = ln_row.get("Lista_Negra_Por","")
                     ln_obs  = ln_row.get("Lista_Negra_Obs","")
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:8px;"
-                        f"border-left:4px solid #EF4444;'>"
+                        f"border-left:4px solid {THEME['error']};'>"
                         f"<div style='display:flex;justify-content:space-between;"
                         f"align-items:flex-start;'>"
                         f"<div>"
-                        f"<p style='color:#F1F5F9;font-weight:700;margin:0;'>"
-                        f"⛔ {ln_nome}</p>"
-                        f"<p style='color:#64748B;font-size:0.75rem;margin:2px 0;'>"
+                        f"<p style='color:{THEME['text']};font-weight:700;margin:0;'>"
+                        f"{ln_nome}</p>"
+                        f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:2px 0;'>"
                         f"Adicionado por {ln_por} em {ln_data}</p>"
-                        f"<p style='color:#94A3B8;font-size:0.8rem;margin:4px 0 0;'>"
+                        f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;margin:4px 0 0;'>"
                         f"{ln_obs}</p>"
                         f"</div></div></div>",
                         unsafe_allow_html=True
                     )
                     # Opção de reactivar
-                    if st.button(f"🔓 Reactivar {ln_nome}",
+                    if st.button(f"Reactivar {ln_nome}",
                                  key=f"btn_reactivar_{ln_nome}"):
                         u_ra = _load_users_fresh()
                         mk_ra = u_ra["Nome"] == ln_nome
@@ -1534,7 +1524,7 @@ def render_admin_rh(*args):
                                 tabela="usuarios.csv",
                                 registro_id=ln_nome,
                                 detalhes="Reactivado da lista negra")
-                            st.success(f"✅ {ln_nome} reactivado.")
+                            st.success(f"{ln_nome} reactivado.")
                             st.rerun()
 
     # ────────────────────────────────────────────────────────────────
@@ -1542,7 +1532,7 @@ def render_admin_rh(*args):
     # ────────────────────────────────────────────────────────────────
     with tab_gestao:
         st.markdown("---")
-        st.markdown("### 📋 Dados Legais e Fiscais")
+        st.markdown("### Dados Legais e Fiscais")
 
         # Mesmo colaborador selecionado acima (ficha unificada) — sem
         # seletor próprio para Dados Legais.
@@ -1596,7 +1586,7 @@ def render_admin_rh(*args):
         # NIF/NISS/CC/CC_Validade/Nacionalidade/Estado_Civil são dual-write
         # (usuarios.csv fonte, espelho em colaboradores_rh.csv). DataNasc é
         # "lado a lado": dois registos independentes, sem sincronização.
-        with st.expander("🪪 Documentos e Identificação Legal", expanded=True):
+        with st.expander("Documentos e Identificação Legal", expanded=True):
             with st.form(f"dl_form_ident_{_slug}"):
                 _c1, _c2, _c3 = st.columns(3)
                 with _c1:
@@ -1635,7 +1625,7 @@ def render_admin_rh(*args):
                     _n_dep = st.text_input("Nº Dependentes", value=_v("N_Dependentes"), key=f"dl_ndep_{_slug}")
                     _n_dep_def = st.text_input("Nº Dependentes c/ Deficiência",
                         value=_v("N_Dependentes_Deficiencia"), key=f"dl_ndepdef_{_slug}")
-                if st.form_submit_button("💾 Guardar Identificação",
+                if st.form_submit_button("Guardar Identificação",
                                          use_container_width=True, type="primary"):
                     if _save_dual(_nome_dl, {
                         "NIF": _nif, "NISS": _niss, "CC": _cc, "CC_Validade": _ccval,
@@ -1648,13 +1638,13 @@ def render_admin_rh(*args):
                         "N_Dependentes": _n_dep,
                         "N_Dependentes_Deficiencia": _n_dep_def,
                     }):
-                        st.success("✅ Identificação guardada.")
+                        st.success("Identificação guardada.")
                         st.rerun()
                     else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 2. Dados Fiscais ──────────────────────────────────
-        with st.expander("🏦 Dados Fiscais"):
+        with st.expander("Dados Fiscais"):
             with st.form(f"dl_form_fiscal_{_slug}"):
                 _c1, _c2, _c3 = st.columns(3)
                 with _c1:
@@ -1681,7 +1671,7 @@ def render_admin_rh(*args):
                     _ess_opts, _ess_idx = _sel_opts(ENQUADRAMENTO_SS_OPTS, _v("Enquadramento_SS"))
                     _enq_ss = st.selectbox("Enquadramento SS", _ess_opts,
                         index=_ess_idx, key=f"dl_enqss_{_slug}")
-                if st.form_submit_button("💾 Guardar Dados Fiscais",
+                if st.form_submit_button("Guardar Dados Fiscais",
                                          use_container_width=True, type="primary"):
                     if _sync_rh_csv(_nome_dl, {
                         "IRS_Escalao": _irs_esc, "IRS_Percentagem": _irs_pct,
@@ -1690,13 +1680,13 @@ def render_admin_rh(*args):
                         "Estado_Fiscal": _est_fiscal, "Medida_Fiscal": _med_fiscal,
                         "Enquadramento_SS": _enq_ss,
                     }):
-                        st.success("✅ Dados fiscais guardados.")
+                        st.success("Dados fiscais guardados.")
                         st.rerun()
                     else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 3. Dados Contratuais ──────────────────────────────
-        with st.expander("📄 Dados Contratuais"):
+        with st.expander("Dados Contratuais"):
             with st.form(f"dl_form_contrato_{_slug}"):
                 _c1, _c2, _c3 = st.columns(3)
                 with _c1:
@@ -1759,7 +1749,7 @@ def render_admin_rh(*args):
                     _data_sai = st.text_input("Data Saída (DD/MM/AAAA)",
                         value=_v("Data_Saida"), key=f"dl_datasai_{_slug}")
 
-                if st.form_submit_button("💾 Guardar Dados Contratuais",
+                if st.form_submit_button("Guardar Dados Contratuais",
                                          use_container_width=True, type="primary"):
                     if _sync_rh_csv(_nome_dl, {
                         "Tipo_Contrato": _tp_ct, "Modalidade_Horario": _mod_hr,
@@ -1773,15 +1763,15 @@ def render_admin_rh(*args):
                         "Motivo_Entrada": _mot_ent, "Motivo_Saida": _mot_sai,
                         "Data_Saida": _data_sai,
                     }):
-                        st.success("✅ Dados contratuais guardados.")
+                        st.success("Dados contratuais guardados.")
                         st.rerun()
                     else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 4. Remuneração e Pagamento ────────────────────────
         # Salário Base fica na secção "💼 Profissional" (lado a lado com
         # PrecoHora); os restantes campos de remuneração mantêm-se aqui.
-        with st.expander("💰 Remuneração e Pagamento"):
+        with st.expander("Remuneração e Pagamento"):
             with st.form(f"dl_form_rem_{_slug}"):
                 _c1, _c2, _c3 = st.columns(3)
                 with _c1:
@@ -1830,7 +1820,7 @@ def render_admin_rh(*args):
                               if _v("Pensionista") in ["","Sim","Não"] else 0,
                         key=f"dl_pensionista_{_slug}")
 
-                if st.form_submit_button("💾 Guardar Remuneração",
+                if st.form_submit_button("Guardar Remuneração",
                                          use_container_width=True, type="primary"):
                     if _sync_rh_csv(_nome_dl, {
                         "Subsidio_Alimentacao": _sub_al,
@@ -1843,13 +1833,13 @@ def render_admin_rh(*args):
                         "Regime_Reforma": _reg_reforma,
                         "Pensionista": _pensionista,
                     }):
-                        st.success("✅ Remuneração guardada.")
+                        st.success("Remuneração guardada.")
                         st.rerun()
                     else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 5. Profissional / Relatório Único ─────────────────
-        with st.expander("📊 Profissional & Relatório Único"):
+        with st.expander("Profissional & Relatório Único"):
             # Função / Categoria Operacional — fonte única em usuarios.csv,
             # sincronizada com Obras › Alocações. Fora do form: o
             # "➕ Novo..." precisa de rerun ao mudar o selectbox.
@@ -1871,20 +1861,20 @@ def render_admin_rh(*args):
                     valor_atual=_fc_c_atual,
                     em_uso=_u_dl["Categoria_Operacional"]
                            if "Categoria_Operacional" in _u_dl.columns else [])
-            if st.button("💾 Guardar Função/Categoria Operacional",
+            if st.button("Guardar Função/Categoria Operacional",
                          key=f"dl_fc_save_{_slug}", type="primary"):
                 if (_fc_f_novo and not _fc_f) or (_fc_c_novo and not _fc_c):
-                    st.error("⚠️ Introduz o novo valor antes de guardar.")
+                    st.error("Introduz o novo valor antes de guardar.")
                 else:
                     if _fc_f_novo:
                         _fc_f = registar_valor_lista_rh("funcao", _fc_f)
                     if _fc_c_novo:
                         _fc_c = registar_valor_lista_rh("categoria_operacional", _fc_c)
                     if set_funcao_categoria(_nome_dl, funcao=_fc_f, categoria=_fc_c):
-                        st.success("✅ Função/Categoria Operacional guardadas.")
+                        st.success("Função/Categoria Operacional guardadas.")
                         st.rerun()
                     else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
             st.markdown("---")
             with st.form(f"dl_form_prof_{_slug}"):
                 _c1, _c2 = st.columns(2)
@@ -1957,7 +1947,7 @@ def render_admin_rh(*args):
                     _apol_at = st.text_input("Apólice AT",
                         value=_v("Apolice_AT"), key=f"dl_apolat_{_slug}")
 
-                if st.form_submit_button("💾 Guardar Dados Profissionais",
+                if st.form_submit_button("Guardar Dados Profissionais",
                                          use_container_width=True, type="primary"):
                     _profissao_code = _profissao.split(" – ")[0] if " – " in _profissao else _profissao
                     _cat_cct_code   = _cat_cct.split(" – ")[0]   if " – " in _cat_cct   else _cat_cct
@@ -1975,13 +1965,13 @@ def render_admin_rh(*args):
                         "Tipo_Doc_ID": _tipo_doc_id,
                         "Seguradora_AT": _seg_at, "Apolice_AT": _apol_at,
                     }):
-                        st.success("✅ Dados profissionais guardados.")
+                        st.success("Dados profissionais guardados.")
                         st.rerun()
                     else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 6. Condução e Documentos ──────────────────────────
-        with st.expander("🚗 Condução e Documentos"):
+        with st.expander("Condução e Documentos"):
             with st.form(f"dl_form_conducao_{_slug}"):
                 _c1, _c2 = st.columns(2)
                 with _c1:
@@ -1999,20 +1989,20 @@ def render_admin_rh(*args):
                         key=f"dl_regassinado_{_slug}")
                     _reg_data = st.text_input("Data Assinatura Regulamento (DD/MM/AAAA)",
                         value=_v("Regulamento_Data"), key=f"dl_regdata_{_slug}")
-                if st.form_submit_button("💾 Guardar Condução e Documentos",
+                if st.form_submit_button("Guardar Condução e Documentos",
                                          use_container_width=True, type="primary"):
                     if _sync_rh_csv(_nome_dl, {
                         "Carta_Conducao_Num": _carta_num, "Carta_Conducao_Validade": _carta_val,
                         "Carta_Conducao_Categoria": _carta_cat,
                         "Regulamento_Assinado": _reg_assinado, "Regulamento_Data": _reg_data,
                     }):
-                        st.success("✅ Dados de condução guardados.")
+                        st.success("Dados de condução guardados.")
                         st.rerun()
                     else:
-                        st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── 7. Importador Funções/Categorias (W5) ─────────────
-        with st.expander("📥 Importar Funções/Categorias (CSV)"):
+        with st.expander("Importar Funções/Categorias (CSV)"):
             st.info(
                 "Ficheiro com colunas **`Funçao;Categoria;NIF`** "
                 "(separador `;`, UTF-8 com BOM). Match exclusivamente por "
@@ -2029,7 +2019,7 @@ def render_admin_rh(*args):
                     _fc_imp = pd.read_csv(_fc_file, dtype=str, sep=";",
                                           encoding="utf-8-sig").fillna("")
                 except Exception as _e:
-                    st.error(f"❌ Erro ao ler o ficheiro: {_e}")
+                    st.error(f"Erro ao ler o ficheiro: {_e}")
                 if _fc_imp is not None:
                     _fc_imp.columns = [c.strip() for c in _fc_imp.columns]
                     _fc_cols = {}
@@ -2040,11 +2030,11 @@ def render_admin_rh(*args):
                         if _cn in ("funcao", "categoria", "nif"):
                             _fc_cols[_cn] = _c
                     if len(_fc_cols) < 3:
-                        st.error("❌ Formato inválido — esperadas as colunas "
+                        st.error("Formato inválido — esperadas as colunas "
                                  "`Funçao;Categoria;NIF`.")
                     else:
                         st.markdown(f"**{len(_fc_imp)}** linha(s) no ficheiro.")
-                        if st.button("📥 Importar", key="dl_fc_import_btn",
+                        if st.button("Importar", key="dl_fc_import_btn",
                                      type="primary"):
                             _VAZIOS_FC = {"", "#n/a", "#n/d", "n/a", "#na", "#ref!"}
                             _u_imp = _load_users_fresh()
@@ -2095,22 +2085,22 @@ def render_admin_rh(*args):
                                               f"{len(_sem_match)} sem match; "
                                               f"{_n_ignorados} campos ignorados"))
                                 st.success(
-                                    f"✅ Importação concluída: **{_n_colab}** "
+                                    f"Importação concluída: **{_n_colab}** "
                                     f"colaborador(es) actualizado(s) · "
                                     f"**{len(_sem_match)}** NIF(s) sem match · "
                                     f"**{_n_ignorados}** campo(s) ignorado(s) "
                                     f"por estarem vazios no ficheiro.")
                                 if _sem_match:
-                                    st.warning("⚠️ NIFs sem match (não criados): "
+                                    st.warning("NIFs sem match (não criados): "
                                                + ", ".join(_sem_match))
                             else:
-                                st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                                st.error("Erro ao guardar — verifica ligação ao GCS")
 
     # ════════════════════════════════════════════════════════════════
     # TAB 3 — IMPORTAR ETICADATA
     # ════════════════════════════════════════════════════════════════
     with tab_eticadata:
-        st.markdown("### 📥 Importar Lista de Trabalhadores (Eticadata)")
+        st.markdown("### Importar Lista de Trabalhadores (Eticadata)")
         st.info(
             "Exporta do Eticadata o ficheiro **`Lista_Trabalhadores.csv`** "
             "(separador `;`, codificação UTF-8 com BOM) e faz upload aqui. "
@@ -2120,7 +2110,7 @@ def render_admin_rh(*args):
 
         # ── Migração de schema (Parte 0) ──────────────────────────
         if st.session_state.get('tipo') == 'Admin':
-            with st.expander("🔧 Migrar schema colaboradores_rh.csv"):
+            with st.expander("Migrar schema colaboradores_rh.csv"):
                 _DUPLICADOS_MIGRACAO = {
                     "Categoria_Profissional_Cod":  "Categoria_CCT",
                     "Categoria_Profissional_Desc": "Categoria_CCT",
@@ -2135,10 +2125,10 @@ def render_admin_rh(*args):
                 _cols_dup_presentes = [c for c in _DUPLICADOS_MIGRACAO if c in _df_mig.columns]
 
                 if not _cols_dup_presentes:
-                    st.success("✅ Schema já migrado.")
+                    st.success("Schema já migrado.")
                 else:
                     st.warning(
-                        f"⚠️ Encontradas {len(_cols_dup_presentes)} coluna(s) "
+                        f"Encontradas {len(_cols_dup_presentes)} coluna(s) "
                         f"duplicada(s): {', '.join(_cols_dup_presentes)}"
                     )
                     _relatorio_mig = []
@@ -2160,7 +2150,7 @@ def render_admin_rh(*args):
                     for _l in _relatorio_mig:
                         st.markdown(_l)
 
-                    if st.button("✅ Aplicar migração", key="btn_migrar_schema",
+                    if st.button("Aplicar migração", key="btn_migrar_schema",
                                   type="primary"):
                         for _dup, _canon in _DUPLICADOS_MIGRACAO.items():
                             if _dup not in _df_mig.columns:
@@ -2188,10 +2178,10 @@ def render_admin_rh(*args):
                                 detalhes=f"Colunas migradas: {', '.join(_cols_dup_presentes)}",
                                 ip=""
                             )
-                            st.success("✅ Migração aplicada com sucesso.")
+                            st.success("Migração aplicada com sucesso.")
                             st.rerun()
                         else:
-                            st.error("❌ Erro ao guardar — verifica ligação ao GCS")
+                            st.error("Erro ao guardar — verifica ligação ao GCS")
 
         # ── Tabelas de conversão de valores Eticadata ─────────────
         _E_SEXO = {"0": "Masculino", "1": "Feminino"}
@@ -2322,25 +2312,25 @@ def render_admin_rh(*args):
                     _eti_raw[_ec] = _eti_raw[_ec].str.strip()
                 st.session_state['eticadata_df'] = _eti_raw
             except Exception as _e:
-                st.error(f"❌ Erro ao ler o ficheiro: {_e}")
+                st.error(f"Erro ao ler o ficheiro: {_e}")
 
         if 'eticadata_result' in st.session_state:
             _res = st.session_state['eticadata_result']
             st.success(
-                f"✅ Importação concluída! "
+                f"Importação concluída! "
                 f"**{_res['n_act']}** actualizados, "
                 f"**{_res['n_new']}** novos criados, "
                 f"**{_res['n_campos']}** campos preenchidos."
             )
             if _res.get('novos'):
-                st.markdown("#### 🆕 Passwords geradas — guardar agora!")
+                st.markdown("#### Passwords geradas — guardar agora!")
                 st.warning(
-                    "⚠️ Estas passwords só são mostradas uma vez. "
+                    "Estas passwords só são mostradas uma vez. "
                     "Comunica-as aos colaboradores antes de fechar."
                 )
                 for _nc in _res['novos']:
                     st.markdown(f"- **{_nc['Nome']}** → `{_nc['Password']}`")
-            if st.button("✓ Já guardei — fechar relatório",
+            if st.button("Já guardei — fechar relatório",
                          key="imp_fechar_relatorio"):
                 del st.session_state['eticadata_result']
                 st.rerun()
@@ -2366,20 +2356,20 @@ def render_admin_rh(*args):
 
             _ecol_h, _ecol_btn = st.columns([5, 1])
             with _ecol_h:
-                st.success(f"✅ Ficheiro carregado: **{len(_eti_df)}** registos, "
+                st.success(f"Ficheiro carregado: **{len(_eti_df)}** registos, "
                            f"**{len(_eti_df.columns)}** colunas.")
             with _ecol_btn:
-                if st.button("🗑️ Limpar", key="imp_limpar"):
+                if st.button("Limpar", key="imp_limpar"):
                     del st.session_state['eticadata_df']
                     st.session_state['eti_upload_key'] = st.session_state.get('eti_upload_key', 0) + 1
                     st.rerun()
 
-            with st.expander("👁️ CSV original (primeiras 5 linhas)"):
+            with st.expander("CSV original (primeiras 5 linhas)"):
                 st.dataframe(_eti_df.head(), use_container_width=True)
 
             if _nome_col_eti is None:
                 st.error(
-                    "❌ Coluna 'Nome' não encontrada no CSV. "
+                    "Coluna 'Nome' não encontrada no CSV. "
                     f"Colunas disponíveis: `{'`, `'.join(_eti_df.columns.tolist())}`"
                 )
             else:
@@ -2452,7 +2442,7 @@ def render_admin_rh(*args):
                     _rh_p, _, _, _ = _etica_map_row(_er)
                     _ng  = _find_match_full(_nem, _rh_p)
                     _prev_rows.append({
-                        "Status":         "✅ Match" if _ng else "⚠️ Sem match",
+                        "Status":         "Match" if _ng else "Sem match",
                         "Nome Eticadata": _nem,
                         "Nome GestNow":   _ng or "—",
                         "Salário Base":   _rh_p.get("Salario_Base", ""),
@@ -2463,31 +2453,31 @@ def render_admin_rh(*args):
                     })
 
                 _prev_df   = pd.DataFrame(_prev_rows)
-                _n_match   = int((_prev_df["Status"] == "✅ Match").sum())
-                _n_nomatch = int((_prev_df["Status"] == "⚠️ Sem match").sum())
+                _n_match   = int((_prev_df["Status"] == "Match").sum())
+                _n_nomatch = int((_prev_df["Status"] == "Sem match").sum())
 
                 _mc1, _mc2 = st.columns(2)
-                _mc1.metric("✅ Com match", _n_match)
-                _mc2.metric("⚠️ Sem match", _n_nomatch)
+                _mc1.metric("Com match", _n_match)
+                _mc2.metric("Sem match", _n_nomatch)
 
-                st.markdown("#### 📋 Pré-visualização — todos os colaboradores")
+                st.markdown("#### Pré-visualização — todos os colaboradores")
                 st.dataframe(_prev_df, use_container_width=True, height=400)
 
                 if _n_nomatch > 0:
-                    with st.expander(f"🆕 {_n_nomatch} sem match — serão criados como novos"):
+                    with st.expander(f"{_n_nomatch} sem match — serão criados como novos"):
                         for _sn in _prev_df[
-                            _prev_df["Status"] == "⚠️ Sem match"
+                            _prev_df["Status"] == "Sem match"
                         ]["Nome Eticadata"].tolist():
                             st.markdown(f"- `{_sn}`")
 
                 st.markdown("---")
 
                 _btn_label = (
-                    f"🚀 Importar: {_n_match} actualiz."
+                    f"Importar: {_n_match} actualiz."
                     + (f" + {_n_nomatch} novos" if _n_nomatch else "")
                 )
                 if _n_match == 0 and _n_nomatch == 0:
-                    st.warning("⚠️ Nenhum registo encontrado no CSV.")
+                    st.warning("Nenhum registo encontrado no CSV.")
                 else:
                     if st.button(
                         _btn_label,
@@ -2668,13 +2658,13 @@ def render_admin_rh(*args):
 
                         _ok_rh = save_db(_df_rh, "colaboradores_rh.csv", permitir_reducao=True)
                         if not _ok_rh:
-                            st.error("❌ Erro ao guardar colaboradores_rh.csv — "
+                            st.error("Erro ao guardar colaboradores_rh.csv — "
                                      "verifica ligação ao GCS")
                             st.stop()
 
                         _ok_users = save_db(_df_users, "usuarios.csv")
                         if not _ok_users:
-                            st.error("❌ Erro ao guardar usuarios.csv — "
+                            st.error("Erro ao guardar usuarios.csv — "
                                      "verifica ligação ao GCS")
                             st.stop()
 
@@ -2730,22 +2720,22 @@ def render_admin_rh(*args):
         ct_validado  = row_ct.get('Contrato_Validado_Admin','') == 'Sim'
 
         passos_ct = [
-            ("📄 Gerado",    ct_gerado,   row_ct.get('Contrato_Data','')),
-            ("📤 Enviado",   ct_enviado,  row_ct.get('Contrato_Enviado_Data','')),
-            ("✍️ Assinado",  ct_assinado, row_ct.get('Contrato_Assinatura_Data','')),
-            ("✅ Validado",  ct_validado, row_ct.get('Contrato_Validado_Data','')),
+            ("Gerado",    ct_gerado,   row_ct.get('Contrato_Data','')),
+            ("Enviado",   ct_enviado,  row_ct.get('Contrato_Enviado_Data','')),
+            ("Assinado",  ct_assinado, row_ct.get('Contrato_Assinatura_Data','')),
+            ("Validado",  ct_validado, row_ct.get('Contrato_Validado_Data','')),
         ]
 
         col_ps = st.columns(4)
         for col_p, (label, feito, data_p) in zip(col_ps, passos_ct):
             with col_p:
-                cor_p = "#10B981" if feito else "#334155"
+                cor_p = THEME['success'] if feito else THEME['text_secondary']
                 st.markdown(
-                    f"<div style='background:{cor_p}22;border:2px solid {cor_p};"
+                    f"<div style='background:{THEME['surface']};border:2px solid {cor_p};"
                     f"border-radius:10px;padding:10px;text-align:center;'>"
                     f"<p style='color:{cor_p};font-weight:700;"
                     f"font-size:0.8rem;margin:0;'>{label}</p>"
-                    f"<p style='color:#64748B;font-size:0.68rem;margin:3px 0 0;'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;margin:3px 0 0;'>"
                     f"{data_p or '—'}</p>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -2760,7 +2750,7 @@ def render_admin_rh(*args):
 
         if dados_em_falta:
             st.warning(
-                f"⚠️ Perfil incompleto para gerar contrato. "
+                f"Perfil incompleto para gerar contrato. "
                 f"Em falta: **{', '.join(dados_em_falta)}**"
             )
 
@@ -2769,10 +2759,10 @@ def render_admin_rh(*args):
             template_ok = _gcs_read_binary("contrato_template.docx") is not None
 
             if not template_ok:
-                st.error("❌ Template do contrato não encontrado. "
-                         "Faz upload do template no separador '⚙️ Templates'.")
+                st.error("Template do contrato não encontrado. "
+                         "Faz upload do template no separador 'Templates'.")
             else:
-                st.markdown("#### 📄 Gerar Contrato")
+                st.markdown("#### Gerar Contrato")
                 st.info(
                     "Os dados pessoais são preenchidos automaticamente "
                     "a partir do perfil do colaborador."
@@ -2800,10 +2790,10 @@ def render_admin_rh(*args):
                             value=date.today(), key="ct_data_doc"
                         )
 
-                    if st.form_submit_button("📄 Gerar Contrato",
+                    if st.form_submit_button("Gerar Contrato",
                         use_container_width=True, type="primary"):
                         if not ct_local or not ct_cliente:
-                            st.error("❌ Local e Cliente são obrigatórios.")
+                            st.error("Local e Cliente são obrigatórios.")
                         else:
                             if ct_cliente_novo:
                                 registar_cliente_do_select(ct_cliente, "ct_cliente")
@@ -2851,21 +2841,21 @@ def render_admin_rh(*args):
                                         detalhes=f"Contrato gerado para {nome_ct_sel}",
                                         ip=""
                                     )
-                                    st.success("✅ Contrato gerado com sucesso!")
+                                    st.success("Contrato gerado com sucesso!")
                                     st.rerun()
                             else:
-                                st.error("❌ Erro ao gerar contrato. "
+                                st.error("Erro ao gerar contrato. "
                                          "Verifica o template.")
 
         # ── PASSO 2: Download + Enviar ao colaborador ─────────────
         if ct_gerado and not ct_enviado:
-            st.markdown("#### 📤 Rever e Enviar ao Colaborador")
+            st.markdown("#### Rever e Enviar ao Colaborador")
             ct_b64 = row_ct.get('Contrato_b64','')
             if ct_b64:
                 try:
                     ct_bytes = base64.b64decode(ct_b64)
                     st.download_button(
-                        "📥 Descarregar contrato para rever",
+                        "Descarregar contrato para rever",
                         data=ct_bytes,
                         file_name=f"contrato_{nome_ct_sel.replace(' ','_')}.docx",
                         mime="application/vnd.openxmlformats-officedocument"
@@ -2876,14 +2866,14 @@ def render_admin_rh(*args):
                     st.error("Erro ao processar o contrato.")
                     
              # ── Re-upload do contrato editado ─────────────────
-                st.markdown("##### 📤 Substituir contrato (versão editada)")
+                st.markdown("##### Substituir contrato (versão editada)")
                 ct_novo = st.file_uploader(
                     "Upload do contrato editado (.docx ou .pdf)",
                     type=["docx","pdf"],
                     key="ct_reupload"
                 )
                 if ct_novo:
-                    if st.button("💾 Guardar versão editada",
+                    if st.button("Guardar versão editada",
                                   key="btn_guardar_ct_editado",
                                   use_container_width=True):
                         novo_b64 = base64.b64encode(ct_novo.read()).decode()
@@ -2895,14 +2885,14 @@ def render_admin_rh(*args):
                             inv("usuarios.csv")
                             from core import _cached_load_all
                             _cached_load_all.clear()
-                            st.success("✅ Contrato atualizado com a versão editada!")
+                            st.success("Contrato atualizado com a versão editada!")
                             st.rerun()
 
                 st.markdown("---")       
 
             col_env1, col_env2 = st.columns(2)
             with col_env1:
-                if st.button("📤 Marcar como Enviado ao Colaborador",
+                if st.button("Marcar como Enviado ao Colaborador",
                               key="btn_enviar_ct", type="primary",
                               use_container_width=True):
                     u_ct2 = _load_users_fresh()
@@ -2914,7 +2904,7 @@ def render_admin_rh(*args):
                         save_db(u_ct2, "usuarios.csv")
                         criar_notificacao(
                             destinatario=nome_ct_sel,
-                            titulo="📄 Contrato disponível",
+                            titulo="Contrato disponível",
                             mensagem="O teu contrato de trabalho está disponível "
                                      "para assinar. Acede ao teu Perfil para descarregar.",
                             tipo="info",
@@ -2923,10 +2913,10 @@ def render_admin_rh(*args):
                         inv("usuarios.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
-                        st.success("✅ Colaborador notificado!")
+                        st.success("Colaborador notificado!")
                         st.rerun()
             with col_env2:
-                if st.button("🔄 Regenerar Contrato",
+                if st.button("Regenerar Contrato",
                               key="btn_regen_ct",
                               use_container_width=True):
                     u_ct2 = _load_users_fresh()
@@ -2945,19 +2935,19 @@ def render_admin_rh(*args):
         # ── PASSO 3: Aguarda assinatura do colaborador ────────────
         if ct_enviado and not ct_assinado:
             st.info(
-                "⏳ **Aguarda assinatura** — O colaborador recebeu o contrato "
+                "**Aguarda assinatura** — O colaborador recebeu o contrato "
                 "e deve assinar fisicamente, fotografar e fazer upload na app."
             )
 
         # ── PASSO 4: Validar assinatura ───────────────────────────
         if ct_assinado and not ct_validado:
-            st.markdown("#### ✅ Validar Assinatura do Colaborador")
+            st.markdown("#### Validar Assinatura do Colaborador")
             assin_b64 = row_ct.get('Contrato_Assinatura_b64','')
             if assin_b64:
                 try:
                     assin_bytes = base64.b64decode(assin_b64)
                     st.download_button(
-                        "📥 Ver contrato assinado pelo colaborador",
+                        "Ver contrato assinado pelo colaborador",
                         data=assin_bytes,
                         file_name=f"contrato_assinado_{nome_ct_sel.replace(' ','_')}.pdf",
                         mime="application/octet-stream",
@@ -2968,7 +2958,7 @@ def render_admin_rh(*args):
 
             col_val1, col_val2 = st.columns(2)
             with col_val1:
-                if st.button("✅ Validar e Arquivar",
+                if st.button("Validar e Arquivar",
                               key="btn_validar_ct", type="primary",
                               use_container_width=True):
                     u_ct3 = _load_users_fresh()
@@ -2983,7 +2973,7 @@ def render_admin_rh(*args):
                         _cached_load_all.clear()
                         criar_notificacao(
                             destinatario=nome_ct_sel,
-                            titulo="✅ Contrato Validado",
+                            titulo="Contrato Validado",
                             mensagem="O teu contrato foi validado e está arquivado.",
                             tipo="success",
                             acao_url="/perfil?tab=contrato"
@@ -2996,10 +2986,10 @@ def render_admin_rh(*args):
                             detalhes=f"Contrato validado para {nome_ct_sel}",
                             ip=""
                         )
-                        st.success("✅ Contrato arquivado!")
+                        st.success("Contrato arquivado!")
                         st.rerun()
             with col_val2:
-                if st.button("❌ Recusar (pedir nova assinatura)",
+                if st.button("Recusar (pedir nova assinatura)",
                               key="btn_recusar_ct",
                               use_container_width=True):
                     u_ct3 = _load_users_fresh()
@@ -3012,7 +3002,7 @@ def render_admin_rh(*args):
                         save_db(u_ct3, "usuarios.csv")
                         criar_notificacao(
                             destinatario=nome_ct_sel,
-                            titulo="⚠️ Assinatura Recusada",
+                            titulo="Assinatura Recusada",
                             mensagem="A assinatura do contrato foi recusada. "
                                      "Por favor, assina novamente e faz upload.",
                             tipo="error",
@@ -3026,13 +3016,13 @@ def render_admin_rh(*args):
 
         # ── PASSO 5: Arquivo final ────────────────────────────────
         if ct_validado:
-            st.success("✅ **Contrato arquivado e validado.**")
+            st.success("**Contrato arquivado e validado.**")
             ct_b64_f = row_ct.get('Contrato_b64','')
             if ct_b64_f:
                 try:
                     ct_bytes_f = base64.b64decode(ct_b64_f)
                     st.download_button(
-                        "📥 Descarregar contrato original",
+                        "Descarregar contrato original",
                         data=ct_bytes_f,
                         file_name=f"contrato_final_{nome_ct_sel.replace(' ','_')}.docx",
                         mime="application/vnd.openxmlformats-officedocument"
@@ -3046,16 +3036,16 @@ def render_admin_rh(*args):
     # TAB 5 — TEMPLATES & CONFIG
     # ════════════════════════════════════════════════════════════════
     with tab_template:
-        st.markdown("### ⚙️ Template do Contrato")
+        st.markdown("### Template do Contrato")
 
         template_existe = _gcs_read_binary("contrato_template.docx") is not None
         if template_existe:
-            st.success("✅ Template do contrato carregado no sistema.")
+            st.success("Template do contrato carregado no sistema.")
         else:
-            st.warning("⚠️ Nenhum template carregado. "
+            st.warning("Nenhum template carregado. "
                        "Faz upload abaixo para activar a geração automática.")
 
-        st.markdown("#### 📤 Upload do Template")
+        st.markdown("#### Upload do Template")
         st.info(
             "O template deve ser um ficheiro `.docx` com os campos marcados como:\n"
             "`{{nome}}` `{{morada}}` `{{NIF}}` `{{NISS}}` "
@@ -3065,7 +3055,7 @@ def render_admin_rh(*args):
 
         if template_existe:
             st.warning(
-                "⚠️ Já existe um template. Fazer upload de um novo **substitui** o atual."
+                "Já existe um template. Fazer upload de um novo **substitui** o atual."
             )
 
         template_file = st.file_uploader(
@@ -3074,8 +3064,8 @@ def render_admin_rh(*args):
             key="upload_template_ct"
         )
         if template_file:
-            acao_label = "🔄 Substituir Template Atual" if template_existe \
-                         else "💾 Guardar Template"
+            acao_label = "Substituir Template Atual" if template_existe \
+                         else "Guardar Template"
             if st.button(acao_label,
                           key="btn_guardar_template",
                           type="primary", use_container_width=True):
@@ -3083,7 +3073,7 @@ def render_admin_rh(*args):
                     template_file.read(), "contrato_template.docx"
                 )
                 if ok:
-                    st.success("✅ Template guardado no sistema!")
+                    st.success("Template guardado no sistema!")
                     log_audit(
                         usuario=admin_nome,
                         acao="UPLOAD_TEMPLATE_CONTRATO",
@@ -3094,15 +3084,15 @@ def render_admin_rh(*args):
                     )
                     st.rerun()
                 else:
-                    st.error("❌ Erro ao guardar o template.")
+                    st.error("Erro ao guardar o template.")
 
         if template_existe:
             st.markdown("---")
-            st.markdown("#### 📥 Descarregar Template Atual")
+            st.markdown("#### Descarregar Template Atual")
             template_bytes = _gcs_read_binary("contrato_template.docx")
             if template_bytes:
                 st.download_button(
-                    "📥 Descarregar template atual",
+                    "Descarregar template atual",
                     data=template_bytes,
                     file_name="contrato_template.docx",
                     mime="application/vnd.openxmlformats-officedocument"

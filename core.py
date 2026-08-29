@@ -20,6 +20,10 @@ from google.api_core.exceptions import NotFound as _GCSNotFound
 # =============================================================================
 # DESIGN SYSTEM
 # =============================================================================
+# COLORS — paleta ESCURA legada. Mantida tal como está (não a mexer) porque
+# mod_voice_learning.py ainda a lê diretamente e ainda não foi migrado para
+# THEME — fazer isso agora escureceria/desalinharia esse ecrã sem ser essa a
+# fase em que está previsto tocar-lhe. Remover quando esse módulo migrar.
 COLORS = {
     "primary":       "#0F172A",
     "primary_light": "#1E293B",
@@ -35,21 +39,29 @@ COLORS = {
     "text_secondary":"#94A3B8",
 }
 
-ICONS = {
-    "app": "🎛️", "login": "🔐", "admin": "⚡", "technician": "👨‍🔧",
-    "dashboard": "📈", "instrumentation": "🧪", "voice": "🎤", "safety": "🛡️",
-    "profile": "👤", "reports": "📊", "handover": "✅", "gps": "📍",
-    "calibration": "🔬", "material": "📦", "pending": "⏳", "logout": "🚪",
-    "save": "💾", "edit": "✏️", "delete": "🗑️", "add": "➕",
-    "search": "🔍", "filter": "🔽", "download": "📥", "upload": "📤",
-    "check": "✅", "close": "❌", "warning": "⚠️", "info": "ℹ️",
-    "calendar": "📅", "clock": "⏰", "user": "👤", "users": "👥",
-    "settings": "⚙️", "home": "🏠", "work": "📊", "tools": "🔧",
-    "equipment": "🔩", "document": "📄", "documents": "📁",
-    "chart": "📊", "graph": "📈", "email": "📧", "phone": "📞",
-    "location": "📍", "time": "⏱️", "approved": "✅", "rejected": "❌",
-    "pending_approval": "⏳",
+# THEME — fonte única de verdade da identidade visual nova (Fase 1). Os
+# valores de cor têm de bater certo com .streamlit/config.toml — ver
+# test_core.py: TestTemaCentral. GLOBAL_CSS e render_card_html/
+# render_badge_html leem só daqui; nenhum módulo deve voltar a escrever
+# hexadecimais à mão para estes conceitos.
+THEME = {
+    "background":     "#F7F9FB",
+    "surface":         "#FFFFFF",
+    "border":          "#E6E9EF",
+    "text":            "#1E293B",
+    "text_secondary":  "#5A6478",
+    "accent":          "#0E7C86",
+    "accent_hover":    "#0B6570",
+    "success":         "#15803D",
+    "warning":         "#B45309",
+    "error":           "#B91C1C",
+    "radius":          "12px",
 }
+
+# ICONS foi retirado (2026-08-25) — decisão do utilizador de não ter
+# nenhum ícone na app (nem emoji, nem Material Symbols, nem fonte de
+# ícones), só texto. Os sítios que liam daqui passaram a usar texto
+# literal diretamente.
 
 logging.basicConfig(
     level=logging.INFO,
@@ -91,7 +103,7 @@ def _gcs_write(fn, content_bytes):
         client = _gcs_client()
         if not client:
             logger.error(f"❌ _gcs_write({fn}): cliente GCS não inicializado (credenciais em falta?)")
-            st.toast("⚠️ Sem ligação ao GCS — dados não guardados", icon="⚙️")
+            st.toast("Sem ligação ao GCS — dados não guardados")
             return False
         bucket = client.bucket(GCS_BUCKET)
         blob   = bucket.blob(f"data/{fn}")
@@ -113,7 +125,7 @@ def _gcs_write(fn, content_bytes):
                 return True
         except Exception as e2:
             logger.error(f"❌ Verificação pós-erro falhou para {fn}: {e2}")
-        st.toast("⚠️ Erro ao guardar dados", icon="⚙️")
+        st.toast("Erro ao guardar dados")
     return False
 
 # =============================================================================
@@ -195,7 +207,7 @@ def _gcs_write_bin(path: str, data: bytes, content_type: str = "application/octe
         client = _gcs_client()
         if not client:
             logger.error(f"❌ _gcs_write_bin({path}): cliente GCS não inicializado")
-            st.toast("⚠️ Sem ligação ao GCS — ficheiro não guardado", icon="⚙️")
+            st.toast("Sem ligação ao GCS — ficheiro não guardado")
             return False
         bucket = client.bucket(GCS_BUCKET)
         blob   = bucket.blob(path)
@@ -203,7 +215,7 @@ def _gcs_write_bin(path: str, data: bytes, content_type: str = "application/octe
         return True
     except Exception as e:
         logger.error(f"❌ Erro GCS write bin {path}: {e}")
-        st.toast("⚠️ Erro ao guardar ficheiro", icon="⚙️")
+        st.toast("Erro ao guardar ficheiro")
     return False
 
 
@@ -533,7 +545,7 @@ def inv(ficheiro=None):
 # ─────────────────────────────────────────────────────────────────────────────
 # CLIENTES — fonte canónica única (clientes_financeiro.csv)
 # ─────────────────────────────────────────────────────────────────────────────
-NOVO_CLIENTE_OPT = "➕ Novo cliente..."
+NOVO_CLIENTE_OPT = "Novo cliente..."
 
 _CLIENTES_FINANCEIRO_COLS = [
     "ID", "Nome", "NIF", "Morada", "Email", "Telefone",
@@ -722,7 +734,7 @@ def registar_cliente_do_select(nome, key, origem="Manual"):
 # Categoria Operacional ≠ Categoria CCT (Relatório Único) e ≠ Categoria_Profissional
 # (texto livre do onboarding/perfil).
 # ─────────────────────────────────────────────────────────────────────────────
-NOVO_VALOR_LISTA_OPT = "➕ Novo..."
+NOVO_VALOR_LISTA_OPT = "Novo..."
 
 _RH_LISTAS_COLS = ["Lista", "Valor", "Criado_Por", "Data"]
 
@@ -1147,18 +1159,6 @@ def fh(h):
     except:
         return "0h00m"
 
-def sl(s):
-    mapping = {
-        "0":  ("Pendente",    "status-pending",    "⏳", COLORS["warning"]),
-        "1":  ("Material OK", "status-ok",         "📦✅", COLORS["success"]),
-        "2":  ("Calibrado",   "status-calibrated", "🧪", COLORS["info"]),
-        "3":  ("Instalado",   "status-installed",  "📍", COLORS["accent"]),
-        "4":  ("Concluído",   "status-completed",  "✅🎯", COLORS["success"]),
-        "-1": ("Rejeitado",   "status-rejected",   "❌", COLORS["error"]),
-    }
-    key = str(s).strip() if s else "0"
-    return mapping.get(key, ("Desconhecido", "status-unknown", "❓", COLORS["text_secondary"]))
-
 def process_and_compress_image(image_file, max_size=(1280, 1280), quality=85):
     try:
         from PIL import Image
@@ -1188,10 +1188,10 @@ def canvas_to_b64(image_data):
 # PWA & METADATA
 # =============================================================================
 def inject_pwa_meta():
-    st.markdown("""
+    st.markdown(f"""
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0F172A">
+    <meta name="theme-color" content="{THEME['background']}">
     <meta name="description" content="GESTNOW - Gestão de Instrumentação Industrial">
     <link rel="manifest" href="/app/static/manifest.json">
     <link rel="icon" type="image/png" href="/app/static/icone_cps_192.png">
@@ -1219,7 +1219,7 @@ def check_timeout():
             if inactive > 120:
                 logger.info(f"🔒 Timeout: {st.session_state.get('user')}")
                 st.session_state.clear()
-                st.toast("🔒 Sessão expirada", icon="🔐")
+                st.toast("Sessão expirada")
                 st.rerun()
             st.session_state['last_activity'] = datetime.now()
 
@@ -1266,98 +1266,198 @@ CATEGORIAS_SAFETY_WALK = [
     "Trabalho em Altura", "Elétrica", "Pressão", "Outro"
 ]
 REGRAS_OURO = [
-    ("🛡️", "EPI Industrial Obrigatório",  "Capacete, óculos, luvas e calçado de segurança."),
-    ("⚡", "LOTO - Lockout/Tagout",        "Bloqueio e etiquetagem de energias."),
-    ("🪜", "Trabalho em Altura",           "Arnés e linha de vida acima de 1.8m."),
-    ("⚡", "Energias Perigosas",           "Verificar ausência de tensão."),
-    ("🧪", "Calibração Certificada",       "Usar equipamentos com certificado válido."),
-    ("📍", "Procedimentos de Campo",       "Seguir ITRs e checklists."),
-    ("🔒", "Acesso Restrito",              "Áreas de instrumentação controladas."),
-    ("📋", "Análise de Risco",             "JSA/JHA obrigatório."),
-    ("🧤", "Mãos Limpas",                  "Luvas adequadas para instrumentos."),
-    ("📱", "Zona Livre de Telemóvel",       "Dispositivos proibidos em áreas classificadas."),
+    ("EPI Industrial Obrigatório",  "Capacete, óculos, luvas e calçado de segurança."),
+    ("LOTO - Lockout/Tagout",        "Bloqueio e etiquetagem de energias."),
+    ("Trabalho em Altura",           "Arnés e linha de vida acima de 1.8m."),
+    ("Energias Perigosas",           "Verificar ausência de tensão."),
+    ("Calibração Certificada",       "Usar equipamentos com certificado válido."),
+    ("Procedimentos de Campo",       "Seguir ITRs e checklists."),
+    ("Acesso Restrito",              "Áreas de instrumentação controladas."),
+    ("Análise de Risco",             "JSA/JHA obrigatório."),
+    ("Mãos Limpas",                  "Luvas adequadas para instrumentos."),
+    ("Zona Livre de Telemóvel",       "Dispositivos proibidos em áreas classificadas."),
 ]
 
 # =============================================================================
 # CSS GLOBAL
 # =============================================================================
-GLOBAL_CSS = """
-:root {
-    --primary: #0F172A; --primary-light: #1E293B;
-    --accent: #3B82F6; --accent-hover: #60A5FA;
-    --success: #10B981; --warning: #F59E0B;
-    --error: #EF4444; --info: #8B5CF6;
-    --text-primary: #FFFFFF; --text-secondary: #94A3B8;
-    --text-dark: #1E293B; --text-light: #F8FAFC;
-    --bg-white: #FFFFFF; --bg-light: #F8FAFC; --bg-dark: #0F172A;
-}
-.stApp {
-    background: linear-gradient(135deg, var(--primary) 0%, #1a1a2e 100%);
-    color: var(--text-primary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
+GLOBAL_CSS = f"""
+:root {{
+    --bg: {THEME['background']}; --surface: {THEME['surface']};
+    --border: {THEME['border']};
+    --text: {THEME['text']}; --text-secondary: {THEME['text_secondary']};
+    --accent: {THEME['accent']}; --accent-hover: {THEME['accent_hover']};
+    --success: {THEME['success']}; --warning: {THEME['warning']};
+    --error: {THEME['error']};
+    --radius: {THEME['radius']};
+}}
+.stApp {{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+}}
+/* Logótipo da barra lateral (st.logo(), size="large" já é o máximo
+   nativo do Streamlit) — aumentado via CSS para ficar bem legível.
+   O contentor stSidebarHeader tem altura fixa por omissão; passa a
+   altura automática para não cortar o logótipo maior. */
+[data-testid="stSidebarHeader"] {{
+    height: auto !important;
+    padding: 0.6rem 0 !important;
+}}
+img[data-testid="stLogo"] {{
+    height: 3rem !important;
+    max-width: 85% !important;
+}}
 .stTextInput > div > div > input,
 .stNumberInput > div > div > input,
-.stTextArea > div > div > textarea {
-    background: var(--bg-white) !important;
-    color: var(--text-dark) !important;
-    border: 1px solid rgba(0,0,0,0.3) !important;
+.stTextArea > div > div > textarea {{
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
     font-weight: 500;
-}
+}}
 .stTextInput label, .stNumberInput label, .stTextArea label,
 .stDateInput label, .stTimeInput label, .stSelectbox label,
-.stMultiSelect label, .stRadio label, .stCheckbox label {
-    color: var(--text-light) !important;
+.stMultiSelect label, .stRadio label, .stCheckbox label {{
+    color: var(--text) !important;
     font-weight: 600;
-}
-.stSelectbox > div > div > div, .stMultiSelect > div > div > div {
-    background: var(--bg-white) !important;
-    color: var(--text-dark) !important;
-    border: 1px solid rgba(0,0,0,0.3) !important;
-}
-[data-baseweb="select"] * { color: #111827 !important; }
-[data-baseweb="menu"] { background: #FFFFFF !important; }
-[data-baseweb="menu"] * { color: #111827 !important; background: #FFFFFF !important; }
-[data-baseweb="popover"] { background: #FFFFFF !important; }
-[data-baseweb="popover"] * { color: #111827 !important; }
-ul[role="listbox"] { background: #FFFFFF !important; }
-ul[role="listbox"] li { color: #111827 !important; }
-ul[role="listbox"] li:hover { background: #F1F5F9 !important; }
-.stDataFrame { background: var(--bg-white) !important; color: var(--text-dark) !important; }
-.stDataFrame td, .stDataFrame th { color: var(--text-dark) !important; background: var(--bg-white) !important; }
-section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%) !important;
-}
-section[data-testid="stSidebar"] *, section[data-testid="stSidebar"] label {
-    color: var(--text-light) !important;
-}
-.dash-card, .rp-card, .metric-card {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 16px; padding: 20px; margin-bottom: 16px;
-}
-.dash-card *, .rp-card *, .metric-card * { color: var(--text-primary) !important; }
-.stButton > button {
-    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-    color: white !important; border: none;
-    border-radius: 12px; padding: 10px 24px; font-weight: 600;
-}
-.status-pending    { color: var(--warning) !important; font-weight: 600; }
-.status-ok         { color: var(--success) !important; font-weight: 600; }
-.status-calibrated { color: var(--info)    !important; font-weight: 600; }
-.status-installed  { color: var(--accent)  !important; font-weight: 600; }
-.status-completed  { color: var(--success) !important; font-weight: 700; }
-.status-rejected   { color: var(--error)   !important; font-weight: 600; }
-[data-testid="stMetric"] {
-    background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.2));
-    border: 2px solid rgba(59,130,246,0.5); border-radius: 12px; padding: 15px;
-}
-[data-testid="stMetricValue"] { color: #60A5FA !important; }
-[data-testid="stMetricLabel"] { color: #94A3B8 !important; }
+}}
+.stSelectbox > div > div > div, .stMultiSelect > div > div > div {{
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}}
+[data-baseweb="select"] * {{ color: var(--text) !important; }}
+[data-baseweb="menu"] {{ background: var(--surface) !important; }}
+[data-baseweb="menu"] * {{ color: var(--text) !important; background: var(--surface) !important; }}
+[data-baseweb="popover"] {{ background: var(--surface) !important; }}
+[data-baseweb="popover"] * {{ color: var(--text) !important; }}
+ul[role="listbox"] {{ background: var(--surface) !important; }}
+ul[role="listbox"] li {{ color: var(--text) !important; }}
+ul[role="listbox"] li:hover {{ background: var(--bg) !important; }}
+.stDataFrame {{
+    background: var(--surface) !important; color: var(--text) !important;
+    border: 1px solid var(--border) !important; border-radius: var(--radius);
+}}
+.stDataFrame td, .stDataFrame th {{ color: var(--text) !important; background: var(--surface) !important; }}
+.dash-card, .rp-card, .metric-card, .gn-card {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 18px 16px; margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(16,24,40,0.05);
+}}
+.dash-card *, .rp-card *, .metric-card * {{ color: var(--text) !important; }}
+.stButton > button {{
+    background: var(--accent); color: white !important; border: none;
+    border-radius: var(--radius); padding: 10px 24px; font-weight: 600;
+}}
+.stButton > button:hover {{ background: var(--accent-hover); }}
+/* O rótulo do botão vem embrulhado num p/div interno do Streamlit;
+   sem isto, uma regra genérica de cor de texto de um módulo (ex.
+   "p, div, span com cor") ganha ao branco herdado do botão, porque
+   uma cor especificada diretamente no elemento vence sempre uma cor
+   apenas herdada — mesmo sendo o botão a usar !important. */
+.stButton > button * {{ color: inherit !important; }}
+.status-pending    {{ color: var(--warning) !important; font-weight: 600; }}
+.status-ok         {{ color: var(--success) !important; font-weight: 600; }}
+.status-calibrated {{ color: var(--accent)  !important; font-weight: 600; }}
+.status-installed  {{ color: var(--accent)  !important; font-weight: 600; }}
+.status-completed  {{ color: var(--success) !important; font-weight: 700; }}
+.status-rejected   {{ color: var(--error)   !important; font-weight: 600; }}
+[data-testid="stMetric"] {{
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 15px;
+}}
+[data-testid="stMetricValue"] {{ color: var(--accent) !important; }}
+[data-testid="stMetricLabel"] {{ color: var(--text-secondary) !important; }}
+
+/* ── Badge partilhado (gn-badge) ── */
+.gn-badge {{
+    display: inline-block; font-size: 0.72rem; font-weight: 700;
+    padding: 2px 10px; border-radius: 999px;
+}}
+.gn-badge-success {{ background: rgba(21,128,61,0.12);  color: var(--success); }}
+.gn-badge-warning {{ background: rgba(180,83,9,0.12);   color: var(--warning); }}
+.gn-badge-error   {{ background: rgba(185,28,28,0.12);  color: var(--error); }}
+.gn-badge-info    {{ background: rgba(14,124,134,0.12); color: var(--accent); }}
+.gn-badge-neutral {{ background: #EEF0F3; color: var(--text-secondary); }}
+
+/* ── Cartão partilhado (gn-card) ── */
+.gn-card-title {{ font-weight: 700; font-size: 1.0rem; color: var(--text); margin: 0; }}
+.gn-card-sub   {{ font-size: 0.82rem; color: var(--text-secondary); margin: 2px 0 8px; }}
+.gn-card-grid  {{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px;
+    border-top: 1px solid var(--bg); padding-top: 10px; margin-top: 8px;
+}}
+.gn-card-label {{
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-secondary);
+}}
+.gn-card-value {{ font-size: 0.82rem; font-weight: 600; color: var(--text); }}
 """
 
 def inject_global_css():
     st.markdown(f"<style>{GLOBAL_CSS}</style>", unsafe_allow_html=True)
+
+
+# =============================================================================
+# COMPONENTES PARTILHADOS — cartão / badge (Fase 1 da Identidade Visual)
+# =============================================================================
+_BADGE_TONES = {"success", "warning", "error", "info", "neutral"}
+
+
+def escape_html(v):
+    """Escapa <, > para uso seguro dentro de HTML injetado via st.markdown."""
+    return (str(v) if v is not None else "").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def render_badge_html(label, tone="neutral"):
+    """Devolve o HTML de uma badge (pílula) na tonalidade semântica pedida.
+    tone: 'success' | 'warning' | 'error' | 'info' | 'neutral' (por omissão)."""
+    tone = tone if tone in _BADGE_TONES else "neutral"
+    return f'<span class="gn-badge gn-badge-{tone}">{escape_html(label)}</span>'
+
+
+def render_badge(label, tone="neutral"):
+    """Desenha uma badge diretamente (wrapper de render_badge_html + st.markdown)."""
+    st.markdown(render_badge_html(label, tone), unsafe_allow_html=True)
+
+
+def render_card_html(title, subtitle="", badge=None, badge_tone="neutral",
+                      fields=None, footer=""):
+    """Devolve o HTML de um cartão (fundo branco, borda e raio do THEME),
+    para os módulos deixarem de colar o seu próprio HTML de cartão.
+
+    fields: lista de tuplos (label, valor) mostrados numa grelha de 2 colunas
+    (mesmo padrão usado em mod_dashboard_obra.py)."""
+    parts = ['<div class="gn-card">']
+    parts.append('<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">')
+    parts.append(f'<p class="gn-card-title">{escape_html(title)}</p>')
+    if badge:
+        parts.append(render_badge_html(badge, badge_tone))
+    parts.append('</div>')
+    if subtitle:
+        parts.append(f'<p class="gn-card-sub">{escape_html(subtitle)}</p>')
+    if fields:
+        parts.append('<div class="gn-card-grid">')
+        for label, valor in fields:
+            parts.append(
+                f'<div><p class="gn-card-label">{escape_html(label)}</p>'
+                f'<p class="gn-card-value">{escape_html(valor)}</p></div>'
+            )
+        parts.append('</div>')
+    if footer:
+        parts.append(f'<p class="gn-card-sub" style="margin-top:8px;">{escape_html(footer)}</p>')
+    parts.append('</div>')
+    return "".join(parts)
+
+
+def render_card(title, subtitle="", badge=None, badge_tone="neutral",
+                 fields=None, footer=""):
+    """Desenha um cartão diretamente (wrapper de render_card_html + st.markdown)."""
+    st.markdown(
+        render_card_html(title, subtitle, badge, badge_tone, fields, footer),
+        unsafe_allow_html=True
+    )
 
 # =============================================================================
 # AUDIT TRAIL
@@ -1560,7 +1660,7 @@ def render_connection_indicator():
         const indicator = document.getElementById('connection-indicator');
         if (indicator) {
             indicator.className = `connection-status ${status}`;
-            indicator.textContent = status === 'online' ? '🟢 Online' : '🔴 Offline';
+            indicator.textContent = status === 'online' ? 'Online' : 'Offline';
         }
     }
     window.addEventListener('online',  updateConnectionStatus);
@@ -1577,7 +1677,7 @@ def render_connection_indicator():
     .connection-status.offline { background:#EF4444; color:white; animation:pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
     </style>
-    <div id="connection-indicator" class="connection-status online">🟢 Online</div>
+    <div id="connection-indicator" class="connection-status online">Online</div>
     """, unsafe_allow_html=True)
 
 def render_offline_banner():
@@ -1597,7 +1697,7 @@ def render_offline_banner():
     </script>
     <div id="offline-banner" style="display:none;background:#EF4444;color:white;
         padding:15px;border-radius:10px;margin-bottom:20px;text-align:center;">
-        <strong>🔴 ESTÁ OFFLINE</strong> — Alterações guardadas localmente.
+        <strong>ESTÁ OFFLINE</strong> — Alterações guardadas localmente.
     </div>
     """, unsafe_allow_html=True)
 
@@ -1611,10 +1711,10 @@ def sync_data_when_online():
         return
     resultados = execute_offline_queue()
     if resultados["sucessos"] > 0:
-        st.success(f"✅ {resultados['sucessos']} ações sincronizadas!")
+        st.success(f"{resultados['sucessos']} ações sincronizadas!")
         _cached_load_db.clear()
     if resultados["falhas"] > 0:
-        st.error(f"❌ {resultados['falhas']} ações falharam.")
+        st.error(f"{resultados['falhas']} ações falharam.")
 
 # =============================================================================
 # QR CODE
@@ -1652,11 +1752,11 @@ def render_qr_code_image(qr_data, size=200):
     return f"https://api.qrserver.com/v1/create-qr-code/?size={size}x{size}&data={encoded}"
 
 def render_camera_scanner(label="Scan QR Code", key_prefix="qr_scan"):
-    st.markdown(f"### 📱 {label}", unsafe_allow_html=True)
+    st.markdown(f"### {label}", unsafe_allow_html=True)
     uploaded = st.file_uploader("Upload de foto do QR Code",
         type=["png","jpg","jpeg"], key=f"{key_prefix}_upload")
     if uploaded:
-        st.info("🔧 Leitura automática em desenvolvimento. Use o campo abaixo:")
+        st.info("Leitura automática em desenvolvimento. Use o campo abaixo:")
     qr_manual = st.text_input("Dados do QR Code (formato: GN|TAG|OBRA ou JSON)",
         key=f"{key_prefix}_input")
     if qr_manual and len(qr_manual.strip()) > 5:
@@ -1711,7 +1811,7 @@ def get_email_template(tipo, dados=None):
         "validacao_horas": {
             "assunto": "Horas Validadas - {obra}",
             "html":    """<html><body style="font-family:Arial,sans-serif;padding:20px;">
-                <h2>✅ Horas Validadas</h2>
+                <h2>Horas Validadas</h2>
                 <p>Olá <strong>{tecnico}</strong>,</p>
                 <p>As suas horas foram validadas com sucesso!</p>
                 <p><strong>Obra:</strong> {obra}<br>

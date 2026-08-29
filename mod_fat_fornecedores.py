@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit, criar_notificacao
+from core import save_db, inv, load_db, log_audit, criar_notificacao, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -40,8 +40,8 @@ def _validar_nif(nif: str) -> tuple[bool, str]:
     resto = total % 11
     check = 0 if resto in [0,1] else 11 - resto
     if check == int(nif[8]):
-        return True, "✅ NIF válido"
-    return False, "❌ Dígito de controlo inválido"
+        return True, "NIF válido"
+    return False, "Dígito de controlo inválido"
 
 def _dias_venc(data_str: str) -> int:
     try:
@@ -442,25 +442,27 @@ def render_fat_fornecedores(obras_db, *_):
     user_nome = st.session_state.get('user','Admin')
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .forn-card {
-        background:#1E293B; border-radius:12px;
+    .forn-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:14px 16px; margin-bottom:8px;
-        border-left:4px solid #F59E0B;
+        border-left:4px solid {THEME['warning']};
         transition:transform 0.15s;
-    }
-    .forn-card:hover { transform:translateX(3px); }
-    .sub-card {
-        background:#1E293B; border-radius:12px;
+    }}
+    .forn-card:hover {{ transform:translateX(3px); }}
+    .sub-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:14px 16px; margin-bottom:8px;
-        border-left:4px solid #EF4444;
-    }
-    .badge {
+        border-left:4px solid {THEME['error']};
+    }}
+    .badge {{
         display:inline-block; padding:3px 10px;
         border-radius:20px; font-size:0.72rem;
         font-weight:700;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -494,34 +496,34 @@ def render_fat_fornecedores(obras_db, *_):
          'Subempreiteiro' in fornecedores_db.columns else 0
 
     c1,c2,c3,c4 = st.columns(4)
-    with c1: st.metric("🏢 Fornecedores",   len(fornecedores_db))
-    with c2: st.metric("🔨 Subempreiteiros", n_sub)
-    with c3: st.metric("📤 A Pagar",         f"€{total_pagar:,.2f}")
-    with c4: st.metric("📋 Retenções Mês",   f"€{total_ret_mes:,.2f}")
+    with c1: st.metric("Fornecedores",   len(fornecedores_db))
+    with c2: st.metric("Subempreiteiros", n_sub)
+    with c3: st.metric("A Pagar",         f"€{total_pagar:,.2f}")
+    with c4: st.metric("Retenções Mês",   f"€{total_ret_mes:,.2f}")
 
     st.divider()
 
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_forn, t_fat_rec, t_sub,
      t_aging_f, t_ret, t_iban) = st.tabs([
-        "🏢 Fornecedores",
-        "📥 Faturas Recebidas",
-        "🔨 Subempreiteiros",
-        "📊 Aging & Pagamentos",
-        "📋 Retenções na Fonte",
-        "🔒 Controlo IBANs",
+        "Fornecedores",
+        "Faturas Recebidas",
+        "Subempreiteiros",
+        "Aging & Pagamentos",
+        "Retenções na Fonte",
+        "Controlo IBANs",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB — FORNECEDORES
     # ════════════════════════════════════════════════════════════════
     with t_forn:
-        st.markdown("### 🏢 Registo de Fornecedores")
+        st.markdown("### Registo de Fornecedores")
 
         col_form_f, col_lista_f = st.columns([1, 2])
 
         with col_form_f:
-            st.markdown("#### ➕ Novo Fornecedor")
+            st.markdown("#### Novo Fornecedor")
             with st.form("form_novo_forn"):
                 f_nome = st.text_input("Nome *", key="forn_nome")
                 f_nif  = st.text_input("NIF *",  key="forn_nif",
@@ -530,7 +532,7 @@ def render_fat_fornecedores(obras_db, *_):
                     v, m = _validar_nif(f_nif)
                     st.markdown(
                         f"<small style='color:"
-                        f"{'#10B981' if v else '#EF4444'};'>"
+                        f"{THEME['success'] if v else THEME['error']};'>"
                         f"{m}</small>",
                         unsafe_allow_html=True
                     )
@@ -574,11 +576,11 @@ def render_fat_fornecedores(obras_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Fornecedor",
+                    "Guardar Fornecedor",
                     use_container_width=True, type="primary"
                 ):
                     if not f_nome.strip() or not f_nif.strip():
-                        st.error("❌ Nome e NIF obrigatórios.")
+                        st.error("Nome e NIF obrigatórios.")
                     else:
                         novo_f = pd.DataFrame([{
                             "ID":                   str(uuid.uuid4())[:8].upper(),
@@ -609,11 +611,11 @@ def render_fat_fornecedores(obras_db, *_):
                             ip=""
                         )
                         inv("fornecedores.csv")
-                        st.success(f"✅ {f_nome} guardado!")
+                        st.success(f"{f_nome} guardado!")
                         st.rerun()
 
         with col_lista_f:
-            st.markdown("#### 📋 Lista de Fornecedores")
+            st.markdown("#### Lista de Fornecedores")
 
             col_g1, col_g2 = st.columns(2)
             with col_g1:
@@ -628,7 +630,7 @@ def render_fat_fornecedores(obras_db, *_):
                 )
 
             if fornecedores_db.empty:
-                st.info("📋 Sem fornecedores registados.")
+                st.info("Sem fornecedores registados.")
             else:
                 cats = ["Todos"] + \
                        fornecedores_db['Categoria'].unique().tolist() \
@@ -646,7 +648,7 @@ def render_fat_fornecedores(obras_db, *_):
                 for _, forn in df_forn_show.iterrows():
                     forn_id  = forn.get('ID','')
                     is_sub   = forn.get('Subempreiteiro','Não') == 'Sim'
-                    cor_card = '#EF4444' if is_sub else '#F59E0B'
+                    cor_card = THEME['error'] if is_sub else THEME['warning']
 
                     vol_f = 0.0
                     if not fat_forn.empty and \
@@ -659,10 +661,10 @@ def render_fat_fornecedores(obras_db, *_):
                         ).fillna(0).sum()
 
                     badge_sub = (
-                        "<span class='badge' "
-                        "style='background:rgba(239,68,68,0.2);"
-                        "color:#EF4444;margin-left:6px;'>"
-                        "🔨 Subempreiteiro</span>"
+                        f"<span class='badge' "
+                        f"style='background:rgba(185,28,28,0.15);"
+                        f"color:{THEME['error']};margin-left:6px;'>"
+                        f"Subempreiteiro</span>"
                     ) if is_sub else ""
 
                     st.markdown(
@@ -672,23 +674,23 @@ def render_fat_fornecedores(obras_db, *_):
                         f"justify-content:space-between;"
                         f"align-items:flex-start;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"{forn.get('Nome','')}</b>"
                         f"{badge_sub}<br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"NIF: {forn.get('NIF','')} · "
                         f"{forn.get('Categoria','')} · "
                         f"{forn.get('Condicoes_Pagamento',30)} dias"
                         f"</small><br>"
-                        f"<small style='color:#475569;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"IBAN: {forn.get('IBAN','N/D')[:20]}..."
-                        f" · 📧 {forn.get('Email','')}"
+                        f" · {forn.get('Email','')}"
                         f"</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"€{vol_f:,.2f}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"total faturado</small>"
                         f"</div></div></div>",
                         unsafe_allow_html=True
@@ -705,7 +707,7 @@ def render_fat_fornecedores(obras_db, *_):
                         )
                     with col_id:
                         if st.button(
-                            "🔄 IBAN",
+                            "IBAN",
                             key=f"btn_iban_{forn_id}",
                             use_container_width=True,
                             help="Atualizar IBAN"
@@ -734,7 +736,7 @@ def render_fat_fornecedores(obras_db, *_):
                                 save_db(fornecedores_db, "fornecedores.csv")
                                 criar_notificacao(
                                     destinatario="admin",
-                                    titulo="⚠️ IBAN Fornecedor Alterado",
+                                    titulo="IBAN Fornecedor Alterado",
                                     mensagem=(
                                         f"IBAN de {forn.get('Nome','')} "
                                         f"foi alterado por {user_nome}."
@@ -744,7 +746,7 @@ def render_fat_fornecedores(obras_db, *_):
                                 )
                                 inv("iban_historico.csv"); inv("fornecedores.csv")
                                 st.warning(
-                                    f"⚠️ IBAN alterado! "
+                                    f"IBAN alterado! "
                                     f"Aguarda 30 dias antes de pagar."
                                 )
                                 st.rerun()
@@ -753,18 +755,18 @@ def render_fat_fornecedores(obras_db, *_):
     # TAB — FATURAS RECEBIDAS
     # ════════════════════════════════════════════════════════════════
     with t_fat_rec:
-        st.markdown("### 📥 Faturas de Fornecedores")
+        st.markdown("### Faturas de Fornecedores")
 
         col_reg, col_lista = st.columns([1, 2])
 
         with col_reg:
-            st.markdown("#### ➕ Registar Fatura Recebida")
+            st.markdown("#### Registar Fatura Recebida")
 
             st.markdown(
-                "<p style='color:#94A3B8;font-size:0.8rem;"
-                "margin:0 0 6px;'>"
-                "📷 Faz upload da fatura — "
-                "a IA extrai os dados automaticamente</p>",
+                f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;"
+                f"margin:0 0 6px;'>"
+                f"Faz upload da fatura — "
+                f"a IA extrai os dados automaticamente</p>",
                 unsafe_allow_html=True
             )
             upload_fat = st.file_uploader(
@@ -777,12 +779,12 @@ def render_fat_fornecedores(obras_db, *_):
 
             if upload_fat and not ocr_dados:
                 if st.button(
-                    "🤖 Extrair com IA",
+                    "Extrair com IA",
                     key="btn_ocr_forn",
                     type="primary",
                     use_container_width=True
                 ):
-                    with st.spinner("🤖 A ler a fatura..."):
+                    with st.spinner("A ler a fatura..."):
                         fb = base64.b64encode(
                             upload_fat.read()
                         ).decode()
@@ -794,10 +796,10 @@ def render_fat_fornecedores(obras_db, *_):
                             st.session_state['ocr_forn_dados'] = \
                                 res['dados']
                             st.session_state['ocr_forn_pdf']   = fb
-                            st.success("✅ Dados extraídos!")
+                            st.success("Dados extraídos!")
                             st.rerun()
                         else:
-                            st.error(f"❌ {res.get('erro','')}")
+                            st.error(f"{res.get('erro','')}")
 
             with st.form("form_fat_forn"):
                 forn_lista = fornecedores_db['Nome'].tolist() \
@@ -851,9 +853,9 @@ def render_fat_fornecedores(obras_db, *_):
                     f_tot_val = f_sub_val + f_iva_val
                     st.markdown(
                         f"<div style='padding:6px 0;'>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Total</small><br>"
-                        f"<b style='color:#3B82F6;"
+                        f"<b style='color:{THEME['accent']};"
                         f"font-size:1.1rem;'>"
                         f"€{f_tot_val:.2f}</b></div>",
                         unsafe_allow_html=True
@@ -876,13 +878,13 @@ def render_fat_fornecedores(obras_db, *_):
                                 f_sub_val * f_ret_pct / 100, 2
                             )
                             st.markdown(
-                                f"<div style='background:rgba(239,68,68,0.1);"
-                                f"border:1px solid #EF4444;"
+                                f"<div style='background:rgba(185,28,28,0.08);"
+                                f"border:1px solid {THEME['error']};"
                                 f"border-radius:8px;padding:10px;"
                                 f"margin:4px 0;'>"
-                                f"<small style='color:#EF4444;"
+                                f"<small style='color:{THEME['error']};"
                                 f"font-weight:700;'>"
-                                f"🔨 Subempreiteiro — Retenção "
+                                f"Subempreiteiro — Retenção "
                                 f"{f_ret_pct:.0f}% = "
                                 f"€{f_ret_val:.2f}</small></div>",
                                 unsafe_allow_html=True
@@ -901,11 +903,11 @@ def render_fat_fornecedores(obras_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar Fatura",
+                    "Registar Fatura",
                     use_container_width=True, type="primary"
                 ):
                     if not f_forn or f_tot_val <= 0:
-                        st.error("❌ Fornecedor e valor obrigatórios.")
+                        st.error("Fornecedor e valor obrigatórios.")
                     else:
                         f_ret_v = round(
                             f_sub_val * f_ret_pct / 100, 2
@@ -963,16 +965,16 @@ def render_fat_fornecedores(obras_db, *_):
                         st.session_state.pop('ocr_forn_dados', None)
                         st.session_state.pop('ocr_forn_pdf', None)
                         st.success(
-                            f"✅ Fatura de {f_forn} registada! "
+                            f"Fatura de {f_forn} registada! "
                             f"€{f_tot_val:.2f}"
                         )
                         st.rerun()
 
         with col_lista:
-            st.markdown("#### 📋 Faturas Pendentes")
+            st.markdown("#### Faturas Pendentes")
 
             if fat_forn.empty:
-                st.info("📋 Sem faturas de fornecedores.")
+                st.info("Sem faturas de fornecedores.")
             else:
                 col_ff1, col_ff2 = st.columns(2)
                 with col_ff1:
@@ -999,10 +1001,10 @@ def render_fat_fornecedores(obras_db, *_):
                 st.metric("Total filtrado", f"€{total_ff:,.2f}")
 
                 cor_estado_ff = {
-                    'Pendente': '#F59E0B',
-                    'Aprovado': '#3B82F6',
-                    'Pago':     '#10B981',
-                    'Anulado':  '#64748B',
+                    'Pendente': THEME['warning'],
+                    'Aprovado': THEME['accent'],
+                    'Pago':     THEME['success'],
+                    'Anulado':  THEME['text_secondary'],
                 }
 
                 for _, ff_row in df_ff.sort_values(
@@ -1012,38 +1014,39 @@ def render_fat_fornecedores(obras_db, *_):
                     tot_ff  = float(ff_row.get('Total',0) or 0)
                     ret_ff  = float(ff_row.get('Retencao_Val',0) or 0)
                     est_ff2 = ff_row.get('Estado','')
-                    cor_ff  = cor_estado_ff.get(est_ff2,'#6B7280')
+                    cor_ff  = cor_estado_ff.get(est_ff2, THEME['text_secondary'])
                     dias_v2 = _dias_venc(ff_row.get('Data_Vencimento',''))
 
                     alerta_v = ""
                     if dias_v2 > 0 and est_ff2 not in ['Pago','Anulado']:
                         alerta_v = (
-                            f"<span style='color:#EF4444;"
+                            f"<span style='color:{THEME['error']};"
                             f"font-size:0.72rem;'>"
-                            f"⚠️ Em atraso {dias_v2} dias</span>"
+                            f"Em atraso {dias_v2} dias</span>"
                         )
 
                     ret_badge = ""
                     if ret_ff > 0:
                         ret_badge = (
                             f"<span class='badge' "
-                            f"style='background:rgba(239,68,68,0.2);"
-                            f"color:#EF4444;margin-left:4px;'>"
+                            f"style='background:rgba(185,28,28,0.15);"
+                            f"color:{THEME['error']};margin-left:4px;'>"
                             f"Retenção: €{ret_ff:.2f}</span>"
                         )
 
                     col_info_ff, col_act_ff = st.columns([5, 1])
                     with col_info_ff:
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};"
+                            f"border:1px solid {THEME['border']};"
                             f"border-radius:10px;padding:12px;"
                             f"margin-bottom:6px;"
                             f"border-left:4px solid {cor_ff};'>"
-                            f"<b style='color:#F1F5F9;font-size:0.88rem;'>"
+                            f"<b style='color:{THEME['text']};font-size:0.88rem;'>"
                             f"{ff_row.get('Fornecedor','')} — "
                             f"{ff_row.get('Numero_Fatura','')}</b>"
                             f"{ret_badge}<br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{ff_row.get('Descricao','')[:40]} · "
                             f"Obra: {ff_row.get('Obra','')} · "
                             f"Venc: {ff_row.get('Data_Vencimento','')}"
@@ -1054,7 +1057,7 @@ def render_fat_fornecedores(obras_db, *_):
                         st.markdown(
                             f"<div style='text-align:right;"
                             f"margin-top:-4px;margin-bottom:6px;'>"
-                            f"<b style='color:#F1F5F9;"
+                            f"<b style='color:{THEME['text']};"
                             f"font-size:1rem;'>€{tot_ff:,.2f}</b>"
                             f"<span class='badge' "
                             f"style='background:{cor_ff}22;"
@@ -1072,7 +1075,7 @@ def render_fat_fornecedores(obras_db, *_):
                             label_visibility="collapsed"
                         )
                         if st.button(
-                            "✅", key=f"ff_upd_{ff_id}",
+                            "", key=f"ff_upd_{ff_id}",
                             use_container_width=True,
                             help="Atualizar estado"
                         ):
@@ -1096,7 +1099,7 @@ def render_fat_fornecedores(obras_db, *_):
     # TAB — SUBEMPREITEIROS
     # ════════════════════════════════════════════════════════════════
     with t_sub:
-        st.markdown("### 🔨 Subempreiteiros")
+        st.markdown("### Subempreiteiros")
         st.info(
             "Subempreiteiros estão sujeitos a **retenção na fonte "
             "de 25%** (IRS). A guia de retenção deve ser entregue "
@@ -1111,8 +1114,8 @@ def render_fat_fornecedores(obras_db, *_):
 
         if subs.empty:
             st.warning(
-                "⚠️ Sem subempreiteiros registados. "
-                "Regista no tab 🏢 Fornecedores com "
+                "Sem subempreiteiros registados. "
+                "Regista no tab Fornecedores com "
                 "categoria 'Subempreiteiro'."
             )
         else:
@@ -1133,12 +1136,12 @@ def render_fat_fornecedores(obras_db, *_):
 
                 st.markdown(
                     f"<div class='sub-card'>"
-                    f"<b style='color:#F1F5F9;'>"
-                    f"🔨 {sub.get('Nome','')}</b>"
-                    f"<span style='float:right;color:#EF4444;"
+                    f"<b style='color:{THEME['text']};'>"
+                    f"{sub.get('Nome','')}</b>"
+                    f"<span style='float:right;color:{THEME['error']};"
                     f"font-weight:700;'>"
                     f"Retido: €{ret_sub:,.2f}</span><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"NIF: {sub.get('NIF','')} · "
                     f"Taxa: {float(sub.get('Retencao_Pct',25) or 25):.0f}% · "
                     f"Volume: €{vol_sub:,.2f}"
@@ -1150,7 +1153,7 @@ def render_fat_fornecedores(obras_db, *_):
     # TAB — AGING & PAGAMENTOS
     # ════════════════════════════════════════════════════════════════
     with t_aging_f:
-        st.markdown("### 📊 Aging de Fornecedores")
+        st.markdown("### Aging de Fornecedores")
 
         col_ag1, col_ag2 = st.columns(2)
         with col_ag1:
@@ -1165,7 +1168,7 @@ def render_fat_fornecedores(obras_db, *_):
             )
 
         st.markdown("---")
-        st.markdown("#### 🏦 Pagamento em Lote (SEPA XML)")
+        st.markdown("#### Pagamento em Lote (SEPA XML)")
 
         pendentes_pag = fat_forn[
             fat_forn.get('Estado','') == 'Aprovado'
@@ -1174,15 +1177,15 @@ def render_fat_fornecedores(obras_db, *_):
 
         if pendentes_pag.empty:
             st.info(
-                "📋 Sem faturas aprovadas para pagamento. "
-                "Aprova faturas no tab 📥 Faturas Recebidas."
+                "Sem faturas aprovadas para pagamento. "
+                "Aprova faturas no tab Faturas Recebidas."
             )
         else:
             total_pag_lote = pd.to_numeric(
                 pendentes_pag['Total'], errors='coerce'
             ).fillna(0).sum()
             st.metric(
-                "💰 Total a pagar neste lote",
+                "Total a pagar neste lote",
                 f"€{total_pag_lote:,.2f}"
             )
 
@@ -1199,7 +1202,7 @@ def render_fat_fornecedores(obras_db, *_):
 
             if sem_iban > 0:
                 st.warning(
-                    f"⚠️ {sem_iban} fornecedor(es) sem IBAN "
+                    f"{sem_iban} fornecedor(es) sem IBAN "
                     f"— não incluídos no XML."
                 )
 
@@ -1212,16 +1215,16 @@ def render_fat_fornecedores(obras_db, *_):
                 ]
                 if not recentes.empty:
                     st.error(
-                        f"🔒 ATENÇÃO: {len(recentes)} IBAN(s) "
+                        f"ATENÇÃO: {len(recentes)} IBAN(s) "
                         f"alterado(s) nos últimos 30 dias! "
-                        f"Verifica no tab 🔒 Controlo IBANs "
+                        f"Verifica no tab Controlo IBANs "
                         f"antes de pagar."
                     )
 
             col_sepa1, col_sepa2 = st.columns(2)
             with col_sepa1:
                 if st.button(
-                    "🏦 Gerar SEPA XML (Montepio)",
+                    "Gerar SEPA XML (Montepio)",
                     key="btn_sepa_forn",
                     type="primary",
                     use_container_width=True
@@ -1309,16 +1312,16 @@ def render_fat_fornecedores(obras_db, *_):
                             xml_out.encode('utf-8')
                         st.session_state['sepa_forn_fname'] = \
                             f"pagamentos_fornecedores_{ts_xml}.xml"
-                        st.success("✅ XML gerado!")
+                        st.success("XML gerado!")
                         st.rerun()
 
                     except Exception as e:
-                        st.error(f"❌ Erro: {e}")
+                        st.error(f"Erro: {e}")
 
             with col_sepa2:
                 if st.session_state.get('sepa_forn_bytes'):
                     st.download_button(
-                        "📥 Descarregar XML Montepio",
+                        "Descarregar XML Montepio",
                         data=st.session_state['sepa_forn_bytes'],
                         file_name=st.session_state.get(
                             'sepa_forn_fname','pagamentos.xml'
@@ -1333,7 +1336,7 @@ def render_fat_fornecedores(obras_db, *_):
     # TAB — RETENÇÕES NA FONTE
     # ════════════════════════════════════════════════════════════════
     with t_ret:
-        st.markdown("### 📋 Retenções na Fonte")
+        st.markdown("### Retenções na Fonte")
         st.info(
             "Obrigação fiscal: entregar à AT até ao **dia 20 "
             "do mês seguinte** ao pagamento."
@@ -1400,14 +1403,14 @@ def render_fat_fornecedores(obras_db, *_):
         if retencoes_mes:
             total_ret_m = sum(r['retido'] for r in retencoes_mes)
             st.markdown(
-                f"<div style='background:rgba(239,68,68,0.1);"
-                f"border:1px solid #EF4444;border-radius:10px;"
+                f"<div style='background:rgba(185,28,28,0.08);"
+                f"border:1px solid {THEME['error']};border-radius:10px;"
                 f"padding:14px;margin-bottom:12px;'>"
-                f"<b style='color:#EF4444;'>"
+                f"<b style='color:{THEME['error']};'>"
                 f"Total a entregar à AT em "
                 f"{mes_ret} {ano_ret}: "
                 f"€{total_ret_m:,.2f}</b><br>"
-                f"<small style='color:#94A3B8;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"Prazo: dia 20 do mês seguinte</small>"
                 f"</div>",
                 unsafe_allow_html=True
@@ -1418,7 +1421,7 @@ def render_fat_fornecedores(obras_db, *_):
                          hide_index=True)
 
             if st.button(
-                "📄 Gerar Guia de Retenção PDF",
+                "Gerar Guia de Retenção PDF",
                 key="btn_guia_ret",
                 type="primary",
                 use_container_width=True
@@ -1435,7 +1438,7 @@ def render_fat_fornecedores(obras_db, *_):
 
             if st.session_state.get('guia_ret_bytes'):
                 st.download_button(
-                    "📥 Descarregar Guia",
+                    "Descarregar Guia",
                     data=st.session_state['guia_ret_bytes'],
                     file_name=st.session_state.get(
                         'guia_ret_fname','guia.pdf'
@@ -1446,7 +1449,7 @@ def render_fat_fornecedores(obras_db, *_):
                 )
         else:
             st.info(
-                f"📋 Sem retenções registadas em "
+                f"Sem retenções registadas em "
                 f"{mes_ret} {ano_ret}."
             )
 
@@ -1454,7 +1457,7 @@ def render_fat_fornecedores(obras_db, *_):
     # TAB — CONTROLO IBANs
     # ════════════════════════════════════════════════════════════════
     with t_iban:
-        st.markdown("### 🔒 Controlo de IBANs")
+        st.markdown("### Controlo de IBANs")
         st.info(
             "Alterações de IBAN são um vetor comum de fraude. "
             "Qualquer alteração fica registada e gera alerta. "
@@ -1475,7 +1478,7 @@ def render_fat_fornecedores(obras_db, *_):
 
             if not recentes_iban.empty:
                 st.error(
-                    f"🚨 {len(recentes_iban)} IBAN(s) "
+                    f"{len(recentes_iban)} IBAN(s) "
                     f"alterado(s) nos últimos 30 dias!"
                 )
                 for _, ih in recentes_iban.iterrows():
@@ -1485,23 +1488,23 @@ def render_fat_fornecedores(obras_db, *_):
                     bloqueado = dias_alt < 30
 
                     # estado_iban calculado antes do f-string
-                    estado_iban = '🔒 BLOQUEADO' if bloqueado else '🔓 Desbloqueado'
-                    cor_iban    = '#EF4444' if bloqueado else '#10B981'
+                    estado_iban = 'BLOQUEADO' if bloqueado else 'Desbloqueado'
+                    cor_iban    = THEME['error'] if bloqueado else THEME['success']
 
                     st.markdown(
-                        f"<div style='background:rgba(239,68,68,0.1);"
-                        f"border:2px solid #EF4444;"
+                        f"<div style='background:rgba(185,28,28,0.08);"
+                        f"border:2px solid {THEME['error']};"
                         f"border-radius:10px;padding:14px;"
                         f"margin-bottom:8px;'>"
-                        f"<b style='color:#EF4444;'>"
-                        f"⚠️ {ih.get('Entidade','')} "
+                        f"<b style='color:{THEME['error']};'>"
+                        f"{ih.get('Entidade','')} "
                         f"({ih.get('Tipo','')})</b>"
                         f"<span style='float:right;"
                         f"color:{cor_iban};"
                         f"font-size:0.8rem;font-weight:700;'>"
                         f"{estado_iban}"
                         f"</span><br>"
-                        f"<small style='color:#94A3B8;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Anterior: {ih.get('IBAN_Anterior','N/D')}<br>"
                         f"Novo: {ih.get('IBAN_Novo','')}<br>"
                         f"Alterado por: {ih.get('Alterado_Por','')} "
@@ -1513,7 +1516,7 @@ def render_fat_fornecedores(obras_db, *_):
 
                     if bloqueado:
                         if st.button(
-                            f"🔓 Desbloquear manualmente — "
+                            f"Desbloquear manualmente — "
                             f"{ih.get('Entidade','')}",
                             key=f"desbloquear_{ih.get('ID','')}",
                             type="secondary",
@@ -1531,17 +1534,17 @@ def render_fat_fornecedores(obras_db, *_):
                                 ),
                                 ip=""
                             )
-                            st.success("✅ Desbloqueado. Ação registada.")
+                            st.success("Desbloqueado. Ação registada.")
             else:
                 st.success(
-                    "✅ Sem alterações de IBAN nos últimos 30 dias."
+                    "Sem alterações de IBAN nos últimos 30 dias."
                 )
 
         st.markdown("---")
-        st.markdown("#### 📋 Histórico Completo de Alterações")
+        st.markdown("#### Histórico Completo de Alterações")
 
         if iban_hist.empty:
-            st.info("📋 Sem histórico de alterações.")
+            st.info("Sem histórico de alterações.")
         else:
             cols_h = [c for c in [
                 'Data_Alteracao','Entidade','Tipo',
@@ -1558,7 +1561,7 @@ def render_fat_fornecedores(obras_db, *_):
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                "📥 Exportar Histórico IBANs",
+                "Exportar Histórico IBANs",
                 data=csv_iban.encode('utf-8-sig'),
                 file_name="historico_ibans.csv",
                 mime="text/csv",

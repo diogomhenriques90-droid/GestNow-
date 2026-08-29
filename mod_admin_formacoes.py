@@ -14,7 +14,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit, criar_notificacao
+from core import save_db, inv, load_db, log_audit, criar_notificacao, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -35,14 +35,14 @@ def _dias_para(data_str: str) -> int:
 
 def _cor_validade(dias: int) -> tuple:
     if dias < 0:
-        return "#EF4444", "🔴", "EXPIRADA"
+        return THEME['error'], "EXPIRADA"
     if dias <= 30:
-        return "#EF4444", "🔴", f"{dias}d"
+        return THEME['error'], f"{dias}d"
     if dias <= 60:
-        return "#F59E0B", "⚠️", f"{dias}d"
+        return THEME['warning'], f"{dias}d"
     if dias <= 90:
-        return "#F59E0B", "🟡", f"{dias}d"
-    return "#10B981", "✅", f"{dias}d"
+        return THEME['warning'], f"{dias}d"
+    return THEME['success'], f"{dias}d"
 
 def _cor_rag(pct: float) -> str:
     if pct >= 80: return "#10B981"
@@ -331,30 +331,31 @@ def render_formacoes(users, obras_db, *_):
     )
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .form-card {
-        background:#1E293B; border-radius:12px;
+    .form-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:14px 16px; margin-bottom:8px;
         border-left:5px solid;
-    }
-    .form-badge {
+    }}
+    .form-badge {{
         display:inline-block; padding:2px 9px;
         border-radius:20px; font-size:0.7rem; font-weight:700;
-    }
-    .collab-row {
-        background:#0F172A; border-radius:8px;
+    }}
+    .collab-row {{
+        background:{THEME['background']}; border-radius:8px;
         padding:10px 14px; margin-bottom:4px;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("### 🎓 Gestão de Formações")
+    st.markdown("### Gestão de Formações")
     st.markdown(
-        "<p style='color:#64748B;font-size:0.82rem;margin:0 0 12px;'>"
-        "ISO 9001:2015 — Cláusula 7.2 Competência · "
-        "Registo, validades, plano anual e custos"
-        "</p>",
+        f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;margin:0 0 12px;'>"
+        f"ISO 9001:2015 — Cláusula 7.2 Competência · "
+        f"Registo, validades, plano anual e custos"
+        f"</p>",
         unsafe_allow_html=True
     )
 
@@ -394,11 +395,11 @@ def render_formacoes(users, obras_db, *_):
         ]['c'].sum()
 
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("✅ Válidas",       n_validas)
-    with c2: st.metric("⚠️ Alerta 60d",   n_alerta)
-    with c3: st.metric("🔴 Expiradas",    n_expiradas)
-    with c4: st.metric("💰 Reembolsos",   n_reemb)
-    with c5: st.metric("💶 Custo Ano",    f"€{custo_ano:,.2f}")
+    with c1: st.metric("Válidas",       n_validas)
+    with c2: st.metric("Alerta 60d",   n_alerta)
+    with c3: st.metric("Expiradas",    n_expiradas)
+    with c4: st.metric("Reembolsos",   n_reemb)
+    with c5: st.metric("Custo Ano",    f"€{custo_ano:,.2f}")
 
     # Alertas urgentes
     if (n_alerta > 0 or n_expiradas > 0) and not form_db.empty:
@@ -412,11 +413,11 @@ def render_formacoes(users, obras_db, *_):
                 for _, r in urgentes.head(4).iterrows()
             ])
             st.markdown(
-                f"<div style='background:rgba(239,68,68,0.1);"
-                f"border:1px solid #EF4444;border-radius:8px;"
+                f"<div style='background:rgba(185,28,28,0.08);"
+                f"border:1px solid {THEME['error']};border-radius:8px;"
                 f"padding:10px 14px;margin-bottom:12px;'>"
-                f"<b style='color:#EF4444;'>🚨 Formações urgentes:</b> "
-                f"<span style='color:#94A3B8;'>{msg}</span>"
+                f"<b style='color:{THEME['error']};'>Formações urgentes:</b> "
+                f"<span style='color:{THEME['text_secondary']};'>{msg}</span>"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -426,22 +427,22 @@ def render_formacoes(users, obras_db, *_):
     # ── Tabs ──────────────────────────────────────────────────────
     (t_reg, t_nova, t_colab,
      t_plano, t_custos, t_catalogo) = st.tabs([
-        "📋 Formações Registadas",
-        "➕ Registar Formação",
-        "👤 Por Colaborador",
-        "📅 Plano Anual",
-        "💰 Custos & Reembolsos",
-        "📚 Catálogo",
+        "Formações Registadas",
+        "Registar Formação",
+        "Por Colaborador",
+        "Plano Anual",
+        "Custos & Reembolsos",
+        "Catálogo",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB — FORMAÇÕES REGISTADAS
     # ════════════════════════════════════════════════════════════════
     with t_reg:
-        st.markdown("#### 📋 Todas as Formações")
+        st.markdown("#### Todas as Formações")
 
         if form_db.empty:
-            st.info("📋 Sem formações registadas.")
+            st.info("Sem formações registadas.")
         else:
             # Filtros
             col_f1,col_f2,col_f3,col_f4 = st.columns(4)
@@ -459,7 +460,7 @@ def render_formacoes(users, obras_db, *_):
             with col_f3:
                 est_filt = st.selectbox(
                     "Estado Validade",
-                    ["Todos","✅ Válida","⚠️ Alerta","🔴 Expirada"],
+                    ["Todos","Válida","Alerta","Expirada"],
                     key="fr_est_f"
                 )
             with col_f4:
@@ -477,11 +478,11 @@ def render_formacoes(users, obras_db, *_):
                 df_f = df_f[df_f['Colaborador']==colab_filt]
             if cat_filt   != "Todas":
                 df_f = df_f[df_f['Categoria']==cat_filt]
-            if est_filt   == "✅ Válida":
+            if est_filt   == "Válida":
                 df_f = df_f[df_f['Dias_N'] > 60]
-            elif est_filt == "⚠️ Alerta":
+            elif est_filt == "Alerta":
                 df_f = df_f[df_f['Dias_N'].between(0,60)]
-            elif est_filt == "🔴 Expirada":
+            elif est_filt == "Expirada":
                 df_f = df_f[df_f['Dias_N'] < 0]
             if pago_filt  != "Todos":
                 df_f = df_f[df_f['Pago_Por']==pago_filt]
@@ -489,7 +490,7 @@ def render_formacoes(users, obras_db, *_):
             df_f = df_f.sort_values('Dias_N', ascending=True)
 
             st.markdown(
-                f"<p style='color:#64748B;font-size:0.82rem;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;'>"
                 f"{len(df_f)} formação(ões)</p>",
                 unsafe_allow_html=True
             )
@@ -497,21 +498,15 @@ def render_formacoes(users, obras_db, *_):
             for _, fr in df_f.iterrows():
                 fid    = fr.get('ID','')
                 dias_f = int(fr.get('Dias_N',9999))
-                cor_v, ic_v, txt_v = _cor_validade(dias_f)
+                cor_v, txt_v = _cor_validade(dias_f)
 
                 cat_f  = fr.get('Categoria','')
-                cores_cat = {
-                    'Segurança': '#EF4444',
-                    'Técnica':   '#3B82F6',
-                    'Qualidade': '#10B981',
-                    'Gestão':    '#8B5CF6',
-                    'Línguas':   '#F59E0B',
-                    'Licença':   '#06B6D4',
-                }
-                cor_cat = cores_cat.get(cat_f,'#6B7280')
+                # Etiquetas de categoria sem semântica boa/má —
+                # cor decorativa única (acento), como nos módulos
+                # anteriores com o mesmo padrão de tags arbitrárias.
+                cor_cat = THEME['accent']
 
                 pago   = fr.get('Pago_Por','')
-                ic_pago = "🏢" if pago=='Empresa' else "👤"
                 custo_f = float(fr.get('Custo',0) or 0)
                 reemb_f = fr.get('Reembolsado','')
 
@@ -523,27 +518,27 @@ def render_formacoes(users, obras_db, *_):
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.92rem;'>"
                         f"{fr.get('Formacao','')}</b>"
                         f"<span class='form-badge' "
                         f"style='background:{cor_cat}22;"
                         f"color:{cor_cat};margin-left:8px;'>"
                         f"{cat_f}</span><br>"
-                        f"<small style='color:#64748B;'>"
-                        f"👤 {fr.get('Colaborador','')} · "
-                        f"🏫 {fr.get('Entidade','')} · "
-                        f"📅 {fr.get('Data_Conclusao','')} · "
-                        f"⏱️ {fr.get('Duracao_H',0)}h · "
-                        f"{ic_pago} €{custo_f:.2f}"
-                        f"{'  · 💰 Reemb. pendente' if pago=='Colaborador (reembolso)' and reemb_f!='Sim' else ''}"
+                        f"<small style='color:{THEME['text_secondary']};'>"
+                        f"{fr.get('Colaborador','')} · "
+                        f"{fr.get('Entidade','')} · "
+                        f"{fr.get('Data_Conclusao','')} · "
+                        f"{fr.get('Duracao_H',0)}h · "
+                        f"{pago} · €{custo_f:.2f}"
+                        f"{'  · Reemb. pendente' if pago=='Colaborador (reembolso)' and reemb_f!='Sim' else ''}"
                         f"</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
                         f"<span style='color:{cor_v};"
                         f"font-weight:700;'>"
-                        f"{ic_v} {txt_v}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"{txt_v}</span><br>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Válida até {fr.get('Data_Validade','—')}"
                         f"</small>"
                         f"</div></div>"
@@ -556,7 +551,7 @@ def render_formacoes(users, obras_db, *_):
                     if cert_b and len(str(cert_b)) > 50:
                         try:
                             st.download_button(
-                                "📜",
+                                "",
                                 data=base64.b64decode(cert_b),
                                 file_name=(
                                     f"cert_"
@@ -583,7 +578,7 @@ def render_formacoes(users, obras_db, *_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar Formações",
+                    "Exportar Formações",
                     data=csv_f.encode('utf-8-sig'),
                     file_name=(
                         f"formacoes_"
@@ -597,7 +592,7 @@ def render_formacoes(users, obras_db, *_):
     # TAB — REGISTAR FORMAÇÃO
     # ════════════════════════════════════════════════════════════════
     with t_nova:
-        st.markdown("#### ➕ Registar Nova Formação")
+        st.markdown("#### Registar Nova Formação")
 
         with st.form("form_nova_formacao"):
             col_n1, col_n2 = st.columns(2)
@@ -669,9 +664,9 @@ def render_formacoes(users, obras_db, *_):
                     key="nf_validade"
                 )
                 st.markdown(
-                    "<small style='color:#64748B;'>"
-                    "Preenchida automaticamente pelo catálogo "
-                    "— ajusta se necessário.</small>",
+                    f"<small style='color:{THEME['text_secondary']};'>"
+                    f"Preenchida automaticamente pelo catálogo "
+                    f"— ajusta se necessário.</small>",
                     unsafe_allow_html=True
                 )
 
@@ -701,7 +696,7 @@ def render_formacoes(users, obras_db, *_):
             nf_notas = st.text_area("Notas", key="nf_notas")
 
             if st.form_submit_button(
-                "💾 Registar Formação",
+                "Registar Formação",
                 use_container_width=True,
                 type="primary"
             ):
@@ -711,7 +706,7 @@ def render_formacoes(users, obras_db, *_):
                     else nf_form
                 )
                 if not nome_final or nf_colab == "—":
-                    st.error("❌ Colaborador e formação obrigatórios.")
+                    st.error("Colaborador e formação obrigatórios.")
                 else:
                     cert_b64 = ""
                     if nf_cert:
@@ -758,7 +753,7 @@ def render_formacoes(users, obras_db, *_):
                     # Notificar colaborador
                     criar_notificacao(
                         destinatario=nf_colab,
-                        titulo=f"🎓 Formação Registada — {nome_final}",
+                        titulo=f"Formação Registada — {nome_final}",
                         mensagem=(
                             f"A tua formação '{nome_final}' foi "
                             f"registada. Válida até "
@@ -769,7 +764,7 @@ def render_formacoes(users, obras_db, *_):
                     )
                     inv("formacoes.csv")
                     st.success(
-                        f"✅ Formação registada! "
+                        f"Formação registada! "
                         f"{nf_colab} · {nome_final} · "
                         f"Válida até "
                         f"{nf_validade.strftime('%d/%m/%Y')}"
@@ -780,12 +775,12 @@ def render_formacoes(users, obras_db, *_):
     # TAB — POR COLABORADOR (Matriz de Competências)
     # ════════════════════════════════════════════════════════════════
     with t_colab:
-        st.markdown("#### 👤 Formações por Colaborador")
+        st.markdown("#### Formações por Colaborador")
         st.markdown(
-            "<small style='color:#64748B;'>"
-            "Matriz de competências — ISO 9001 Cláusula 7.2. "
-            "Verde = válida · Amarelo = expira 60d · "
-            "Vermelho = expirada · Cinzento = não tem</small>",
+            f"<small style='color:{THEME['text_secondary']};'>"
+            f"Matriz de competências — ISO 9001 Cláusula 7.2. "
+            f"Verde = válida · Amarelo = expira 60d · "
+            f"Vermelho = expirada · Cinzento = não tem</small>",
             unsafe_allow_html=True
         )
 
@@ -814,19 +809,21 @@ def render_formacoes(users, obras_db, *_):
             n_exp_c    = len(form_colab[
                 form_colab['Dias_N'] < 0
             ]) if not form_colab.empty else 0
-            h_total    = form_colab['Duracao_H'].sum() \
+            h_total    = pd.to_numeric(
+                             form_colab['Duracao_H'], errors='coerce'
+                         ).fillna(0).sum() \
                          if not form_colab.empty and \
                          'Duracao_H' in form_colab.columns else 0
 
             c1,c2,c3,c4 = st.columns(4)
-            with c1: st.metric("📋 Total",        n_total_c)
-            with c2: st.metric("✅ Válidas",       n_validas_c)
-            with c3: st.metric("🔴 Expiradas",     n_exp_c)
-            with c4: st.metric("⏱️ Horas Total",  f"{h_total:.0f}h")
+            with c1: st.metric("Total",        n_total_c)
+            with c2: st.metric("Válidas",       n_validas_c)
+            with c3: st.metric("Expiradas",     n_exp_c)
+            with c4: st.metric("Horas Total",  f"{h_total:.0f}h")
 
             if form_colab.empty:
                 st.info(
-                    f"📋 {colab_sel} não tem formações registadas."
+                    f"{colab_sel} não tem formações registadas."
                 )
             else:
                 # Agrupar por categoria
@@ -837,22 +834,14 @@ def render_formacoes(users, obras_db, *_):
                     if forms_cat.empty:
                         continue
 
-                    cores_cat = {
-                        'Segurança': '#EF4444',
-                        'Técnica':   '#3B82F6',
-                        'Qualidade': '#10B981',
-                        'Gestão':    '#8B5CF6',
-                        'Línguas':   '#F59E0B',
-                        'Licença':   '#06B6D4',
-                    }
-                    cor_cat_c = cores_cat.get(cat_c,'#6B7280')
+                    cor_cat_c = THEME['accent']
 
                     st.markdown(
                         f"<p style='color:{cor_cat_c};"
                         f"font-weight:700;font-size:0.82rem;"
                         f"text-transform:uppercase;"
                         f"margin:12px 0 6px;'>"
-                        f"■ {cat_c}</p>",
+                        f"{cat_c}</p>",
                         unsafe_allow_html=True
                     )
 
@@ -861,19 +850,19 @@ def render_formacoes(users, obras_db, *_):
                     ).iterrows():
                         fid_c  = fc.get('ID','')
                         dias_c = int(fc.get('Dias_N',9999))
-                        cor_vc, ic_vc, txt_vc = _cor_validade(dias_c)
+                        cor_vc, txt_vc = _cor_validade(dias_c)
 
                         col_fc1, col_fc2, col_fc3 = st.columns([4,2,1])
                         with col_fc1:
                             st.markdown(
                                 f"<div class='collab-row'>"
-                                f"<b style='color:#F1F5F9;"
+                                f"<b style='color:{THEME['text']};"
                                 f"font-size:0.85rem;'>"
                                 f"{fc.get('Formacao','')}</b><br>"
-                                f"<small style='color:#64748B;'>"
-                                f"🏫 {fc.get('Entidade','')} · "
-                                f"📅 {fc.get('Data_Conclusao','')} · "
-                                f"⏱️ {fc.get('Duracao_H',0)}h · "
+                                f"<small style='color:{THEME['text_secondary']};'>"
+                                f"{fc.get('Entidade','')} · "
+                                f"{fc.get('Data_Conclusao','')} · "
+                                f"{fc.get('Duracao_H',0)}h · "
                                 f"{fc.get('Resultado','')}"
                                 f"</small>"
                                 f"</div>",
@@ -887,8 +876,8 @@ def render_formacoes(users, obras_db, *_):
                                 f"text-align:center;"
                                 f"margin-top:4px;'>"
                                 f"<b style='color:{cor_vc};'>"
-                                f"{ic_vc} {txt_vc}</b><br>"
-                                f"<small style='color:#64748B;'>"
+                                f"{txt_vc}</b><br>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"até {fc.get('Data_Validade','—')}"
                                 f"</small>"
                                 f"</div>",
@@ -897,7 +886,7 @@ def render_formacoes(users, obras_db, *_):
                         with col_fc3:
                             # Gerar comprovativo PDF
                             if st.button(
-                                "📄",
+                                "",
                                 key=f"comp_{fid_c}",
                                 use_container_width=True,
                                 help="Gerar comprovativo"
@@ -917,7 +906,7 @@ def render_formacoes(users, obras_db, *_):
 
                             if st.session_state.get(f'comp_{fid_c}'):
                                 st.download_button(
-                                    "📥",
+                                    "",
                                     data=st.session_state[f'comp_{fid_c}'],
                                     file_name=(
                                         f"comprovativo_"
@@ -945,21 +934,21 @@ def render_formacoes(users, obras_db, *_):
                     if not obrig_falta.empty:
                         st.markdown("---")
                         st.markdown(
-                            f"<p style='color:#EF4444;"
+                            f"<p style='color:{THEME['error']};"
                             f"font-weight:700;font-size:0.82rem;'>"
-                            f"❌ Formações obrigatórias em falta "
+                            f"Formações obrigatórias em falta "
                             f"({len(obrig_falta)}):</p>",
                             unsafe_allow_html=True
                         )
                         for _, of in obrig_falta.iterrows():
                             st.markdown(
                                 f"<div style='background:"
-                                f"rgba(239,68,68,0.08);"
+                                f"rgba(185,28,28,0.06);"
                                 f"border-radius:6px;"
                                 f"padding:6px 10px;"
                                 f"margin-bottom:3px;'>"
-                                f"<small style='color:#EF4444;'>"
-                                f"❌ {of.get('Nome','')} — "
+                                f"<small style='color:{THEME['error']};'>"
+                                f"{of.get('Nome','')} — "
                                 f"{of.get('Categoria','')}</small>"
                                 f"</div>",
                                 unsafe_allow_html=True
@@ -969,7 +958,7 @@ def render_formacoes(users, obras_db, *_):
     # TAB — PLANO ANUAL
     # ════════════════════════════════════════════════════════════════
     with t_plano:
-        st.markdown("#### 📅 Plano Anual de Formações")
+        st.markdown("#### Plano Anual de Formações")
         st.info(
             "ISO 9001:2015 Cláusula 7.2 — O plano anual de "
             "formações é evidência obrigatória para certificação."
@@ -978,7 +967,7 @@ def render_formacoes(users, obras_db, *_):
         col_pf, col_pl = st.columns([1, 2])
 
         with col_pf:
-            st.markdown("##### ➕ Adicionar ao Plano")
+            st.markdown("##### Adicionar ao Plano")
             with st.form("form_plano"):
                 pp_ano   = st.number_input(
                     "Ano", min_value=2024,
@@ -1022,7 +1011,7 @@ def render_formacoes(users, obras_db, *_):
                 pp_notas = st.text_area("Notas", key="pp_notas")
 
                 if st.form_submit_button(
-                    "➕ Adicionar ao Plano",
+                    "Adicionar ao Plano",
                     use_container_width=True,
                     type="primary"
                 ):
@@ -1044,7 +1033,7 @@ def render_formacoes(users, obras_db, *_):
                     ) if not plano_db.empty else novo_p
                     save_db(upd_p,"formacoes_plano.csv")
                     inv("formacoes_plano.csv")
-                    st.success("✅ Adicionado ao plano!")
+                    st.success("Adicionado ao plano!")
                     st.rerun()
 
         with col_pl:
@@ -1061,7 +1050,7 @@ def render_formacoes(users, obras_db, *_):
 
             if plano_ano.empty:
                 st.info(
-                    f"📋 Sem plano para {ano_plan}. "
+                    f"Sem plano para {ano_plan}. "
                     f"Adiciona formações ao plano."
                 )
             else:
@@ -1078,10 +1067,10 @@ def render_formacoes(users, obras_db, *_):
                            if n_plan_t > 0 else 0
 
                 c1,c2,c3 = st.columns(3)
-                with c1: st.metric("📋 Planeadas",    n_plan_t)
-                with c2: st.metric("✅ Concluídas",
+                with c1: st.metric("Planeadas",    n_plan_t)
+                with c2: st.metric("Concluídas",
                                    f"{n_conc_p} ({pct_conc}%)")
-                with c3: st.metric("💶 Custo Est.",   f"€{tot_est:,.2f}")
+                with c3: st.metric("Custo Est.",   f"€{tot_est:,.2f}")
 
                 # Por prioridade
                 for prior_p in ["Alta","Média","Baixa"]:
@@ -1091,10 +1080,10 @@ def render_formacoes(users, obras_db, *_):
                     if pp_filt.empty:
                         continue
                     cor_prior = {
-                        'Alta':  '#EF4444',
-                        'Média': '#F59E0B',
-                        'Baixa': '#10B981'
-                    }.get(prior_p,'#6B7280')
+                        'Alta':  THEME['error'],
+                        'Média': THEME['warning'],
+                        'Baixa': THEME['success']
+                    }.get(prior_p, THEME['text_secondary'])
 
                     st.markdown(
                         f"<p style='color:{cor_prior};"
@@ -1102,7 +1091,7 @@ def render_formacoes(users, obras_db, *_):
                         f"font-size:0.82rem;"
                         f"text-transform:uppercase;"
                         f"margin:10px 0 4px;'>"
-                        f"■ Prioridade {prior_p} "
+                        f"Prioridade {prior_p} "
                         f"({len(pp_filt)})</p>",
                         unsafe_allow_html=True
                     )
@@ -1113,30 +1102,31 @@ def render_formacoes(users, obras_db, *_):
                         pid_p  = pp.get('ID','')
                         est_p  = pp.get('Estado','')
                         cor_ep = {
-                            'Planeada':  '#F59E0B',
-                            'Concluída': '#10B981',
-                            'Cancelada': '#EF4444',
-                            'Em Curso':  '#3B82F6'
-                        }.get(est_p,'#6B7280')
+                            'Planeada':  THEME['warning'],
+                            'Concluída': THEME['success'],
+                            'Cancelada': THEME['error'],
+                            'Em Curso':  THEME['accent']
+                        }.get(est_p, THEME['text_secondary'])
 
                         col_pp1, col_pp2 = st.columns([5,1])
                         with col_pp1:
                             st.markdown(
-                                f"<div style='background:#1E293B;"
+                                f"<div style='background:{THEME['surface']};"
+                                f"border:1px solid {THEME['border']};"
                                 f"border-radius:8px;"
                                 f"padding:8px 12px;"
                                 f"margin-bottom:3px;"
                                 f"border-left:3px solid {cor_ep};'>"
-                                f"<b style='color:#F1F5F9;"
+                                f"<b style='color:{THEME['text']};"
                                 f"font-size:0.83rem;'>"
                                 f"{pp.get('Formacao','')}</b>"
                                 f"<span style='float:right;"
                                 f"color:{cor_ep};"
                                 f"font-size:0.72rem;'>"
                                 f"{est_p}</span><br>"
-                                f"<small style='color:#64748B;'>"
-                                f"👤 {pp.get('Colaborador','')} · "
-                                f"📅 {pp.get('Data_Prevista','')} · "
+                                f"<small style='color:{THEME['text_secondary']};'>"
+                                f"{pp.get('Colaborador','')} · "
+                                f"{pp.get('Data_Prevista','')} · "
                                 f"€{float(pp.get('Custo_Estimado',0) or 0):.2f}"
                                 f"</small>"
                                 f"</div>",
@@ -1151,7 +1141,7 @@ def render_formacoes(users, obras_db, *_):
                                 label_visibility="collapsed"
                             )
                             if st.button(
-                                "✅",
+                                "",
                                 key=f"upd_pp_{pid_p}",
                                 use_container_width=True
                             ):
@@ -1165,7 +1155,7 @@ def render_formacoes(users, obras_db, *_):
                 # PDF do plano
                 st.markdown("---")
                 if st.button(
-                    f"📄 Gerar Plano {ano_plan} PDF",
+                    f"Gerar Plano {ano_plan} PDF",
                     key="btn_pdf_plano",
                     use_container_width=True,
                     type="primary"
@@ -1175,7 +1165,7 @@ def render_formacoes(users, obras_db, *_):
                         form_db, empresa
                     )
                     st.download_button(
-                        "📥 Descarregar Plano",
+                        "Descarregar Plano",
                         data=pdf_plano,
                         file_name=(
                             f"plano_formacoes_{ano_plan}.pdf"
@@ -1190,10 +1180,10 @@ def render_formacoes(users, obras_db, *_):
     # TAB — CUSTOS & REEMBOLSOS
     # ════════════════════════════════════════════════════════════════
     with t_custos:
-        st.markdown("#### 💰 Custos e Reembolsos de Formações")
+        st.markdown("#### Custos e Reembolsos de Formações")
 
         if form_db.empty:
-            st.info("📋 Sem formações registadas.")
+            st.info("Sem formações registadas.")
         else:
             import plotly.graph_objects as go
 
@@ -1219,13 +1209,13 @@ def render_formacoes(users, obras_db, *_):
             ]['Custo_N'].sum()
 
             c1,c2,c3,c4 = st.columns(4)
-            with c1: st.metric("🏢 Pago Empresa",
+            with c1: st.metric("Pago Empresa",
                                f"€{tot_empresa:,.2f}")
-            with c2: st.metric("👤 Pago Colaborador",
+            with c2: st.metric("Pago Colaborador",
                                f"€{tot_colab:,.2f}")
-            with c3: st.metric("💰 Reembolso Pendente",
+            with c3: st.metric("Reembolso Pendente",
                                f"€{tot_reemb_p:,.2f}")
-            with c4: st.metric("💶 Total",
+            with c4: st.metric("Total",
                                f"€{tot_empresa+tot_colab:,.2f}")
 
             col_cg1, col_cg2 = st.columns(2)
@@ -1294,7 +1284,7 @@ def render_formacoes(users, obras_db, *_):
 
             # Reembolsos pendentes
             st.markdown("---")
-            st.markdown("##### 💰 Reembolsos Pendentes")
+            st.markdown("##### Reembolsos Pendentes")
 
             reemb_pend = form_db2[
                 (form_db2['Pago_Por']=='Colaborador (reembolso)') &
@@ -1302,29 +1292,30 @@ def render_formacoes(users, obras_db, *_):
             ]
 
             if reemb_pend.empty:
-                st.success("✅ Sem reembolsos pendentes!")
+                st.success("Sem reembolsos pendentes!")
             else:
                 for colab_r, grp_r in reemb_pend.groupby('Colaborador'):
                     tot_c = grp_r['Custo_N'].sum()
                     with st.expander(
-                        f"👤 {colab_r} — €{tot_c:.2f} "
+                        f"{colab_r} — €{tot_c:.2f} "
                         f"({len(grp_r)} formação(ões))",
                         expanded=True
                     ):
                         for _, fr in grp_r.iterrows():
                             st.markdown(
-                                f"<div style='background:#1E293B;"
+                                f"<div style='background:{THEME['surface']};"
+                                f"border:1px solid {THEME['border']};"
                                 f"border-radius:8px;padding:10px;"
                                 f"margin-bottom:4px;display:flex;"
                                 f"justify-content:space-between;'>"
                                 f"<div>"
-                                f"<small style='color:#F1F5F9;'>"
-                                f"🎓 {fr.get('Formacao','')}</small><br>"
-                                f"<small style='color:#64748B;'>"
-                                f"📅 {fr.get('Data_Conclusao','')} · "
-                                f"🏫 {fr.get('Entidade','')}"
+                                f"<small style='color:{THEME['text']};'>"
+                                f"{fr.get('Formacao','')}</small><br>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
+                                f"{fr.get('Data_Conclusao','')} · "
+                                f"{fr.get('Entidade','')}"
                                 f"</small></div>"
-                                f"<b style='color:#F97316;'>"
+                                f"<b style='color:{THEME['warning']};'>"
                                 f"€{float(fr.get('Custo_N',0)):,.2f}"
                                 f"</b></div>",
                                 unsafe_allow_html=True
@@ -1334,17 +1325,17 @@ def render_formacoes(users, obras_db, *_):
                         with col_rp1:
                             st.markdown(
                                 f"<div style='background:"
-                                f"rgba(249,115,22,0.1);"
+                                f"rgba(180,83,9,0.08);"
                                 f"border-radius:8px;padding:10px;"
                                 f"text-align:center;'>"
-                                f"<b style='color:#F97316;'>"
+                                f"<b style='color:{THEME['warning']};'>"
                                 f"Total: €{tot_c:.2f}</b>"
                                 f"</div>",
                                 unsafe_allow_html=True
                             )
                         with col_rp2:
                             if st.button(
-                                "✅ Marcar como reembolsado",
+                                "Marcar como reembolsado",
                                 key=f"reemb_form_{colab_r}",
                                 use_container_width=True,
                                 type="primary"
@@ -1358,7 +1349,7 @@ def render_formacoes(users, obras_db, *_):
                                 save_db(form_db,"formacoes.csv")
                                 criar_notificacao(
                                     destinatario=colab_r,
-                                    titulo="💰 Reembolso de Formações Processado",
+                                    titulo="Reembolso de Formações Processado",
                                     mensagem=(
                                         f"O teu reembolso de "
                                         f"formações (€{tot_c:.2f}) "
@@ -1373,7 +1364,7 @@ def render_formacoes(users, obras_db, *_):
     # TAB — CATÁLOGO
     # ════════════════════════════════════════════════════════════════
     with t_catalogo:
-        st.markdown("#### 📚 Catálogo de Formações")
+        st.markdown("#### Catálogo de Formações")
         st.info(
             "Define as formações disponíveis, as validades e "
             "quais são obrigatórias para todos os colaboradores. "
@@ -1384,12 +1375,12 @@ def render_formacoes(users, obras_db, *_):
         col_cf, col_cl = st.columns([1, 2])
 
         with col_cf:
-            st.markdown("##### ➕ Adicionar ao Catálogo")
+            st.markdown("##### Adicionar ao Catálogo")
 
             # Inicializar catálogo com padrão se vazio
             if cat_db.empty:
                 if st.button(
-                    "🚀 Inicializar com Catálogo Padrão",
+                    "Inicializar com Catálogo Padrão",
                     key="btn_init_catalogo",
                     use_container_width=True,
                     type="primary"
@@ -1410,7 +1401,7 @@ def render_formacoes(users, obras_db, *_):
                     )
                     inv("formacoes_catalogo.csv")
                     st.success(
-                        f"✅ Catálogo inicializado com "
+                        f"Catálogo inicializado com "
                         f"{len(rows_cat)} formações!"
                     )
                     st.rerun()
@@ -1429,17 +1420,17 @@ def render_formacoes(users, obras_db, *_):
                     help="0 = sem validade"
                 )
                 c_obrig = st.checkbox(
-                    "✅ Obrigatória para todos",
+                    "Obrigatória para todos",
                     key="c_obrig"
                 )
 
                 if st.form_submit_button(
-                    "➕ Adicionar",
+                    "Adicionar",
                     use_container_width=True,
                     type="primary"
                 ):
                     if not c_nome.strip():
-                        st.error("❌ Nome obrigatório.")
+                        st.error("Nome obrigatório.")
                     else:
                         novo_c = pd.DataFrame([{
                             "ID":           str(uuid.uuid4())[:8].upper(),
@@ -1454,15 +1445,15 @@ def render_formacoes(users, obras_db, *_):
                         ) if not cat_db.empty else novo_c
                         save_db(upd_c,"formacoes_catalogo.csv")
                         inv("formacoes_catalogo.csv")
-                        st.success(f"✅ {c_nome} adicionado!")
+                        st.success(f"{c_nome} adicionado!")
                         st.rerun()
 
         with col_cl:
-            st.markdown("##### 📋 Catálogo Actual")
+            st.markdown("##### Catálogo Actual")
 
             if cat_db.empty:
                 st.info(
-                    "📋 Catálogo vazio. Inicializa com o botão "
+                    "Catálogo vazio. Inicializa com o botão "
                     "ao lado ou adiciona formações manualmente."
                 )
             else:
@@ -1481,22 +1472,14 @@ def render_formacoes(users, obras_db, *_):
                     if grupo.empty:
                         continue
 
-                    cores_cat2 = {
-                        'Segurança': '#EF4444',
-                        'Técnica':   '#3B82F6',
-                        'Qualidade': '#10B981',
-                        'Gestão':    '#8B5CF6',
-                        'Línguas':   '#F59E0B',
-                        'Licença':   '#06B6D4',
-                    }
-                    cor_cg = cores_cat2.get(cat_grupo,'#6B7280')
+                    cor_cg = THEME['accent']
 
                     st.markdown(
                         f"<p style='color:{cor_cg};"
                         f"font-weight:700;font-size:0.8rem;"
                         f"text-transform:uppercase;"
                         f"margin:10px 0 4px;'>"
-                        f"■ {cat_grupo} ({len(grupo)})</p>",
+                        f"{cat_grupo} ({len(grupo)})</p>",
                         unsafe_allow_html=True
                     )
 
@@ -1511,19 +1494,25 @@ def render_formacoes(users, obras_db, *_):
                             if val_d > 0
                             else "Sem validade"
                         )
+                        obrig_html = (
+                            f"<span style='color:{THEME['error']};"
+                            f"font-size:0.65rem;margin-left:6px;'>"
+                            f"OBRIGATÓRIA</span>"
+                        ) if obrig else ""
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};"
+                            f"border:1px solid {THEME['border']};"
                             f"border-radius:6px;padding:7px 12px;"
                             f"margin-bottom:3px;display:flex;"
                             f"justify-content:space-between;"
                             f"align-items:center;'>"
                             f"<div>"
-                            f"<small style='color:#F1F5F9;'>"
+                            f"<small style='color:{THEME['text']};'>"
                             f"{cit.get('Nome','')}</small>"
-                            f"{'<span style=color:#EF4444;font-size:0.65rem;margin-left:6px;>OBRIGATÓRIA</span>' if obrig else ''}"
+                            f"{obrig_html}"
                             f"</div>"
-                            f"<small style='color:#64748B;'>"
-                            f"⏱️ {val_txt}</small>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
+                            f"{val_txt}</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
@@ -1533,7 +1522,7 @@ def render_formacoes(users, obras_db, *_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar Catálogo",
+                    "Exportar Catálogo",
                     data=csv_cat.encode('utf-8-sig'),
                     file_name="catalogo_formacoes.csv",
                     mime="text/csv",

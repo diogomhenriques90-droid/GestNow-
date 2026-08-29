@@ -8,7 +8,7 @@ import streamlit as st
 import pandas as pd
 import uuid
 from datetime import datetime, date, timedelta
-from core import save_db, inv, load_db, log_audit, criar_notificacao
+from core import save_db, inv, load_db, log_audit, criar_notificacao, THEME
 
 def _load(nome, cols):
     try:
@@ -43,7 +43,7 @@ def render_qualidade(*_):
     user_nome = st.session_state.get('user','Admin')
     hoje      = date.today()
 
-    st.markdown("### 🎯 Gestão da Qualidade")
+    st.markdown("### Gestão da Qualidade")
 
     # KPIs
     n_nc_aber = len(nc_db[nc_db['Status'].isin(['Aberta','Em Tratamento'])]) \
@@ -62,30 +62,30 @@ def render_qualidade(*_):
     n_docs = len(docs_sgq) if not docs_sgq.empty else 0
 
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("🔴 NC Abertas",    n_nc_aber)
-    with c2: st.metric("📋 NC Total",      n_nc_tot)
-    with c3: st.metric("⚠️ AC Vencidas",   n_ac_venc,
-                       delta="🔴 Urgente" if n_ac_venc > 0 else "✅")
-    with c4: st.metric("📄 Docs SGQ",      n_docs)
+    with c1: st.metric("NC Abertas",    n_nc_aber)
+    with c2: st.metric("NC Total",      n_nc_tot)
+    with c3: st.metric("AC Vencidas",   n_ac_venc,
+                       delta="Urgente" if n_ac_venc > 0 else "")
+    with c4: st.metric("Docs SGQ",      n_docs)
 
     st.divider()
 
     tab_nc, tab_nova_nc, tab_insp, tab_docs, tab_kpis = st.tabs([
-        "🔴 Não Conformidades",
-        "➕ Nova NC",
-        "🔍 Inspeções",
-        "📄 Docs SGQ",
-        "📊 Indicadores",
+        "Não Conformidades",
+        "Nova NC",
+        "Inspeções",
+        "Docs SGQ",
+        "Indicadores",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # NÃO CONFORMIDADES
     # ════════════════════════════════════════════════════════════════
     with tab_nc:
-        st.markdown("#### 🔴 Não Conformidades")
+        st.markdown("#### Não Conformidades")
 
         if nc_db.empty:
-            st.success("✅ Sem não conformidades registadas.")
+            st.success("Sem não conformidades registadas.")
         else:
             col_f1, col_f2, col_f3 = st.columns(3)
             with col_f1:
@@ -112,17 +112,17 @@ def render_qualidade(*_):
                 grav  = nc.get('Gravidade','')
                 stat  = nc.get('Status','')
                 cor_g = {
-                    'Crítica':    '#DC2626',
-                    'Maior':      '#EF4444',
-                    'Menor':      '#F59E0B',
-                    'Observação': '#3B82F6'
-                }.get(grav,'#6B7280')
+                    'Crítica':    THEME['error'],
+                    'Maior':      THEME['error'],
+                    'Menor':      THEME['warning'],
+                    'Observação': THEME['accent']
+                }.get(grav, THEME['text_secondary'])
                 cor_s = {
-                    'Aberta':        '#EF4444',
-                    'Em Tratamento': '#F59E0B',
-                    'Fechada':       '#10B981',
-                    'Verificada':    '#64748B'
-                }.get(stat,'#6B7280')
+                    'Aberta':        THEME['error'],
+                    'Em Tratamento': THEME['warning'],
+                    'Fechada':       THEME['success'],
+                    'Verificada':    THEME['text_secondary']
+                }.get(stat, THEME['text_secondary'])
 
                 # Alerta prazo vencido
                 prazo_str = nc.get('Prazo_AC','')
@@ -132,9 +132,9 @@ def render_qualidade(*_):
                         d_pz = datetime.strptime(prazo_str,"%d/%m/%Y").date()
                         dias = (d_pz - hoje).days
                         if dias < 0:
-                            alerta_pz = f" 🔴 AC vencida há {abs(dias)}d!"
+                            alerta_pz = f" AC vencida há {abs(dias)}d!"
                         elif dias <= 5:
-                            alerta_pz = f" ⚠️ AC vence em {dias}d"
+                            alerta_pz = f" AC vence em {dias}d"
                     except:
                         pass
 
@@ -146,32 +146,32 @@ def render_qualidade(*_):
                     col_nc1, col_nc2 = st.columns([3,1])
                     with col_nc1:
 
-                        causa_txt = ('<p style=color:#F59E0B;margin:2px 0;><b>Causa Raiz:</b> ' + str(nc.get('Causa_Raiz','')) + '</p>') if nc.get('Causa_Raiz') else ''
-                        ac_txt    = ('<p style=color:#3B82F6;margin:2px 0;><b>Ação Corretiva:</b> ' + str(nc.get('Acao_Corretiva','')) + '</p>') if nc.get('Acao_Corretiva') else ''
-                        prazo_txt = ('<p style=color:#64748B;margin:2px 0;><b>Prazo AC:</b> ' + str(nc.get('Prazo_AC','')) + ' · Resp: ' + str(nc.get('Responsavel_AC','')) + '</p>') if nc.get('Prazo_AC') else ''
+                        causa_txt = (f"<p style='color:{THEME['warning']};margin:2px 0;'><b>Causa Raiz:</b> " + str(nc.get('Causa_Raiz','')) + '</p>') if nc.get('Causa_Raiz') else ''
+                        ac_txt    = (f"<p style='color:{THEME['accent']};margin:2px 0;'><b>Ação Corretiva:</b> " + str(nc.get('Acao_Corretiva','')) + '</p>') if nc.get('Acao_Corretiva') else ''
+                        prazo_txt = (f"<p style='color:{THEME['text_secondary']};margin:2px 0;'><b>Prazo AC:</b> " + str(nc.get('Prazo_AC','')) + ' · Resp: ' + str(nc.get('Responsavel_AC','')) + '</p>') if nc.get('Prazo_AC') else ''
 
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"border-radius:8px;padding:12px;"
                             f"border-left:4px solid {cor_g};'>"
-                            f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                            f"<p style='color:{THEME['text']};margin:2px 0;'>"
                             f"<b>Data:</b> {nc.get('Data','')} · "
                             f"<b>Obra:</b> {nc.get('Obra','')} · "
                             f"<b>Tipo:</b> {nc.get('Tipo','')}</p>"
-                            f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                            f"<p style='color:{THEME['text']};margin:2px 0;'>"
                             f"<b>Reportado por:</b> {nc.get('Reportado_Por','')}</p>"
-                            f"<p style='color:#94A388;margin:4px 0;'>"
+                            f"<p style='color:{THEME['text_secondary']};margin:4px 0;'>"
                             f"{nc.get('Descricao','')}</p>"
                             f"{causa_txt}"
                             f"{ac_txt}"
                             f"{prazo_txt}"
                             f"</div>",
                             unsafe_allow_html=True
-                         )   
+                         )
 
                     with col_nc2:
                         st.markdown(
-                            f"<div style='background:{cor_s}18;"
+                            f"<div style='background:{THEME['surface']};"
                             f"border:1px solid {cor_s};"
                             f"border-radius:8px;padding:10px;"
                             f"text-align:center;'>"
@@ -212,7 +212,7 @@ def render_qualidade(*_):
                                       else 0
                             )
                             if st.button(
-                                "💾 Guardar",
+                                "Guardar",
                                 key=f"nc_save_{ncid}",
                                 use_container_width=True,
                                 type="primary"
@@ -239,7 +239,7 @@ def render_qualidade(*_):
     # NOVA NC
     # ════════════════════════════════════════════════════════════════
     with tab_nova_nc:
-        st.markdown("#### ➕ Registar Não Conformidade")
+        st.markdown("#### Registar Não Conformidade")
 
         obras_ativas = obras_db[
             obras_db['Ativa']=='Ativa'
@@ -292,12 +292,12 @@ def render_qualidade(*_):
                 )
 
             if st.form_submit_button(
-                "💾 Registar NC",
+                "Registar NC",
                 use_container_width=True,
                 type="primary"
             ):
                 if not nn_desc.strip():
-                    st.error("❌ Descrição obrigatória.")
+                    st.error("Descrição obrigatória.")
                 else:
                     nova_nc = pd.DataFrame([{
                         "ID":           str(uuid.uuid4())[:8].upper(),
@@ -334,7 +334,7 @@ def render_qualidade(*_):
                     if nn_resp_ac and nn_resp_ac != user_nome:
                         criar_notificacao(
                             destinatario=nn_resp_ac,
-                            titulo=f"🔴 Nova NC [{nn_grav}] — {nn_obra}",
+                            titulo=f"Nova NC [{nn_grav}] — {nn_obra}",
                             mensagem=(
                                 f"Foste designado responsável pela "
                                 f"ação corretiva. Prazo: {nn_prazo}"
@@ -343,19 +343,19 @@ def render_qualidade(*_):
                             acao_url="/"
                         )
                     inv("nao_conformidades.csv")
-                    st.success("✅ Não conformidade registada!")
+                    st.success("Não conformidade registada!")
                     st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # INSPEÇÕES
     # ════════════════════════════════════════════════════════════════
     with tab_insp:
-        st.markdown("#### 🔍 Inspeções de Qualidade")
+        st.markdown("#### Inspeções de Qualidade")
 
         col_ic1, col_ic2 = st.columns([1, 2])
 
         with col_ic1:
-            st.markdown("##### ➕ Nova Inspeção")
+            st.markdown("##### Nova Inspeção")
             obras_ativas2 = obras_db[
                 obras_db['Ativa']=='Ativa'
             ]['Obra'].tolist() if not obras_db.empty else []
@@ -385,7 +385,7 @@ def render_qualidade(*_):
                 i_obs   = st.text_area("Observações", key="i_obs")
 
                 if st.form_submit_button(
-                    "💾 Registar",
+                    "Registar",
                     use_container_width=True,
                     type="primary"
                 ):
@@ -405,37 +405,37 @@ def render_qualidade(*_):
                     ) if not insp_db.empty else nova_i
                     save_db(upd_i,"inspecoes_qualidade.csv")
                     inv("inspecoes_qualidade.csv")
-                    st.success("✅ Inspeção registada!")
+                    st.success("Inspeção registada!")
                     st.rerun()
 
         with col_ic2:
-            st.markdown("##### 📋 Últimas Inspeções")
+            st.markdown("##### Últimas Inspeções")
             if insp_db.empty:
-                st.info("📋 Sem inspeções.")
+                st.info("Sem inspeções.")
             else:
                 for _, ins in insp_db.sort_values(
                     'Data', ascending=False
                 ).head(10).iterrows():
                     res   = ins.get('Resultado','')
                     cor_r = {
-                        'Conforme':    '#10B981',
-                        'Não Conforme':'#EF4444',
-                        'Condicionado':'#F59E0B'
-                    }.get(res,'#6B7280')
+                        'Conforme':    THEME['success'],
+                        'Não Conforme':THEME['error'],
+                        'Condicionado':THEME['warning']
+                    }.get(res, THEME['text_secondary'])
 
-                    obs_txt = ('<br><small style=color:#94A3B8;>' + str(ins.get('Obs',''))[:60] + '</small>') if ins.get('Obs') else ''
-                    
+                    obs_txt = (f"<br><small style='color:{THEME['text_secondary']};'>" + str(ins.get('Obs',''))[:60] + '</small>') if ins.get('Obs') else ''
+
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:8px;padding:10px 14px;"
                         f"margin-bottom:4px;"
                         f"border-left:3px solid {cor_r};'>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.85rem;'>"
                         f"{ins.get('Tipo_Inspecao','')[:35]}</b>"
                         f"<span style='float:right;color:{cor_r};"
                         f"font-weight:700;'>{res}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{ins.get('Data','')} · "
                         f"{ins.get('Obra','')} · "
                         f"{ins.get('Realizado_Por','')}"
@@ -449,7 +449,7 @@ def render_qualidade(*_):
     # DOCUMENTOS SGQ
     # ════════════════════════════════════════════════════════════════
     with tab_docs:
-        st.markdown("#### 📄 Documentação do SGQ")
+        st.markdown("#### Documentação do SGQ")
         st.info(
             "Registo e controlo dos documentos do Sistema de "
             "Gestão da Qualidade — procedimentos, instruções, "
@@ -459,7 +459,7 @@ def render_qualidade(*_):
         col_dc1, col_dc2 = st.columns([1, 2])
 
         with col_dc1:
-            st.markdown("##### ➕ Novo Documento")
+            st.markdown("##### Novo Documento")
             with st.form("form_doc_sgq"):
                 d_cod   = st.text_input(
                     "Código *",
@@ -489,12 +489,12 @@ def render_qualidade(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar",
+                    "Guardar",
                     use_container_width=True,
                     type="primary"
                 ):
                     if not d_cod.strip() or not d_tit.strip():
-                        st.error("❌ Código e título obrigatórios.")
+                        st.error("Código e título obrigatórios.")
                     else:
                         novo_d = pd.DataFrame([{
                             "ID":          str(uuid.uuid4())[:8].upper(),
@@ -514,14 +514,14 @@ def render_qualidade(*_):
                         save_db(upd_d,"documentos_sgq.csv")
                         inv("documentos_sgq.csv")
                         st.success(
-                            f"✅ {d_cod} — {d_tit} adicionado!"
+                            f"{d_cod} — {d_tit} adicionado!"
                         )
                         st.rerun()
 
         with col_dc2:
-            st.markdown("##### 📋 Índice de Documentos")
+            st.markdown("##### Índice de Documentos")
             if docs_sgq.empty:
-                st.info("📋 Sem documentos registados.")
+                st.info("Sem documentos registados.")
             else:
                 stat_doc_f = st.selectbox(
                     "Estado",
@@ -555,7 +555,7 @@ def render_qualidade(*_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar Índice",
+                    "Exportar Índice",
                     data=csv_d.encode('utf-8-sig'),
                     file_name="indice_sgq.csv",
                     mime="text/csv",
@@ -566,12 +566,12 @@ def render_qualidade(*_):
     # INDICADORES
     # ════════════════════════════════════════════════════════════════
     with tab_kpis:
-        st.markdown("#### 📊 Indicadores de Qualidade")
+        st.markdown("#### Indicadores de Qualidade")
 
         import plotly.graph_objects as go
 
         if nc_db.empty and insp_db.empty:
-            st.info("📋 Sem dados suficientes para indicadores.")
+            st.info("Sem dados suficientes para indicadores.")
         else:
             # NC por gravidade
             if not nc_db.empty and 'Gravidade' in nc_db.columns:
@@ -621,20 +621,20 @@ def render_qualidade(*_):
                     for stat_k, cnt_k in grp_s.items():
                         pct_k = round(cnt_k/total_nc*100)
                         cor_k = {
-                            'Aberta':        '#EF4444',
-                            'Em Tratamento': '#F59E0B',
-                            'Fechada':       '#10B981',
-                            'Verificada':    '#64748B'
-                        }.get(stat_k,'#6B7280')
+                            'Aberta':        THEME['error'],
+                            'Em Tratamento': THEME['warning'],
+                            'Fechada':       THEME['success'],
+                            'Verificada':    THEME['text_secondary']
+                        }.get(stat_k, THEME['text_secondary'])
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"border-radius:8px;padding:8px 12px;"
                             f"margin-bottom:4px;"
                             f"border-left:3px solid {cor_k};'>"
                             f"<span style='color:{cor_k};"
                             f"font-weight:700;'>{stat_k}</span>"
                             f"<span style='float:right;"
-                            f"color:#94A3B8;'>"
+                            f"color:{THEME['text_secondary']};'>"
                             f"{cnt_k} ({pct_k}%)</span>"
                             f"</div>",
                             unsafe_allow_html=True
@@ -648,19 +648,19 @@ def render_qualidade(*_):
                         insp_db['Resultado'] == 'Conforme'
                     ])
                     taxa_cf = round(conf_i/tot_i*100) if tot_i > 0 else 0
-                    cor_cf  = "#10B981" if taxa_cf >= 90 \
-                              else "#F59E0B" if taxa_cf >= 70 \
-                              else "#EF4444"
+                    cor_cf  = THEME['success'] if taxa_cf >= 90 \
+                              else THEME['warning'] if taxa_cf >= 70 \
+                              else THEME['error']
                     st.markdown(
-                        f"<div style='background:{cor_cf}18;"
+                        f"<div style='background:{THEME['surface']};"
                         f"border:2px solid {cor_cf};"
                         f"border-radius:12px;padding:20px;"
                         f"text-align:center;'>"
-                        f"<p style='color:#64748B;margin:0 0 4px;'>"
+                        f"<p style='color:{THEME['text_secondary']};margin:0 0 4px;'>"
                         f"Taxa de Conformidade</p>"
                         f"<b style='color:{cor_cf};"
                         f"font-size:2.5rem;'>{taxa_cf}%</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{conf_i}/{tot_i} inspeções conformes"
                         f"</small></div>",
                         unsafe_allow_html=True
@@ -677,10 +677,10 @@ def render_qualidade(*_):
                                 f"<div style='display:flex;"
                                 f"justify-content:space-between;"
                                 f"padding:4px 0;"
-                                f"border-bottom:1px solid #1E293B;'>"
-                                f"<small style='color:#94A3B8;'>"
+                                f"border-bottom:1px solid {THEME['border']};'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"{obra_k[:25]}</small>"
-                                f"<b style='color:#EF4444;'>"
+                                f"<b style='color:{THEME['error']};'>"
                                 f"{cnt_o}</b></div>",
                                 unsafe_allow_html=True
                             )

@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import uuid
 from datetime import datetime, timedelta, date
-from core import save_db, inv, load_db
+from core import save_db, inv, load_db, THEME
 
 def render_planeamento():
-    st.markdown("### 📋 Planeamento e Engenharia")
+    st.markdown("### Planeamento e Engenharia")
 
     try:
         pacotes_db = load_db("planeamento_pacotes.csv", [
@@ -39,14 +39,14 @@ def render_planeamento():
     user_nome = st.session_state.get('user', 'Admin')
 
     tab_producao, tab_cronograma, tab_recursos, tab_desenhos = st.tabs([
-        "🏭 Produção", "📅 Cronograma", "👷 Recursos", "📐 Desenhos"
+        "Produção", "Cronograma", "Recursos", "Desenhos"
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB PRODUÇÃO
     # ════════════════════════════════════════════════════════════════
     with tab_producao:
-        st.markdown("### 🏭 Produção e Progresso")
+        st.markdown("### Produção e Progresso")
 
         if not pacotes_db.empty:
             total_plan  = pd.to_numeric(pacotes_db['Horas_Plan'],  errors='coerce').fillna(0).sum()
@@ -57,16 +57,16 @@ def render_planeamento():
             total_plan = total_reais = prod = ativos = 0
 
         c1, c2, c3, c4 = st.columns(4)
-        with c1: st.metric("📋 Pacotes Ativos",   ativos)
-        with c2: st.metric("⏱️ Horas Planeadas",  f"{total_plan:.0f}h")
-        with c3: st.metric("⏱️ Horas Reais",      f"{total_reais:.0f}h")
-        with c4: st.metric("📈 Produtividade",    f"{prod:.0f}%")
+        with c1: st.metric("Pacotes Ativos",   ativos)
+        with c2: st.metric("Horas Planeadas",  f"{total_plan:.0f}h")
+        with c3: st.metric("Horas Reais",      f"{total_reais:.0f}h")
+        with c4: st.metric("Produtividade",    f"{prod:.0f}%")
 
         st.divider()
 
         col1, col2 = st.columns([1, 2])
         with col1:
-            st.markdown("#### ➕ Novo Pacote de Trabalho")
+            st.markdown("#### Novo Pacote de Trabalho")
             with st.form("form_pacote"):
                 obra_p      = st.text_input("Obra *", key="prod_obra")
                 frente_p    = st.text_input("Frente", key="prod_frente")
@@ -91,11 +91,11 @@ def render_planeamento():
                 )
 
                 if st.form_submit_button(
-                    "💾 Criar Pacote",
+                    "Criar Pacote",
                     use_container_width=True, type="primary"
                 ):
                     if not obra_p.strip() or not desc_p.strip():
-                        st.error("❌ Obra e Descrição obrigatórios.")
+                        st.error("Obra e Descrição obrigatórios.")
                     else:
                         novo_p = pd.DataFrame([{
                             "ID":          str(uuid.uuid4())[:8].upper(),
@@ -114,13 +114,13 @@ def render_planeamento():
                         ) if not pacotes_db.empty else novo_p
                         save_db(updated_p, "planeamento_pacotes.csv")
                         inv("planeamento_pacotes.csv")
-                        st.success(f"✅ Pacote criado: {desc_p[:30]}")
+                        st.success(f"Pacote criado: {desc_p[:30]}")
                         st.rerun()
 
         with col2:
-            st.markdown("#### 📋 Pacotes de Trabalho")
+            st.markdown("#### Pacotes de Trabalho")
             if pacotes_db.empty:
-                st.info("📋 Sem pacotes criados.")
+                st.info("Sem pacotes criados.")
             else:
                 # Filtro por estado
                 estados_f = ["Todos"] + pacotes_db['Status'].unique().tolist()
@@ -137,18 +137,18 @@ def render_planeamento():
                     h_reais = float(pac.get('Horas_Reais',0) or 0)
                     pct     = round(h_reais/h_plan*100,0) if h_plan > 0 else 0
                     cor_s   = {
-                        "Em Curso":"#3B82F6","Concluído":"#10B981",
-                        "Suspenso":"#EF4444","Planeado":"#F59E0B"
-                    }.get(pac.get('Status',''),"#6B7280")
+                        "Em Curso":THEME['accent'],"Concluído":THEME['success'],
+                        "Suspenso":THEME['error'],"Planeado":THEME['warning']
+                    }.get(pac.get('Status',''),THEME['text_secondary'])
 
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:8px;"
                         f"border-left:4px solid {cor_s};'>"
-                        f"<b style='color:#F1F5F9;'>{pac.get('Descricao','')[:50]}</b>"
+                        f"<b style='color:{THEME['text']};'>{pac.get('Descricao','')[:50]}</b>"
                         f"<span style='float:right;color:{cor_s};font-size:0.8rem;'>"
                         f"{pac.get('Status','')}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{pac.get('Obra','')} · {pac.get('Frente','')} · "
                         f"{h_reais:.0f}h/{h_plan:.0f}h ({pct:.0f}%) · "
                         f"{pac.get('Data_Inicio','')}→{pac.get('Data_Fim','')}"
@@ -178,24 +178,24 @@ def render_planeamento():
                             key=f"st_{pac_id}",
                             label_visibility="collapsed"
                         )
-                    if st.button("✅ Guardar", key=f"save_pac_{pac_id}",
+                    if st.button("Guardar", key=f"save_pac_{pac_id}",
                                   use_container_width=True):
                         pacotes_db.loc[pacotes_db['ID'] == pac_id, 'Horas_Reais'] = novas_h
                         pacotes_db.loc[pacotes_db['ID'] == pac_id, 'Status']      = novo_st
                         save_db(pacotes_db, "planeamento_pacotes.csv")
                         inv("planeamento_pacotes.csv")
-                        st.success("✅ Atualizado!")
+                        st.success("Atualizado!")
                         st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB CRONOGRAMA
     # ════════════════════════════════════════════════════════════════
     with tab_cronograma:
-        st.markdown("### 📅 Cronograma e Milestones")
+        st.markdown("### Cronograma e Milestones")
 
         col1, col2 = st.columns([1, 2])
         with col1:
-            st.markdown("#### ➕ Novo Milestone")
+            st.markdown("#### Novo Milestone")
             with st.form("form_milestone"):
                 obra_m  = st.text_input("Obra *",        key="mile_obra")
                 desc_m  = st.text_input("Descrição *",   key="mile_desc")
@@ -209,11 +209,11 @@ def render_planeamento():
                 )
 
                 if st.form_submit_button(
-                    "💾 Criar Milestone",
+                    "Criar Milestone",
                     use_container_width=True, type="primary"
                 ):
                     if not obra_m.strip() or not desc_m.strip():
-                        st.error("❌ Obra e Descrição obrigatórios.")
+                        st.error("Obra e Descrição obrigatórios.")
                     else:
                         novo_m = pd.DataFrame([{
                             "ID":          str(uuid.uuid4())[:8].upper(),
@@ -228,31 +228,31 @@ def render_planeamento():
                         ) if not milestones_db.empty else novo_m
                         save_db(updated_m, "planeamento_milestones.csv")
                         inv("planeamento_milestones.csv")
-                        st.success(f"✅ Milestone criado!")
+                        st.success(f"Milestone criado!")
                         st.rerun()
 
         with col2:
-            st.markdown("#### 📋 Milestones")
+            st.markdown("#### Milestones")
             if milestones_db.empty:
-                st.info("📋 Sem milestones.")
+                st.info("Sem milestones.")
             else:
                 for _, ms in milestones_db.sort_values(
                     'Data_Alvo', ascending=True
                 ).iterrows():
                     ms_id  = ms.get('ID','')
                     cor_ms = {
-                        "Concluído":"#10B981",
-                        "Em Risco": "#EF4444",
-                        "Pendente": "#F59E0B"
-                    }.get(ms.get('Status',''),"#6B7280")
+                        "Concluído":THEME['success'],
+                        "Em Risco": THEME['error'],
+                        "Pendente": THEME['warning']
+                    }.get(ms.get('Status',''),THEME['text_secondary'])
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:8px;"
                         f"border-left:4px solid {cor_ms};'>"
-                        f"<b style='color:#F1F5F9;'>{ms.get('Descricao','')}</b>"
+                        f"<b style='color:{THEME['text']};'>{ms.get('Descricao','')}</b>"
                         f"<span style='float:right;color:{cor_ms};'>"
                         f"{ms.get('Status','')}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{ms.get('Obra','')} · {ms.get('Data_Alvo','')} · "
                         f"{ms.get('Responsavel','')}</small></div>",
                         unsafe_allow_html=True
@@ -270,7 +270,7 @@ def render_planeamento():
                             label_visibility="collapsed"
                         )
                     with col_ms_d:
-                        if st.button("✅", key=f"ms_save_{ms_id}",
+                        if st.button("OK", key=f"ms_save_{ms_id}",
                                       use_container_width=True):
                             milestones_db.loc[
                                 milestones_db['ID'] == ms_id, 'Status'
@@ -283,7 +283,7 @@ def render_planeamento():
     # TAB RECURSOS
     # ════════════════════════════════════════════════════════════════
     with tab_recursos:
-        st.markdown("### 👷 Planeamento de Recursos")
+        st.markdown("### Planeamento de Recursos")
 
         if not pacotes_db.empty:
             obras_pac = pacotes_db['Obra'].unique().tolist()
@@ -292,17 +292,17 @@ def render_planeamento():
 
             c1, c2, c3 = st.columns(3)
             with c1:
-                st.metric("📋 Pacotes", len(df_rec))
+                st.metric("Pacotes", len(df_rec))
             with c2:
                 h_plan_r = pd.to_numeric(
                     df_rec['Horas_Plan'], errors='coerce'
                 ).fillna(0).sum()
-                st.metric("⏱️ Horas Planeadas", f"{h_plan_r:.0f}h")
+                st.metric("Horas Planeadas", f"{h_plan_r:.0f}h")
             with c3:
                 h_reais_r = pd.to_numeric(
                     df_rec['Horas_Reais'], errors='coerce'
                 ).fillna(0).sum()
-                st.metric("⏱️ Horas Reais", f"{h_reais_r:.0f}h")
+                st.metric("Horas Reais", f"{h_reais_r:.0f}h")
 
             st.dataframe(
                 df_rec[['Frente','Descricao','Horas_Plan',
@@ -310,17 +310,17 @@ def render_planeamento():
                 use_container_width=True, hide_index=True
             )
         else:
-            st.info("📋 Sem pacotes de trabalho criados.")
+            st.info("Sem pacotes de trabalho criados.")
 
     # ════════════════════════════════════════════════════════════════
     # TAB DESENHOS
     # ════════════════════════════════════════════════════════════════
     with tab_desenhos:
-        st.markdown("### 📐 Gestão de Desenhos Técnicos")
+        st.markdown("### Gestão de Desenhos Técnicos")
 
         col1, col2 = st.columns([1, 2])
         with col1:
-            st.markdown("#### ➕ Upload de Desenho")
+            st.markdown("#### Upload de Desenho")
             with st.form("form_desenho"):
                 obra_d    = st.text_input("Obra *", key="des_obra")
                 tipo_d    = st.selectbox(
@@ -337,12 +337,12 @@ def render_planeamento():
                 )
 
                 if st.form_submit_button(
-                    "💾 Upload", use_container_width=True, type="primary"
+                    "Upload", use_container_width=True, type="primary"
                 ):
                     if not obra_d.strip():
-                        st.error("❌ Obra obrigatória.")
+                        st.error("Obra obrigatória.")
                     elif not ficheiro_d:
-                        st.error("❌ Seleciona um ficheiro.")
+                        st.error("Seleciona um ficheiro.")
                     else:
                         import base64 as _b64
                         f_b64 = _b64.b64encode(
@@ -363,14 +363,14 @@ def render_planeamento():
                         save_db(updated_d, "planeamento_desenhos.csv")
                         inv("planeamento_desenhos.csv")
                         st.success(
-                            f"✅ Desenho carregado: {ficheiro_d.name}"
+                            f"Desenho carregado: {ficheiro_d.name}"
                         )
                         st.rerun()
 
         with col2:
-            st.markdown("#### 📋 Biblioteca de Desenhos")
+            st.markdown("#### Biblioteca de Desenhos")
             if desenhos_db.empty:
-                st.info("📋 Sem desenhos carregados.")
+                st.info("Sem desenhos carregados.")
             else:
                 cols_d = [c for c in [
                     'Obra','Tipo','Revisao','Data_Upload','Upload_Por'

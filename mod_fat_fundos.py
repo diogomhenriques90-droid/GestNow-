@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit
+from core import save_db, inv, load_db, log_audit, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -58,7 +58,6 @@ FUNDOS_DB = [
         "documentos":   ["Candidatura online IAPMEI","Balanço 3 anos",
                          "Plano de Negócios","Orçamentos investimento",
                          "Certidões AT e SS","Alvará/licenças"],
-        "cor":          "#3B82F6",
         "elegibilidade_score": 0  # calculado dinamicamente
     },
     {
@@ -87,7 +86,6 @@ FUNDOS_DB = [
                         "e sistemas de monitorização.",
         "documentos":   ["Auditoria energética","Orçamentos",
                          "Certidões AT e SS","Candidatura DGEG"],
-        "cor":          "#10B981",
         "elegibilidade_score": 0
     },
     # ── PT2030 ───────────────────────────────────────────────────
@@ -119,7 +117,6 @@ FUNDOS_DB = [
         "documentos":   ["Candidatura IAPMEI","Business Plan",
                          "Orçamentos detalhados","Balanços 3 anos",
                          "Certidões fiscais","Registo empresarial"],
-        "cor":          "#8B5CF6",
         "elegibilidade_score": 0
     },
     {
@@ -148,7 +145,6 @@ FUNDOS_DB = [
                         "colaboradores. Muito acessível para PMEs.",
         "documentos":   ["Candidatura simplificada IAPMEI",
                          "Certidões fiscais","Orçamentos"],
-        "cor":          "#F59E0B",
         "elegibilidade_score": 0
     },
     # ── FORMAÇÃO ─────────────────────────────────────────────────
@@ -177,7 +173,6 @@ FUNDOS_DB = [
                         "gestão de projetos. Até 100% comparticipado.",
         "documentos":   ["Pedido IEFP","Lista trabalhadores",
                          "Programa formação","Certidões SS"],
-        "cor":          "#06B6D4",
         "elegibilidade_score": 0
     },
     # ── IAPMEI LINHAS ────────────────────────────────────────────
@@ -206,7 +201,6 @@ FUNDOS_DB = [
                         "prazo até 7 anos. Sem colateral imobiliário.",
         "documentos":   ["Pedido ao banco","Balanços 2 anos",
                          "Declarações AT e SS","Plano financeiro"],
-        "cor":          "#10B981",
         "elegibilidade_score": 0
     },
     # ── SIFIDE ───────────────────────────────────────────────────
@@ -235,7 +229,6 @@ FUNDOS_DB = [
                         "pode ser elegível. Consultar TOC.",
         "documentos":   ["Declaração IRC","Mapa despesas I&D",
                          "Relatório técnico","Candidatura FCT"],
-        "cor":          "#EF4444",
         "elegibilidade_score": 0
     },
     # ── RFAI ─────────────────────────────────────────────────────
@@ -265,7 +258,6 @@ FUNDOS_DB = [
                         "Simples de aplicar com o TOC.",
         "documentos":   ["Declaração IRC","Faturas investimento",
                          "Mapa de ativos"],
-        "cor":          "#F97316",
         "elegibilidade_score": 0
     },
 ]
@@ -278,6 +270,10 @@ def _calcular_elegibilidade(fundo: dict,
                              perfil: dict) -> tuple[int, list]:
     """
     Calcula score de elegibilidade 0-100 e lista de motivos.
+
+    Cada motivo é um tuplo (texto, tipo), com tipo em
+    {'ok', 'erro', 'aviso'} — usado pelos consumidores para
+    escolher a cor sem depender de prefixos no texto.
     """
     score    = 0
     motivos  = []
@@ -296,22 +292,22 @@ def _calcular_elegibilidade(fundo: dict,
     n_max = fundo.get('n_trabalhadores_max', 9999)
     if n_min <= n_trab <= n_max:
         score += 20
-        motivos.append("✅ Dimensão da empresa elegível")
+        motivos.append(("Dimensão da empresa elegível", "ok"))
     else:
-        alertas.append(
-            f"❌ Nº trabalhadores ({n_trab}) fora do intervalo "
-            f"({n_min}-{n_max})"
-        )
+        alertas.append((
+            f"Nº trabalhadores ({n_trab}) fora do intervalo "
+            f"({n_min}-{n_max})", "erro"
+        ))
 
     # 2. Região (0-20 pts)
     regioes_ok = fundo.get('regioes', [])
     if regiao in regioes_ok or "Todas as regiões" in regioes_ok:
         score += 20
-        motivos.append(f"✅ Região {regiao} elegível")
+        motivos.append((f"Região {regiao} elegível", "ok"))
     else:
-        alertas.append(
-            f"❌ Região {regiao} não está na lista elegível"
-        )
+        alertas.append((
+            f"Região {regiao} não está na lista elegível", "erro"
+        ))
 
     # 3. Setor (0-20 pts)
     setores_ok = fundo.get('setores_ok', [])
@@ -319,11 +315,11 @@ def _calcular_elegibilidade(fundo: dict,
            for s in setores_ok) or \
        "Todos os setores" in setores_ok:
         score += 20
-        motivos.append(f"✅ Setor {setor} elegível")
+        motivos.append((f"Setor {setor} elegível", "ok"))
     else:
-        alertas.append(
-            f"❌ Setor {setor} pode não ser elegível"
-        )
+        alertas.append((
+            f"Setor {setor} pode não ser elegível", "erro"
+        ))
 
     # 4. Tipo de investimento (0-20 pts)
     tipos_fundo = fundo.get('tipos_invest', [])
@@ -333,37 +329,37 @@ def _calcular_elegibilidade(fundo: dict,
     ]
     if matches:
         score += 20
-        motivos.append(
-            f"✅ Investimento compatível: "
-            f"{', '.join(matches[:2])}"
-        )
+        motivos.append((
+            f"Investimento compatível: "
+            f"{', '.join(matches[:2])}", "ok"
+        ))
     elif not tipo_inv:
         score += 10  # neutro se não especificado
     else:
-        alertas.append(
-            "⚠️ Tipo de investimento pode não ser elegível"
-        )
+        alertas.append((
+            "Tipo de investimento pode não ser elegível", "aviso"
+        ))
 
     # 5. Situação fiscal (0-10 pts)
     if not tem_dividas:
         score += 10
-        motivos.append("✅ Sem dívidas fiscais ou à SS")
+        motivos.append(("Sem dívidas fiscais ou à SS", "ok"))
     else:
-        alertas.append(
-            "❌ Dívidas fiscais/SS impedem candidatura"
-        )
+        alertas.append((
+            "Dívidas fiscais/SS impedem candidatura", "erro"
+        ))
 
     # 6. Anos de atividade (0-10 pts)
     if anos_act >= 3:
         score += 10
-        motivos.append(f"✅ {anos_act} anos de atividade")
+        motivos.append((f"{anos_act} anos de atividade", "ok"))
     elif anos_act >= 1:
         score += 5
-        alertas.append(
-            "⚠️ Menos de 3 anos — verificar elegibilidade"
-        )
+        alertas.append((
+            "Menos de 3 anos — verificar elegibilidade", "aviso"
+        ))
     else:
-        alertas.append("❌ Empresa em início de atividade")
+        alertas.append(("Empresa em início de atividade", "erro"))
 
     return score, motivos + alertas
 
@@ -527,7 +523,8 @@ def _grafico_apoio_donut(fundos_elegíveis: list,
         round(valor_invest * f.get('pct_max', 50) / 100, 0)
         for f in top
     ]
-    cores = [f['cor'] for f in top]
+    paleta = ['#3B82F6','#10B981','#8B5CF6','#F59E0B','#06B6D4']
+    cores  = [paleta[i % len(paleta)] for i in range(len(top))]
 
     fig = go.Figure(go.Pie(
         labels=labels, values=values,
@@ -758,7 +755,7 @@ def _gerar_pdf_candidatura(fundo: dict,
 
     # Elegibilidade
     story.append(Paragraph("<b>ANÁLISE DE ELEGIBILIDADE</b>", bold_s))
-    for m in motivos:
+    for m, _tipo in motivos:
         story.append(Paragraph(m, normal_s))
     story.append(Spacer(1, 0.3*cm))
 
@@ -808,7 +805,7 @@ def _pesquisar_avisos_ia(perfil: dict) -> str:
         import anthropic
         api_key = os.environ.get("ANTHROPIC_API_KEY","")
         if not api_key:
-            return "❌ API key não configurada."
+            return "API key não configurada."
 
         client = anthropic.Anthropic(api_key=api_key)
 
@@ -840,7 +837,7 @@ Máximo 6 parágrafos."""
         return resp.content[0].text
 
     except Exception as e:
-        return f"❌ Erro: {e}"
+        return f"Erro: {e}"
 
 
 def _gerar_plano_candidatura_ia(fundo: dict,
@@ -851,7 +848,7 @@ def _gerar_plano_candidatura_ia(fundo: dict,
         import anthropic
         api_key = os.environ.get("ANTHROPIC_API_KEY","")
         if not api_key:
-            return "❌ API key não configurada."
+            return "API key não configurada."
 
         client = anthropic.Anthropic(api_key=api_key)
 
@@ -889,7 +886,7 @@ Tom profissional, prático, em português de Portugal."""
         return resp.content[0].text
 
     except Exception as e:
-        return f"❌ Erro: {e}"
+        return f"Erro: {e}"
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -920,24 +917,26 @@ def render_fat_fundos(*_):
     hoje      = date.today()
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .fundo-card {
-        background:#1E293B; border-radius:12px;
+    .fundo-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:16px; margin-bottom:10px;
-        border-left:5px solid #3B82F6;
+        border-left:5px solid {THEME['accent']};
         transition:transform 0.15s;
-    }
-    .fundo-card:hover { transform:translateX(3px); }
-    .cand-card {
-        background:#1E293B; border-radius:10px;
+    }}
+    .fundo-card:hover {{ transform:translateX(3px); }}
+    .cand-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:10px;
         padding:14px; margin-bottom:8px;
         border-left:4px solid;
-    }
-    .badge-fundo {
+    }}
+    .badge-fundo {{
         display:inline-block; padding:3px 10px;
         border-radius:20px; font-size:0.72rem; font-weight:700;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -965,29 +964,29 @@ def render_fat_fundos(*_):
     ).fillna(0).sum()
 
     c1,c2,c3,c4 = st.columns(4)
-    with c1: st.metric("📋 Candidaturas",    n_cand)
-    with c2: st.metric("🔄 Ativas",           n_ativas)
-    with c3: st.metric("✅ Aprovado",          f"€{val_aprov:,.2f}")
-    with c4: st.metric("⏳ Submetido/Análise", f"€{val_pend:,.2f}")
+    with c1: st.metric("Candidaturas",    n_cand)
+    with c2: st.metric("Ativas",           n_ativas)
+    with c3: st.metric("Aprovado",          f"€{val_aprov:,.2f}")
+    with c4: st.metric("Submetido/Análise", f"€{val_pend:,.2f}")
 
     st.divider()
 
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_match, t_calc, t_fundos,
      t_cand, t_ia, t_calendario) = st.tabs([
-        "🎯 Matcher",
-        "💰 Calculadora",
-        "📚 Fundos Disponíveis",
-        "📋 Gestão Candidaturas",
-        "🤖 IA Consultora",
-        "📅 Calendário",
+        "Matcher",
+        "Calculadora",
+        "Fundos Disponíveis",
+        "Gestão Candidaturas",
+        "IA Consultora",
+        "Calendário",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB — MATCHER DE ELEGIBILIDADE
     # ════════════════════════════════════════════════════════════════
     with t_match:
-        st.markdown("### 🎯 Matcher de Elegibilidade")
+        st.markdown("### Matcher de Elegibilidade")
         st.info(
             "Preenche o perfil da empresa e o sistema "
             "identifica automaticamente os fundos mais adequados."
@@ -996,7 +995,7 @@ def render_fat_fundos(*_):
         col_perf, col_res = st.columns([1, 2])
 
         with col_perf:
-            st.markdown("#### 🏢 Perfil da Empresa")
+            st.markdown("#### Perfil da Empresa")
 
             m_setor = st.selectbox(
                 "Setor de atividade",
@@ -1030,7 +1029,7 @@ def render_fat_fundos(*_):
                 key="m_anos"
             )
             m_dividas = st.checkbox(
-                "❌ Tem dívidas à AT ou SS?",
+                "Tem dívidas à AT ou SS?",
                 key="m_dividas"
             )
 
@@ -1075,7 +1074,7 @@ def render_fat_fundos(*_):
             }
 
             if st.button(
-                "🎯 Encontrar Fundos",
+                "Encontrar Fundos",
                 key="btn_match",
                 type="primary",
                 use_container_width=True
@@ -1084,7 +1083,7 @@ def render_fat_fundos(*_):
                 st.rerun()
 
         with col_res:
-            st.markdown("#### 📊 Fundos Elegíveis")
+            st.markdown("#### Fundos Elegíveis")
 
             perfil_calc = st.session_state.get(
                 'perfil_match', perfil_atual
@@ -1121,12 +1120,12 @@ def render_fat_fundos(*_):
             # Cards por fundo
             for fundo_s in fundos_com_score:
                 sc      = fundo_s['elegibilidade_score']
-                cor_s   = "#10B981" if sc >= 70 \
-                          else "#F59E0B" if sc >= 40 \
-                          else "#EF4444"
-                ic_s    = "🟢" if sc >= 70 \
-                          else "🟡" if sc >= 40 \
-                          else "🔴"
+                cor_s   = THEME['success'] if sc >= 70 \
+                          else THEME['warning'] if sc >= 40 \
+                          else THEME['error']
+                nivel_s = "Alta" if sc >= 70 \
+                          else "Média" if sc >= 40 \
+                          else "Baixa"
 
                 apoio_c = _calcular_apoio(
                     perfil_calc.get('valor_investimento',100000),
@@ -1135,37 +1134,37 @@ def render_fat_fundos(*_):
                 )
 
                 with st.expander(
-                    f"{ic_s} {fundo_s['nome'][:40]} "
-                    f"— {sc}% elegível",
+                    f"{nivel_s} elegibilidade — {fundo_s['nome'][:40]} "
+                    f"({sc}%)",
                     expanded=(sc >= 70)
                 ):
                     col_fd1, col_fd2 = st.columns([2,1])
                     with col_fd1:
                         st.markdown(
-                            f"<div style='background:#0F172A;"
+                            f"<div style='background:{THEME['border']};"
                             f"border-radius:8px;padding:12px;'>"
-                            f"<p style='color:#64748B;"
+                            f"<p style='color:{THEME['text_secondary']};"
                             f"font-size:0.75rem;margin:0 0 4px;'>"
-                            f"🏷️ {fundo_s.get('programa','')} · "
+                            f"{fundo_s.get('programa','')} · "
                             f"{fundo_s.get('tipo','')}</p>"
-                            f"<p style='color:#94A3B8;"
+                            f"<p style='color:{THEME['text_secondary']};"
                             f"font-size:0.85rem;margin:0 0 8px;'>"
                             f"{fundo_s.get('descricao','')}</p>"
-                            f"<small style='color:#64748B;'>"
-                            f"📞 {fundo_s.get('contacto','')} · "
-                            f"🌐 {fundo_s.get('url','')}</small>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
+                            f"{fundo_s.get('contacto','')} · "
+                            f"{fundo_s.get('url','')}</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
 
                         # Critérios de elegibilidade
-                        for motivo in fundo_s.get('motivos',[])[:4]:
-                            cor_m = "#10B981" if motivo.startswith("✅") \
-                                    else "#EF4444" if motivo.startswith("❌") \
-                                    else "#F59E0B"
+                        for motivo_txt, motivo_tipo in fundo_s.get('motivos',[])[:4]:
+                            cor_m = THEME['success'] if motivo_tipo == "ok" \
+                                    else THEME['error'] if motivo_tipo == "erro" \
+                                    else THEME['warning']
                             st.markdown(
                                 f"<small style='color:{cor_m};'>"
-                                f"{motivo}</small><br>",
+                                f"{motivo_txt}</small><br>",
                                 unsafe_allow_html=True
                             )
 
@@ -1177,18 +1176,18 @@ def render_fat_fundos(*_):
                             f"text-align:center;'>"
                             f"<b style='color:{cor_s};"
                             f"font-size:1.5rem;'>{sc}%</b><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"elegível</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"border-radius:8px;padding:10px;"
                             f"margin-top:8px;text-align:center;'>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"Apoio estimado</small><br>"
-                            f"<b style='color:#3B82F6;"
+                            f"<b style='color:{THEME['accent']};"
                             f"font-size:1.1rem;'>"
                             f"€{apoio_c['apoio_max']:,.0f}</b>"
                             f"</div>",
@@ -1197,7 +1196,7 @@ def render_fat_fundos(*_):
 
                         if sc >= 40:
                             if st.button(
-                                "📋 Adicionar",
+                                "Adicionar",
                                 key=f"add_cand_{fundo_s['id']}",
                                 use_container_width=True,
                                 type="primary"
@@ -1230,7 +1229,7 @@ def render_fat_fundos(*_):
                                 )
                                 inv("fundos_candidaturas.csv")
                                 st.success(
-                                    f"✅ Adicionado a candidaturas!"
+                                    f"Adicionado a candidaturas!"
                                 )
                                 st.rerun()
 
@@ -1238,7 +1237,7 @@ def render_fat_fundos(*_):
     # TAB — CALCULADORA DE APOIO
     # ════════════════════════════════════════════════════════════════
     with t_calc:
-        st.markdown("### 💰 Calculadora de Apoio")
+        st.markdown("### Calculadora de Apoio")
         st.info(
             "Simula o valor de apoio que podes obter "
             "para um investimento específico."
@@ -1247,7 +1246,7 @@ def render_fat_fundos(*_):
         col_c1, col_c2 = st.columns(2)
 
         with col_c1:
-            st.markdown("#### ⚙️ Parâmetros")
+            st.markdown("#### Parâmetros")
 
             fundo_calc = st.selectbox(
                 "Fundo",
@@ -1281,7 +1280,7 @@ def render_fat_fundos(*_):
             )
 
         with col_c2:
-            st.markdown("#### 📊 Resultado")
+            st.markdown("#### Resultado")
 
             apoio_r = _calcular_apoio(
                 invest_calc, pct_calc,
@@ -1290,42 +1289,42 @@ def render_fat_fundos(*_):
 
             # Cards resultado
             st.markdown(
-                f"<div style='background:#1E293B;"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                 f"border-radius:12px;padding:20px;'>"
                 f"<div style='display:grid;"
                 f"grid-template-columns:1fr 1fr;"
                 f"gap:12px;margin-bottom:16px;'>"
-                f"<div style='background:#0F172A;"
+                f"<div style='background:{THEME['border']};"
                 f"border-radius:8px;padding:12px;"
                 f"text-align:center;'>"
-                f"<small style='color:#64748B;'>Investimento</small><br>"
-                f"<b style='color:#F1F5F9;font-size:1.3rem;'>"
+                f"<small style='color:{THEME['text_secondary']};'>Investimento</small><br>"
+                f"<b style='color:{THEME['text']};font-size:1.3rem;'>"
                 f"€{invest_calc:,.0f}</b>"
                 f"</div>"
-                f"<div style='background:#0F172A;"
+                f"<div style='background:{THEME['border']};"
                 f"border-radius:8px;padding:12px;"
                 f"text-align:center;'>"
-                f"<small style='color:#64748B;'>% Apoio</small><br>"
-                f"<b style='color:#3B82F6;font-size:1.3rem;'>"
+                f"<small style='color:{THEME['text_secondary']};'>% Apoio</small><br>"
+                f"<b style='color:{THEME['accent']};font-size:1.3rem;'>"
                 f"{pct_calc}%</b>"
                 f"</div>"
                 f"</div>"
-                f"<div style='background:rgba(16,185,129,0.1);"
-                f"border:2px solid #10B981;"
+                f"<div style='background:{THEME['success']}1A;"
+                f"border:2px solid {THEME['success']};"
                 f"border-radius:10px;padding:16px;"
                 f"text-align:center;margin-bottom:12px;'>"
-                f"<small style='color:#64748B;'>APOIO ESTIMADO</small><br>"
-                f"<b style='color:#10B981;font-size:2rem;'>"
+                f"<small style='color:{THEME['text_secondary']};'>APOIO ESTIMADO</small><br>"
+                f"<b style='color:{THEME['success']};font-size:2rem;'>"
                 f"€{apoio_r['apoio_max']:,.0f}</b><br>"
-                f"<small style='color:#64748B;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"{'Fundo perdido' if not apoio_r['reembolsavel'] else 'Reembolsável'}"
                 f"</small></div>"
-                f"<div style='background:rgba(239,68,68,0.08);"
+                f"<div style='background:{THEME['error']}14;"
                 f"border-radius:8px;padding:12px;"
                 f"text-align:center;'>"
-                f"<small style='color:#64748B;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"Contrapartida empresa</small><br>"
-                f"<b style='color:#EF4444;"
+                f"<b style='color:{THEME['error']};"
                 f"font-size:1.2rem;'>"
                 f"€{apoio_r['contrapartida']:,.0f}</b>"
                 f"</div></div>",
@@ -1339,15 +1338,15 @@ def render_fat_fundos(*_):
                     apoio_r['contrapartida'] * 100, 0
                 ) if apoio_r['contrapartida'] > 0 else 0
                 st.markdown(
-                    f"<div style='background:rgba(59,130,246,0.1);"
-                    f"border:1px solid #3B82F6;"
+                    f"<div style='background:{THEME['accent']}1A;"
+                    f"border:1px solid {THEME['accent']};"
                     f"border-radius:8px;padding:12px;"
                     f"text-align:center;margin-top:8px;'>"
-                    f"<b style='color:#3B82F6;'>"
+                    f"<b style='color:{THEME['accent']};'>"
                     f"Por cada €100 investidos, "
                     f"o Estado co-financia €"
                     f"{pct_calc}</b><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"ROI mínimo do apoio: "
                     f"{roi_apoio:.0f}%</small>"
                     f"</div>",
@@ -1356,7 +1355,7 @@ def render_fat_fundos(*_):
 
         # Tabela comparativa todos os fundos
         st.markdown("---")
-        st.markdown("#### 📊 Comparativo de Apoio por Fundo")
+        st.markdown("#### Comparativo de Apoio por Fundo")
 
         rows_comp = []
         for f in FUNDOS_DB:
@@ -1383,7 +1382,7 @@ def render_fat_fundos(*_):
             index=False, encoding='utf-8-sig'
         )
         st.download_button(
-            "📥 Exportar Comparativo",
+            "Exportar Comparativo",
             data=csv_comp.encode('utf-8-sig'),
             file_name="comparativo_fundos.csv",
             mime="text/csv",
@@ -1394,7 +1393,7 @@ def render_fat_fundos(*_):
     # TAB — FUNDOS DISPONÍVEIS
     # ════════════════════════════════════════════════════════════════
     with t_fundos:
-        st.markdown("### 📚 Catálogo de Fundos")
+        st.markdown("### Catálogo de Fundos")
 
         # Filtros
         col_ff1, col_ff2, col_ff3 = st.columns(3)
@@ -1430,75 +1429,75 @@ def render_fat_fundos(*_):
         ]
 
         st.markdown(
-            f"<p style='color:#64748B;font-size:0.8rem;'>"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;'>"
             f"{len(fundos_filtrados)} fundo(s) encontrado(s)</p>",
             unsafe_allow_html=True
         )
 
         for fundo_f in fundos_filtrados:
-            cor_f = fundo_f['cor']
+            cor_f = THEME['accent']
             tipo_badge_cor = {
-                "Subvenção não reembolsável":       "#10B981",
-                "Crédito bonificado (reembolsável)":"#3B82F6",
-                "Benefício fiscal (dedução IRC)":   "#F59E0B",
-            }.get(fundo_f.get('tipo',''),"#6B7280")
+                "Subvenção não reembolsável":       THEME['success'],
+                "Crédito bonificado (reembolsável)":THEME['accent'],
+                "Benefício fiscal (dedução IRC)":   THEME['warning'],
+            }.get(fundo_f.get('tipo',''), THEME['text_secondary'])
 
             with st.expander(
-                f"🏦 {fundo_f['nome']}",
+                f"{fundo_f['nome']}",
                 expanded=False
             ):
                 col_fi1, col_fi2, col_fi3 = st.columns([3,1,1])
 
                 with col_fi1:
                     st.markdown(
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['border']};"
                         f"border-radius:8px;padding:12px;'>"
                         f"<span class='badge-fundo' "
                         f"style='background:{tipo_badge_cor}22;"
                         f"color:{tipo_badge_cor};'>"
                         f"{fundo_f.get('tipo','')}</span>"
                         f"<span class='badge-fundo' "
-                        f"style='background:rgba(59,130,246,0.15);"
-                        f"color:#3B82F6;margin-left:8px;'>"
+                        f"style='background:{THEME['accent']}26;"
+                        f"color:{THEME['accent']};margin-left:8px;'>"
                         f"{fundo_f.get('programa','')}</span><br><br>"
-                        f"<p style='color:#94A3B8;"
+                        f"<p style='color:{THEME['text_secondary']};"
                         f"font-size:0.85rem;margin:0 0 8px;'>"
                         f"{fundo_f.get('descricao','')}</p>"
-                        f"<small style='color:#64748B;'>"
-                        f"🏢 {fundo_f.get('entidade','')} · "
-                        f"⏱️ {fundo_f.get('prazo_decisao','')} · "
-                        f"📞 {fundo_f.get('contacto','')} · "
-                        f"🌐 {fundo_f.get('url','')}</small>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
+                        f"{fundo_f.get('entidade','')} · "
+                        f"{fundo_f.get('prazo_decisao','')} · "
+                        f"{fundo_f.get('contacto','')} · "
+                        f"{fundo_f.get('url','')}</small>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
 
                     # Documentos necessários
                     st.markdown(
-                        "<p style='color:#64748B;"
-                        "font-size:0.75rem;font-weight:700;"
-                        "text-transform:uppercase;"
-                        "margin:8px 0 4px;'>Documentos:</p>",
+                        f"<p style='color:{THEME['text_secondary']};"
+                        f"font-size:0.75rem;font-weight:700;"
+                        f"text-transform:uppercase;"
+                        f"margin:8px 0 4px;'>Documentos:</p>",
                         unsafe_allow_html=True
                     )
                     for doc in fundo_f.get('documentos',[]):
                         st.markdown(
-                            f"<small style='color:#94A3B8;'>"
-                            f"📄 {doc}</small><br>",
+                            f"<small style='color:{THEME['text_secondary']};'>"
+                            f"{doc}</small><br>",
                             unsafe_allow_html=True
                         )
 
                 with col_fi2:
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:8px;padding:12px;"
                         f"text-align:center;'>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Apoio máximo</small><br>"
                         f"<b style='color:{cor_f};"
                         f"font-size:1.1rem;'>"
                         f"{fundo_f.get('pct_max',0)}%</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"€{fundo_f.get('valor_min',0):,} — "
                         f"€{fundo_f.get('valor_max',0):,.0f}"
                         f"</small></div>",
@@ -1507,7 +1506,7 @@ def render_fat_fundos(*_):
 
                 with col_fi3:
                     if st.button(
-                        "📋 Candidatar",
+                        "Candidatar",
                         key=f"cand_{fundo_f['id']}",
                         use_container_width=True,
                         type="primary"
@@ -1516,7 +1515,7 @@ def render_fat_fundos(*_):
                             'fundo_candidatar'
                         ] = fundo_f
                         st.info(
-                            "✅ Vai ao tab 📋 Gestão Candidaturas "
+                            "Vai ao tab Gestão Candidaturas "
                             "para completar."
                         )
 
@@ -1524,12 +1523,12 @@ def render_fat_fundos(*_):
     # TAB — GESTÃO DE CANDIDATURAS
     # ════════════════════════════════════════════════════════════════
     with t_cand:
-        st.markdown("### 📋 Gestão de Candidaturas")
+        st.markdown("### Gestão de Candidaturas")
 
         col_cf, col_cl = st.columns([1, 2])
 
         with col_cf:
-            st.markdown("#### ➕ Nova Candidatura")
+            st.markdown("#### Nova Candidatura")
             fundo_pre = st.session_state.get('fundo_candidatar')
 
             with st.form("form_candidatura"):
@@ -1579,16 +1578,16 @@ def render_fat_fundos(*_):
                     "Notas", key="cand_notas"
                 )
                 cand_docs = st.checkbox(
-                    "✅ Documentos em ordem?",
+                    "Documentos em ordem?",
                     key="cand_docs"
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Candidatura",
+                    "Guardar Candidatura",
                     use_container_width=True, type="primary"
                 ):
                     if cand_invest <= 0:
-                        st.error("❌ Valor de investimento obrigatório.")
+                        st.error("Valor de investimento obrigatório.")
                     else:
                         nova_c = pd.DataFrame([{
                             "ID":               str(uuid.uuid4())[:8].upper(),
@@ -1625,13 +1624,13 @@ def render_fat_fundos(*_):
                         )
                         inv("fundos_candidaturas.csv")
                         st.success(
-                            f"✅ Candidatura criada! "
+                            f"Candidatura criada! "
                             f"Apoio est.: €{apoio_est:,.0f}"
                         )
                         st.rerun()
 
         with col_cl:
-            st.markdown("#### 📊 Candidaturas em Curso")
+            st.markdown("#### Candidaturas em Curso")
 
             # Timeline
             fig_tl_c = _grafico_timeline_candidaturas(cand_db)
@@ -1641,17 +1640,17 @@ def render_fat_fundos(*_):
                 )
 
             if cand_db.empty:
-                st.info("📋 Sem candidaturas registadas.")
+                st.info("Sem candidaturas registadas.")
             else:
                 est_cores = {
-                    'Identificado':  '#64748B',
-                    'A Preparar':    '#F59E0B',
-                    'Submetido':     '#3B82F6',
-                    'Em Análise':    '#8B5CF6',
-                    'Aprovado':      '#10B981',
-                    'Rejeitado':     '#EF4444',
-                    'Em Execução':   '#06B6D4',
-                    'Concluído':     '#94A3B8',
+                    'Identificado':  THEME['text_secondary'],
+                    'A Preparar':    THEME['warning'],
+                    'Submetido':     THEME['accent'],
+                    'Em Análise':    THEME['accent'],
+                    'Aprovado':      THEME['success'],
+                    'Rejeitado':     THEME['error'],
+                    'Em Execução':   THEME['success'],
+                    'Concluído':     THEME['text_secondary'],
                 }
 
                 for _, cand_row in cand_db.sort_values(
@@ -1659,7 +1658,7 @@ def render_fat_fundos(*_):
                 ).iterrows():
                     cid     = cand_row.get('ID','')
                     est_c   = cand_row.get('Estado','')
-                    cor_c   = est_cores.get(est_c,'#6B7280')
+                    cor_c   = est_cores.get(est_c, THEME['text_secondary'])
                     val_c   = float(cand_row.get('Valor_Apoio',0) or 0)
                     pct_c   = float(cand_row.get('Pct_Apoio',0) or 0)
                     docs_ok = cand_row.get('Documentos_OK','Não')
@@ -1675,22 +1674,22 @@ def render_fat_fundos(*_):
                             dias_pz = (d_pz - hoje).days
                             if dias_pz < 0:
                                 alerta_pz = (
-                                    "<span style='color:#EF4444;"
-                                    "font-size:0.72rem;'>"
-                                    "🔴 Prazo expirado!</span>"
+                                    f"<span style='color:{THEME['error']};"
+                                    f"font-size:0.72rem;'>"
+                                    f"Prazo expirado!</span>"
                                 )
                             elif dias_pz <= 14:
                                 alerta_pz = (
-                                    f"<span style='color:#EF4444;"
+                                    f"<span style='color:{THEME['error']};"
                                     f"font-size:0.72rem;'>"
-                                    f"⚠️ Prazo em {dias_pz} dias!"
+                                    f"Prazo em {dias_pz} dias!"
                                     f"</span>"
                                 )
                             elif dias_pz <= 30:
                                 alerta_pz = (
-                                    f"<span style='color:#F59E0B;"
+                                    f"<span style='color:{THEME['warning']};"
                                     f"font-size:0.72rem;'>"
-                                    f"⏰ {dias_pz} dias para prazo"
+                                    f"{dias_pz} dias para prazo"
                                     f"</span>"
                                 )
                         except:
@@ -1705,18 +1704,18 @@ def render_fat_fundos(*_):
                             f"justify-content:space-between;"
                             f"align-items:flex-start;'>"
                             f"<div>"
-                            f"<b style='color:#F1F5F9;"
+                            f"<b style='color:{THEME['text']};"
                             f"font-size:0.9rem;'>"
                             f"{cand_row.get('Fundo','')[:35]}</b><br>"
-                            f"<small style='color:#64748B;'>"
-                            f"🏷️ {cand_row.get('Programa','')} · "
-                            f"📅 {cand_row.get('Data_Inicio','')} · "
+                            f"<small style='color:{THEME['text_secondary']};'>"
+                            f"{cand_row.get('Programa','')} · "
+                            f"{cand_row.get('Data_Inicio','')} · "
                             f"Prazo: {prazo_str} · "
-                            f"📁 {docs_ok}</small><br>"
+                            f"{docs_ok}</small><br>"
                             f"{alerta_pz}"
                             f"</div>"
                             f"<div style='text-align:right;'>"
-                            f"<b style='color:#10B981;"
+                            f"<b style='color:{THEME['success']};"
                             f"font-size:1rem;'>"
                             f"€{val_c:,.0f}</b><br>"
                             f"<span class='badge-fundo' "
@@ -1736,7 +1735,7 @@ def render_fat_fundos(*_):
                             label_visibility="collapsed"
                         )
                         if st.button(
-                            "✅",
+                            "",
                             key=f"c_upd_{cid}",
                             use_container_width=True
                         ):
@@ -1752,7 +1751,7 @@ def render_fat_fundos(*_):
 
                         # Gerar PDF
                         if st.button(
-                            "📄",
+                            "",
                             key=f"c_pdf_{cid}",
                             use_container_width=True,
                             help="Gerar ficha PDF"
@@ -1793,7 +1792,7 @@ def render_fat_fundos(*_):
 
                         if st.session_state.get(f'cand_pdf_{cid}'):
                             st.download_button(
-                                "📥",
+                                "",
                                 data=st.session_state[f'cand_pdf_{cid}'],
                                 file_name=f"candidatura_{cid}.pdf",
                                 mime="application/pdf",
@@ -1805,7 +1804,7 @@ def render_fat_fundos(*_):
     # TAB — IA CONSULTORA
     # ════════════════════════════════════════════════════════════════
     with t_ia:
-        st.markdown("### 🤖 IA Consultora de Fundos Europeus")
+        st.markdown("### IA Consultora de Fundos Europeus")
         st.info(
             "A IA analisa o perfil da empresa e "
             "recomenda os melhores fundos com um plano "
@@ -1815,11 +1814,11 @@ def render_fat_fundos(*_):
         col_ia1, col_ia2 = st.columns(2)
 
         with col_ia1:
-            st.markdown("#### 🔍 Pesquisa de Avisos Abertos")
+            st.markdown("#### Pesquisa de Avisos Abertos")
             st.markdown(
-                "<small style='color:#64748B;'>"
-                "A IA pesquisa e sugere fundos relevantes "
-                "para o perfil da empresa.</small>",
+                f"<small style='color:{THEME['text_secondary']};'>"
+                f"A IA pesquisa e sugere fundos relevantes "
+                f"para o perfil da empresa.</small>",
                 unsafe_allow_html=True
             )
 
@@ -1837,10 +1836,10 @@ def render_fat_fundos(*_):
 
             # Preview do perfil atual
             st.markdown(
-                f"<div style='background:#1E293B;"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                 f"border-radius:8px;padding:10px;"
                 f"margin-bottom:8px;'>"
-                f"<small style='color:#64748B;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"Setor: {perfil_ia.get('setor','')} · "
                 f"Região: {perfil_ia.get('regiao','')} · "
                 f"{perfil_ia.get('n_trabalhadores','')} trabalhadores"
@@ -1849,38 +1848,38 @@ def render_fat_fundos(*_):
             )
 
             if st.button(
-                "🔍 Pesquisar Avisos Abertos",
+                "Pesquisar Avisos Abertos",
                 key="btn_pesq_avisos",
                 type="primary",
                 use_container_width=True
             ):
                 with st.spinner(
-                    "🤖 A pesquisar avisos relevantes..."
+                    "A pesquisar avisos relevantes..."
                 ):
                     resultado_ia = _pesquisar_avisos_ia(perfil_ia)
                 st.session_state['ia_avisos'] = resultado_ia
 
             if st.session_state.get('ia_avisos'):
                 st.markdown(
-                    f"<div style='background:rgba(59,130,246,0.1);"
-                    f"border:1px solid #3B82F6;"
+                    f"<div style='background:{THEME['accent']}1A;"
+                    f"border:1px solid {THEME['accent']};"
                     f"border-radius:12px;padding:16px;"
-                    f"color:#E2E8F0;font-size:0.85rem;"
+                    f"color:{THEME['text']};font-size:0.85rem;"
                     f"line-height:1.7;'>"
-                    f"<p style='color:#3B82F6;font-weight:700;"
+                    f"<p style='color:{THEME['accent']};font-weight:700;"
                     f"margin:0 0 8px;'>"
-                    f"🤖 AVISOS ABERTOS — IA</p>"
+                    f"AVISOS ABERTOS — IA</p>"
                     f"{st.session_state['ia_avisos'].replace(chr(10),'<br>')}"
                     f"</div>",
                     unsafe_allow_html=True
                 )
 
         with col_ia2:
-            st.markdown("#### 📋 Plano de Candidatura IA")
+            st.markdown("#### Plano de Candidatura IA")
             st.markdown(
-                "<small style='color:#64748B;'>"
-                "Seleciona um fundo e a IA gera um plano "
-                "detalhado de candidatura.</small>",
+                f"<small style='color:{THEME['text_secondary']};'>"
+                f"Seleciona um fundo e a IA gera um plano "
+                f"detalhado de candidatura.</small>",
                 unsafe_allow_html=True
             )
 
@@ -1896,7 +1895,7 @@ def render_fat_fundos(*_):
             )
 
             if st.button(
-                "📋 Gerar Plano de Candidatura",
+                "Gerar Plano de Candidatura",
                 key="btn_plano_cand",
                 type="primary",
                 use_container_width=True
@@ -1911,7 +1910,7 @@ def render_fat_fundos(*_):
                     "valor_investimento": invest_plano
                 }
                 with st.spinner(
-                    "🤖 A elaborar plano de candidatura..."
+                    "A elaborar plano de candidatura..."
                 ):
                     plano_ia = _gerar_plano_candidatura_ia(
                         f_plano, perf_plano, empresa
@@ -1921,14 +1920,14 @@ def render_fat_fundos(*_):
 
             if st.session_state.get('ia_plano_cand'):
                 st.markdown(
-                    f"<div style='background:rgba(16,185,129,0.08);"
-                    f"border:1px solid #10B981;"
+                    f"<div style='background:{THEME['success']}14;"
+                    f"border:1px solid {THEME['success']};"
                     f"border-radius:12px;padding:16px;"
-                    f"color:#E2E8F0;font-size:0.85rem;"
+                    f"color:{THEME['text']};font-size:0.85rem;"
                     f"line-height:1.7;'>"
-                    f"<p style='color:#10B981;font-weight:700;"
+                    f"<p style='color:{THEME['success']};font-weight:700;"
                     f"margin:0 0 8px;'>"
-                    f"📋 PLANO — "
+                    f"PLANO — "
                     f"{st.session_state.get('ia_plano_fundo','')[:30]}"
                     f"</p>"
                     f"{st.session_state['ia_plano_cand'].replace(chr(10),'<br>')}"
@@ -1938,7 +1937,7 @@ def render_fat_fundos(*_):
 
         # Pergunta livre
         st.markdown("---")
-        st.markdown("#### 💬 Pergunta Livre sobre Fundos")
+        st.markdown("#### Pergunta Livre sobre Fundos")
 
         pergunta_fundos = st.text_input(
             "Pergunta",
@@ -1948,7 +1947,7 @@ def render_fat_fundos(*_):
             label_visibility="collapsed"
         )
         if st.button(
-            "🤖 Perguntar",
+            "Perguntar",
             key="btn_pergunta_fundos",
             use_container_width=True
         ):
@@ -1956,7 +1955,7 @@ def render_fat_fundos(*_):
                 import anthropic
                 api_key = os.environ.get("ANTHROPIC_API_KEY","")
                 if api_key:
-                    with st.spinner("🤖 A pesquisar..."):
+                    with st.spinner("A pesquisar..."):
                         try:
                             client = anthropic.Anthropic(
                                 api_key=api_key
@@ -1978,23 +1977,23 @@ def render_fat_fundos(*_):
                                 }]
                             )
                             st.markdown(
-                                f"<div style='background:rgba(59,130,246,0.1);"
-                                f"border:1px solid #3B82F6;"
+                                f"<div style='background:{THEME['accent']}1A;"
+                                f"border:1px solid {THEME['accent']};"
                                 f"border-radius:10px;padding:14px;"
-                                f"color:#E2E8F0;font-size:0.88rem;"
+                                f"color:{THEME['text']};font-size:0.88rem;"
                                 f"line-height:1.6;margin-top:8px;'>"
                                 f"{resp.content[0].text.replace(chr(10),'<br>')}"
                                 f"</div>",
                                 unsafe_allow_html=True
                             )
                         except Exception as e:
-                            st.error(f"❌ {e}")
+                            st.error(f"{e}")
 
     # ════════════════════════════════════════════════════════════════
     # TAB — CALENDÁRIO DE FUNDOS
     # ════════════════════════════════════════════════════════════════
     with t_calendario:
-        st.markdown("### 📅 Calendário de Fundos & Prazos")
+        st.markdown("### Calendário de Fundos & Prazos")
 
         # Gráfico prazos
         fig_cal = _grafico_calendario_fundos(cand_db)
@@ -2026,7 +2025,7 @@ def render_fat_fundos(*_):
             )
 
         # Alertas de prazos
-        st.markdown("#### ⏰ Alertas de Prazos")
+        st.markdown("#### Alertas de Prazos")
 
         if not cand_db.empty and \
            'Prazo_Candidatura' in cand_db.columns:
@@ -2055,34 +2054,34 @@ def render_fat_fundos(*_):
             if alertas_pz:
                 alertas_pz.sort(key=lambda x: x['dias'])
                 for ap in alertas_pz:
-                    cor_ap = "#EF4444" if ap['dias'] < 14 \
-                             else "#F59E0B"
+                    cor_ap = THEME['error'] if ap['dias'] < 14 \
+                             else THEME['warning']
                     st.markdown(
                         f"<div style='background:{cor_ap}10;"
                         f"border-left:4px solid {cor_ap};"
                         f"border-radius:8px;padding:10px 14px;"
                         f"margin-bottom:6px;'>"
                         f"<b style='color:{cor_ap};'>"
-                        f"⏰ {ap['fundo']}</b>"
-                        f"<span style='float:right;color:#64748B;'>"
+                        f"{ap['fundo']}</b>"
+                        f"<span style='float:right;color:{THEME['text_secondary']};'>"
                         f"€{ap['val']:,.0f}</span><br>"
-                        f"<small style='color:#94A3B8;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Prazo: {ap['prazo']} — "
                         f"faltam {ap['dias']} dia(s)</small>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
             else:
-                st.success("✅ Sem prazos urgentes nos próximos 60 dias.")
+                st.success("Sem prazos urgentes nos próximos 60 dias.")
         else:
             st.info(
-                "📋 Adiciona prazos de candidatura no tab "
-                "📋 Gestão Candidaturas."
+                "Adiciona prazos de candidatura no tab "
+                "Gestão Candidaturas."
             )
 
         # Calendário fiscal de obrigações de reporte
         st.markdown("---")
-        st.markdown("#### 📋 Obrigações de Reporte para Fundos Ativos")
+        st.markdown("#### Obrigações de Reporte para Fundos Ativos")
         st.info(
             "Projetos aprovados têm obrigações de reporte "
             "trimestrais/anuais. Regista aqui os prazos."
@@ -2096,25 +2095,25 @@ def render_fat_fundos(*_):
 
         if candidaturas_ativas.empty:
             st.info(
-                "📋 Sem projetos em execução. "
+                "Sem projetos em execução. "
                 "Quando um projeto for aprovado e iniciado, "
                 "aparece aqui."
             )
         else:
             for _, proj in candidaturas_ativas.iterrows():
                 st.markdown(
-                    f"<div style='background:#1E293B;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                     f"border-radius:8px;padding:12px;"
                     f"margin-bottom:8px;"
-                    f"border-left:3px solid #06B6D4;'>"
-                    f"<b style='color:#F1F5F9;'>"
-                    f"▶ {proj.get('Fundo','')[:35]}</b><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"border-left:3px solid {THEME['accent']};'>"
+                    f"<b style='color:{THEME['text']};'>"
+                    f"{proj.get('Fundo','')[:35]}</b><br>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"Valor apoio: "
                     f"€{float(proj.get('Valor_Apoio',0) or 0):,.0f} · "
                     f"Início: {proj.get('Data_Inicio','')}</small><br>"
-                    f"<small style='color:#06B6D4;'>"
-                    f"📊 Próximo reporte trimestral — verificar portal"
+                    f"<small style='color:{THEME['accent']};'>"
+                    f"Próximo reporte trimestral — verificar portal"
                     f"</small></div>",
                     unsafe_allow_html=True
                 )

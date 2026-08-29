@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime, date, timedelta
 from core import (save_db, inv, load_db, log_audit,
                   _gcs_write_bin, _gcs_read_bin,
-                  cliente_select, registar_cliente_do_select)
+                  cliente_select, registar_cliente_do_select, THEME)
 
 # ─────────────────────────────────────────────────────────────
 # HELPERS
@@ -98,11 +98,11 @@ def _score_orc(orc, clientes_db, orc_db):
 
 def _score_badge(score):
     if score >= 65:
-        return "🟢", "#10B981", "Alta"
+        return THEME['success'], "Alta"
     elif score >= 40:
-        return "🟡", "#F59E0B", "Média"
+        return THEME['warning'], "Média"
     else:
-        return "🔴", "#EF4444", "Baixa"
+        return THEME['error'], "Baixa"
 
 
 def _historico_item(item_desc, orc_linhas_db, orc_db):
@@ -134,104 +134,105 @@ def _historico_item(item_desc, orc_linhas_db, orc_db):
 # ─────────────────────────────────────────────────────────────
 
 def _inject_css():
-    st.markdown("""
+    st.markdown(f"""
     <style>
     /* Pipeline Kanban cards */
-    .orc-card {
-        background: #1E293B;
-        border: 1px solid #334155;
+    .orc-card {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
         border-radius: 10px;
         padding: 14px;
         margin-bottom: 10px;
         transition: border-color 0.2s;
-    }
-    .orc-card:hover { border-color: #3B82F6; }
-    .orc-card-title {
-        color: #F1F5F9;
+    }}
+    .orc-card:hover {{ border-color: {THEME['accent']}; }}
+    .orc-card-title {{
+        color: {THEME['text']};
         font-weight: 700;
         font-size: 0.95rem;
         margin: 0 0 4px 0;
-    }
-    .orc-card-sub {
-        color: #64748B;
+    }}
+    .orc-card-sub {{
+        color: {THEME['text_secondary']};
         font-size: 0.78rem;
         margin: 2px 0;
-    }
-    .orc-card-valor {
-        color: #3B82F6;
+    }}
+    .orc-card-valor {{
+        color: {THEME['accent']};
         font-weight: 700;
         font-size: 1.1rem;
         margin-top: 6px;
-    }
+    }}
     /* Estado badge */
-    .badge {
+    .badge {{
         display: inline-block;
         padding: 2px 10px;
         border-radius: 99px;
         font-size: 0.72rem;
         font-weight: 600;
-    }
+    }}
     /* Alerta validade */
-    .alerta-exp {
-        background: rgba(239,68,68,0.12);
-        border: 1px solid #EF4444;
+    .alerta-exp {{
+        background: rgba(185,28,28,0.10);
+        border: 1px solid {THEME['error']};
         border-radius: 8px;
         padding: 8px 14px;
-        color: #FCA5A5;
+        color: {THEME['error']};
         font-size: 0.82rem;
         margin-bottom: 6px;
-    }
-    .alerta-warn {
-        background: rgba(245,158,11,0.12);
-        border: 1px solid #F59E0B;
+    }}
+    .alerta-warn {{
+        background: rgba(180,83,9,0.10);
+        border: 1px solid {THEME['warning']};
         border-radius: 8px;
         padding: 8px 14px;
-        color: #FCD34D;
+        color: {THEME['warning']};
         font-size: 0.82rem;
         margin-bottom: 6px;
-    }
+    }}
     /* Calculadora Tipo B */
-    .calc-box {
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
-        border: 1px solid #334155;
+    .calc-box {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
         border-radius: 12px;
         padding: 20px;
         margin-bottom: 12px;
-    }
-    .calc-total {
-        background: rgba(59,130,246,0.1);
-        border: 2px solid #3B82F6;
+    }}
+    .calc-total {{
+        background: rgba(14,124,134,0.08);
+        border: 2px solid {THEME['accent']};
         border-radius: 12px;
         padding: 16px;
         text-align: center;
-    }
-    .hist-box {
-        background: rgba(59,130,246,0.06);
-        border-left: 3px solid #3B82F6;
+    }}
+    .hist-box {{
+        background: rgba(14,124,134,0.06);
+        border-left: 3px solid {THEME['accent']};
         border-radius: 0 8px 8px 0;
         padding: 8px 12px;
         font-size: 0.78rem;
-        color: #94A3B8;
+        color: {THEME['text_secondary']};
         margin-top: 6px;
-    }
+    }}
     /* KPI mini */
-    .kpi-mini {
-        background: #1E293B;
+    .kpi-mini {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
         border-radius: 10px;
         padding: 14px;
         text-align: center;
-    }
-    .kpi-mini-val {
+    }}
+    .kpi-mini-val {{
         font-size: 1.6rem;
         font-weight: 800;
-        color: #F1F5F9;
+        color: {THEME['text']};
         line-height: 1.1;
-    }
-    .kpi-mini-label {
+    }}
+    .kpi-mini-label {{
         font-size: 0.75rem;
-        color: #64748B;
+        color: {THEME['text_secondary']};
         margin-top: 2px;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -279,7 +280,7 @@ def _carregar_dados():
 
 def _tab_cockpit(orc_db, clientes_db):
     if orc_db.empty:
-        st.info("📋 Sem orçamentos. Cria o primeiro no tab ➕ Novo Orçamento.")
+        st.info("Sem orçamentos. Cria o primeiro no tab Novo Orçamento.")
         return
 
     today = date.today()
@@ -297,22 +298,22 @@ def _tab_cockpit(orc_db, clientes_db):
     with c1:
         st.markdown(f"""<div class='kpi-mini'>
             <div class='kpi-mini-val'>{len(ativos)}</div>
-            <div class='kpi-mini-label'>🔄 Em Pipeline</div>
+            <div class='kpi-mini-label'>Em Pipeline</div>
         </div>""", unsafe_allow_html=True)
     with c2:
         st.markdown(f"""<div class='kpi-mini'>
             <div class='kpi-mini-val'>€{total_pipeline:,.0f}</div>
-            <div class='kpi-mini-label'>💰 Valor Enviado</div>
+            <div class='kpi-mini-label'>Valor Enviado</div>
         </div>""", unsafe_allow_html=True)
     with c3:
         st.markdown(f"""<div class='kpi-mini'>
-            <div class='kpi-mini-val' style='color:#10B981'>{taxa_conv}%</div>
-            <div class='kpi-mini-label'>✅ Taxa Conversão</div>
+            <div class='kpi-mini-val' style='color:{THEME['success']}'>{taxa_conv}%</div>
+            <div class='kpi-mini-label'>Taxa Conversão</div>
         </div>""", unsafe_allow_html=True)
     with c4:
         st.markdown(f"""<div class='kpi-mini'>
-            <div class='kpi-mini-val' style='color:#10B981'>€{total_ganho:,.0f}</div>
-            <div class='kpi-mini-label'>🏆 Total Ganho</div>
+            <div class='kpi-mini-val' style='color:{THEME['success']}'>€{total_ganho:,.0f}</div>
+            <div class='kpi-mini-label'>Total Ganho</div>
         </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -327,60 +328,60 @@ def _tab_cockpit(orc_db, clientes_db):
             alertas.append(('warn', row, days))
 
     if alertas:
-        st.markdown("#### ⚠️ Alertas de Validade")
+        st.markdown("#### Alertas de Validade")
         for tipo, row, days in sorted(alertas, key=lambda x: x[2]):
             total = float(row.get('Total_Com_Margem', 0) or 0)
             if tipo == 'exp':
                 st.markdown(
-                    f"<div class='alerta-exp'>🔴 <b>{row.get('Obra','')} — {row.get('Cliente','')}</b> "
+                    f"<div class='alerta-exp'><b>{row.get('Obra','')} — {row.get('Cliente','')}</b> "
                     f"| Expirou há {abs(days)} dias | €{total:,.2f}</div>",
                     unsafe_allow_html=True
                 )
             else:
                 st.markdown(
-                    f"<div class='alerta-warn'>🟡 <b>{row.get('Obra','')} — {row.get('Cliente','')}</b> "
+                    f"<div class='alerta-warn'><b>{row.get('Obra','')} — {row.get('Cliente','')}</b> "
                     f"| Expira em {days} dias | €{total:,.2f}</div>",
                     unsafe_allow_html=True
                 )
         st.markdown("<br>", unsafe_allow_html=True)
 
     # ── Kanban visual ────────────────────────────────────────
-    st.markdown("#### 📊 Pipeline por Estado")
+    st.markdown("#### Pipeline por Estado")
 
     estados = [
-        ('Rascunho',   '#6B7280', '📝'),
-        ('Enviado',    '#3B82F6', '📤'),
-        ('Em Revisão', '#8B5CF6', '🔍'),
-        ('Adjudicado', '#10B981', '✅'),
-        ('Rejeitado',  '#EF4444', '❌'),
+        ('Rascunho',   THEME['text_secondary']),
+        ('Enviado',    THEME['accent']),
+        ('Em Revisão', THEME['warning']),
+        ('Adjudicado', THEME['success']),
+        ('Rejeitado',  THEME['error']),
     ]
 
     cols = st.columns(len(estados))
-    for col, (estado, cor, icon) in zip(cols, estados):
+    for col, (estado, cor) in zip(cols, estados):
         grupo = orc_db[orc_db['Status'] == estado]
         val   = _num(grupo, 'Total_Com_Margem')
         with col:
             st.markdown(
                 f"<div style='border-top:3px solid {cor};padding-top:8px;'>"
                 f"<div style='color:{cor};font-weight:700;font-size:0.85rem;'>"
-                f"{icon} {estado}</div>"
-                f"<div style='color:#94A3B8;font-size:0.75rem;'>"
+                f"{estado}</div>"
+                f"<div style='color:{THEME['text_secondary']};font-size:0.75rem;'>"
                 f"{len(grupo)} orç. | €{val:,.0f}</div></div>",
                 unsafe_allow_html=True
             )
             for _, orc in grupo.sort_values('Data', ascending=False).head(4).iterrows():
                 total  = float(orc.get('Total_Com_Margem', 0) or 0)
                 score  = _score_orc(orc, clientes_db, orc_db)
-                icon_s, cor_s, label_s = _score_badge(score)
+                cor_s, label_s = _score_badge(score)
                 days   = _days_until(orc.get('Validade', ''))
-                val_str = f"⏰ {days}d" if 0 <= days <= 30 else (
-                    "🔴 Expirado" if days < 0 else "")
+                val_str = f"{days}d" if 0 <= days <= 30 else (
+                    "Expirado" if days < 0 else "")
                 st.markdown(
                     f"<div class='orc-card'>"
                     f"<p class='orc-card-title'>{orc.get('Obra','')}</p>"
                     f"<p class='orc-card-sub'>{orc.get('Cliente','')} · "
                     f"v{orc.get('Versao','1')} · {orc.get('Tipo','A')}</p>"
-                    f"<p class='orc-card-sub'>{icon_s} {label_s} · {val_str}</p>"
+                    f"<p class='orc-card-sub'>{label_s} · {val_str}</p>"
                     f"<p class='orc-card-valor'>€{total:,.0f}</p>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -393,7 +394,7 @@ def _tab_cockpit(orc_db, clientes_db):
 
 def _tab_lista(orc_db, orc_linhas, clientes_db):
     if orc_db.empty:
-        st.info("📋 Sem orçamentos.")
+        st.info("Sem orçamentos.")
         return
 
     # Filtros
@@ -405,10 +406,10 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
         obras_opts = ["Todas"] + sorted(orc_db['Obra'].dropna().unique().tolist())
         obra_f = st.selectbox("Obra", obras_opts, key="orc_list_obra")
     with col_f3:
-        tipo_opts = ["Todos", "A - Instrumentação", "B - Cedência MO", "📁 Arquivo"]
+        tipo_opts = ["Todos", "A - Instrumentação", "B - Cedência MO", "Arquivo"]
         tipo_f = st.selectbox("Tipo", tipo_opts, key="orc_list_tipo")
     with col_f4:
-        pesq = st.text_input("🔍 Pesquisar cliente/obra", key="orc_list_pesq")
+        pesq = st.text_input("Pesquisar cliente/obra", key="orc_list_pesq")
 
     df_o = orc_db.copy()
     if stat_f != "Todos":
@@ -419,7 +420,7 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
         df_o = df_o[~df_o.get('Tipo', 'A').isin(['B', 'Arquivo'])]
     elif tipo_f == "B - Cedência MO":
         df_o = df_o[df_o.get('Tipo', 'A') == 'B']
-    elif tipo_f == "📁 Arquivo":
+    elif tipo_f == "Arquivo":
         df_o = df_o[df_o.get('Tipo', 'A') == 'Arquivo']
     if pesq:
         mask = (
@@ -432,11 +433,11 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
 
     ESTADOS = ['Rascunho', 'Enviado', 'Em Revisão', 'Adjudicado', 'Rejeitado']
     COR_EST = {
-        'Rascunho':   '#6B7280',
-        'Enviado':    '#3B82F6',
-        'Em Revisão': '#8B5CF6',
-        'Adjudicado': '#10B981',
-        'Rejeitado':  '#EF4444',
+        'Rascunho':   THEME['text_secondary'],
+        'Enviado':    THEME['accent'],
+        'Em Revisão': THEME['warning'],
+        'Adjudicado': THEME['success'],
+        'Rejeitado':  THEME['error'],
     }
     MOTIVOS = ['Preço acima do mercado', 'Prazo não adequado',
                'Concorrência', 'Sem resposta do cliente',
@@ -446,20 +447,20 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
         oid   = orc.get('ID', '')
         stat  = orc.get('Status', 'Rascunho')
         total = float(orc.get('Total_Com_Margem', 0) or 0)
-        cor   = COR_EST.get(stat, '#6B7280')
+        cor   = COR_EST.get(stat, THEME['text_secondary'])
         tipo  = orc.get('Tipo', 'A')
         score = _score_orc(orc, clientes_db, orc_db)
-        icon_s, cor_s, label_s = _score_badge(score)
+        cor_s, label_s = _score_badge(score)
         days  = _days_until(orc.get('Validade', ''))
-        val_badge = (f" · ⏰ {days}d" if 0 < days <= 30 else
-                     (" · 🔴 Expirado" if days <= 0 else ""))
+        val_badge = (f" · {days}d" if 0 < days <= 30 else
+                     (" · Expirado" if days <= 0 else ""))
 
         if tipo == 'B':
-            label_tipo = "👷 Tipo B"
+            label_tipo = "Tipo B"
         elif tipo == 'Arquivo':
-            label_tipo = "📁 Arquivo"
+            label_tipo = "Arquivo"
         else:
-            label_tipo = "🔧 Tipo A"
+            label_tipo = "Tipo A"
 
         with st.expander(
             f"{label_tipo} | {orc.get('Obra','')} — v{orc.get('Versao','1')} "
@@ -470,15 +471,16 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
 
             with col_l:
                 st.markdown(
-                    f"<div style='background:#1E293B;border-radius:8px;padding:12px;'>"
-                    f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
+                    f"border-radius:8px;padding:12px;'>"
+                    f"<p style='color:{THEME['text']};margin:2px 0;'>"
                     f"<b>Cliente:</b> {orc.get('Cliente','')} &nbsp;|&nbsp; "
                     f"<b>Data:</b> {orc.get('Data','')} &nbsp;|&nbsp; "
                     f"<b>Validade:</b> {orc.get('Validade','')}</p>"
-                    f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                    f"<p style='color:{THEME['text']};margin:2px 0;'>"
                     f"<b>Margem:</b> {orc.get('Margem_Pct',0)}% &nbsp;|&nbsp; "
                     f"<b>Criado por:</b> {orc.get('Criado_Por','')}</p>"
-                    f"<p style='color:#94A3B8;margin:4px 0;font-size:0.82rem;'>"
+                    f"<p style='color:{THEME['text_secondary']};margin:4px 0;font-size:0.82rem;'>"
                     f"{orc.get('Notas','')}</p>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -499,19 +501,19 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
                             linhas.get('Minutos_Unit', pd.Series([0])), errors='coerce'
                         ).fillna(0).sum() / 60
                         if horas > 0:
-                            st.caption(f"⏱️ Total estimado: **{horas:.1f} horas**")
+                            st.caption(f"Total estimado: **{horas:.1f} horas**")
 
                 # Anexos
                 anexos_str = orc.get('Anexos', '')
                 if anexos_str:
-                    st.markdown("**📎 Anexos:**")
+                    st.markdown("**Anexos:**")
                     for nome_anexo in [a for a in anexos_str.split('|') if a]:
                         anexo_bytes = _gcs_read_bin(
                             f"data/orcamentos_anexos/{oid}/{nome_anexo}"
                         )
                         if anexo_bytes:
                             if st.download_button(
-                                f"⬇️ {nome_anexo}",
+                                f"{nome_anexo}",
                                 data=anexo_bytes,
                                 file_name=nome_anexo,
                                 key=f"orc_anexo_{oid}_{nome_anexo}",
@@ -524,16 +526,16 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
                                     detalhes=f"Anexo '{nome_anexo}' descarregado", ip=""
                                 )
                         else:
-                            st.caption(f"⚠️ Anexo '{nome_anexo}' não encontrado.")
+                            st.caption(f"Anexo '{nome_anexo}' não encontrado.")
 
             with col_r:
                 st.markdown(
                     f"<div class='calc-total' style='margin-bottom:10px;'>"
                     f"<div style='color:{cor};font-size:1.5rem;font-weight:800;'>"
                     f"€{total:,.2f}</div>"
-                    f"<div style='color:#64748B;font-size:0.75rem;'>{stat}</div>"
+                    f"<div style='color:{THEME['text_secondary']};font-size:0.75rem;'>{stat}</div>"
                     f"<div style='margin-top:6px;font-size:0.8rem;color:{cor_s};'>"
-                    f"{icon_s} Prob. {label_s}: {score}%</div>"
+                    f"Prob. {label_s}: {score}%</div>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
@@ -547,11 +549,13 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
                     ("Dormidas",    'Total_Dormidas'),
                     ("Diárias",     'Total_Diarias'),
                 ]
-                html_bd = "<div style='background:#1E293B;border-radius:8px;padding:10px;font-size:0.8rem;'>"
+                html_bd = (f"<div style='background:{THEME['surface']};"
+                           f"border:1px solid {THEME['border']};border-radius:8px;"
+                           f"padding:10px;font-size:0.8rem;'>")
                 for label_b, col_b in breakdown:
                     val_b = float(orc.get(col_b, 0) or 0)
                     if val_b > 0:
-                        html_bd += (f"<p style='color:#64748B;margin:2px 0;'>"
+                        html_bd += (f"<p style='color:{THEME['text_secondary']};margin:2px 0;'>"
                                     f"{label_b}: €{val_b:,.2f}</p>")
                 html_bd += "</div>"
                 st.markdown(html_bd, unsafe_allow_html=True)
@@ -577,26 +581,26 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
 
                 col_b1, col_b2 = st.columns(2)
                 with col_b1:
-                    if st.button("✅ Actualizar", key=f"orc_upd_{oid}",
+                    if st.button("Actualizar", key=f"orc_upd_{oid}",
                                  use_container_width=True, type="primary"):
                         orc_db.loc[orc_db['ID'] == oid, 'Status'] = novo_stat
                         if motivo:
                             orc_db.loc[orc_db['ID'] == oid, 'Motivo_Rejeicao'] = motivo
                         save_db(orc_db, "orcamentos.csv")
                         inv("orcamentos.csv")
-                        st.success("✅ Estado actualizado!")
+                        st.success("Estado actualizado!")
                         st.rerun()
 
                 with col_b2:
-                    if st.button("📋 Duplicar", key=f"orc_dup_{oid}",
+                    if st.button("Duplicar", key=f"orc_dup_{oid}",
                                  use_container_width=True):
                         st.session_state['duplicar_orc_id'] = oid
-                        st.info("💡 Abre o tab ➕ Novo — o orçamento foi pré-carregado.")
+                        st.info("Abre o tab Novo — o orçamento foi pré-carregado.")
 
                 # Adjudicação → Criar Obra
                 if novo_stat == 'Adjudicado' or stat == 'Adjudicado':
                     st.markdown("---")
-                    if st.button("🏗️ Criar Obra a partir deste orçamento",
+                    if st.button("Criar Obra a partir deste orçamento",
                                  key=f"orc_obra_{oid}",
                                  use_container_width=True,
                                  type="primary"):
@@ -609,11 +613,11 @@ def _tab_lista(orc_db, orc_linhas, clientes_db):
 def _modal_criar_obra(orc, oid, orc_db):
     """Modal de validação para criar obra a partir do orçamento adjudicado."""
     st.markdown(
-        "<div style='background:rgba(16,185,129,0.08);border:1px solid #10B981;"
-        "border-radius:10px;padding:16px;margin-top:8px;'>",
+        f"<div style='background:rgba(21,128,61,0.08);border:1px solid {THEME['success']};"
+        f"border-radius:10px;padding:16px;margin-top:8px;'>",
         unsafe_allow_html=True
     )
-    st.markdown("#### 🏗️ Validar e Criar Obra")
+    st.markdown("#### Validar e Criar Obra")
     st.caption("Confirma os dados antes de criar a obra.")
 
     co1, co2 = st.columns(2)
@@ -645,7 +649,7 @@ def _modal_criar_obra(orc, oid, orc_db):
 
     col_ok, col_cancel = st.columns(2)
     with col_ok:
-        if st.button("✅ Confirmar e Criar Obra",
+        if st.button("Confirmar e Criar Obra",
                      key=f"cr_confirm_{oid}",
                      type="primary",
                      use_container_width=True):
@@ -685,12 +689,12 @@ def _modal_criar_obra(orc, oid, orc_db):
                     detalhes=f"Obra '{obra_nome}' criada a partir do orçamento {oid}",
                     ip=""
                 )
-                st.success(f"✅ Obra '{obra_nome}' criada com sucesso!")
+                st.success(f"Obra '{obra_nome}' criada com sucesso!")
                 st.session_state[f'criar_obra_orc_{oid}'] = False
                 st.rerun()
 
     with col_cancel:
-        if st.button("✖ Cancelar", key=f"cr_cancel_{oid}",
+        if st.button("Cancelar", key=f"cr_cancel_{oid}",
                      use_container_width=True):
             st.session_state[f'criar_obra_orc_{oid}'] = False
             st.rerun()
@@ -712,15 +716,15 @@ def _tab_novo(orc_db, orc_linhas, obras_db, catalogo, tarifas, ref_precos):
         matches = orc_db[orc_db['ID'] == dup_id]
         if not matches.empty:
             orc_base = matches.iloc[0].to_dict()
-            st.info(f"📋 A duplicar orçamento de: **{orc_base.get('Obra','')}** "
+            st.info(f"A duplicar orçamento de: **{orc_base.get('Obra','')}** "
                     f"(v{orc_base.get('Versao','1')})")
 
     # Tipo de orçamento
     tipo_orc = st.radio(
         "Tipo de Orçamento",
-        ["🔧 Tipo A — Instrumentação / Projecto",
-         "👷 Tipo B — Cedência de Mão de Obra",
-         "📁 Orçamento de Arquivo"],
+        ["Tipo A — Instrumentação / Projecto",
+         "Tipo B — Cedência de Mão de Obra",
+         "Orçamento de Arquivo"],
         horizontal=True,
         key="novo_tipo_orc"
     )
@@ -791,9 +795,9 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
         )
         # Aviso margem baixa
         if no_margem < 15:
-            st.warning("⚠️ Margem abaixo de 15% — confirma se é intencional.")
+            st.warning("Margem abaixo de 15% — confirma se é intencional.")
         elif no_margem > 35:
-            st.warning("⚠️ Margem acima de 35% — pode reduzir competitividade.")
+            st.warning("Margem acima de 35% — pode reduzir competitividade.")
 
         no_notas = st.text_area(
             "Notas",
@@ -808,13 +812,13 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                 for _, r in op_db.iterrows()
             ]
         no_op_id_raw = st.selectbox(
-            "🔗 Oportunidade de Origem (ISO)",
+            "Oportunidade de Origem (ISO)",
             _op_opts_a, key="noa_op_id",
             help="Liga este orçamento à oportunidade comercial"
         )
 
     st.markdown("---")
-    st.markdown("#### 📝 Linhas do Orçamento")
+    st.markdown("#### Linhas do Orçamento")
 
     # Inicializar linhas temp
     if 'orc_linhas_temp' not in st.session_state:
@@ -843,7 +847,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
         col_cat1, col_cat2 = st.columns([3, 1])
         with col_cat1:
             pesq_cat = st.text_input(
-                "🔍 Pesquisar no catálogo de tempos",
+                "Pesquisar no catálogo de tempos",
                 key="noa_pesq_cat",
                 placeholder="Ex: transmissor, passagem cabo, comissionamento..."
             )
@@ -879,7 +883,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                         media  = sum(precos) / len(precos)
                         hist_html = (
                             f"<div class='hist-box'>"
-                            f"📊 Média histórica: €{media:.2f}/{item.get('Unidade','un')} "
+                            f"Média histórica: €{media:.2f}/{item.get('Unidade','un')} "
                             f"· Última vez: {hist[0]['obra']} ({hist[0]['data']})"
                             f"</div>"
                         )
@@ -888,9 +892,9 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                     with col_i1:
                         st.markdown(
                             f"<div style='padding:6px 0;'>"
-                            f"<span style='color:#F1F5F9;font-size:0.88rem;'>"
+                            f"<span style='color:{THEME['text']};font-size:0.88rem;'>"
                             f"<b>{item.get('Descricao','')}</b></span>"
-                            f"<span style='color:#64748B;font-size:0.76rem;'> · "
+                            f"<span style='color:{THEME['text_secondary']};font-size:0.76rem;'> · "
                             f"{item.get('Categoria','')} · {mins:.0f}min/{item.get('Unidade','un')} "
                             f"· usado {usos}×</span>"
                             f"{hist_html}"
@@ -908,7 +912,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                             key=f"cat_preco_{item.get('ID','')}"
                         )
                     with col_i4:
-                        if st.button("➕", key=f"cat_add_{item.get('ID','')}"):
+                        if st.button("Usar", key=f"cat_add_{item.get('ID','')}"):
                             st.session_state['orc_linhas_temp'].append({
                                 "ID":          str(uuid.uuid4())[:6].upper(),
                                 "Descricao":   item.get('Descricao', ''),
@@ -934,7 +938,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
     st.markdown("---")
 
     # Adicionar linha manual
-    with st.expander("➕ Adicionar linha manual", expanded=False):
+    with st.expander("Adicionar linha manual", expanded=False):
         with st.form("form_linha_manual"):
             col_m1, col_m2, col_m3 = st.columns(3)
             with col_m1:
@@ -962,7 +966,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                                           step=1.0, key="manual_preco")
                 m_notas = st.text_input("Notas", key="manual_notas")
 
-            if st.form_submit_button("➕ Adicionar"):
+            if st.form_submit_button("Adicionar"):
                 if m_desc.strip():
                     st.session_state['orc_linhas_temp'].append({
                         "ID":          str(uuid.uuid4())[:6].upper(),
@@ -994,7 +998,7 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
             with col_l4:
                 st.caption(f"**€{lin['Total']:.2f}**")
             with col_l5:
-                if st.button("🗑", key=f"rm_lin_{i}"):
+                if st.button("X", key=f"rm_lin_{i}", help="Remover linha"):
                     st.session_state['orc_linhas_temp'].pop(i)
                     st.rerun()
 
@@ -1006,24 +1010,25 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
 
         col_t1, col_t2 = st.columns(2)
         with col_t1:
-            html_cats = "<div style='background:#1E293B;border-radius:10px;padding:14px;'>"
+            html_cats = (f"<div style='background:{THEME['surface']};"
+                         f"border:1px solid {THEME['border']};border-radius:10px;padding:14px;'>")
             for cat, val in cats_totais.items():
-                html_cats += (f"<p style='color:#94A3B8;margin:3px 0;font-size:0.85rem;'>"
+                html_cats += (f"<p style='color:{THEME['text_secondary']};margin:3px 0;font-size:0.85rem;'>"
                               f"{cat}: €{val:,.2f}</p>")
             if total_horas > 0:
-                html_cats += (f"<p style='color:#F59E0B;margin:6px 0 3px;font-size:0.85rem;'>"
-                              f"⏱️ Horas estimadas: <b>{total_horas:.1f}h</b></p>")
+                html_cats += (f"<p style='color:{THEME['warning']};margin:6px 0 3px;font-size:0.85rem;'>"
+                              f"Horas estimadas: <b>{total_horas:.1f}h</b></p>")
             html_cats += "</div>"
             st.markdown(html_cats, unsafe_allow_html=True)
 
         with col_t2:
             st.markdown(
                 f"<div class='calc-total'>"
-                f"<p style='color:#64748B;margin:0;font-size:0.85rem;'>"
+                f"<p style='color:{THEME['text_secondary']};margin:0;font-size:0.85rem;'>"
                 f"Sem margem: €{total_sem:,.2f}</p>"
-                f"<div style='color:#3B82F6;font-size:1.8rem;font-weight:800;'>"
+                f"<div style='color:{THEME['accent']};font-size:1.8rem;font-weight:800;'>"
                 f"€{total_com:,.2f}</div>"
-                f"<p style='color:#64748B;margin:0;font-size:0.8rem;'>"
+                f"<p style='color:{THEME['text_secondary']};margin:0;font-size:0.8rem;'>"
                 f"Com margem {no_margem}%</p>"
                 f"</div>",
                 unsafe_allow_html=True
@@ -1032,12 +1037,12 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
         st.markdown("<br>", unsafe_allow_html=True)
         col_s1, col_s2 = st.columns(2)
         with col_s1:
-            if st.button("💾 Guardar Orçamento", type="primary",
+            if st.button("Guardar Orçamento", type="primary",
                          use_container_width=True, key="btn_save_a"):
                 if not no_obra or no_obra == "—":
-                    st.error("❌ Selecciona uma obra.")
+                    st.error("Selecciona uma obra.")
                 elif not no_cliente.strip():
-                    st.error("❌ Cliente obrigatório.")
+                    st.error("Cliente obrigatório.")
                 else:
                     if no_cliente_novo:
                         registar_cliente_do_select(no_cliente, "noa_cliente")
@@ -1054,12 +1059,12 @@ def _form_tipo_a(orc_db, orc_linhas, obras_db, catalogo, user_nome, orc_base, op
                         _no_op_id
                     )
         with col_s2:
-            if st.button("🗑️ Limpar Linhas", use_container_width=True,
+            if st.button("Limpar Linhas", use_container_width=True,
                          key="btn_clear_a"):
                 st.session_state['orc_linhas_temp'] = []
                 st.rerun()
     else:
-        st.info("📝 Sem linhas. Pesquisa no catálogo ou adiciona manualmente.")
+        st.info("Sem linhas. Pesquisa no catálogo ou adiciona manualmente.")
 
 
 def _guardar_orcamento_a(orc_db, orc_linhas, obra, cliente, versao, validade,
@@ -1114,7 +1119,7 @@ def _guardar_orcamento_a(orc_db, orc_linhas, obra, cliente, versao, validade,
         detalhes=f"{obra} | v{versao} | €{total_com:,.2f}", ip=""
     )
     st.session_state['orc_linhas_temp'] = []
-    st.success(f"✅ Orçamento criado! Total: €{total_com:,.2f}")
+    st.success(f"Orçamento criado! Total: €{total_com:,.2f}")
     st.rerun()
 
 
@@ -1124,7 +1129,7 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
     obras_ativas = (obras_db[obras_db['Ativa'] == 'Ativa']['Obra'].tolist()
                     if not obras_db.empty else [])
 
-    st.markdown("#### 👷 Orçamento de Cedência de Mão de Obra")
+    st.markdown("#### Orçamento de Cedência de Mão de Obra")
     st.caption("Preenche os campos — o total é calculado automaticamente.")
 
     col1, col2 = st.columns(2)
@@ -1141,16 +1146,16 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
         zonas = ["Portugal"]
         if not tarifas.empty and 'Zona' in tarifas.columns:
             zonas = sorted(tarifas['Zona'].dropna().unique().tolist())
-        nb_zona = st.selectbox("🌍 Localização / Zona", zonas, key="nb_zona")
-        nb_dias  = st.number_input("📅 Nº de Dias", min_value=1, value=5, key="nb_dias")
-        nb_horas = st.number_input("⏱️ Horas/Dia", min_value=1, value=8,
+        nb_zona = st.selectbox("Localização / Zona", zonas, key="nb_zona")
+        nb_dias  = st.number_input("Nº de Dias", min_value=1, value=5, key="nb_dias")
+        nb_horas = st.number_input("Horas/Dia", min_value=1, value=8,
                                    max_value=12, key="nb_horas")
         nb_margem = st.slider("Margem (%)", 0, 50, 15, key="nb_margem")
         if nb_margem < 10:
-            st.warning("⚠️ Margem muito baixa.")
+            st.warning("Margem muito baixa.")
 
     st.markdown("---")
-    st.markdown("#### 👥 Equipa")
+    st.markdown("#### Equipa")
 
     # Categorias de técnicos disponíveis nas tarifas
     cats_disponiveis = ["Instrumentista", "Mecânico", "Electricista",
@@ -1172,7 +1177,7 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
     total_pessoas = sum(equipa.values())
 
     st.markdown("---")
-    st.markdown("#### 🚐 Logística")
+    st.markdown("#### Logística")
 
     col_v1, col_v2, col_v3 = st.columns(3)
     with col_v1:
@@ -1186,7 +1191,7 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
                                    value=0, key="nb_car9")
 
     nb_noites = st.number_input(
-        "🛏️ Nº de Noites de Dormida",
+        "Nº de Noites de Dormida",
         min_value=0, value=max(0, nb_dias - 1),
         key="nb_noites"
     )
@@ -1222,7 +1227,7 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
 
     # ── Cálculo em tempo real ────────────────────────────────
     st.markdown("---")
-    st.markdown("#### 💰 Simulação em Tempo Real")
+    st.markdown("#### Simulação em Tempo Real")
 
     linhas_b = []
     total_mo = 0.0
@@ -1268,16 +1273,16 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
     with col_r1:
         st.markdown(
             f"<div class='calc-box'>"
-            f"<p style='color:#94A3B8;margin:3px 0;font-size:0.85rem;'>"
-            f"👥 Mão de Obra: <b style='color:#F1F5F9;'>€{total_mo:,.2f}</b></p>"
-            f"<p style='color:#94A3B8;margin:3px 0;font-size:0.85rem;'>"
-            f"🍽️ Diárias: <b style='color:#F1F5F9;'>€{total_diarias:,.2f}</b></p>"
-            f"<p style='color:#94A3B8;margin:3px 0;font-size:0.85rem;'>"
-            f"🚐 Carrinhas: <b style='color:#F1F5F9;'>€{total_carrinhas:,.2f}</b></p>"
-            f"<p style='color:#94A3B8;margin:3px 0;font-size:0.85rem;'>"
-            f"🛏️ Dormidas ({total_pessoas}p × {nb_noites}n × €{custo_dorm_unit:.0f}): "
-            f"<b style='color:#F1F5F9;'>€{total_dormidas:,.2f}</b></p>"
-            f"<p style='color:#64748B;margin:6px 0 2px;font-size:0.8rem;'>"
+            f"<p style='color:{THEME['text_secondary']};margin:3px 0;font-size:0.85rem;'>"
+            f"Mão de Obra: <b style='color:{THEME['text']};'>€{total_mo:,.2f}</b></p>"
+            f"<p style='color:{THEME['text_secondary']};margin:3px 0;font-size:0.85rem;'>"
+            f"Diárias: <b style='color:{THEME['text']};'>€{total_diarias:,.2f}</b></p>"
+            f"<p style='color:{THEME['text_secondary']};margin:3px 0;font-size:0.85rem;'>"
+            f"Carrinhas: <b style='color:{THEME['text']};'>€{total_carrinhas:,.2f}</b></p>"
+            f"<p style='color:{THEME['text_secondary']};margin:3px 0;font-size:0.85rem;'>"
+            f"Dormidas ({total_pessoas}p × {nb_noites}n × €{custo_dorm_unit:.0f}): "
+            f"<b style='color:{THEME['text']};'>€{total_dormidas:,.2f}</b></p>"
+            f"<p style='color:{THEME['text_secondary']};margin:6px 0 2px;font-size:0.8rem;'>"
             f"Total s/ margem: €{total_sem:,.2f}</p>"
             f"</div>",
             unsafe_allow_html=True
@@ -1285,18 +1290,18 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
     with col_r2:
         st.markdown(
             f"<div class='calc-total'>"
-            f"<p style='color:#64748B;margin:0;font-size:0.85rem;'>"
+            f"<p style='color:{THEME['text_secondary']};margin:0;font-size:0.85rem;'>"
             f"Total Proposta</p>"
-            f"<div style='color:#3B82F6;font-size:2rem;font-weight:800;'>"
+            f"<div style='color:{THEME['accent']};font-size:2rem;font-weight:800;'>"
             f"€{total_com:,.2f}</div>"
-            f"<p style='color:#64748B;margin:4px 0 0;font-size:0.8rem;'>"
+            f"<p style='color:{THEME['text_secondary']};margin:4px 0 0;font-size:0.8rem;'>"
             f"Margem {nb_margem}% | {total_pessoas} pessoas | {nb_dias} dias</p>"
             f"</div>",
             unsafe_allow_html=True
         )
 
         # Editar valores de referência inline
-        with st.expander("✏️ Ajustar valores de referência"):
+        with st.expander("Ajustar valores de referência"):
             st.caption("Estes valores substituem os padrões para este orçamento.")
             adj_dorm = st.number_input(
                 "€/noite dormida", value=custo_dorm_unit, step=5.0, key="adj_dorm"
@@ -1313,18 +1318,18 @@ def _form_tipo_b(orc_db, obras_db, tarifas, ref_precos, user_nome, orc_base, op_
             for _, r in op_db.iterrows()
         ]
     nb_op_id_raw = st.selectbox(
-        "🔗 Oportunidade de Origem (ISO)",
+        "Oportunidade de Origem (ISO)",
         _op_opts_b, key="nob_op_id",
         help="Liga este orçamento à oportunidade comercial"
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("💾 Guardar Orçamento Tipo B", type="primary",
+    if st.button("Guardar Orçamento Tipo B", type="primary",
                  use_container_width=True, key="btn_save_b"):
         if not nb_obra or nb_obra == "—" or not nb_cliente.strip():
-            st.error("❌ Obra e cliente obrigatórios.")
+            st.error("Obra e cliente obrigatórios.")
         elif total_pessoas == 0:
-            st.error("❌ Adiciona pelo menos um técnico.")
+            st.error("Adiciona pelo menos um técnico.")
         else:
             if nb_cliente_novo:
                 registar_cliente_do_select(nb_cliente, "nb_cliente")
@@ -1385,14 +1390,14 @@ def _guardar_orcamento_b(orc_db, obra, cliente, versao, validade,
         tabela="orcamentos.csv", registro_id=orc_id,
         detalhes=f"{obra} | v{versao} | €{total_com:,.2f} | {equipa_str}", ip=""
     )
-    st.success(f"✅ Orçamento Tipo B criado! Total: €{total_com:,.2f}")
+    st.success(f"Orçamento Tipo B criado! Total: €{total_com:,.2f}")
     st.rerun()
 
 
 # ── Orçamento de Arquivo ─────────────────────────────────────
 
 def _form_arquivo(orc_db, obras_db, user_nome, op_db=None):
-    st.markdown("#### 📁 Orçamento de Arquivo")
+    st.markdown("#### Orçamento de Arquivo")
     st.caption("Para orçamentos feitos fora da app (Excel/PDF, históricos ou "
                "pontuais). Anexa o(s) ficheiro(s) e regista os dados — entra "
                "no mesmo pipeline e ciclo de vida dos orçamentos nativos.")
@@ -1426,7 +1431,7 @@ def _form_arquivo(orc_db, obras_db, user_nome, op_db=None):
         ar_notas = st.text_area("Notas", key="ar_notas")
 
     ar_anexos = st.file_uploader(
-        "📎 Anexar ficheiro(s) do orçamento (PDF/XLSX/DOCX)",
+        "Anexar ficheiro(s) do orçamento (PDF/XLSX/DOCX)",
         type=["pdf", "xlsx", "xls", "docx"],
         accept_multiple_files=True,
         key="ar_anexos"
@@ -1439,18 +1444,18 @@ def _form_arquivo(orc_db, obras_db, user_nome, op_db=None):
             for _, r in op_db.iterrows()
         ]
     ar_op_id_raw = st.selectbox(
-        "🔗 Oportunidade de Origem (ISO)",
+        "Oportunidade de Origem (ISO)",
         _op_opts_ar, key="ar_op_id",
         help="Liga este orçamento à oportunidade comercial"
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("💾 Guardar Orçamento de Arquivo", type="primary",
+    if st.button("Guardar Orçamento de Arquivo", type="primary",
                  use_container_width=True, key="btn_save_arquivo"):
         cliente_final = ar_cliente.strip()
         obra_final = (ar_obra or "").strip()
         if not ar_numero.strip() or not cliente_final or not obra_final:
-            st.error("❌ Número, cliente e obra proposta são obrigatórios.")
+            st.error("Número, cliente e obra proposta são obrigatórios.")
         else:
             if ar_cliente_novo:
                 registar_cliente_do_select(cliente_final, "ar_cliente")
@@ -1486,7 +1491,7 @@ def _guardar_orcamento_arquivo(orc_db, numero, obra, cliente, valor_total,
                     detalhes=f"Anexo '{f.name}' carregado", ip=""
                 )
             else:
-                st.warning(f"⚠️ Falha ao carregar o anexo '{f.name}'.")
+                st.warning(f"Falha ao carregar o anexo '{f.name}'.")
 
     notas_final = f"Nº Ref.: {numero.strip()}" + (f" | {notas.strip()}" if notas.strip() else "")
 
@@ -1527,7 +1532,7 @@ def _guardar_orcamento_arquivo(orc_db, numero, obra, cliente, valor_total,
         detalhes=f"{obra} | Nº {numero} | €{valor_total:,.2f} | "
                  f"{len(nomes_anexos)} anexo(s)", ip=""
     )
-    st.success(f"✅ Orçamento de Arquivo registado! Total: €{valor_total:,.2f}")
+    st.success(f"Orçamento de Arquivo registado! Total: €{valor_total:,.2f}")
     st.rerun()
 
 
@@ -1537,19 +1542,19 @@ def _guardar_orcamento_arquivo(orc_db, numero, obra, cliente, valor_total,
 
 def _tab_catalogo(catalogo, tarifas, ref_precos):
     sub = st.tabs([
-        "⚡ Catálogo de Tempos",
-        "💶 Tarifas MO",
-        "🚐 Preços Referência",
+        "Catálogo de Tempos",
+        "Tarifas MO",
+        "Preços Referência",
     ])
 
     # ── Catálogo de Tempos ────────────────────────────────────
     with sub[0]:
-        st.markdown("#### ⚡ Catálogo de Itens e Tempos")
+        st.markdown("#### Catálogo de Itens e Tempos")
         st.caption("Base de dados de actividades com tempo estimado por unidade.")
 
         col_ca1, col_ca2 = st.columns([3, 1])
         with col_ca2:
-            if st.button("➕ Novo Item", key="cat_novo_btn",
+            if st.button("Novo Item", key="cat_novo_btn",
                          use_container_width=True, type="primary"):
                 st.session_state['cat_novo_open'] = True
 
@@ -1575,7 +1580,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                     c_preco = st.number_input("Preço sugerido (€/un)",
                                                min_value=0.0, step=0.5, key="cat_c_preco")
 
-                if st.form_submit_button("💾 Guardar"):
+                if st.form_submit_button("Guardar"):
                     if c_desc.strip() and c_mins > 0:
                         novo_item = pd.DataFrame([{
                             "ID":               str(uuid.uuid4())[:6].upper(),
@@ -1592,17 +1597,17 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                                if not catalogo.empty else novo_item)
                         save_db(upd, "orc_catalogo.csv")
                         inv("orc_catalogo.csv")
-                        st.success("✅ Item adicionado ao catálogo!")
+                        st.success("Item adicionado ao catálogo!")
                         st.session_state['cat_novo_open'] = False
                         st.rerun()
                     else:
                         st.error("Descrição e minutos obrigatórios.")
 
         # Upload bulk
-        with st.expander("📥 Importação em bulk (CSV)"):
+        with st.expander("Importação em bulk (CSV)"):
             st.caption("Colunas: Categoria, Descricao, Unidade, Minutos_Unit, Preco_Sugerido")
             f_bulk = st.file_uploader("Upload CSV", type="csv", key="cat_bulk")
-            if f_bulk and st.button("📥 Importar", key="cat_import_btn"):
+            if f_bulk and st.button("Importar", key="cat_import_btn"):
                 try:
                     df_imp = pd.read_csv(f_bulk)
                     df_imp['ID']               = [str(uuid.uuid4())[:6].upper()
@@ -1614,14 +1619,14 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                            if not catalogo.empty else df_imp)
                     save_db(upd, "orc_catalogo.csv")
                     inv("orc_catalogo.csv")
-                    st.success(f"✅ {len(df_imp)} itens importados!")
+                    st.success(f"{len(df_imp)} itens importados!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Erro: {e}")
 
         # Tabela catálogo
         if not catalogo.empty:
-            pesq_c = st.text_input("🔍 Filtrar", key="cat_pesq")
+            pesq_c = st.text_input("Filtrar", key="cat_pesq")
             df_c   = catalogo.copy()
             if pesq_c:
                 df_c = df_c[
@@ -1638,10 +1643,10 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
 
     # ── Tarifas MO ───────────────────────────────────────────
     with sub[1]:
-        st.markdown("#### 💶 Tabela de Tarifas de Mão de Obra")
+        st.markdown("#### Tabela de Tarifas de Mão de Obra")
         st.caption("Valores hora e diária por categoria e zona geográfica.")
 
-        if st.button("➕ Nova Tarifa", key="cat_tar_novo_btn"):
+        if st.button("Nova Tarifa", key="cat_tar_novo_btn"):
             st.session_state['tar_novo_open'] = True
 
         if st.session_state.get('tar_novo_open', False):
@@ -1658,7 +1663,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                     t_diaria = st.number_input("Diária (€)", min_value=0.0,
                                                 step=1.0, key="cat_t_diaria")
 
-                if st.form_submit_button("💾 Guardar"):
+                if st.form_submit_button("Guardar"):
                     if t_cat.strip() and t_zona.strip():
                         novo_t = pd.DataFrame([{
                             "ID":               str(uuid.uuid4())[:6].upper(),
@@ -1673,7 +1678,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                                if not tarifas.empty else novo_t)
                         save_db(upd, "orc_tarifas.csv")
                         inv("orc_tarifas.csv")
-                        st.success("✅ Tarifa guardada!")
+                        st.success("Tarifa guardada!")
                         st.session_state['tar_novo_open'] = False
                         st.rerun()
 
@@ -1684,13 +1689,13 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
 
     # ── Preços Referência ────────────────────────────────────
     with sub[2]:
-        st.markdown("#### 🚐 Preços de Referência (Carrinhas e Dormidas)")
+        st.markdown("#### Preços de Referência (Carrinhas e Dormidas)")
         st.caption("Valores editáveis. Actualizados periodicamente.")
 
         if not ref_precos.empty:
             st.dataframe(ref_precos, use_container_width=True, hide_index=True)
 
-        with st.expander("✏️ Actualizar / Adicionar preço"):
+        with st.expander("Actualizar / Adicionar preço"):
             with st.form("form_ref"):
                 r1, r2 = st.columns(2)
                 with r1:
@@ -1705,7 +1710,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                                               min_value=0.0, step=1.0, key="cat_r_val")
                     r_fonte = st.text_input("Fonte (opcional)", key="cat_r_fonte")
 
-                if st.form_submit_button("💾 Guardar"):
+                if st.form_submit_button("Guardar"):
                     novo_r = pd.DataFrame([{
                         "ID":               str(uuid.uuid4())[:6].upper(),
                         "Tipo":             r_tipo,
@@ -1719,7 +1724,7 @@ def _tab_catalogo(catalogo, tarifas, ref_precos):
                            if not ref_precos.empty else novo_r)
                     save_db(upd, "orc_ref_precos.csv")
                     inv("orc_ref_precos.csv")
-                    st.success("✅ Preço de referência actualizado!")
+                    st.success("Preço de referência actualizado!")
                     st.rerun()
 
 
@@ -1739,7 +1744,7 @@ def _tab_analytics(orc_db, clientes_db):
     except ImportError:
         HAS_PLOTLY = False
 
-    st.markdown("#### 📈 Analytics de Orçamentação")
+    st.markdown("#### Analytics de Orçamentação")
 
     # ── KPIs ─────────────────────────────────────────────────
     adj     = orc_db[orc_db['Status'] == 'Adjudicado']
@@ -1754,13 +1759,13 @@ def _tab_analytics(orc_db, clientes_db):
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.metric("✅ Taxa Conversão", f"{tx_conv}%")
+        st.metric("Taxa Conversão", f"{tx_conv}%")
     with c2:
-        st.metric("🏆 Valor Ganho", f"€{val_ganho:,.0f}")
+        st.metric("Valor Ganho", f"€{val_ganho:,.0f}")
     with c3:
-        st.metric("❌ Valor Perdido", f"€{val_perdido:,.0f}")
+        st.metric("Valor Perdido", f"€{val_perdido:,.0f}")
     with c4:
-        st.metric("📊 Margem Média", f"{margem_media:.1f}%")
+        st.metric("Margem Média", f"{margem_media:.1f}%")
 
     st.divider()
 
@@ -1768,7 +1773,7 @@ def _tab_analytics(orc_db, clientes_db):
 
     # ── Funil de conversão ───────────────────────────────────
     with col_a1:
-        st.markdown("**🔽 Funil de Conversão**")
+        st.markdown("**Funil de Conversão**")
         estados_funil = ['Rascunho', 'Enviado', 'Em Revisão', 'Adjudicado']
         vals_funil    = [len(orc_db[orc_db['Status'] == e])
                          for e in estados_funil]
@@ -1792,7 +1797,7 @@ def _tab_analytics(orc_db, clientes_db):
 
     # ── Motivos de rejeição ──────────────────────────────────
     with col_a2:
-        st.markdown("**❌ Motivos de Rejeição**")
+        st.markdown("**Motivos de Rejeição**")
         if not rej.empty and 'Motivo_Rejeicao' in rej.columns:
             motivos = rej['Motivo_Rejeicao'].dropna()
             motivos = motivos[motivos != '']
@@ -1824,7 +1829,7 @@ def _tab_analytics(orc_db, clientes_db):
     # ── Top clientes ─────────────────────────────────────────
     col_b1, col_b2 = st.columns(2)
     with col_b1:
-        st.markdown("**🏆 Top Clientes por Valor Adjudicado**")
+        st.markdown("**Top Clientes por Valor Adjudicado**")
         if not adj.empty:
             top_cli = (
                 adj.groupby('Cliente')['Total_Com_Margem']
@@ -1837,10 +1842,10 @@ def _tab_analytics(orc_db, clientes_db):
                 st.markdown(
                     f"<div style='margin-bottom:6px;'>"
                     f"<div style='display:flex;justify-content:space-between;"
-                    f"color:#F1F5F9;font-size:0.85rem;'>"
+                    f"color:{THEME['text']};font-size:0.85rem;'>"
                     f"<span>{cli}</span><span>€{val:,.0f}</span></div>"
-                    f"<div style='background:#1E293B;border-radius:4px;height:6px;'>"
-                    f"<div style='background:#10B981;width:{pct*100:.0f}%;"
+                    f"<div style='background:{THEME['background']};border-radius:4px;height:6px;'>"
+                    f"<div style='background:{THEME['success']};width:{pct*100:.0f}%;"
                     f"height:6px;border-radius:4px;'></div></div></div>",
                     unsafe_allow_html=True
                 )
@@ -1848,7 +1853,7 @@ def _tab_analytics(orc_db, clientes_db):
             st.info("Sem adjudicações.")
 
     with col_b2:
-        st.markdown("**📅 Orçamentos por Mês**")
+        st.markdown("**Orçamentos por Mês**")
         if not orc_db.empty and 'Data' in orc_db.columns:
             try:
                 orc_db['_data_dt'] = pd.to_datetime(
@@ -1901,7 +1906,7 @@ def render_orcamentacao(*_):
     user_nome = st.session_state.get('user', 'Admin')
     hoje = date.today()
 
-    st.markdown("### 📊 Orçamentação")
+    st.markdown("### Orçamentação")
 
     # KPI header rápido
     n_total   = len(orc_db) if not orc_db.empty else 0
@@ -1921,11 +1926,11 @@ def render_orcamentacao(*_):
 
     col_h = st.columns(4)
     metricas = [
-        ("📋 Total", n_total, None),
-        ("🔄 Activos", n_ativos, None),
-        ("💰 Em Pipeline", f"€{val_pipe:,.0f}", None),
-        ("⚠️ A Expirar", n_exp,
-         "⚠️" if n_exp > 0 else None),
+        ("Total", n_total, None),
+        ("Activos", n_ativos, None),
+        ("Em Pipeline", f"€{val_pipe:,.0f}", None),
+        ("A Expirar", n_exp,
+         "Atenção" if n_exp > 0 else None),
     ]
     for col, (label, val, delta) in zip(col_h, metricas):
         with col:
@@ -1935,11 +1940,11 @@ def render_orcamentacao(*_):
     st.divider()
 
     tab_cockpit, tab_lista, tab_novo, tab_cat, tab_analytics = st.tabs([
-        "🎯 Cockpit",
-        "📋 Orçamentos",
-        "➕ Novo Orçamento",
-        "⚡ Catálogo",
-        "📈 Analytics",
+        "Cockpit",
+        "Orçamentos",
+        "Novo Orçamento",
+        "Catálogo",
+        "Analytics",
     ])
 
     with tab_cockpit:
