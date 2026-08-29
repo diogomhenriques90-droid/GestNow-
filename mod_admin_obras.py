@@ -139,10 +139,10 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                             f"border-left:4px solid {THEME['success']};'>"
                             f"<b style='color:{THEME['text']};'>{ob_nome}</b>"
                             f"<span style='float:right;color:{THEME['success']};"
-                            f"font-size:0.8rem;'>✅ Ativa</span><br>"
+                            f"font-size:0.8rem;'>Ativa</span><br>"
                             f"<small style='color:{THEME['text_secondary']};'>"
                             f"{ob_cli} · {ob_tipo} · {ob_loc} · "
-                            f"👷 {n_colabs} colaborador(es)</small>"
+                            f"{n_colabs} colaborador(es)</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
@@ -180,8 +180,8 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                 docs_lista = [d for d in docs_str.split('|') if d]
                                 instrucoes = str(req_row.get('Instrucoes', '')).strip()
                                 st.markdown(
-                                    "**📋 Requisitos de Acesso** _(editar em "
-                                    "Gestão de Acessos › ⚙️ Requisitos de Acesso por Obra)_"
+                                    "**Requisitos de Acesso** _(editar em "
+                                    "Gestão de Acessos › Requisitos de Acesso por Obra)_"
                                 )
                                 st.caption(
                                     "Formações/Documentos Obrigatórios: " +
@@ -192,7 +192,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                             else:
                                 st.info(
                                     "Sem requisitos de acesso configurados para esta "
-                                    "obra — configura em Gestão de Acessos › ⚙️ Requisitos "
+                                    "obra — configura em Gestão de Acessos › Requisitos "
                                     "de Acesso por Obra."
                                 )
 
@@ -202,7 +202,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                             contactos_cliente = get_contactos_cliente(ob_cli)
                             if contactos_cliente:
                                 st.markdown(
-                                    "**👤 Contacto do Cliente** _(editar em "
+                                    "**Contacto do Cliente** _(editar em "
                                     "Faturação › Clientes › Gestão de Clientes)_"
                                 )
                                 for ct in contactos_cliente:
@@ -250,7 +250,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     help="Só lista quem está atualmente alocado a esta obra."
                                 )
                                 if not equipa_obra:
-                                    st.caption("⚠️ Sem colaboradores alocados a esta obra.")
+                                    st.caption("Sem colaboradores alocados a esta obra.")
 
                                 ed_c1, ed_c2 = st.columns(2)
                                 with ed_c1:
@@ -620,7 +620,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                     f"border-left:4px solid {THEME['text_secondary']};'>"
                     f"<b style='color:{THEME['text']};'>{ob_h.get('Obra','')}</b>"
                     f"<span style='float:right;color:{THEME['text_secondary']};"
-                    f"font-size:0.8rem;'>⚫ Fechada</span><br>"
+                    f"font-size:0.8rem;'>Fechada</span><br>"
                     f"<small style='color:{THEME['text_secondary']};'>"
                     f"{ob_h.get('Cliente','')} · {ob_h.get('TipoObra','')} · "
                     f"{ob_h.get('Local','')} · "

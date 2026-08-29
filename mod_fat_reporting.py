@@ -196,9 +196,9 @@ def _calcular_score_saude(kpis: dict) -> tuple[int,str,str]:
     if kpis['conc_cli'] > 70:     score -= 15
     elif kpis['conc_cli'] > 50:   score -= 7
     score = max(0, min(100, score))
-    if score >= 70: return score, THEME['success'], "🟢 SAUDÁVEL"
-    if score >= 40: return score, THEME['warning'], "🟡 ATENÇÃO"
-    return score, THEME['error'], "🔴 ALERTA"
+    if score >= 70: return score, THEME['success'], "SAUDÁVEL"
+    if score >= 40: return score, THEME['warning'], "ATENÇÃO"
+    return score, THEME['error'], "ALERTA"
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -942,7 +942,7 @@ def render_fat_reporting(obras_db, registos_db,
         f"justify-content:space-between;align-items:center;'>"
         f"<div>"
         f"<h2 style='color:{THEME['text']};margin:0;font-size:1.6rem;'>"
-        f"📊 Reporting Executivo</h2>"
+        f"Reporting Executivo</h2>"
         f"<p style='color:{THEME['text_secondary']};margin:4px 0 0;"
         f"font-size:0.85rem;'>"
         f"{meses_pt[kpis['mes']-1]} {kpis['ano']} · "
@@ -968,36 +968,36 @@ def render_fat_reporting(obras_db, registos_db,
     # cor_t (tendência) reflete o estado real dos dados (verde/âmbar/
     # vermelho/neutro); cor_b (destaque do cartão) é sempre o acento —
     # deixou de haver uma cor decorativa por cartão sem significado.
-    trend_ic  = "↑" if kpis['trend_fat'] >= 0 else "↓"
+    trend_ic  = "Subiu" if kpis['trend_fat'] >= 0 else "Desceu"
     trend_cor = THEME['success'] if kpis['trend_fat'] >= 0 else THEME['error']
 
     cards = [
-        ("💰 Faturação Mês",
+        ("Faturação Mês",
          f"€{kpis['fat_mes']:,.0f}",
          f"{trend_ic} {abs(kpis['trend_fat']):.1f}% vs mês ant.",
          trend_cor, THEME['accent']),
-        ("📈 Margem",
+        ("Margem",
          f"{kpis['margem_pct']:.1f}%",
          f"€{kpis['margem_mes']:,.0f} bruta",
          THEME['success'] if kpis['margem_pct'] >= 20 else THEME['error'],
          THEME['accent']),
-        ("📥 A Receber",
+        ("A Receber",
          f"€{kpis['a_receber']:,.0f}",
          f"{kpis['fat_vencidas']} fat. vencida(s)",
          THEME['warning'] if kpis['fat_vencidas'] > 0 else THEME['text_secondary'],
          THEME['accent']),
-        ("🏦 Saldo",
+        ("Saldo",
          f"€{kpis['saldo']:,.0f}",
          f"Autonomia {kpis['autonomia']:.1f} meses",
          THEME['success'] if kpis['autonomia'] >= 3 else THEME['error'],
          THEME['accent']),
-        ("🎯 YTD vs Obj.",
+        ("YTD vs Obj.",
          f"{kpis['exec_objetivo']:.1f}%",
          f"€{kpis['fat_ytd']:,.0f} acumulado",
          THEME['success'] if kpis['exec_objetivo'] >= kpis['mes']/12*100
                    else THEME['error'],
          THEME['accent']),
-        ("⏱️ Horas Mês",
+        ("Horas Mês",
          f"{kpis['horas_mes']:.0f}h",
          f"{kpis['n_obras']} obras ativas",
          THEME['text_secondary'], THEME['accent']),
@@ -1091,7 +1091,7 @@ def render_fat_reporting(obras_db, registos_db,
             use_container_width=True
         ):
             with st.spinner(
-                "🤖 A redigir relatório executivo..."
+                "A redigir relatório executivo..."
             ):
                 narrativa = _gerar_narrativa_ia(kpis, empresa)
             st.session_state['narrativa_exec'] = narrativa
@@ -1138,17 +1138,17 @@ def render_fat_reporting(obras_db, registos_db,
 
         cenarios_pneg = [
             {
-                "nome":    "🟢 Otimista (+15%)",
+                "nome":    "Otimista (+15%)",
                 "projecao":round(kpis['fat_ytd'] + media_mes*1.15*meses_rest,2),
                 "descricao":"Todas as obras mantidas, novos clientes"
             },
             {
-                "nome":    "🟡 Base (média atual)",
+                "nome":    "Base (média atual)",
                 "projecao":round(kpis['fat_ytd'] + media_mes*meses_rest,2),
                 "descricao":"Manutenção do ritmo atual"
             },
             {
-                "nome":    "🔴 Pessimista (-15%)",
+                "nome":    "Pessimista (-15%)",
                 "projecao":round(kpis['fat_ytd'] + media_mes*0.85*meses_rest,2),
                 "descricao":"Perda de obra ou cliente relevante"
             },
@@ -1191,19 +1191,18 @@ def render_fat_reporting(obras_db, registos_db,
         projecao_base = kpis['fat_ytd'] + media_mes * meses_rest
         objetivo_atingido = projecao_base >= kpis['fat_objetivo']
         cor_msg = THEME['success'] if objetivo_atingido else THEME['error']
-        ic_msg  = "✅" if objetivo_atingido else "⚠️"
         st.markdown(
             f"<div style='background:{THEME['surface']};"
             f"border:2px solid {cor_msg};"
             f"border-radius:12px;padding:16px;"
             f"text-align:center;margin-top:12px;'>"
             f"<b style='color:{cor_msg};font-size:1.05rem;'>"
-            f"{ic_msg} Se mantiveres este ritmo, "
+            f"Se mantiveres este ritmo, "
             f"fecharás o ano em "
             f"<span style='font-size:1.3rem;'>"
             f"€{projecao_base:,.0f}</span></b><br>"
             f"<small style='color:{THEME['text_secondary']};'>"
-            f"{'✅ Objetivo atingido!' if objetivo_atingido else '❌ Abaixo do objetivo — precisa acelerar'}"
+            f"{'Objetivo atingido!' if objetivo_atingido else 'Abaixo do objetivo — precisa acelerar'}"
             f"</small></div>",
             unsafe_allow_html=True
         )
@@ -1215,7 +1214,7 @@ def render_fat_reporting(obras_db, registos_db,
             key="btn_pneg_ia",
             use_container_width=True
         ):
-            with st.spinner("🤖 A analisar..."):
+            with st.spinner("A analisar..."):
                 pneg_ia = _gerar_plano_negocios_ia(
                     kpis, obras_db, empresa
                 )
@@ -1228,7 +1227,7 @@ def render_fat_reporting(obras_db, registos_db,
                 f"padding:16px;color:{THEME['text']};font-size:0.88rem;"
                 f"line-height:1.7;'>"
                 f"<b style='color:{THEME['success']};margin-bottom:8px;"
-                f"display:block;'>🤖 PROJEÇÃO DE FECHO DE ANO</b>"
+                f"display:block;'>PROJEÇÃO DE FECHO DE ANO</b>"
                 f"{st.session_state['pneg_ia'].replace(chr(10),'<br>')}"
                 f"</div>",
                 unsafe_allow_html=True
@@ -1297,7 +1296,7 @@ def render_fat_reporting(obras_db, registos_db,
 
         for bm in benchmarks:
             cor_bm = THEME['success'] if bm['melhor'] else THEME['error']
-            ic_bm  = "✅" if bm['melhor'] else "⚠️"
+            ic_bm  = "OK" if bm['melhor'] else "Atenção"
             st.markdown(
                 f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                 f"border-radius:8px;padding:10px 16px;"
@@ -1487,9 +1486,6 @@ def render_fat_reporting(obras_db, registos_db,
                 cor_r = THEME['error'] if disparada \
                         else THEME['success'] if ativa \
                         else THEME['text_secondary']
-                ic_r  = "🔔" if disparada \
-                        else "✅" if ativa \
-                        else "⏸️"
 
                 acao_txt = (
                     f'<br><small style=color:{THEME["error"]};>' +
@@ -1506,14 +1502,14 @@ def render_fat_reporting(obras_db, registos_db,
                     f"<div>"
                     f"<b style='color:{THEME['text']};"
                     f"font-size:0.88rem;'>"
-                    f"{ic_r} {escape_html(regra.get('Nome',''))}</b><br>"
+                    f"{escape_html(regra.get('Nome',''))}</b><br>"
                     f"<small style='color:{THEME['text_secondary']};'>"
                     f"{acao_txt}"
                     f"</small>"
                     f"</div>"
                     f"<span style='color:{cor_r};"
                     f"font-size:0.75rem;font-weight:700;'>"
-                    f"{'🔴 DISPARADA' if disparada else '🟢 OK'}"
+                    f"{'DISPARADA' if disparada else 'OK'}"
                     f"</span></div>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -1533,10 +1529,10 @@ def render_fat_reporting(obras_db, registos_db,
         # Versões do passaporte
         versao_pass = st.selectbox(
             "Versão para:",
-            ["🏦 Banco / Financiamento",
-             "🇪🇺 Fundos Europeus",
-             "🤝 Parceiros / Investidores",
-             "📋 Uso Interno"],
+            ["Banco / Financiamento",
+             "Fundos Europeus",
+             "Parceiros / Investidores",
+             "Uso Interno"],
             key="pass_versao"
         )
 
@@ -1706,7 +1702,7 @@ def render_fat_reporting(obras_db, registos_db,
                 key="rep_dest"
             )
             incluir_narrativa = st.checkbox(
-                "✅ Incluir narrativa IA",
+                "Incluir narrativa IA",
                 value=bool(st.session_state.get('narrativa_exec')),
                 key="rep_narrativa"
             )
@@ -1737,16 +1733,16 @@ def render_fat_reporting(obras_db, registos_db,
                 unsafe_allow_html=True
             )
             conteudo_rep = [
-                ("📊 6 KPIs executivos com trends", True),
-                ("📈 Faturação 12 meses (gráfico)", True),
-                ("💰 Resultado do mês (waterfall)", True),
-                ("🎯 YTD vs Objetivo", True),
-                ("🤖 Narrativa IA", incluir_narrativa),
-                ("📋 Próximas 5 ações", len(acoes_report)>0),
-                ("📊 Score de saúde", True),
+                ("6 KPIs executivos com trends", True),
+                ("Faturação 12 meses (gráfico)", True),
+                ("Resultado do mês (waterfall)", True),
+                ("YTD vs Objetivo", True),
+                ("Narrativa IA", incluir_narrativa),
+                ("Próximas 5 ações", len(acoes_report)>0),
+                ("Score de saúde", True),
             ]
             for desc, ok in conteudo_rep:
-                ic = "✅" if ok else "⚪"
+                ic = "OK" if ok else "Vazio"
                 cor = THEME['success'] if ok else THEME['text_secondary']
                 st.markdown(
                     f"<div style='display:flex;"
@@ -1906,7 +1902,7 @@ def render_fat_reporting(obras_db, registos_db,
             f"border-radius:16px;padding:24px;"
             f"text-align:center;'>"
             f"<h3 style='color:{THEME['text']};margin:0 0 8px;'>"
-            f"🏆 Módulo Faturação Completo</h3>"
+            f"Módulo Faturação Completo</h3>"
             f"<p style='color:{THEME['text_secondary']};margin:0 0 12px;'>"
             f"Todos os 13 passos implementados com sucesso</p>"
             f"<div style='display:grid;"
@@ -1917,20 +1913,20 @@ def render_fat_reporting(obras_db, registos_db,
                 f"border-radius:8px;padding:8px;"
                 f"font-size:0.7rem;color:{THEME['success']};'>{p}</div>"
                 for p in [
-                    "✅ Dashboard CFO",
-                    "✅ Clientes & Fat.",
-                    "✅ Fornecedores",
-                    "✅ RH Financeiro",
-                    "✅ Frota & Renting",
-                    "✅ Perf. Obras",
-                    "✅ Tesouraria",
-                    "✅ Simulador Crise",
-                    "✅ Fundos Europeus",
-                    "✅ Imobilizado",
-                    "✅ Fiscal",
-                    "✅ Auditoria Anual",
-                    "✅ Reporting Exec.",
-                    "✅ + Diárias SEPA",
+                    "Dashboard CFO",
+                    "Clientes & Fat.",
+                    "Fornecedores",
+                    "RH Financeiro",
+                    "Frota & Renting",
+                    "Perf. Obras",
+                    "Tesouraria",
+                    "Simulador Crise",
+                    "Fundos Europeus",
+                    "Imobilizado",
+                    "Fiscal",
+                    "Auditoria Anual",
+                    "Reporting Exec.",
+                    "+ Diárias SEPA",
                 ]
             ])
             + "</div></div>",

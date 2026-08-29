@@ -237,25 +237,25 @@ def _tab_faturacao():
     # Lazy: só o sub-render activo é avaliado (antes st.tabs avaliava os 19).
     # A selecção persiste em st.session_state["fat_subtab_sel"] via a key.
     _FAT_SUBTABS = [
-        ("📊 Dashboard CFO",        _subtab_fat_dashboard),
-        ("🧾 Clientes & Faturação", _subtab_fat_clientes),
-        ("📥 Fornecedores",         _subtab_fat_fornecedores),
-        ("👥 RH Financeiro",        _subtab_fat_rh),
-        ("🚗 Frota & Renting",      _subtab_fat_frota),
-        ("📈 Performance Obras",    _subtab_fat_obras),
-        ("💵 Tesouraria",           _subtab_fat_tesouraria),
-        ("🆘 Simulador Crise",      _subtab_fat_crise),
-        ("🇪🇺 Fundos Europeus",      _subtab_fat_fundos),
-        ("🏭 Imobilizado",          _subtab_fat_imobilizado),
-        ("🧾 Fiscal",               _subtab_fat_fiscal),
-        ("📋 Auditoria Anual",      _subtab_fat_auditoria),
-        ("📊 Reporting",            _subtab_fat_reporting),
-        ("📊 Custos por Obra",      _subtab_fat_custos),
-        ("💶 Diárias",              _subtab_fat_diarias),
-        ("📄 Folhas de Ponto",      _subtab_fat_folhas),
-        ("⏱️ Horas Faturação",      _subtab_fat_horas),
-        ("📤 Emissão Mensal",       _subtab_fat_emissao),
-        ("📤 Export Contabilidade", _subtab_fat_exportacao),
+        ("Dashboard CFO",        _subtab_fat_dashboard),
+        ("Clientes & Faturação", _subtab_fat_clientes),
+        ("Fornecedores",         _subtab_fat_fornecedores),
+        ("RH Financeiro",        _subtab_fat_rh),
+        ("Frota & Renting",      _subtab_fat_frota),
+        ("Performance Obras",    _subtab_fat_obras),
+        ("Tesouraria",           _subtab_fat_tesouraria),
+        ("Simulador Crise",      _subtab_fat_crise),
+        ("Fundos Europeus",      _subtab_fat_fundos),
+        ("Imobilizado",          _subtab_fat_imobilizado),
+        ("Fiscal",               _subtab_fat_fiscal),
+        ("Auditoria Anual",      _subtab_fat_auditoria),
+        ("Reporting",            _subtab_fat_reporting),
+        ("Custos por Obra",      _subtab_fat_custos),
+        ("Diárias",              _subtab_fat_diarias),
+        ("Folhas de Ponto",      _subtab_fat_folhas),
+        ("Horas Faturação",      _subtab_fat_horas),
+        ("Emissão Mensal",       _subtab_fat_emissao),
+        ("Export Contabilidade", _subtab_fat_exportacao),
     ]
     _fat_labels = [lbl for lbl, _ in _FAT_SUBTABS]
     _fat_sel = st.segmented_control(
@@ -316,7 +316,7 @@ def _tab_qualidade():
             )
         with col_f2:
             apenas_clientes = st.checkbox(
-                "👥 Apenas Clientes", key="log_filt_clientes"
+                "Apenas Clientes", key="log_filt_clientes"
             )
         with col_f3:
             limite = st.number_input(
@@ -423,19 +423,20 @@ def _tab_hse():
 # =============================================================================
 # TAB PERMISSÕES — apenas visível para super-admins (_SUPER_ADMINS)
 # =============================================================================
+# (chave, nome completo, abreviatura para o cabeçalho estreito da tabela)
 _MODULOS_LABELS = [
-    ("mod_armazem",     "📦 Armazém"),
-    ("mod_rh",          "👥 RH"),
-    ("mod_secretariado","🗂️ Secretariado"),
-    ("mod_producao",    "🏭 Produção"),
-    ("mod_faturacao",   "💰 Faturação"),
-    ("mod_orcamentacao",   "📊 Orçamentação"),
-    ("mod_comercial",      "💼 Comercial"),
-    ("mod_contactos_iso",  "🔗 Contactos ISO"),
-    ("mod_qualidade",      "🎯 Qualidade"),
-    ("mod_it",          "💻 IT"),
-    ("mod_hse",         "🛡️ HSE"),
-    ("mod_dashboard_obra", "🏗️ Painel de Obra"),
+    ("mod_armazem",        "Armazém",       "Arm."),
+    ("mod_rh",             "RH",            "RH"),
+    ("mod_secretariado",   "Secretariado",  "Secr."),
+    ("mod_producao",       "Produção",      "Prod."),
+    ("mod_faturacao",      "Faturação",     "Fat."),
+    ("mod_orcamentacao",   "Orçamentação",  "Orç."),
+    ("mod_comercial",      "Comercial",     "Com."),
+    ("mod_contactos_iso",  "Contactos ISO", "C.ISO"),
+    ("mod_qualidade",      "Qualidade",     "Qual."),
+    ("mod_it",             "IT",            "IT"),
+    ("mod_hse",            "HSE",           "HSE"),
+    ("mod_dashboard_obra", "Painel de Obra","Obra"),
 ]
 
 @st.fragment
@@ -464,24 +465,24 @@ def _tab_permissoes():
             u = str(row.get('utilizador', ''))
             if u:
                 perm_dict[u] = {k: str(row.get(k, 'False')).strip().lower() == 'true'
-                                for k, _ in _MODULOS_LABELS}
+                                for k, _, _ in _MODULOS_LABELS}
 
     st.markdown("---")
-    # Cabeçalho da tabela
+    # Cabeçalho da tabela — abreviatura com o nome completo em tooltip
     hdr = st.columns([3] + [1] * len(_MODULOS_LABELS))
     hdr[0].markdown("**Utilizador**")
-    for i, (_, lbl) in enumerate(_MODULOS_LABELS):
-        icon = lbl.split()[0]
-        hdr[i + 1].markdown(f"<div style='text-align:center;font-size:0.75rem;'>{icon}</div>",
-                             unsafe_allow_html=True)
+    for i, (_, nome, abrev) in enumerate(_MODULOS_LABELS):
+        hdr[i + 1].markdown(
+            f"<div style='text-align:center;font-size:0.75rem;' title='{nome}'>{abrev}</div>",
+            unsafe_allow_html=True)
 
     novos: dict = {}
     for admin in admins:
-        atual = perm_dict.get(admin, {k: False for k, _ in _MODULOS_LABELS})
+        atual = perm_dict.get(admin, {k: False for k, _, _ in _MODULOS_LABELS})
         cols = st.columns([3] + [1] * len(_MODULOS_LABELS))
-        cols[0].markdown(f"👤 {admin}")
+        cols[0].markdown(f"{admin}")
         novos[admin] = {}
-        for i, (mod_key, lbl) in enumerate(_MODULOS_LABELS):
+        for i, (mod_key, nome, abrev) in enumerate(_MODULOS_LABELS):
             novos[admin][mod_key] = cols[i + 1].checkbox(
                 "", value=atual.get(mod_key, False),
                 key=f"perm_{admin}_{mod_key}",
@@ -514,19 +515,12 @@ def _fragment_notificacoes():
         if n_nao_lidas > 0:
             st.markdown(
                 f"<div style='text-align:right;'>"
-                f"<span style='font-size:1.5rem;'>🔔</span>"
                 f"<span style='background:{THEME['error']};color:white;border-radius:50%;"
-                f"padding:2px 8px;font-size:0.8rem;margin-left:-10px;'>"
+                f"padding:2px 8px;font-size:0.8rem;'>"
                 f"{n_nao_lidas}</span></div>",
                 unsafe_allow_html=True
             )
-        else:
-            st.markdown(
-                "<div style='text-align:right;'>"
-                "<span style='font-size:1.5rem;opacity:0.5;'>🔔</span></div>",
-                unsafe_allow_html=True
-            )
-    with st.expander("🔔 Ver Notificações", expanded=n_nao_lidas > 0):
+    with st.expander("Ver Notificações", expanded=n_nao_lidas > 0):
         notifs_df = get_notificacoes(user_atual, apenas_nao_lidas=True, limite=20)
         if not notifs_df.empty:
             for _, notif in notifs_df.iterrows():
@@ -573,7 +567,7 @@ def render_admin(*args):
     st.markdown(f"""
     <div style="background:{THEME['surface']};padding:30px;
         border-radius:{THEME['radius']};margin-bottom:30px;border:1px solid {THEME['border']};">
-        <h1 style="color:{THEME['text']};margin:0;font-size:2.5rem;">⚡ Painel Administrativo</h1>
+        <h1 style="color:{THEME['text']};margin:0;font-size:2.5rem;">Painel Administrativo</h1>
         <p style="color:{THEME['text_secondary']};margin:10px 0 0 0;">
             Utilizador: <strong style="color:{THEME['accent']}">{st.session_state.user}</strong> |
             Tipo: <strong style="color:{THEME['accent']}">{st.session_state.tipo}</strong>
@@ -592,16 +586,16 @@ def render_admin(*args):
     # ── Métricas ──────────────────────────────────────────────────
     st.markdown("### Visão Geral")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
-    with c1: st.metric("👷 Técnicos", len(users))
-    with c2: st.metric("🏭 Obras Ativas",
+    with c1: st.metric("Técnicos", len(users))
+    with c2: st.metric("Obras Ativas",
         len(obras_db[obras_db['Ativa'] == 'Ativa']) if not obras_db.empty else 0)
-    with c3: st.metric("⏳ Validações",
+    with c3: st.metric("Validações",
         len(registos_db[registos_db['Status'] == "0"]) if not registos_db.empty else 0)
-    with c4: st.metric("📋 Pedidos",
+    with c4: st.metric("Pedidos",
         len(req_fer_db) + len(req_mat_db) + len(req_epi_db))
-    with c5: st.metric("⚠️ Incidentes",
+    with c5: st.metric("Incidentes",
         len(incs_db) if not incs_db.empty else 0)
-    with c6: st.metric("💰 Faturas",
+    with c6: st.metric("Faturas",
         len(faturas_db) if not faturas_db.empty else 0)
 
     st.divider()
@@ -693,12 +687,12 @@ def _render_custos_por_obra(
         pass
 
     c1, c2, c3 = st.columns(3)
-    with c1: st.metric("⏱️ Horas",     fh(horas_obra))
-    with c2: st.metric("📦 Materiais", f"€ {mat_total:.2f}")
-    with c3: st.metric("🏨 Dormidas",  f"€ {dorm_total:.2f}")
+    with c1: st.metric("Horas",     fh(horas_obra))
+    with c2: st.metric("Materiais", f"€ {mat_total:.2f}")
+    with c3: st.metric("Dormidas",  f"€ {dorm_total:.2f}")
 
     total_custos = mat_total + dorm_total
-    st.metric("💰 Total Custos (sem horas)", f"€ {total_custos:.2f}")
+    st.metric("Total Custos (sem horas)", f"€ {total_custos:.2f}")
 
 
 def _render_folhas_ponto_fat(folhas_db, folhas_ocr_db, obras_db):
@@ -900,15 +894,15 @@ def _render_emissao_mensal(
 
     st.markdown(f"#### Resumo — {mes_sel_em} {ano_em} — {obra_em}")
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("⏱️ Horas",     fh(horas_fat))
-    with c2: st.metric("💶 Diárias",   f"€ {diarias_mes:.2f}")
-    with c3: st.metric("📦 Materiais", f"€ {mat_mes:.2f}")
-    with c4: st.metric("🏨 Dormidas",  f"€ {dorm_mes:.2f}")
+    with c1: st.metric("Horas",     fh(horas_fat))
+    with c2: st.metric("Diárias",   f"€ {diarias_mes:.2f}")
+    with c3: st.metric("Materiais", f"€ {mat_mes:.2f}")
+    with c4: st.metric("Dormidas",  f"€ {dorm_mes:.2f}")
 
     total_fat = diarias_mes + mat_mes + dorm_mes
-    st.metric("💰 Total a Faturar (sem horas)", f"€ {total_fat:.2f}")
+    st.metric("Total a Faturar (sem horas)", f"€ {total_fat:.2f}")
     st.info(
-        "ℹ️ O valor das horas depende do preço/hora contratado com o cliente."
+        "O valor das horas depende do preço/hora contratado com o cliente."
     )
 
     if st.button(

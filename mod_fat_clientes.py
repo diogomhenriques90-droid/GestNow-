@@ -451,7 +451,7 @@ def _validar_nif(nif: str) -> tuple[bool, str]:
     resto = total % 11
     check = 0 if resto in [0, 1] else 11 - resto
     if check == int(nif[8]):
-        return True, "NIF válido ✅"
+        return True, "NIF válido"
     return False, "Dígito de controlo inválido"
 
 
@@ -1025,14 +1025,14 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 df_show['Total'], errors='coerce'
             ).fillna(0).sum()
             c1, c2, c3 = st.columns(3)
-            with c1: st.metric("📋 Faturas",   len(df_show))
-            with c2: st.metric("💰 Total",     f"€{total_filt:,.2f}")
+            with c1: st.metric("Faturas",   len(df_show))
+            with c2: st.metric("Total",     f"€{total_filt:,.2f}")
             with c3:
                 pagas = df_show[
                     df_show['Estado'] == 'Paga'
                 ] if 'Estado' in df_show.columns else pd.DataFrame()
                 st.metric(
-                    "✅ Pagas",
+                    "Pagas",
                     f"€{pd.to_numeric(pagas['Total'], errors='coerce').fillna(0).sum():,.2f}"
                     if not pagas.empty else "€0"
                 )
@@ -1077,13 +1077,13 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             venc_txt = (
                                 f"<span style='color:{THEME['error']};"
                                 f"font-size:0.72rem;'>"
-                                f"⚠️ Vencida há {dias_v} dias</span>"
+                                f"Vencida há {dias_v} dias</span>"
                             )
                         elif dias_v > -7:
                             venc_txt = (
                                 f"<span style='color:{THEME['warning']};"
                                 f"font-size:0.72rem;'>"
-                                f"⏰ Vence em breve</span>"
+                                f"Vence em breve</span>"
                             )
 
                     st.markdown(
@@ -1276,8 +1276,8 @@ def render_fat_clientes(obras_db, registos_db, *_):
                         f"Limite: €{limite_cli:,.0f}"
                         f"</small><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
-                        f"📧 {cli.get('Email','')} · "
-                        f"📞 {cli.get('Telefone','')}"
+                        f"{cli.get('Email','')} · "
+                        f"{cli.get('Telefone','')}"
                         f"</small></div>",
                         unsafe_allow_html=True
                     )
@@ -1288,7 +1288,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     )
                     if fig_tl:
                         with st.expander(
-                            f"📈 Timeline — {cli.get('Nome','')}",
+                            f"Timeline — {cli.get('Nome','')}",
                             expanded=False
                         ):
                             st.plotly_chart(fig_tl, key=f"tl_{cli.get('Nome','')}")
@@ -1308,7 +1308,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
             st.info("Sem clientes na fonte canónica.")
         else:
             gc_pesq = st.text_input(
-                "🔍 Pesquisar cliente", key="gc_pesquisa",
+                "Pesquisar cliente", key="gc_pesquisa",
                 placeholder="Nome ou NIF..."
             )
             cli_gestao = clientes_db.copy()
@@ -1327,7 +1327,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                 ativo_g = str(cli_g.get('Activo','Sim')).strip().lower() \
                           not in ['não','nao','inativo','inactivo','0','false']
                 with st.expander(
-                    f"{'🟢' if ativo_g else '🔴'} {nome_g} — "
+                    f"{'Ativo' if ativo_g else 'Inativo'} — {nome_g} — "
                     f"{cli_g.get('Origem','') or '—'} · "
                     f"{cli_g.get('Data_Criacao','') or '—'}"
                 ):
@@ -1380,7 +1380,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     # Ligadas por Cliente_ID (não por nome) — evita a
                     # divergência que a limpeza de clientes_financeiro.csv
                     # corrigiu. Um cliente pode ter mais do que uma pessoa.
-                    st.markdown("##### 👥 Pessoas de Contacto")
+                    st.markdown("##### Pessoas de Contacto")
                     contactos_cli = contactos_db[
                         contactos_db['Cliente_ID'].astype(str) == cid_g
                     ] if not contactos_db.empty else pd.DataFrame()
@@ -1401,8 +1401,8 @@ def render_fat_clientes(obras_db, registos_db, *_):
                                     f"padding:8px 12px;margin-bottom:4px;'>"
                                     f"<b style='color:{THEME['text']};'>{linha_ct}</b><br>"
                                     f"<small style='color:{THEME['text_secondary']};'>"
-                                    f"📧 {ct.get('Email','') or '—'} · "
-                                    f"📞 {ct.get('Telefone','') or '—'}</small>"
+                                    f"{ct.get('Email','') or '—'} · "
+                                    f"{ct.get('Telefone','') or '—'}</small>"
                                     f"</div>",
                                     unsafe_allow_html=True
                                 )
@@ -1478,7 +1478,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
 
         # ── Migração de clientes em texto livre (só Admin) ──────────
         if st.session_state.get('tipo') == 'Admin':
-            with st.expander("🔄 Migração — importar clientes em texto livre (Admin)"):
+            with st.expander("Migração — importar clientes em texto livre (Admin)"):
                 st.caption(
                     "Recolhe nomes de cliente espalhados por obras, orçamentos, "
                     "contactos ISO, oportunidades, clientes angariados e RH, e "
@@ -1554,19 +1554,19 @@ def render_fat_clientes(obras_db, registos_db, *_):
                     dias = (hoje_ts - row['Venc_d']).days \
                            if pd.notna(row['Venc_d']) else 0
                     if dias <= 0:
-                        escalao = "✅ Não vencida"
+                        escalao = "Não vencida"
                         cor_a = THEME['success']
                     elif dias <= 30:
-                        escalao = "🟡 0-30 dias"
+                        escalao = "0-30 dias"
                         cor_a = THEME['warning']
                     elif dias <= 60:
-                        escalao = "🟠 31-60 dias"
+                        escalao = "31-60 dias"
                         cor_a = THEME['warning']
                     elif dias <= 90:
-                        escalao = "🔴 61-90 dias"
+                        escalao = "61-90 dias"
                         cor_a = THEME['error']
                     else:
-                        escalao = "🆘 +90 dias"
+                        escalao = "+90 dias"
                         cor_a = THEME['error']
 
                     aging_rows.append({
@@ -1608,7 +1608,7 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             f"Lembrete enviado para: {cli_lem}"
                         )
                         st.info(
-                            "ℹ️ Configura o SMTP no tab IT para "
+                            "Configura o SMTP no tab IT para "
                             "envio real de emails."
                         )
 
@@ -1715,14 +1715,14 @@ def render_fat_clientes(obras_db, registos_db, *_):
                             alerta_lib = (
                                 f"<span style='color:{THEME['success']};"
                                 f"font-size:0.75rem;'>"
-                                f"🔓 Retenção liberta em {dias_lib} dias!"
+                                f"Retenção liberta em {dias_lib} dias!"
                                 f"</span>"
                             )
                         elif dias_lib < 0:
                             alerta_lib = (
                                 f"<span style='color:{THEME['warning']};"
                                 f"font-size:0.75rem;'>"
-                                f"⚠️ Retenção deveria ter sido libertada"
+                                f"Retenção deveria ter sido libertada"
                                 f"</span>"
                             )
                     except:

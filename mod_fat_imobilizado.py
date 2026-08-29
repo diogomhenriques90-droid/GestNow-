@@ -347,7 +347,7 @@ def _grafico_seguros_timeline(seguros_db):
                 f"Prémio: €{float(row.get('Valor_Anual',0) or 0):,.2f}/ano<br>"
                 f"{ini.strftime('%d/%m/%Y')} → "
                 f"{fim.strftime('%d/%m/%Y')}<br>"
-                f"{'⚠️ ' + str(dias_r) + ' dias restantes' if dias_r <= 60 else ''}"
+                f"{'' + str(dias_r) + ' dias restantes' if dias_r <= 60 else ''}"
                 f"<extra></extra>"
             ),
             showlegend=False
@@ -621,15 +621,15 @@ def render_fat_imobilizado(*_):
         ])
 
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("🏭 Valor Bruto",    f"€{val_bruto:,.2f}")
-    with c2: st.metric("📊 Val. Contabilístico",f"€{val_cont:,.2f}")
-    with c3: st.metric("📉 Amort./Mês",     f"€{amort_mes:,.2f}")
-    with c4: st.metric("🔒 Cauções",         f"€{caucoes_tot:,.2f}")
+    with c1: st.metric("Valor Bruto",    f"€{val_bruto:,.2f}")
+    with c2: st.metric("Val. Contabilístico",f"€{val_cont:,.2f}")
+    with c3: st.metric("Amort./Mês",     f"€{amort_mes:,.2f}")
+    with c4: st.metric("Cauções",         f"€{caucoes_tot:,.2f}")
     with c5:
         n_alertas = n_seg_exp + n_alv_exp
         cor_alerta = THEME['error'] if n_alertas > 0 else THEME['success']
         st.metric(
-            "⚠️ Alertas",
+            "Alertas",
             n_alertas,
             delta="seguros/alvarás a expirar" if n_alertas > 0 else "OK"
         )
@@ -846,9 +846,9 @@ def render_fat_imobilizado(*_):
                         f"font-size:0.9rem;'>"
                         f"{ativo.get('Descricao','')[:35]}</b><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
-                        f"📦 {ativo.get('Categoria','')} · "
+                        f"{ativo.get('Categoria','')} · "
                         f"#{ativo.get('Numero_Serie','')} · "
-                        f"🏭 {ativo.get('Obra_Afeta','')} · "
+                        f"{ativo.get('Obra_Afeta','')} · "
                         f"Compra: {ativo.get('Data_Compra','')}"
                         f"</small>"
                         f"</div>"
@@ -934,12 +934,12 @@ def render_fat_imobilizado(*_):
 
             with col_qa1:
                 st.metric(
-                    "📉 Total Amortizações Anuais",
+                    "Total Amortizações Anuais",
                     f"€{total_amort_anual:,.2f}"
                 )
             with col_qa2:
                 st.metric(
-                    "📊 Val. Líquido Contabilístico",
+                    "Val. Líquido Contabilístico",
                     f"€{total_contabil:,.2f}",
                     delta=f"de €{total_bruto:,.2f} bruto"
                 )
@@ -1093,7 +1093,7 @@ def render_fat_imobilizado(*_):
             else:
                 total_premios = _num(seguros_db, 'Valor_Anual')
                 st.metric(
-                    "💰 Total Prémios Anuais",
+                    "Total Prémios Anuais",
                     f"€{total_premios:,.2f}",
                     delta=f"€{total_premios/12:,.2f}/mês"
                 )
@@ -1107,16 +1107,16 @@ def render_fat_imobilizado(*_):
 
                     if dias_s <= 0:
                         cor_s   = THEME['error']
-                        alert_s = "🔴 EXPIRADO"
+                        alert_s = "EXPIRADO"
                     elif dias_s <= 30:
                         cor_s   = THEME['error']
-                        alert_s = f"🔴 Expira em {dias_s}d!"
+                        alert_s = f"Expira em {dias_s}d!"
                     elif dias_s <= 60:
                         cor_s   = THEME['warning']
-                        alert_s = f"⚠️ {dias_s} dias"
+                        alert_s = f"{dias_s} dias"
                     else:
                         cor_s   = THEME['success']
-                        alert_s = f"✅ {dias_s}d"
+                        alert_s = f"{dias_s}d"
 
                     st.markdown(
                         f"<div style='background:{THEME['surface']};"
@@ -1131,9 +1131,9 @@ def render_fat_imobilizado(*_):
                         f"font-size:0.9rem;'>"
                         f"{seg.get('Tipo','')[:40]}</b><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
-                        f"🏢 {seg.get('Entidade','')} · "
-                        f"📋 {seg.get('Apolice','')} · "
-                        f"🏭 {seg.get('Obra','')}"
+                        f"{seg.get('Entidade','')} · "
+                        f"{seg.get('Apolice','')} · "
+                        f"{seg.get('Obra','')}"
                         f"</small><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
                         f"{seg.get('Cobertura','')[:60]}</small><br>"
@@ -1259,10 +1259,10 @@ def render_fat_imobilizado(*_):
 
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.metric("🔒 Cauções Ativas", n_cau)
+                    st.metric("Cauções Ativas", n_cau)
                 with c2:
                     st.metric(
-                        "💰 Capital Imobilizado",
+                        "Capital Imobilizado",
                         f"€{total_cau:,.2f}"
                     )
 
@@ -1278,19 +1278,19 @@ def render_fat_imobilizado(*_):
 
                     if est_c == 'Libertada':
                         cor_c   = THEME['text_secondary']
-                        alert_c = "✅ Libertada"
+                        alert_c = "Libertada"
                     elif dias_c <= 0:
                         cor_c   = THEME['success']
-                        alert_c = "🔓 Pronta a libertar!"
+                        alert_c = "Pronta a libertar!"
                     elif dias_c <= 30:
                         cor_c   = THEME['success']
-                        alert_c = f"🔓 Liberta em {dias_c}d"
+                        alert_c = f"Liberta em {dias_c}d"
                     elif dias_c <= 90:
                         cor_c   = THEME['accent']
-                        alert_c = f"📅 {dias_c} dias"
+                        alert_c = f"{dias_c} dias"
                     else:
                         cor_c   = THEME['warning']
-                        alert_c = f"🔒 {dias_c} dias"
+                        alert_c = f"{dias_c} dias"
 
                     col_ci, col_cb = st.columns([5,1])
                     with col_ci:
@@ -1304,9 +1304,9 @@ def render_fat_imobilizado(*_):
                             f"justify-content:space-between;'>"
                             f"<div>"
                             f"<b style='color:{THEME['text']};'>"
-                            f"🔒 {cau.get('Obra','')[:30]}</b><br>"
+                            f"{cau.get('Obra','')[:30]}</b><br>"
                             f"<small style='color:{THEME['text_secondary']};'>"
-                            f"🏦 {cau.get('Banco','')} · "
+                            f"{cau.get('Banco','')} · "
                             f"{cau.get('Tipo_Cauco','')} · "
                             f"Constitução: "
                             f"{cau.get('Data_Constituicao','')}"
@@ -1467,12 +1467,12 @@ def render_fat_imobilizado(*_):
 
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.metric("📋 Total Alvarás", tot_al)
+                    st.metric("Total Alvarás", tot_al)
                 with c2:
                     st.metric(
-                        "⚠️ A Expirar (90d)",
+                        "A Expirar (90d)",
                         a_expirar,
-                        delta="🔴 Urgente!" if a_expirar > 0 else "✅"
+                        delta="Urgente!" if a_expirar > 0 else ""
                     )
 
                 # Ordenar por validade
@@ -1491,19 +1491,19 @@ def render_fat_imobilizado(*_):
 
                     if dias_al <= 0:
                         cor_al  = THEME['error']
-                        alert_al= "🔴 EXPIRADO — RENOVAR URGENTE!"
+                        alert_al= "EXPIRADO — RENOVAR URGENTE!"
                     elif dias_al <= 30:
                         cor_al  = THEME['error']
-                        alert_al= f"🔴 Expira em {dias_al} dias!"
+                        alert_al= f"Expira em {dias_al} dias!"
                     elif dias_al <= 60:
                         cor_al  = THEME['warning']
-                        alert_al= f"⚠️ Expira em {dias_al} dias"
+                        alert_al= f"Expira em {dias_al} dias"
                     elif dias_al <= 90:
                         cor_al  = THEME['warning']
-                        alert_al= f"📋 {dias_al} dias"
+                        alert_al= f"{dias_al} dias"
                     else:
                         cor_al  = THEME['success']
-                        alert_al= f"✅ {dias_al} dias"
+                        alert_al= f"{dias_al} dias"
 
                     notas_html = (
                         f"<br><small style='color:{THEME['text_secondary']};'>"
@@ -1605,7 +1605,7 @@ def render_fat_imobilizado(*_):
                             f"border-radius:8px;padding:12px;"
                             f"margin-top:8px;'>"
                             f"<b style='color:{THEME['error']};'>"
-                            f"⚠️ Custo total renovações urgentes "
+                            f"Custo total renovações urgentes "
                             f"(90 dias): "
                             f"€{custo_renov:,.2f}</b>"
                             f"</div>",

@@ -30,7 +30,7 @@ def render_cliente_portal():
 
     st.markdown(f"""
     <div class="cliente-header">
-        <h1 style="color:{THEME['text']}; margin:0;">🏢 Portal do Cliente</h1>
+        <h1 style="color:{THEME['text']}; margin:0;">Portal do Cliente</h1>
         <p style="color:{THEME['text_secondary']}; margin:10px 0 0 0;">Bem-vindo, <strong style="color:{THEME['accent']}">{st.session_state.user}</strong></p>
         <p style="color:{THEME['text_secondary']}; margin:5px 0 0 0; font-size:0.9rem;">{datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
     </div>
@@ -53,7 +53,7 @@ def render_cliente_portal():
         st.info("Contacte o administrador para configurar o acesso às suas obras.")
         return
 
-    obra_sel = st.selectbox("🏗️ Selecione o Projeto", obras_cliente['Obra'].tolist(), key="cliente_obra_sel")
+    obra_sel = st.selectbox("Selecione o Projeto", obras_cliente['Obra'].tolist(), key="cliente_obra_sel")
     if not obra_sel:
         return
 
@@ -85,19 +85,19 @@ def render_cliente_portal():
     progresso = (instalados / total * 100) if total > 0 else 0
 
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("📦 Total",      total)
-    with c2: st.metric("⏳ Pendentes",  pendentes)
-    with c3: st.metric("📦 Material OK",mat_ok)
-    with c4: st.metric("🔬 Calibrados", calibrados)
-    with c5: st.metric("✅ Instalados", instalados)
+    with c1: st.metric("Total",      total)
+    with c2: st.metric("Pendentes",  pendentes)
+    with c3: st.metric("Material OK",mat_ok)
+    with c4: st.metric("Calibrados", calibrados)
+    with c5: st.metric("Instalados", instalados)
 
     st.progress(progresso / 100)
     st.write(f"**{progresso:.1f}% Concluído**")
     st.divider()
 
     status_map = {
-        '0': '⏳ Pendente', '1': '📦 Material OK',
-        '2': '🔬 Calibrado', '3': '📍 Instalado', '4': '✅ Concluído'
+        '0': 'Pendente', '1': 'Material OK',
+        '2': 'Calibrado', '3': 'Instalado', '4': 'Concluído'
     }
 
     tab_res, tab_inst, tab_qr, tab_apr, tab_docs, tab_punch = st.tabs([
@@ -110,7 +110,7 @@ def render_cliente_portal():
         st.markdown("### Resumo do Projeto")
         st.markdown(f"""
         <div class="cliente-card">
-            <h3>🏗️ {obra_sel}</h3>
+            <h3>{obra_sel}</h3>
             <p><strong>Cliente:</strong> {cliente_nome}</p>
             <p><strong>Progresso:</strong> {progresso:.1f}%</p>
             <p><strong>Instrumentos Instalados:</strong> {instalados} de {total}</p>
@@ -156,7 +156,7 @@ def render_cliente_portal():
             cols_show = [c for c in ['Tag','Tipo','Descricao','Estado'] if c in df_f.columns]
             st.dataframe(df_f[cols_show], use_container_width=True, hide_index=True)
         else:
-            st.info("ℹ️ Sem instrumentos registados para esta obra.")
+            st.info("Sem instrumentos registados para esta obra.")
 
     # ── TAB QR CODES ─────────────────────────────────────────────────
     with tab_qr:
@@ -172,7 +172,7 @@ def render_cliente_portal():
                 with c2:
                     st.markdown(f"""
                     <div class="cliente-card">
-                        <h4>🔧 {tag_sel}</h4>
+                        <h4>{tag_sel}</h4>
                         <p><strong>Tipo:</strong> {inst.get('Tipo','N/A')}</p>
                         <p><strong>Descrição:</strong> {inst.get('Descricao','N/A')}</p>
                         <p><strong>Status:</strong> {status_map.get(inst.get('Status','0'),'N/A')}</p>
@@ -194,7 +194,7 @@ def render_cliente_portal():
                             st.image(render_qr_code_image(qr_d['short'], size=100), caption=tag)
                     st.info("Faz screenshot para guardar as etiquetas.")
         else:
-            st.info("ℹ️ Sem instrumentos disponíveis.")
+            st.info("Sem instrumentos disponíveis.")
 
     # ── TAB APROVAÇÕES ───────────────────────────────────────────────
     with tab_apr:
@@ -207,16 +207,16 @@ def render_cliente_portal():
                     inst = prontos[prontos['Tag'] == tag_ap].iloc[0]
                     st.markdown(f"""
                     <div class="cliente-card">
-                        <h4>🔧 {tag_ap}</h4>
+                        <h4>{tag_ap}</h4>
                         <p><strong>Tipo:</strong> {inst.get('Tipo','N/A')}</p>
                         <p><strong>Descrição:</strong> {inst.get('Descricao','N/A')}</p>
                         <p><strong>Status:</strong> {status_map.get(inst.get('Status','0'),'N/A')}</p>
-                        <p><strong>Calibração:</strong> {'✅ Assinada' if inst.get('Assinatura_Calibracao_b64') else '⏳ Pendente'}</p>
-                        <p><strong>Instalação:</strong> {'✅ Assinada' if inst.get('Assinatura_Instalacao_b64') else '⏳ Pendente'}</p>
+                        <p><strong>Calibração:</strong> {'Assinada' if inst.get('Assinatura_Calibracao_b64') else 'Pendente'}</p>
+                        <p><strong>Instalação:</strong> {'Assinada' if inst.get('Assinatura_Instalacao_b64') else 'Pendente'}</p>
                     </div>
                     """, unsafe_allow_html=True)
 
-                    confirmar = st.checkbox("✅ Confirmo que este instrumento está instalado e funcional", key=f"cli_conf_{tag_ap}")
+                    confirmar = st.checkbox("Confirmo que este instrumento está instalado e funcional", key=f"cli_conf_{tag_ap}")
                     if confirmar:
                         comentario = st.text_area("Comentários (opcional)", key=f"cli_coment_{tag_ap}")
                         if st.button("Aprovar Instrumento", use_container_width=True, type="primary", key=f"cli_btn_apr_{tag_ap}"):
@@ -230,7 +230,7 @@ def render_cliente_portal():
                             )
                             criar_notificacao(
                                 destinatario="admin",
-                                titulo="✅ Cliente Aprovou Instrumento",
+                                titulo="Cliente Aprovou Instrumento",
                                 mensagem=f"{cliente_nome} aprovou {tag_ap} em {obra_sel}",
                                 tipo="success",
                                 acao_url=f"/instrumentacao?obra={o_key}"
@@ -238,20 +238,20 @@ def render_cliente_portal():
                             st.success(f"{tag_ap} aprovado com sucesso!")
                             st.rerun()
             else:
-                st.info("ℹ️ Nenhum instrumento pronto para aprovação.")
+                st.info("Nenhum instrumento pronto para aprovação.")
         else:
-            st.info("ℹ️ Sem instrumentos disponíveis.")
+            st.info("Sem instrumentos disponíveis.")
 
     # ── TAB DOCUMENTAÇÃO ─────────────────────────────────────────────
     with tab_docs:
         st.markdown("### Documentação da Obra")
         st.info("""
-        **📋 Documentação Disponível:**
-        - ✅ Relatórios de Calibração (ITR-A) — por instrumento
-        - ✅ Relatórios de Instalação (ITR-B) — por instrumento
-        - ✅ Certificados com Assinatura Digital
-        - 🔄 Handover Completo — em breve
-        - 🔄 Dossier Final da Obra — em breve
+        **Documentação Disponível:**
+        - Relatórios de Calibração (ITR-A) — por instrumento
+        - Relatórios de Instalação (ITR-B) — por instrumento
+        - Certificados com Assinatura Digital
+        - Handover Completo — em breve
+        - Dossier Final da Obra — em breve
 
         **Para descarregar:** vá à tab Aprovações, selecione o instrumento e após aprovação poderá descarregar o certificado.
         """)
@@ -316,7 +316,7 @@ def render_cliente_portal():
                     )
                     criar_notificacao(
                         destinatario="admin",
-                        titulo="💬 Novo Punch Item",
+                        titulo="Novo Punch Item",
                         mensagem=f"{cliente_nome} adicionou issue em {obra_sel}: {descricao[:50]}",
                         tipo="warning",
                         acao_url="/admin?tab=qualidade"

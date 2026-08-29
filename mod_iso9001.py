@@ -447,23 +447,23 @@ def _gerar_pdf_revisao(
         ["NCs abertas",
          str(dados.get('n_nc_aber',0)),
          "0",
-         "✅ OK" if dados.get('n_nc_aber',0)==0 else "⚠️"],
+         "OK" if dados.get('n_nc_aber',0)==0 else "Atenção"],
         ["Taxa conformidade inspeções",
          f"{dados.get('taxa_conf',0):.0f}%",
          "≥ 95%",
-         "✅ OK" if dados.get('taxa_conf',0)>=95 else "⚠️"],
+         "OK" if dados.get('taxa_conf',0)>=95 else "Atenção"],
         ["Objetivos atingidos",
          f"{dados.get('obj_ating',0)}/{dados.get('obj_total',0)}",
          "100%",
-         "✅ OK" if dados.get('obj_ating',0)==dados.get('obj_total',1) else "⚠️"],
+         "OK" if dados.get('obj_ating',0)==dados.get('obj_total',1) else "Atenção"],
         ["Fornecedores qualificados",
          f"{dados.get('forn_qual',0)}/{dados.get('forn_total',0)}",
          "≥ 80%",
-         "✅ OK"],
+         "OK"],
         ["Auditorias realizadas",
          str(dados.get('aud_real',0)),
          str(dados.get('aud_plan',0)),
-         "✅ OK" if dados.get('aud_real',0)>=dados.get('aud_plan',1) else "⚠️"],
+         "OK" if dados.get('aud_real',0)>=dados.get('aud_plan',1) else "Atenção"],
     ]
     it = Table(ind_data, colWidths=[7*cm,3.5*cm,3.5*cm,3*cm])
     it.setStyle(TableStyle([
@@ -630,7 +630,7 @@ def render_iso9001(*_):
         f"padding:20px;border-radius:14px;margin-bottom:16px;"
         f"border:1px solid {THEME['border']};'>"
         f"<h2 style='color:{THEME['text']};margin:0;font-size:1.5rem;'>"
-        "🏆 ISO 9001:2015 — Sistema de Gestão da Qualidade</h2>"
+        "ISO 9001:2015 — Sistema de Gestão da Qualidade</h2>"
         f"<p style='color:{THEME['text_secondary']};margin:4px 0 0;font-size:0.85rem;'>"
         f"{empresa.get('nome','')} · Atualizado: "
         f"{datetime.now().strftime('%d/%m/%Y %H:%M')}"
@@ -640,13 +640,13 @@ def render_iso9001(*_):
 
     # KPIs
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("🎯 Objetivos",
+    with c1: st.metric("Objetivos",
                        f"{n_obj_ok}/{n_obj_tot}",
                        delta="atingidos")
-    with c2: st.metric("⚠️ Riscos Altos",  n_riscos_altos)
-    with c3: st.metric("🔍 Auditorias/Ano",n_aud_ano)
-    with c4: st.metric("🔴 NCs Abertas",   nc_abertas)
-    with c5: st.metric("✅ Taxa Conformidade",f"{taxa_conf:.0f}%")
+    with c2: st.metric("Riscos Altos",  n_riscos_altos)
+    with c3: st.metric("Auditorias/Ano",n_aud_ano)
+    with c4: st.metric("NCs Abertas",   nc_abertas)
+    with c5: st.metric("Taxa Conformidade",f"{taxa_conf:.0f}%")
 
     st.divider()
 
@@ -810,7 +810,7 @@ def render_iso9001(*_):
                         f"{stat}</span>"
                         f"</div>"
                         f"<small style='color:{THEME['text_secondary']};'>"
-                        f"📊 {obj.get('Indicador','')} · "
+                        f"{obj.get('Indicador','')} · "
                         f"Meta: {meta} {obj.get('Unidade','')} · "
                         f"Responsável: {obj.get('Responsavel','')}</small>"
                         f"<div style='background:{THEME['border']};"
@@ -1010,10 +1010,8 @@ def render_iso9001(*_):
                         THEME['warning'] if score<=9  else
                         THEME['error']
                     )
-                    ic_t  = "⚠️" if ris.get('Tipo')=='Risco' else "✨"
-
                     with st.expander(
-                        f"{ic_t} [{ris.get('Processo','')}] "
+                        f"{ris.get('Tipo','')} [{ris.get('Processo','')}] "
                         f"{str(ris.get('Descricao',''))[:45]} "
                         f"| Score: {score:.0f}",
                         expanded=(score >= 12)
@@ -1407,9 +1405,9 @@ def render_iso9001(*_):
                     ).fillna(0).sum()
 
                     c1,c2,c3 = st.columns(3)
-                    with c1: st.metric("📋 Planeadas", n_plan)
-                    with c2: st.metric("✅ Concluídas",n_conc)
-                    with c3: st.metric("🔴 NCs Total", int(n_nc_t))
+                    with c1: st.metric("Planeadas", n_plan)
+                    with c2: st.metric("Concluídas",n_conc)
+                    with c3: st.metric("NCs Total", int(n_nc_t))
 
                     # Radar maturidade (se há dados por cláusula)
                     result_map = {
@@ -1455,7 +1453,7 @@ def render_iso9001(*_):
                         }.get(res,THEME['text_secondary'])
 
                         with st.expander(
-                            f"🔍 {aud_r.get('Data_Planeada','')} — "
+                            f"{aud_r.get('Data_Planeada','')} — "
                             f"{aud_r.get('Tipo','')} | {res}",
                             expanded=False
                         ):
@@ -1616,25 +1614,25 @@ def render_iso9001(*_):
 
             # Dashboard indicadores
             indicadores_rev = [
-                ("🔍 Auditorias Realizadas",
+                ("Auditorias Realizadas",
                  n_aud_r, f"de {n_aud_ano} planeadas",
                  THEME['accent']),
-                ("🔴 NCs Abertas",
+                ("NCs Abertas",
                  nc_abertas, "devem ser 0",
                  THEME['success'] if nc_abertas==0 else THEME['error']),
-                ("✅ Taxa Conformidade",
+                ("Taxa Conformidade",
                  f"{taxa_conf:.0f}%", "objetivo ≥ 95%",
                  THEME['success'] if taxa_conf>=95 else THEME['warning']),
-                ("🎯 Objetivos Atingidos",
+                ("Objetivos Atingidos",
                  f"{n_obj_ok}/{n_obj_tot}",
                  "do plano anual",
                  THEME['success'] if n_obj_ok==n_obj_tot and n_obj_tot>0
                  else THEME['warning']),
-                ("⚠️ Riscos Altos",
+                ("Riscos Altos",
                  n_riscos_altos,
                  "riscos score ≥ 12",
                  THEME['success'] if n_riscos_altos==0 else THEME['error']),
-                ("🏭 Fornecedores Avaliados",
+                ("Fornecedores Avaliados",
                  len(forn_aval_db),
                  "registos este período",
                  THEME['accent']),
@@ -1736,7 +1734,7 @@ def render_iso9001(*_):
                         "empresa":        empresa.get('nome',''),
                         "setor":          "Instrumentação Industrial"
                     }
-                    with st.spinner("🤖 A analisar o SGQ..."):
+                    with st.spinner("A analisar o SGQ..."):
                         try:
                             client = anthropic.Anthropic(
                                 api_key=api_key
@@ -1774,7 +1772,7 @@ def render_iso9001(*_):
                                 f"border-radius:12px;padding:16px;"
                                 f"color:{THEME['text']};font-size:0.88rem;"
                                 f"line-height:1.7;'>"
-                                f"<b style='color:{THEME['accent']};'>🤖 Consultor ISO IA</b>"
+                                f"<b style='color:{THEME['accent']};'>Consultor ISO IA</b>"
                                 f"<br><br>"
                                 f"{resp.content[0].text.replace(chr(10),'<br>')}"
                                 f"</div>",
@@ -1838,11 +1836,11 @@ def render_iso9001(*_):
                 )
 
                 criterios = [
-                    ("Q_Qualidade",     "🎯 Qualidade do produto/serviço"),
-                    ("Q_Prazo",         "⏱️ Cumprimento de prazos"),
-                    ("Q_Preco",         "💰 Competitividade de preço"),
-                    ("Q_Comunicacao",   "📞 Comunicação e suporte"),
-                    ("Q_Documentacao",  "📋 Documentação e certificações"),
+                    ("Q_Qualidade",     "Qualidade do produto/serviço"),
+                    ("Q_Prazo",         "Cumprimento de prazos"),
+                    ("Q_Preco",         "Competitividade de preço"),
+                    ("Q_Comunicacao",   "Comunicação e suporte"),
+                    ("Q_Documentacao",  "Documentação e certificações"),
                 ]
                 scores_crit = {}
                 for k, label in criterios:
@@ -1865,9 +1863,9 @@ def render_iso9001(*_):
                     ), 1
                 )
                 class_forn = (
-                    "✅ Qualificado"    if score_tot >= 70 else
-                    "⚠️ Condicional"   if score_tot >= 50 else
-                    "❌ Desqualificado"
+                    "Qualificado"    if score_tot >= 70 else
+                    "Condicional"   if score_tot >= 50 else
+                    "Desqualificado"
                 )
                 cor_score_f = _cor_rag(score_tot)
 
@@ -1966,11 +1964,11 @@ def render_iso9001(*_):
 
                 c1,c2,c3 = st.columns(3)
                 with c1:
-                    st.metric("✅ Qualificados", n_qual)
+                    st.metric("Qualificados", n_qual)
                 with c2:
-                    st.metric("⚠️ Condicionais", n_cond)
+                    st.metric("Condicionais", n_cond)
                 with c3:
-                    st.metric("❌ Desqualificados", n_desq)
+                    st.metric("Desqualificados", n_desq)
 
                 # Lista
                 for _, fa in ultimo_por_forn.sort_values(
@@ -1989,9 +1987,9 @@ def render_iso9001(*_):
                         f"<b style='color:{THEME['text']};'>"
                         f"{fa.get('Fornecedor','')}</b><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
-                        f"🏷️ {fa.get('Categoria','')} · "
-                        f"🏗️ {fa.get('Obra','')} · "
-                        f"📅 {fa.get('Data_Aval','')}</small>"
+                        f"{fa.get('Categoria','')} · "
+                        f"{fa.get('Obra','')} · "
+                        f"{fa.get('Data_Aval','')}</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
                         f"<b style='color:{cor_f};"

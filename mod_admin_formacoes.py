@@ -35,14 +35,14 @@ def _dias_para(data_str: str) -> int:
 
 def _cor_validade(dias: int) -> tuple:
     if dias < 0:
-        return THEME['error'], "🔴", "EXPIRADA"
+        return THEME['error'], "EXPIRADA"
     if dias <= 30:
-        return THEME['error'], "🔴", f"{dias}d"
+        return THEME['error'], f"{dias}d"
     if dias <= 60:
-        return THEME['warning'], "⚠️", f"{dias}d"
+        return THEME['warning'], f"{dias}d"
     if dias <= 90:
-        return THEME['warning'], "🟡", f"{dias}d"
-    return THEME['success'], "✅", f"{dias}d"
+        return THEME['warning'], f"{dias}d"
+    return THEME['success'], f"{dias}d"
 
 def _cor_rag(pct: float) -> str:
     if pct >= 80: return "#10B981"
@@ -395,11 +395,11 @@ def render_formacoes(users, obras_db, *_):
         ]['c'].sum()
 
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("✅ Válidas",       n_validas)
-    with c2: st.metric("⚠️ Alerta 60d",   n_alerta)
-    with c3: st.metric("🔴 Expiradas",    n_expiradas)
-    with c4: st.metric("💰 Reembolsos",   n_reemb)
-    with c5: st.metric("💶 Custo Ano",    f"€{custo_ano:,.2f}")
+    with c1: st.metric("Válidas",       n_validas)
+    with c2: st.metric("Alerta 60d",   n_alerta)
+    with c3: st.metric("Expiradas",    n_expiradas)
+    with c4: st.metric("Reembolsos",   n_reemb)
+    with c5: st.metric("Custo Ano",    f"€{custo_ano:,.2f}")
 
     # Alertas urgentes
     if (n_alerta > 0 or n_expiradas > 0) and not form_db.empty:
@@ -416,7 +416,7 @@ def render_formacoes(users, obras_db, *_):
                 f"<div style='background:rgba(185,28,28,0.08);"
                 f"border:1px solid {THEME['error']};border-radius:8px;"
                 f"padding:10px 14px;margin-bottom:12px;'>"
-                f"<b style='color:{THEME['error']};'>🚨 Formações urgentes:</b> "
+                f"<b style='color:{THEME['error']};'>Formações urgentes:</b> "
                 f"<span style='color:{THEME['text_secondary']};'>{msg}</span>"
                 f"</div>",
                 unsafe_allow_html=True
@@ -460,7 +460,7 @@ def render_formacoes(users, obras_db, *_):
             with col_f3:
                 est_filt = st.selectbox(
                     "Estado Validade",
-                    ["Todos","✅ Válida","⚠️ Alerta","🔴 Expirada"],
+                    ["Todos","Válida","Alerta","Expirada"],
                     key="fr_est_f"
                 )
             with col_f4:
@@ -478,11 +478,11 @@ def render_formacoes(users, obras_db, *_):
                 df_f = df_f[df_f['Colaborador']==colab_filt]
             if cat_filt   != "Todas":
                 df_f = df_f[df_f['Categoria']==cat_filt]
-            if est_filt   == "✅ Válida":
+            if est_filt   == "Válida":
                 df_f = df_f[df_f['Dias_N'] > 60]
-            elif est_filt == "⚠️ Alerta":
+            elif est_filt == "Alerta":
                 df_f = df_f[df_f['Dias_N'].between(0,60)]
-            elif est_filt == "🔴 Expirada":
+            elif est_filt == "Expirada":
                 df_f = df_f[df_f['Dias_N'] < 0]
             if pago_filt  != "Todos":
                 df_f = df_f[df_f['Pago_Por']==pago_filt]
@@ -498,7 +498,7 @@ def render_formacoes(users, obras_db, *_):
             for _, fr in df_f.iterrows():
                 fid    = fr.get('ID','')
                 dias_f = int(fr.get('Dias_N',9999))
-                cor_v, ic_v, txt_v = _cor_validade(dias_f)
+                cor_v, txt_v = _cor_validade(dias_f)
 
                 cat_f  = fr.get('Categoria','')
                 # Etiquetas de categoria sem semântica boa/má —
@@ -507,7 +507,6 @@ def render_formacoes(users, obras_db, *_):
                 cor_cat = THEME['accent']
 
                 pago   = fr.get('Pago_Por','')
-                ic_pago = "🏢" if pago=='Empresa' else "👤"
                 custo_f = float(fr.get('Custo',0) or 0)
                 reemb_f = fr.get('Reembolsado','')
 
@@ -527,18 +526,18 @@ def render_formacoes(users, obras_db, *_):
                         f"color:{cor_cat};margin-left:8px;'>"
                         f"{cat_f}</span><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
-                        f"👤 {fr.get('Colaborador','')} · "
-                        f"🏫 {fr.get('Entidade','')} · "
-                        f"📅 {fr.get('Data_Conclusao','')} · "
-                        f"⏱️ {fr.get('Duracao_H',0)}h · "
-                        f"{ic_pago} €{custo_f:.2f}"
-                        f"{'  · 💰 Reemb. pendente' if pago=='Colaborador (reembolso)' and reemb_f!='Sim' else ''}"
+                        f"{fr.get('Colaborador','')} · "
+                        f"{fr.get('Entidade','')} · "
+                        f"{fr.get('Data_Conclusao','')} · "
+                        f"{fr.get('Duracao_H',0)}h · "
+                        f"{pago} · €{custo_f:.2f}"
+                        f"{'  · Reemb. pendente' if pago=='Colaborador (reembolso)' and reemb_f!='Sim' else ''}"
                         f"</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
                         f"<span style='color:{cor_v};"
                         f"font-weight:700;'>"
-                        f"{ic_v} {txt_v}</span><br>"
+                        f"{txt_v}</span><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
                         f"Válida até {fr.get('Data_Validade','—')}"
                         f"</small>"
@@ -754,7 +753,7 @@ def render_formacoes(users, obras_db, *_):
                     # Notificar colaborador
                     criar_notificacao(
                         destinatario=nf_colab,
-                        titulo=f"🎓 Formação Registada — {nome_final}",
+                        titulo=f"Formação Registada — {nome_final}",
                         mensagem=(
                             f"A tua formação '{nome_final}' foi "
                             f"registada. Válida até "
@@ -817,10 +816,10 @@ def render_formacoes(users, obras_db, *_):
                          'Duracao_H' in form_colab.columns else 0
 
             c1,c2,c3,c4 = st.columns(4)
-            with c1: st.metric("📋 Total",        n_total_c)
-            with c2: st.metric("✅ Válidas",       n_validas_c)
-            with c3: st.metric("🔴 Expiradas",     n_exp_c)
-            with c4: st.metric("⏱️ Horas Total",  f"{h_total:.0f}h")
+            with c1: st.metric("Total",        n_total_c)
+            with c2: st.metric("Válidas",       n_validas_c)
+            with c3: st.metric("Expiradas",     n_exp_c)
+            with c4: st.metric("Horas Total",  f"{h_total:.0f}h")
 
             if form_colab.empty:
                 st.info(
@@ -842,7 +841,7 @@ def render_formacoes(users, obras_db, *_):
                         f"font-weight:700;font-size:0.82rem;"
                         f"text-transform:uppercase;"
                         f"margin:12px 0 6px;'>"
-                        f"■ {cat_c}</p>",
+                        f"{cat_c}</p>",
                         unsafe_allow_html=True
                     )
 
@@ -851,7 +850,7 @@ def render_formacoes(users, obras_db, *_):
                     ).iterrows():
                         fid_c  = fc.get('ID','')
                         dias_c = int(fc.get('Dias_N',9999))
-                        cor_vc, ic_vc, txt_vc = _cor_validade(dias_c)
+                        cor_vc, txt_vc = _cor_validade(dias_c)
 
                         col_fc1, col_fc2, col_fc3 = st.columns([4,2,1])
                         with col_fc1:
@@ -861,9 +860,9 @@ def render_formacoes(users, obras_db, *_):
                                 f"font-size:0.85rem;'>"
                                 f"{fc.get('Formacao','')}</b><br>"
                                 f"<small style='color:{THEME['text_secondary']};'>"
-                                f"🏫 {fc.get('Entidade','')} · "
-                                f"📅 {fc.get('Data_Conclusao','')} · "
-                                f"⏱️ {fc.get('Duracao_H',0)}h · "
+                                f"{fc.get('Entidade','')} · "
+                                f"{fc.get('Data_Conclusao','')} · "
+                                f"{fc.get('Duracao_H',0)}h · "
                                 f"{fc.get('Resultado','')}"
                                 f"</small>"
                                 f"</div>",
@@ -877,7 +876,7 @@ def render_formacoes(users, obras_db, *_):
                                 f"text-align:center;"
                                 f"margin-top:4px;'>"
                                 f"<b style='color:{cor_vc};'>"
-                                f"{ic_vc} {txt_vc}</b><br>"
+                                f"{txt_vc}</b><br>"
                                 f"<small style='color:{THEME['text_secondary']};'>"
                                 f"até {fc.get('Data_Validade','—')}"
                                 f"</small>"
@@ -937,7 +936,7 @@ def render_formacoes(users, obras_db, *_):
                         st.markdown(
                             f"<p style='color:{THEME['error']};"
                             f"font-weight:700;font-size:0.82rem;'>"
-                            f"❌ Formações obrigatórias em falta "
+                            f"Formações obrigatórias em falta "
                             f"({len(obrig_falta)}):</p>",
                             unsafe_allow_html=True
                         )
@@ -949,7 +948,7 @@ def render_formacoes(users, obras_db, *_):
                                 f"padding:6px 10px;"
                                 f"margin-bottom:3px;'>"
                                 f"<small style='color:{THEME['error']};'>"
-                                f"❌ {of.get('Nome','')} — "
+                                f"{of.get('Nome','')} — "
                                 f"{of.get('Categoria','')}</small>"
                                 f"</div>",
                                 unsafe_allow_html=True
@@ -968,7 +967,7 @@ def render_formacoes(users, obras_db, *_):
         col_pf, col_pl = st.columns([1, 2])
 
         with col_pf:
-            st.markdown("##### ➕ Adicionar ao Plano")
+            st.markdown("##### Adicionar ao Plano")
             with st.form("form_plano"):
                 pp_ano   = st.number_input(
                     "Ano", min_value=2024,
@@ -1068,10 +1067,10 @@ def render_formacoes(users, obras_db, *_):
                            if n_plan_t > 0 else 0
 
                 c1,c2,c3 = st.columns(3)
-                with c1: st.metric("📋 Planeadas",    n_plan_t)
-                with c2: st.metric("✅ Concluídas",
+                with c1: st.metric("Planeadas",    n_plan_t)
+                with c2: st.metric("Concluídas",
                                    f"{n_conc_p} ({pct_conc}%)")
-                with c3: st.metric("💶 Custo Est.",   f"€{tot_est:,.2f}")
+                with c3: st.metric("Custo Est.",   f"€{tot_est:,.2f}")
 
                 # Por prioridade
                 for prior_p in ["Alta","Média","Baixa"]:
@@ -1092,7 +1091,7 @@ def render_formacoes(users, obras_db, *_):
                         f"font-size:0.82rem;"
                         f"text-transform:uppercase;"
                         f"margin:10px 0 4px;'>"
-                        f"■ Prioridade {prior_p} "
+                        f"Prioridade {prior_p} "
                         f"({len(pp_filt)})</p>",
                         unsafe_allow_html=True
                     )
@@ -1126,8 +1125,8 @@ def render_formacoes(users, obras_db, *_):
                                 f"font-size:0.72rem;'>"
                                 f"{est_p}</span><br>"
                                 f"<small style='color:{THEME['text_secondary']};'>"
-                                f"👤 {pp.get('Colaborador','')} · "
-                                f"📅 {pp.get('Data_Prevista','')} · "
+                                f"{pp.get('Colaborador','')} · "
+                                f"{pp.get('Data_Prevista','')} · "
                                 f"€{float(pp.get('Custo_Estimado',0) or 0):.2f}"
                                 f"</small>"
                                 f"</div>",
@@ -1210,13 +1209,13 @@ def render_formacoes(users, obras_db, *_):
             ]['Custo_N'].sum()
 
             c1,c2,c3,c4 = st.columns(4)
-            with c1: st.metric("🏢 Pago Empresa",
+            with c1: st.metric("Pago Empresa",
                                f"€{tot_empresa:,.2f}")
-            with c2: st.metric("👤 Pago Colaborador",
+            with c2: st.metric("Pago Colaborador",
                                f"€{tot_colab:,.2f}")
-            with c3: st.metric("💰 Reembolso Pendente",
+            with c3: st.metric("Reembolso Pendente",
                                f"€{tot_reemb_p:,.2f}")
-            with c4: st.metric("💶 Total",
+            with c4: st.metric("Total",
                                f"€{tot_empresa+tot_colab:,.2f}")
 
             col_cg1, col_cg2 = st.columns(2)
@@ -1285,7 +1284,7 @@ def render_formacoes(users, obras_db, *_):
 
             # Reembolsos pendentes
             st.markdown("---")
-            st.markdown("##### 💰 Reembolsos Pendentes")
+            st.markdown("##### Reembolsos Pendentes")
 
             reemb_pend = form_db2[
                 (form_db2['Pago_Por']=='Colaborador (reembolso)') &
@@ -1298,7 +1297,7 @@ def render_formacoes(users, obras_db, *_):
                 for colab_r, grp_r in reemb_pend.groupby('Colaborador'):
                     tot_c = grp_r['Custo_N'].sum()
                     with st.expander(
-                        f"👤 {colab_r} — €{tot_c:.2f} "
+                        f"{colab_r} — €{tot_c:.2f} "
                         f"({len(grp_r)} formação(ões))",
                         expanded=True
                     ):
@@ -1311,10 +1310,10 @@ def render_formacoes(users, obras_db, *_):
                                 f"justify-content:space-between;'>"
                                 f"<div>"
                                 f"<small style='color:{THEME['text']};'>"
-                                f"🎓 {fr.get('Formacao','')}</small><br>"
+                                f"{fr.get('Formacao','')}</small><br>"
                                 f"<small style='color:{THEME['text_secondary']};'>"
-                                f"📅 {fr.get('Data_Conclusao','')} · "
-                                f"🏫 {fr.get('Entidade','')}"
+                                f"{fr.get('Data_Conclusao','')} · "
+                                f"{fr.get('Entidade','')}"
                                 f"</small></div>"
                                 f"<b style='color:{THEME['warning']};'>"
                                 f"€{float(fr.get('Custo_N',0)):,.2f}"
@@ -1350,7 +1349,7 @@ def render_formacoes(users, obras_db, *_):
                                 save_db(form_db,"formacoes.csv")
                                 criar_notificacao(
                                     destinatario=colab_r,
-                                    titulo="💰 Reembolso de Formações Processado",
+                                    titulo="Reembolso de Formações Processado",
                                     mensagem=(
                                         f"O teu reembolso de "
                                         f"formações (€{tot_c:.2f}) "
@@ -1376,7 +1375,7 @@ def render_formacoes(users, obras_db, *_):
         col_cf, col_cl = st.columns([1, 2])
 
         with col_cf:
-            st.markdown("##### ➕ Adicionar ao Catálogo")
+            st.markdown("##### Adicionar ao Catálogo")
 
             # Inicializar catálogo com padrão se vazio
             if cat_db.empty:
@@ -1421,7 +1420,7 @@ def render_formacoes(users, obras_db, *_):
                     help="0 = sem validade"
                 )
                 c_obrig = st.checkbox(
-                    "✅ Obrigatória para todos",
+                    "Obrigatória para todos",
                     key="c_obrig"
                 )
 
@@ -1450,7 +1449,7 @@ def render_formacoes(users, obras_db, *_):
                         st.rerun()
 
         with col_cl:
-            st.markdown("##### 📋 Catálogo Actual")
+            st.markdown("##### Catálogo Actual")
 
             if cat_db.empty:
                 st.info(
@@ -1480,7 +1479,7 @@ def render_formacoes(users, obras_db, *_):
                         f"font-weight:700;font-size:0.8rem;"
                         f"text-transform:uppercase;"
                         f"margin:10px 0 4px;'>"
-                        f"■ {cat_grupo} ({len(grupo)})</p>",
+                        f"{cat_grupo} ({len(grupo)})</p>",
                         unsafe_allow_html=True
                     )
 
@@ -1513,7 +1512,7 @@ def render_formacoes(users, obras_db, *_):
                             f"{obrig_html}"
                             f"</div>"
                             f"<small style='color:{THEME['text_secondary']};'>"
-                            f"⏱️ {val_txt}</small>"
+                            f"{val_txt}</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )

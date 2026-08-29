@@ -256,7 +256,7 @@ def _calcular_diarias_semana(
             f"Sem registos com Status 1 ou 2 entre "
             f"{semana_inicio.strftime('%d/%m/%Y')} e "
             f"{semana_fim.strftime('%d/%m/%Y')}. "
-            f"Certifica-te que as horas estão validadas (🟢 verde)."
+            f"Certifica-te que as horas estão validadas (verde)."
         )
 
     grupo['Elegivel'] = grupo.apply(
@@ -502,7 +502,7 @@ def render_admin_diarias(*args):
                          f"{semana_fim.strftime('%d/%m/%Y')}")
         st.markdown(
             f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;margin:0 0 12px;'>"
-            f"📅 Período: <b style='color:{THEME['text']};'>{periodo_label}</b></p>",
+            f"Período: <b style='color:{THEME['text']};'>{periodo_label}</b></p>",
             unsafe_allow_html=True
         )
 
@@ -525,10 +525,10 @@ def render_admin_diarias(*args):
                 total_geral = df_calc['Valor_Total'].sum()
 
                 c1, c2, c3 = st.columns(3)
-                with c1: st.metric("👥 Colaboradores",  len(df_calc))
-                with c2: st.metric("📋 Total Dias",
+                with c1: st.metric("Colaboradores",  len(df_calc))
+                with c2: st.metric("Total Dias",
                                    int(df_calc['Dias_Total'].sum()))
-                with c3: st.metric("💶 Total a Pagar",
+                with c3: st.metric("Total a Pagar",
                                    f"€ {total_geral:.2f}")
 
                 st.markdown("<div style='height:10px;'></div>",
@@ -552,7 +552,7 @@ def render_admin_diarias(*args):
                             f"font-weight:900;'>€ {row['Valor_Total']:.2f}</span><br>"
                             f"<small style='color:{THEME['text_secondary']};'>"
                             f"{row['Obras']} · {row['Dias_Total']} dia(s) · "
-                            f"IBAN: {row['IBAN'][:12] + '...' if len(str(row['IBAN'])) > 12 else row['IBAN'] or '❌ Sem IBAN'}"
+                            f"IBAN: {row['IBAN'][:12] + '...' if len(str(row['IBAN'])) > 12 else row['IBAN'] or 'Sem IBAN'}"
                             f"</small></div>",
                             unsafe_allow_html=True
                         )
@@ -601,7 +601,7 @@ def render_admin_diarias(*args):
                     cfg_emp  = _get_config_empresa()
                     iban_emp = cfg_emp.get('iban', '').strip()
                     if not iban_emp:
-                        st.warning("Configura o IBAN da empresa no tab 🏢")
+                        st.warning("Configura o IBAN da empresa no tab Empresa")
                     else:
                         df_com_iban = df_calc[
                             df_calc['IBAN'].str.strip().str.len() >= 15
@@ -743,8 +743,8 @@ def render_admin_diarias(*args):
             st.markdown(
                 f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;"
                 "margin:0 0 6px;'>"
-                "✏️ Edita directamente na tabela e clica "
-                "<b>💾 Guardar</b>.</p>",
+                "Edita directamente na tabela e clica "
+                "<b>Guardar</b>.</p>",
                 unsafe_allow_html=True
             )
 
@@ -953,7 +953,7 @@ def render_admin_diarias(*args):
                 fim_sem   = pags_sem.iloc[0].get('Semana_Fim', '')
 
                 with st.expander(
-                    f"📅 {semana} — {fim_sem} · "
+                    f"{semana} — {fim_sem} · "
                     f"{len(pags_sem)} colaboradores · "
                     f"€ {total_sem:.2f}"
                 ):
@@ -1087,8 +1087,8 @@ def render_admin_diarias(*args):
                 f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:8px;"
                 f"padding:12px;margin-top:8px;border-left:3px solid {THEME['accent']};'>"
                 f"<p style='color:{THEME['text']};font-size:0.82rem;margin:0;'>"
-                "ℹ️ <b>Como usar o ficheiro SEPA no Montepio:</b><br>"
-                "1. Descarrega o ficheiro XML no separador 📅 Semana Atual<br>"
+                "<b>Como usar o ficheiro SEPA no Montepio:</b><br>"
+                "1. Descarrega o ficheiro XML no separador Semana Atual<br>"
                 "2. Abre o Net24 Empresas<br>"
                 "3. Vai a <b>Gestão de Ficheiros → Importar Ficheiro</b><br>"
                 "4. Seleciona o ficheiro XML gerado<br>"

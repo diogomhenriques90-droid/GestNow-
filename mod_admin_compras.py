@@ -59,10 +59,10 @@ def render_compras(*_):
         val_mes = cc[mask_m]['Total_N'].sum()
 
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("🟠 Pendentes",    n_pend)
-    with c2: st.metric("✅ Aprovadas",     n_apr)
-    with c3: st.metric("💰 Valor Mês",    f"€{val_mes:,.2f}")
-    with c4: st.metric("📋 Total Registo",len(compras_db) if not compras_db.empty else 0)
+    with c1: st.metric("Pendentes",    n_pend)
+    with c2: st.metric("Aprovadas",     n_apr)
+    with c3: st.metric("Valor Mês",    f"€{val_mes:,.2f}")
+    with c4: st.metric("Total Registo",len(compras_db) if not compras_db.empty else 0)
 
     st.divider()
 
@@ -124,7 +124,7 @@ def render_compras(*_):
                               "Baixa":THEME['success']}.get(urg,THEME['text_secondary'])
 
                     with st.expander(
-                        f"🛒 {str(row.get('Descricao',''))[:45]} — "
+                        f"{str(row.get('Descricao',''))[:45]} — "
                         f"{row.get('Obra','')} · €{total:,.2f}",
                         expanded=(urg == 'Urgente')
                     ):
@@ -174,7 +174,7 @@ def render_compras(*_):
                                     f"border-radius:6px;padding:8px;"
                                     f"margin-top:8px;'>"
                                     f"<small style='color:{THEME['text_secondary']};'>"
-                                    f"📝 {row.get('Notas','')}</small>"
+                                    f"Notas: {row.get('Notas','')}</small>"
                                     f"</div>",
                                     unsafe_allow_html=True
                                 )
@@ -237,7 +237,7 @@ def render_compras(*_):
                                 )
                                 criar_notificacao(
                                     destinatario=row.get('Solicitante',''),
-                                    titulo="✅ Compra Aprovada",
+                                    titulo="Compra Aprovada",
                                     mensagem=(
                                         f"A tua compra de "
                                         f"{row.get('Descricao','')} "
@@ -278,7 +278,7 @@ def render_compras(*_):
                                 save_db(compras_db, "compras.csv")
                                 criar_notificacao(
                                     destinatario=row.get('Solicitante',''),
-                                    titulo="❌ Compra Rejeitada",
+                                    titulo="Compra Rejeitada",
                                     mensagem=(
                                         f"A tua compra de "
                                         f"{row.get('Descricao','')} "
@@ -461,8 +461,8 @@ def render_compras(*_):
                 total_h = df_h['Total_N'].sum()
 
                 col_km1, col_km2 = st.columns(2)
-                with col_km1: st.metric("📋 Compras",  len(df_h))
-                with col_km2: st.metric("💰 Total",    f"€{total_h:,.2f}")
+                with col_km1: st.metric("Compras",  len(df_h))
+                with col_km2: st.metric("Total",    f"€{total_h:,.2f}")
 
                 cols_show = [c for c in [
                     'Data','Solicitante','Obra','Fornecedor',
@@ -528,7 +528,7 @@ def render_compras(*_):
         col_fc1, col_fc2 = st.columns([1, 2])
 
         with col_fc1:
-            st.markdown("##### ➕ Novo Fornecedor")
+            st.markdown("##### Novo Fornecedor")
             with st.form("form_forn"):
                 f_nome  = st.text_input("Nome *",      key="f_nome")
                 f_nif   = st.text_input("NIF",         key="f_nif")
@@ -575,7 +575,7 @@ def render_compras(*_):
                         st.rerun()
 
         with col_fc2:
-            st.markdown("##### 📋 Lista de Fornecedores")
+            st.markdown("##### Lista de Fornecedores")
             if forn_db.empty:
                 st.info(
                     "Sem fornecedores registados. "
@@ -595,7 +595,7 @@ def render_compras(*_):
                 # Análise por fornecedor
                 if not compras_db.empty and 'Fornecedor' in compras_db.columns:
                     st.markdown("---")
-                    st.markdown("##### 📊 Volume por Fornecedor")
+                    st.markdown("##### Volume por Fornecedor")
                     cc2 = compras_db.copy()
                     cc2['Total_N'] = pd.to_numeric(
                         cc2.get('Total',0), errors='coerce'

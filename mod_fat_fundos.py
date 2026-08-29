@@ -270,6 +270,10 @@ def _calcular_elegibilidade(fundo: dict,
                              perfil: dict) -> tuple[int, list]:
     """
     Calcula score de elegibilidade 0-100 e lista de motivos.
+
+    Cada motivo é um tuplo (texto, tipo), com tipo em
+    {'ok', 'erro', 'aviso'} — usado pelos consumidores para
+    escolher a cor sem depender de prefixos no texto.
     """
     score    = 0
     motivos  = []
@@ -288,22 +292,22 @@ def _calcular_elegibilidade(fundo: dict,
     n_max = fundo.get('n_trabalhadores_max', 9999)
     if n_min <= n_trab <= n_max:
         score += 20
-        motivos.append("✅ Dimensão da empresa elegível")
+        motivos.append(("Dimensão da empresa elegível", "ok"))
     else:
-        alertas.append(
-            f"❌ Nº trabalhadores ({n_trab}) fora do intervalo "
-            f"({n_min}-{n_max})"
-        )
+        alertas.append((
+            f"Nº trabalhadores ({n_trab}) fora do intervalo "
+            f"({n_min}-{n_max})", "erro"
+        ))
 
     # 2. Região (0-20 pts)
     regioes_ok = fundo.get('regioes', [])
     if regiao in regioes_ok or "Todas as regiões" in regioes_ok:
         score += 20
-        motivos.append(f"✅ Região {regiao} elegível")
+        motivos.append((f"Região {regiao} elegível", "ok"))
     else:
-        alertas.append(
-            f"❌ Região {regiao} não está na lista elegível"
-        )
+        alertas.append((
+            f"Região {regiao} não está na lista elegível", "erro"
+        ))
 
     # 3. Setor (0-20 pts)
     setores_ok = fundo.get('setores_ok', [])
@@ -311,11 +315,11 @@ def _calcular_elegibilidade(fundo: dict,
            for s in setores_ok) or \
        "Todos os setores" in setores_ok:
         score += 20
-        motivos.append(f"✅ Setor {setor} elegível")
+        motivos.append((f"Setor {setor} elegível", "ok"))
     else:
-        alertas.append(
-            f"❌ Setor {setor} pode não ser elegível"
-        )
+        alertas.append((
+            f"Setor {setor} pode não ser elegível", "erro"
+        ))
 
     # 4. Tipo de investimento (0-20 pts)
     tipos_fundo = fundo.get('tipos_invest', [])
@@ -325,37 +329,37 @@ def _calcular_elegibilidade(fundo: dict,
     ]
     if matches:
         score += 20
-        motivos.append(
-            f"✅ Investimento compatível: "
-            f"{', '.join(matches[:2])}"
-        )
+        motivos.append((
+            f"Investimento compatível: "
+            f"{', '.join(matches[:2])}", "ok"
+        ))
     elif not tipo_inv:
         score += 10  # neutro se não especificado
     else:
-        alertas.append(
-            "⚠️ Tipo de investimento pode não ser elegível"
-        )
+        alertas.append((
+            "Tipo de investimento pode não ser elegível", "aviso"
+        ))
 
     # 5. Situação fiscal (0-10 pts)
     if not tem_dividas:
         score += 10
-        motivos.append("✅ Sem dívidas fiscais ou à SS")
+        motivos.append(("Sem dívidas fiscais ou à SS", "ok"))
     else:
-        alertas.append(
-            "❌ Dívidas fiscais/SS impedem candidatura"
-        )
+        alertas.append((
+            "Dívidas fiscais/SS impedem candidatura", "erro"
+        ))
 
     # 6. Anos de atividade (0-10 pts)
     if anos_act >= 3:
         score += 10
-        motivos.append(f"✅ {anos_act} anos de atividade")
+        motivos.append((f"{anos_act} anos de atividade", "ok"))
     elif anos_act >= 1:
         score += 5
-        alertas.append(
-            "⚠️ Menos de 3 anos — verificar elegibilidade"
-        )
+        alertas.append((
+            "Menos de 3 anos — verificar elegibilidade", "aviso"
+        ))
     else:
-        alertas.append("❌ Empresa em início de atividade")
+        alertas.append(("Empresa em início de atividade", "erro"))
 
     return score, motivos + alertas
 
@@ -751,7 +755,7 @@ def _gerar_pdf_candidatura(fundo: dict,
 
     # Elegibilidade
     story.append(Paragraph("<b>ANÁLISE DE ELEGIBILIDADE</b>", bold_s))
-    for m in motivos:
+    for m, _tipo in motivos:
         story.append(Paragraph(m, normal_s))
     story.append(Spacer(1, 0.3*cm))
 
@@ -801,7 +805,7 @@ def _pesquisar_avisos_ia(perfil: dict) -> str:
         import anthropic
         api_key = os.environ.get("ANTHROPIC_API_KEY","")
         if not api_key:
-            return "❌ API key não configurada."
+            return "API key não configurada."
 
         client = anthropic.Anthropic(api_key=api_key)
 
@@ -833,7 +837,7 @@ Máximo 6 parágrafos."""
         return resp.content[0].text
 
     except Exception as e:
-        return f"❌ Erro: {e}"
+        return f"Erro: {e}"
 
 
 def _gerar_plano_candidatura_ia(fundo: dict,
@@ -844,7 +848,7 @@ def _gerar_plano_candidatura_ia(fundo: dict,
         import anthropic
         api_key = os.environ.get("ANTHROPIC_API_KEY","")
         if not api_key:
-            return "❌ API key não configurada."
+            return "API key não configurada."
 
         client = anthropic.Anthropic(api_key=api_key)
 
@@ -882,7 +886,7 @@ Tom profissional, prático, em português de Portugal."""
         return resp.content[0].text
 
     except Exception as e:
-        return f"❌ Erro: {e}"
+        return f"Erro: {e}"
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -960,10 +964,10 @@ def render_fat_fundos(*_):
     ).fillna(0).sum()
 
     c1,c2,c3,c4 = st.columns(4)
-    with c1: st.metric("📋 Candidaturas",    n_cand)
-    with c2: st.metric("🔄 Ativas",           n_ativas)
-    with c3: st.metric("✅ Aprovado",          f"€{val_aprov:,.2f}")
-    with c4: st.metric("⏳ Submetido/Análise", f"€{val_pend:,.2f}")
+    with c1: st.metric("Candidaturas",    n_cand)
+    with c2: st.metric("Ativas",           n_ativas)
+    with c3: st.metric("Aprovado",          f"€{val_aprov:,.2f}")
+    with c4: st.metric("Submetido/Análise", f"€{val_pend:,.2f}")
 
     st.divider()
 
@@ -1025,7 +1029,7 @@ def render_fat_fundos(*_):
                 key="m_anos"
             )
             m_dividas = st.checkbox(
-                "❌ Tem dívidas à AT ou SS?",
+                "Tem dívidas à AT ou SS?",
                 key="m_dividas"
             )
 
@@ -1119,9 +1123,9 @@ def render_fat_fundos(*_):
                 cor_s   = THEME['success'] if sc >= 70 \
                           else THEME['warning'] if sc >= 40 \
                           else THEME['error']
-                ic_s    = "🟢" if sc >= 70 \
-                          else "🟡" if sc >= 40 \
-                          else "🔴"
+                nivel_s = "Alta" if sc >= 70 \
+                          else "Média" if sc >= 40 \
+                          else "Baixa"
 
                 apoio_c = _calcular_apoio(
                     perfil_calc.get('valor_investimento',100000),
@@ -1130,8 +1134,8 @@ def render_fat_fundos(*_):
                 )
 
                 with st.expander(
-                    f"{ic_s} {fundo_s['nome'][:40]} "
-                    f"— {sc}% elegível",
+                    f"{nivel_s} elegibilidade — {fundo_s['nome'][:40]} "
+                    f"({sc}%)",
                     expanded=(sc >= 70)
                 ):
                     col_fd1, col_fd2 = st.columns([2,1])
@@ -1141,26 +1145,26 @@ def render_fat_fundos(*_):
                             f"border-radius:8px;padding:12px;'>"
                             f"<p style='color:{THEME['text_secondary']};"
                             f"font-size:0.75rem;margin:0 0 4px;'>"
-                            f"🏷️ {fundo_s.get('programa','')} · "
+                            f"{fundo_s.get('programa','')} · "
                             f"{fundo_s.get('tipo','')}</p>"
                             f"<p style='color:{THEME['text_secondary']};"
                             f"font-size:0.85rem;margin:0 0 8px;'>"
                             f"{fundo_s.get('descricao','')}</p>"
                             f"<small style='color:{THEME['text_secondary']};'>"
-                            f"📞 {fundo_s.get('contacto','')} · "
-                            f"🌐 {fundo_s.get('url','')}</small>"
+                            f"{fundo_s.get('contacto','')} · "
+                            f"{fundo_s.get('url','')}</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
 
                         # Critérios de elegibilidade
-                        for motivo in fundo_s.get('motivos',[])[:4]:
-                            cor_m = THEME['success'] if motivo.startswith("✅") \
-                                    else THEME['error'] if motivo.startswith("❌") \
+                        for motivo_txt, motivo_tipo in fundo_s.get('motivos',[])[:4]:
+                            cor_m = THEME['success'] if motivo_tipo == "ok" \
+                                    else THEME['error'] if motivo_tipo == "erro" \
                                     else THEME['warning']
                             st.markdown(
                                 f"<small style='color:{cor_m};'>"
-                                f"{motivo}</small><br>",
+                                f"{motivo_txt}</small><br>",
                                 unsafe_allow_html=True
                             )
 
@@ -1439,7 +1443,7 @@ def render_fat_fundos(*_):
             }.get(fundo_f.get('tipo',''), THEME['text_secondary'])
 
             with st.expander(
-                f"🏦 {fundo_f['nome']}",
+                f"{fundo_f['nome']}",
                 expanded=False
             ):
                 col_fi1, col_fi2, col_fi3 = st.columns([3,1,1])
@@ -1460,10 +1464,10 @@ def render_fat_fundos(*_):
                         f"font-size:0.85rem;margin:0 0 8px;'>"
                         f"{fundo_f.get('descricao','')}</p>"
                         f"<small style='color:{THEME['text_secondary']};'>"
-                        f"🏢 {fundo_f.get('entidade','')} · "
-                        f"⏱️ {fundo_f.get('prazo_decisao','')} · "
-                        f"📞 {fundo_f.get('contacto','')} · "
-                        f"🌐 {fundo_f.get('url','')}</small>"
+                        f"{fundo_f.get('entidade','')} · "
+                        f"{fundo_f.get('prazo_decisao','')} · "
+                        f"{fundo_f.get('contacto','')} · "
+                        f"{fundo_f.get('url','')}</small>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1479,7 +1483,7 @@ def render_fat_fundos(*_):
                     for doc in fundo_f.get('documentos',[]):
                         st.markdown(
                             f"<small style='color:{THEME['text_secondary']};'>"
-                            f"📄 {doc}</small><br>",
+                            f"{doc}</small><br>",
                             unsafe_allow_html=True
                         )
 
@@ -1511,7 +1515,7 @@ def render_fat_fundos(*_):
                             'fundo_candidatar'
                         ] = fundo_f
                         st.info(
-                            "Vai ao tab 📋 Gestão Candidaturas "
+                            "Vai ao tab Gestão Candidaturas "
                             "para completar."
                         )
 
@@ -1574,7 +1578,7 @@ def render_fat_fundos(*_):
                     "Notas", key="cand_notas"
                 )
                 cand_docs = st.checkbox(
-                    "✅ Documentos em ordem?",
+                    "Documentos em ordem?",
                     key="cand_docs"
                 )
 
@@ -1672,20 +1676,20 @@ def render_fat_fundos(*_):
                                 alerta_pz = (
                                     f"<span style='color:{THEME['error']};"
                                     f"font-size:0.72rem;'>"
-                                    f"🔴 Prazo expirado!</span>"
+                                    f"Prazo expirado!</span>"
                                 )
                             elif dias_pz <= 14:
                                 alerta_pz = (
                                     f"<span style='color:{THEME['error']};"
                                     f"font-size:0.72rem;'>"
-                                    f"⚠️ Prazo em {dias_pz} dias!"
+                                    f"Prazo em {dias_pz} dias!"
                                     f"</span>"
                                 )
                             elif dias_pz <= 30:
                                 alerta_pz = (
                                     f"<span style='color:{THEME['warning']};"
                                     f"font-size:0.72rem;'>"
-                                    f"⏰ {dias_pz} dias para prazo"
+                                    f"{dias_pz} dias para prazo"
                                     f"</span>"
                                 )
                         except:
@@ -1704,10 +1708,10 @@ def render_fat_fundos(*_):
                             f"font-size:0.9rem;'>"
                             f"{cand_row.get('Fundo','')[:35]}</b><br>"
                             f"<small style='color:{THEME['text_secondary']};'>"
-                            f"🏷️ {cand_row.get('Programa','')} · "
-                            f"📅 {cand_row.get('Data_Inicio','')} · "
+                            f"{cand_row.get('Programa','')} · "
+                            f"{cand_row.get('Data_Inicio','')} · "
                             f"Prazo: {prazo_str} · "
-                            f"📁 {docs_ok}</small><br>"
+                            f"{docs_ok}</small><br>"
                             f"{alerta_pz}"
                             f"</div>"
                             f"<div style='text-align:right;'>"
@@ -1850,7 +1854,7 @@ def render_fat_fundos(*_):
                 use_container_width=True
             ):
                 with st.spinner(
-                    "🤖 A pesquisar avisos relevantes..."
+                    "A pesquisar avisos relevantes..."
                 ):
                     resultado_ia = _pesquisar_avisos_ia(perfil_ia)
                 st.session_state['ia_avisos'] = resultado_ia
@@ -1864,7 +1868,7 @@ def render_fat_fundos(*_):
                     f"line-height:1.7;'>"
                     f"<p style='color:{THEME['accent']};font-weight:700;"
                     f"margin:0 0 8px;'>"
-                    f"🤖 AVISOS ABERTOS — IA</p>"
+                    f"AVISOS ABERTOS — IA</p>"
                     f"{st.session_state['ia_avisos'].replace(chr(10),'<br>')}"
                     f"</div>",
                     unsafe_allow_html=True
@@ -1906,7 +1910,7 @@ def render_fat_fundos(*_):
                     "valor_investimento": invest_plano
                 }
                 with st.spinner(
-                    "🤖 A elaborar plano de candidatura..."
+                    "A elaborar plano de candidatura..."
                 ):
                     plano_ia = _gerar_plano_candidatura_ia(
                         f_plano, perf_plano, empresa
@@ -1923,7 +1927,7 @@ def render_fat_fundos(*_):
                     f"line-height:1.7;'>"
                     f"<p style='color:{THEME['success']};font-weight:700;"
                     f"margin:0 0 8px;'>"
-                    f"📋 PLANO — "
+                    f"PLANO — "
                     f"{st.session_state.get('ia_plano_fundo','')[:30]}"
                     f"</p>"
                     f"{st.session_state['ia_plano_cand'].replace(chr(10),'<br>')}"
@@ -1951,7 +1955,7 @@ def render_fat_fundos(*_):
                 import anthropic
                 api_key = os.environ.get("ANTHROPIC_API_KEY","")
                 if api_key:
-                    with st.spinner("🤖 A pesquisar..."):
+                    with st.spinner("A pesquisar..."):
                         try:
                             client = anthropic.Anthropic(
                                 api_key=api_key
@@ -2021,7 +2025,7 @@ def render_fat_fundos(*_):
             )
 
         # Alertas de prazos
-        st.markdown("#### ⏰ Alertas de Prazos")
+        st.markdown("#### Alertas de Prazos")
 
         if not cand_db.empty and \
            'Prazo_Candidatura' in cand_db.columns:
@@ -2058,7 +2062,7 @@ def render_fat_fundos(*_):
                         f"border-radius:8px;padding:10px 14px;"
                         f"margin-bottom:6px;'>"
                         f"<b style='color:{cor_ap};'>"
-                        f"⏰ {ap['fundo']}</b>"
+                        f"{ap['fundo']}</b>"
                         f"<span style='float:right;color:{THEME['text_secondary']};'>"
                         f"€{ap['val']:,.0f}</span><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
@@ -2072,7 +2076,7 @@ def render_fat_fundos(*_):
         else:
             st.info(
                 "Adiciona prazos de candidatura no tab "
-                "📋 Gestão Candidaturas."
+                "Gestão Candidaturas."
             )
 
         # Calendário fiscal de obrigações de reporte
@@ -2103,13 +2107,13 @@ def render_fat_fundos(*_):
                     f"margin-bottom:8px;"
                     f"border-left:3px solid {THEME['accent']};'>"
                     f"<b style='color:{THEME['text']};'>"
-                    f"▶ {proj.get('Fundo','')[:35]}</b><br>"
+                    f"{proj.get('Fundo','')[:35]}</b><br>"
                     f"<small style='color:{THEME['text_secondary']};'>"
                     f"Valor apoio: "
                     f"€{float(proj.get('Valor_Apoio',0) or 0):,.0f} · "
                     f"Início: {proj.get('Data_Inicio','')}</small><br>"
                     f"<small style='color:{THEME['accent']};'>"
-                    f"📊 Próximo reporte trimestral — verificar portal"
+                    f"Próximo reporte trimestral — verificar portal"
                     f"</small></div>",
                     unsafe_allow_html=True
                 )

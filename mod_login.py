@@ -161,7 +161,7 @@ def render_login():
         st.markdown(
             f"<p style='text-align:center; font-size:0.8rem;'>"
             f"<a href='/?page=criar_admin' style='color:{THEME['accent']};'>"
-            f"🔧 Criar utilizador Admin</a></p>",
+            f"Criar utilizador Admin</a></p>",
             unsafe_allow_html=True
         )
 

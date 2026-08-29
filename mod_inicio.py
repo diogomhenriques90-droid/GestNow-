@@ -113,7 +113,7 @@ def render_inicio(*args):
             f"<div style='background:rgba(14,124,134,0.10);"
             f"border:1px solid rgba(14,124,134,0.3);"
             f"border-radius:14px;padding:14px 12px;text-align:left;'>"
-            f"<p style='color:{THEME['text_secondary']};font-size:0.7rem;margin:0 0 4px;'>⏱️ Horas este mês</p>"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.7rem;margin:0 0 4px;'>Horas este mês</p>"
             f"<p style='color:{THEME['text']};font-size:1.5rem;font-weight:900;margin:0;'>"
             f"{fh(horas_mes)}</p></div>",
             unsafe_allow_html=True
@@ -125,7 +125,7 @@ def render_inicio(*args):
         st.markdown(
             f"<div style='background:{cor};border:1px solid {brd};"
             f"border-radius:14px;padding:14px 12px;text-align:left;'>"
-            f"<p style='color:{THEME['text_secondary']};font-size:0.7rem;margin:0 0 4px;'>📋 Por validar</p>"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.7rem;margin:0 0 4px;'>Por validar</p>"
             f"<p style='color:{THEME['text']};font-size:1.5rem;font-weight:900;margin:0;'>"
             f"{fh(horas_pend)}</p></div>",
             unsafe_allow_html=True
@@ -148,9 +148,9 @@ def render_inicio(*args):
             n_regs = int((dc2 >= ts_inicio_mes).sum())
 
     c1, c2, c3 = st.columns(3)
-    with c1: st.metric("🏭 Obras",    n_obras)
-    with c2: st.metric("📦 Pedidos",  n_pend)
-    with c3: st.metric("📋 Registos", n_regs)
+    with c1: st.metric("Obras",    n_obras)
+    with c2: st.metric("Pedidos",  n_pend)
+    with c3: st.metric("Registos", n_regs)
 
     st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
 
@@ -274,7 +274,6 @@ def render_inicio(*args):
         st.markdown(
             f"<div style='background:{THEME['surface']};border-radius:14px;padding:36px 20px;"
             f"text-align:center;border:1px dashed {THEME['border']};'>"
-            f"<p style='font-size:2rem;margin:0 0 8px;opacity:0.3;'>📋</p>"
             f"<p style='color:{THEME['text_secondary']};font-size:0.84rem;margin:0;font-weight:600;'>"
             f"Sem registos aprovados nos últimos 7 dias</p>"
             f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:5px 0 0;'>"

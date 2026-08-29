@@ -79,7 +79,7 @@ def render_dashboard(*args):
     st.markdown(f"""
     <div style="background:{THEME['surface']};padding:30px;
         border-radius:{THEME['radius']};margin-bottom:30px;border:1px solid {THEME['border']};">
-        <h1 style="color:{THEME['text']};margin:0;font-size:2.5rem;">📊 Dashboard Executivo</h1>
+        <h1 style="color:{THEME['text']};margin:0;font-size:2.5rem;">Dashboard Executivo</h1>
         <p style="color:{THEME['text_secondary']};margin:10px 0 0 0;">Visão geral de produção e KPIs</p>
         <p style="color:{THEME['text_secondary']};margin:5px 0 0 0;font-size:0.9rem;">
             {datetime.now().strftime('%d/%m/%Y %H:%M')}
@@ -141,12 +141,12 @@ def render_dashboard(*args):
 
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     kpis = [
-        (total_obras,    "🏭 Obras Ativas"),
-        (total_tecnicos, "👷 Técnicos"),
-        (f"{total_horas:.0f}h", "⏱️ Horas Totais"),
-        (f"{produtividade:.1f}%", "✅ Horas Válidas"),
-        (total_instrumentos, "🔧 Instrumentos"),
-        (f"{progresso_geral:.1f}%", "📈 Progresso"),
+        (total_obras,    "Obras Ativas"),
+        (total_tecnicos, "Técnicos"),
+        (f"{total_horas:.0f}h", "Horas Totais"),
+        (f"{produtividade:.1f}%", "Horas Válidas"),
+        (total_instrumentos, "Instrumentos"),
+        (f"{progresso_geral:.1f}%", "Progresso"),
     ]
     for col, (val, lbl) in zip([col1, col2, col3, col4, col5, col6], kpis):
         with col:
@@ -254,7 +254,7 @@ def render_dashboard(*args):
                 .rename(columns={0: 'Pendentes'})
             )
             if not pendentes.empty:
-                st.markdown("### ⏳ Validações Pendentes")
+                st.markdown("### Validações Pendentes")
                 st.dataframe(pendentes, use_container_width=True, hide_index=True)
         else:
             st.info("Sem dados disponíveis.")
@@ -271,7 +271,7 @@ def render_dashboard(*args):
     with col_p1:
         st.markdown(f"""
         <div class="kpi-card">
-            <h4 style="color:{THEME['accent']};margin:0 0 15px 0;">📅 Conclusão Prevista</h4>
+            <h4 style="color:{THEME['accent']};margin:0 0 15px 0;">Conclusão Prevista</h4>
             <p style="color:{THEME['text_secondary']};">Progresso atual: {progresso_geral:.1f}%</p>
             <p style="color:{THEME['text']};font-size:1.5rem;font-weight:bold;margin:15px 0;">{data_prev}</p>
             <p style="color:{THEME['text_secondary']};font-size:0.85rem;">*Baseado na média dos últimos 30 dias</p>
@@ -279,7 +279,7 @@ def render_dashboard(*args):
     with col_p2:
         st.markdown(f"""
         <div class="kpi-card">
-            <h4 style="color:{THEME['accent']};margin:0 0 15px 0;">⚠️ Riscos Detetados</h4>
+            <h4 style="color:{THEME['accent']};margin:0 0 15px 0;">Riscos Detetados</h4>
             <ul style="color:{THEME['text_secondary']};margin:0;padding-left:20px;">
                 <li>{obras_atrasadas} obra(s) com progresso abaixo de 50%</li>
                 <li>{total_instrumentos - instrumentos_instalados - calibrados_count} instrumento(s) por calibrar</li>
@@ -309,7 +309,7 @@ def render_dashboard(*args):
                     st.markdown(f"""
                     <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-left:3px solid {THEME['success']};
                         padding:10px;border-radius:5px;margin-bottom:10px;">
-                        <strong style="color:{THEME['success']};">✅ {val.get('Técnico','N/A')}</strong>
+                        <strong style="color:{THEME['success']};">{val.get('Técnico','N/A')}</strong>
                         <p style="margin:5px 0 0 0;color:{THEME['text_secondary']};font-size:0.85rem;">
                             {horas_v:.1f}h em {val.get('Obra','N/A')} | {data_str}
                         </p>
@@ -326,7 +326,7 @@ def render_dashboard(*args):
                 st.markdown(f"""
                 <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-left:3px solid {THEME['accent']};
                     padding:10px;border-radius:5px;margin-bottom:10px;">
-                    <strong style="color:{THEME['accent']};">📍 {i['Tag']}</strong>
+                    <strong style="color:{THEME['accent']};">{i['Tag']}</strong>
                     <p style="margin:5px 0 0 0;color:{THEME['text_secondary']};font-size:0.85rem;">
                         {i['Obra']} | {i['Desc']}
                     </p>

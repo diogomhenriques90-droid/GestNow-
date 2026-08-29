@@ -23,10 +23,10 @@ _STATUS_COR = {
     "3": "#6B7280",
 }
 _STATUS_LABEL = {
-    "0": "🟠 Pendente",
-    "1": "🟢 Validado",
-    "2": "🔵 Faturação",
-    "3": "⚫ Processado",
+    "0": "Pendente",
+    "1": "Validado",
+    "2": "Faturação",
+    "3": "Processado",
 }
 
 
@@ -91,7 +91,7 @@ def render_secretariado(*args):
         st.markdown("### Primeira Validação de Horas")
         st.info(
             "Aqui validas as horas de obras **sem Chefe de Equipa** ou registos "
-            "que o chefe não validou. Após validação a bolinha fica **🟢 verde**."
+            "que o chefe não validou. Após validação a bolinha fica **verde**."
         )
 
         if registos_db.empty:
@@ -130,7 +130,7 @@ def render_secretariado(*args):
                         save_db(registos_db, "registos.csv")
                         for _, r in df_view.iterrows():
                             criar_notificacao(destinatario=r['Técnico'],
-                                titulo="🟢 Horas Validadas",
+                                titulo="Horas Validadas",
                                 mensagem=f"{r['Horas_Total']}h em {r['Obra']} validadas.",
                                 tipo="success", acao_url="/")
                         log_audit(usuario=user_nome, acao="VALIDACAO1_HORAS",
@@ -151,7 +151,7 @@ def render_secretariado(*args):
                         save_db(registos_db, "registos.csv")
                         for _, r in df_view.iterrows():
                             criar_notificacao(destinatario=r['Técnico'],
-                                titulo="❌ Horas Rejeitadas",
+                                titulo="Horas Rejeitadas",
                                 mensagem=f"{r['Horas_Total']}h em {r['Obra']} rejeitadas.",
                                 tipo="error", acao_url="/")
                         inv("registos.csv")
@@ -186,7 +186,7 @@ def render_secretariado(*args):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Validado1_Data'] = datetime.now().strftime('%d/%m/%Y %H:%M')
                             save_db(registos_db, "registos.csv")
                             criar_notificacao(destinatario=row.get('Técnico',''),
-                                titulo="🟢 Horas Validadas",
+                                titulo="Horas Validadas",
                                 mensagem=f"{fh(row.get('Horas_Total',0))} em {row.get('Obra','')} validadas.",
                                 tipo="success", acao_url="/")
                             inv("registos.csv")
@@ -199,7 +199,7 @@ def render_secretariado(*args):
                             registos_db.loc[registos_db['ID'] == reg_id, 'Status'] = '-1'
                             save_db(registos_db, "registos.csv")
                             criar_notificacao(destinatario=row.get('Técnico',''),
-                                titulo="❌ Horas Rejeitadas",
+                                titulo="Horas Rejeitadas",
                                 mensagem=f"{fh(row.get('Horas_Total',0))} em {row.get('Obra','')} rejeitadas.",
                                 tipo="error", acao_url="/")
                             inv("registos.csv")
@@ -214,7 +214,7 @@ def render_secretariado(*args):
         st.markdown("### Segunda Validação — Enviar para Faturação")
         st.info(
             "Aqui validas horas já aprovadas pelo Chefe/Secretariado. "
-            "Após esta validação a bolinha fica **🔵 azul** e os dados entram na faturação."
+            "Após esta validação a bolinha fica **azul** e os dados entram na faturação."
         )
 
         if registos_db.empty:
@@ -239,8 +239,8 @@ def render_secretariado(*args):
 
                 total_h = df_view2['Horas_Total'].sum()
                 col_k1, col_k2 = st.columns(2)
-                with col_k1: st.metric("📋 Registos", len(df_view2))
-                with col_k2: st.metric("⏱️ Total Horas", fh(total_h))
+                with col_k1: st.metric("Registos", len(df_view2))
+                with col_k2: st.metric("Total Horas", fh(total_h))
 
                 col_va2, col_vr2 = st.columns(2)
                 with col_va2:
@@ -327,7 +327,7 @@ def render_secretariado(*args):
             azuis = regs[regs['Status'] == '2'].copy()
 
             if azuis.empty:
-                st.info("Sem horas com 🔵 status de faturação.")
+                st.info("Sem horas com status de faturação.")
             else:
                 obras_fat = sorted(azuis['Obra'].dropna().unique().tolist())
                 obra_sel  = st.selectbox("Selecionar Obra", obras_fat, key="fat_obra")
@@ -364,7 +364,7 @@ def render_secretariado(*args):
                             f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                             f"padding:12px 16px;margin-bottom:8px;"
                             f"border-left:4px solid {cor_fp};'>"
-                            f"<b style='color:{THEME['text']};'>📋 {periodo}</b>"
+                            f"<b style='color:{THEME['text']};'>{periodo}</b>"
                             f"<span style='float:right;color:{cor_fp};font-size:0.8rem;'>"
                             f"{status}</span><br>"
                             f"<small style='color:{THEME['text_secondary']};'>Responsável: {resp} · Selo: {selo}</small>"
@@ -437,13 +437,13 @@ def render_secretariado(*args):
                                 })
                                 st.markdown(
                                     f"<p style='color:{THEME['error']};font-size:0.8rem;"
-                                    f"padding:8px 0;margin:0;'>⚠️ {fh(abs(diff))}</p>",
+                                    f"padding:8px 0;margin:0;'>{fh(abs(diff))}</p>",
                                     unsafe_allow_html=True
                                 )
                             else:
                                 st.markdown(
                                     f"<p style='color:{THEME['success']};font-size:0.8rem;"
-                                    "padding:8px 0;margin:0;'>✅ OK</p>",
+                                    "padding:8px 0;margin:0;'>OK</p>",
                                     unsafe_allow_html=True
                                 )
                 else:
@@ -479,18 +479,18 @@ def render_secretariado(*args):
                             inconformes.append({
                                 "Técnico": tec_nome, "Horas App": fh(horas_app),
                                 "Horas Folha": "—", "Diferença": "—",
-                                "Sentido": "❌ Não encontrado na folha"
+                                "Sentido": "Não encontrado na folha"
                             })
                             with col_i: st.markdown(f"**{tec_nome}**")
-                            with col_a: st.markdown(f"🔵 {fh(horas_app)}")
+                            with col_a: st.markdown(f"App: {fh(horas_app)}")
                             with col_f: st.markdown("—")
                             with col_d: st.markdown("—")
-                            with col_e: st.markdown("❌ Não na folha")
+                            with col_e: st.markdown("Não na folha")
                         else:
                             diff = round(horas_app - h_folha, 2)
                             with col_i: st.markdown(f"**{tec_nome}**")
-                            with col_a: st.markdown(f"🔵 {fh(horas_app)}")
-                            with col_f: st.markdown(f"📋 {fh(h_folha)}")
+                            with col_a: st.markdown(f"App: {fh(horas_app)}")
+                            with col_f: st.markdown(f"Folha: {fh(h_folha)}")
                             if abs(diff) > 0.25:
                                 todos_ok = False
                                 inconformes.append({
@@ -501,7 +501,7 @@ def render_secretariado(*args):
                                 with col_d:
                                     st.markdown(
                                         f"<span style='color:{THEME['error']};font-weight:700;'>"
-                                        f"⚠️ {fh(abs(diff))}</span>",
+                                        f"{fh(abs(diff))}</span>",
                                         unsafe_allow_html=True
                                     )
                                 with col_e:
@@ -512,8 +512,8 @@ def render_secretariado(*args):
                                         unsafe_allow_html=True
                                     )
                             else:
-                                with col_d: st.markdown("✅ OK")
-                                with col_e: st.markdown("✅")
+                                with col_d: st.markdown("OK")
+                                with col_e: st.markdown("OK")
 
                     nomes_app = set(resumo_tec['Técnico'].str.lower().tolist())
                     for nome_ocr, h_ocr in folha_dict.items():
@@ -526,13 +526,13 @@ def render_secretariado(*args):
                             inconformes.append({
                                 "Técnico": nome_ocr, "Horas App": "—",
                                 "Horas Folha": fh(h_ocr), "Diferença": "—",
-                                "Sentido": "❌ Só na folha, não na app"
+                                "Sentido": "Só na folha, não na app"
                             })
                             st.markdown(
                                 f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                 f"border-left:3px solid {THEME['error']};"
                                 f"border-radius:8px;padding:8px;margin-top:4px;'>"
-                                f"⚠️ <b>{nome_ocr}</b> — na folha ({fh(h_ocr)}) "
+                                f"<b>{nome_ocr}</b> — na folha ({fh(h_ocr)}) "
                                 f"mas <b>sem registo na app</b></div>",
                                 unsafe_allow_html=True
                             )
@@ -550,7 +550,7 @@ def render_secretariado(*args):
                         "Verifica com o Chefe de Equipa se houve erro "
                         "na app, na folha ou no registo do técnico."
                     )
-                    with st.expander("🔓 Forçar aprovação com justificação"):
+                    with st.expander("Forçar aprovação com justificação"):
                         justificacao = st.text_area(
                             "Justificação obrigatória *",
                             key="fat_just",
@@ -602,7 +602,7 @@ def render_secretariado(*args):
                     for idx, ped in pend_gas.iterrows():
                         ped_id = ped.get('ID', f"GAS_{idx}")
                         with st.expander(
-                            f"⛽ {ped.get('Litros',0)}L — "
+                            f"{ped.get('Litros',0)}L — "
                             f"{ped.get('Solicitante','N/A')} ({ped.get('Obra','N/A')})",
                             expanded=True
                         ):
@@ -637,7 +637,7 @@ def render_secretariado(*args):
                                     save_db(req_mat_db, "req_materiais.csv")
                                     criar_notificacao(
                                         destinatario=ped.get('Solicitante',''),
-                                        titulo="✅ Gasóleo Validado",
+                                        titulo="Gasóleo Validado",
                                         mensagem=f"{ped.get('Litros')}L validados!",
                                         tipo="success", acao_url="/tecnico"
                                     )
@@ -698,7 +698,7 @@ def render_secretariado(*args):
                                   "Alta":THEME['error'],"Crítica - Paragem":THEME['error']}.get(
                                       ped.get('Urgencia','Média'),THEME['text_secondary'])
                         with st.expander(
-                            f"🔧 {str(ped.get('Equipamento','Equipamento'))[:40]} — "
+                            f"{str(ped.get('Equipamento','Equipamento'))[:40]} — "
                             f"{ped.get('Solicitante','N/A')}",
                             expanded=True
                         ):
@@ -738,7 +738,7 @@ def render_secretariado(*args):
                                     save_db(incs_db, "incidentes.csv")
                                     criar_notificacao(
                                         destinatario=ped.get('Solicitante',''),
-                                        titulo="✅ Reparação Aprovada",
+                                        titulo="Reparação Aprovada",
                                         mensagem=f"A tua reparação de {ped.get('Equipamento')} foi aprovada!",
                                         tipo="success", acao_url="/tecnico"
                                     )
@@ -806,15 +806,15 @@ def render_secretariado(*args):
             with col_h3:
                 status_sel = st.selectbox(
                     "Estado",
-                    ["Todos","🟢 Verde (1)","🔵 Azul (2)","⚫ Processado (3)","❌ Rejeitado"],
+                    ["Todos","Verde (1)","Azul (2)","Processado (3)","Rejeitado"],
                     key="hist_status"
                 )
 
             status_map = {
-                "🟢 Verde (1)":     "1",
-                "🔵 Azul (2)":      "2",
-                "⚫ Processado (3)": "3",
-                "❌ Rejeitado":     "-1",
+                "Verde (1)":     "1",
+                "Azul (2)":      "2",
+                "Processado (3)": "3",
+                "Rejeitado":     "-1",
             }
 
             hist_all = regs[regs['Status'].isin(['1','2','3','-1'])].copy()
@@ -838,8 +838,8 @@ def render_secretariado(*args):
             if not hist_all.empty:
                 total_h_hist = hist_all['Horas_Total'].sum()
                 col_m1, col_m2 = st.columns(2)
-                with col_m1: st.metric("📋 Registos", len(hist_all))
-                with col_m2: st.metric("⏱️ Total", fh(total_h_hist))
+                with col_m1: st.metric("Registos", len(hist_all))
+                with col_m2: st.metric("Total", fh(total_h_hist))
 
                 cols_show = [c for c in ['Data','Técnico','Obra','Horas_Total','Estado']
                              if c in hist_all.columns]
@@ -886,7 +886,7 @@ def _processar_pagamento(
     for tec in azuis_obra['Técnico'].unique():
         criar_notificacao(
             destinatario=tec,
-            titulo="⚫ Horas Processadas",
+            titulo="Horas Processadas",
             mensagem=f"As tuas horas em {obra} foram processadas para pagamento.",
             tipo="info", acao_url="/"
         )

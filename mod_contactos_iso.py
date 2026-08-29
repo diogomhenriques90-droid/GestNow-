@@ -27,15 +27,15 @@ _COLS_OPORT = [
 _STAGES_ATIVOS = {"prospeto", "contactado", "reuniao", "proposta", "negociacao"}
 
 _CANAIS = [
-    "📞 Telefone",
-    "📧 Email",
-    "💬 WhatsApp / Mensagem",
-    "🏆 Concurso Público",
-    "🤝 Visita Presencial",
-    "📋 Indicação / Referência",
-    "🌐 Website / LinkedIn",
-    "📮 Correio / Fax",
-    "🔄 Renovação de Contrato",
+    "Telefone",
+    "Email",
+    "WhatsApp / Mensagem",
+    "Concurso Público",
+    "Visita Presencial",
+    "Indicação / Referência",
+    "Website / LinkedIn",
+    "Correio / Fax",
+    "Renovação de Contrato",
 ]
 
 _ESTADOS   = ["Aberto", "Em Seguimento", "Fechado"]
@@ -48,7 +48,7 @@ _COR_ESTADO = {
     "Fechado":       THEME['success'],
 }
 
-_CANAL_ICON = {c: c.split()[0] for c in _CANAIS}  # primeiro emoji de cada string
+_CANAL_TXT = {c: c for c in _CANAIS}  # usado no título do expander (com fallback "Contacto")
 
 
 def _load(nome, cols):
@@ -108,10 +108,10 @@ def render_contactos_iso(*_):
 
     st.markdown("### Contactos ISO 9001:2015")
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("📋 Total Contactos",   n_total)
-    with c2: st.metric("🟡 Em Aberto",          n_aberto)
-    with c3: st.metric("⚠️ Sem Evidência",      n_sem_ev)
-    with c4: st.metric("🔗 Sem Oportunidade",   n_sem_op)
+    with c1: st.metric("Total Contactos",   n_total)
+    with c2: st.metric("Em Aberto",          n_aberto)
+    with c3: st.metric("Sem Evidência",      n_sem_ev)
+    with c4: st.metric("Sem Oportunidade",   n_sem_op)
     st.divider()
 
     tab_lista, tab_novo, tab_timeline, tab_analytics = st.tabs([
@@ -126,7 +126,7 @@ def render_contactos_iso(*_):
     # ══════════════════════════════════════════════════════════════════════════
     with tab_lista:
         if ct_db.empty:
-            st.info("Sem contactos registados. Usa o tab ➕ Registar Contacto.")
+            st.info("Sem contactos registados. Usa o tab Registar Contacto.")
         else:
             col_f1, col_f2, col_f3, col_f4 = st.columns(4)
             with col_f1:
@@ -157,12 +157,14 @@ def render_contactos_iso(*_):
                 tem_ev = ct.get("Evidencia_Tipo", "Nenhuma") != "Nenhuma"
                 tem_op = bool(ct.get("Oportunidade_ID", ""))
                 cor_e  = _COR_ESTADO.get(estado, THEME['text_secondary'])
-                icon   = _CANAL_ICON.get(ct.get("Canal", ""), "📋")
+                canal_txt = _CANAL_TXT.get(ct.get("Canal", ""), "Contacto")
 
                 with st.expander(
-                    f"{icon} {ct.get('Data','')} {ct.get('Hora','')} — "
+                    f"{canal_txt} — {ct.get('Data','')} {ct.get('Hora','')} — "
                     f"{ct.get('Cliente_Nome','')} | {ct.get('Contacto_Nome','')} "
-                    f"| {estado} {'✅' if tem_ev else '⚠️'} {'🔗' if tem_op else ''}",
+                    f"| {estado} "
+                    f"| {'Com evidência' if tem_ev else 'Sem evidência'}"
+                    f"{' | Oportunidade' if tem_op else ''}",
                     expanded=False,
                 ):
                     col_d1, col_d2 = st.columns([2, 1])
@@ -190,7 +192,7 @@ def render_contactos_iso(*_):
                                 f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                 f"border-left:3px solid {THEME['warning']};"
                                 f"border-radius:4px;padding:8px;margin-top:6px;'>"
-                                f"<small style='color:{THEME['warning']};'>🗓️ Próximo passo: "
+                                f"<small style='color:{THEME['warning']};'>Próximo passo: "
                                 f"{ct.get('Proximo_Passo','')} — "
                                 f"{ct.get('Data_Proximo_Passo','')}</small>"
                                 f"</div>",
@@ -201,13 +203,13 @@ def render_contactos_iso(*_):
                                 f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                 f"border-left:3px solid {THEME['accent']};"
                                 f"border-radius:4px;padding:8px;margin-top:6px;'>"
-                                f"<small style='color:{THEME['accent']};'>🔗 Oportunidade: "
+                                f"<small style='color:{THEME['accent']};'>Oportunidade: "
                                 f"{ct.get('Oportunidade_ID','')}</small>"
                                 f"</div>",
                                 unsafe_allow_html=True,
                             )
                         if ct.get("Notas", ""):
-                            st.caption(f"📝 {ct.get('Notas','')}")
+                            st.caption(f"Notas: {ct.get('Notas','')}")
 
                     with col_d2:
                         st.markdown(
@@ -230,7 +232,7 @@ def render_contactos_iso(*_):
                                     use_container_width=True,
                                 )
                         else:
-                            st.caption("⚠️ Sem evidência")
+                            st.caption("Sem evidência")
 
                         novo_est = st.selectbox(
                             "Estado",
@@ -404,15 +406,14 @@ def render_contactos_iso(*_):
                 cid    = ct.get("ID", "")
                 tem_ev = ct.get("Evidencia_Tipo", "Nenhuma") != "Nenhuma"
                 op_id  = str(ct.get("Oportunidade_ID", "") or "")
-                icon   = _CANAL_ICON.get(ct.get("Canal", ""), "📋")
                 resumo = str(ct.get("Resumo", ""))
                 ev_txt = (
-                    f"<small style='color:{THEME['success']};'>📎 {ct.get('Evidencia_Tipo','')}</small>"
+                    f"<small style='color:{THEME['success']};'>{ct.get('Evidencia_Tipo','')}</small>"
                     if tem_ev else
-                    f"<small style='color:{THEME['error']};'>⚠️ Sem evidência</small>"
+                    f"<small style='color:{THEME['error']};'>Sem evidência</small>"
                 )
                 op_txt = (
-                    f"<br><small style='color:{THEME['accent']};'>🔗 Oportunidade: {op_id}</small>"
+                    f"<br><small style='color:{THEME['accent']};'>Oportunidade: {op_id}</small>"
                     if op_id else ""
                 )
 
@@ -421,7 +422,7 @@ def render_contactos_iso(*_):
                     f"padding:10px 16px;margin-bottom:6px;"
                     f"background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:0 8px 8px 0;'>"
                     f"<b style='color:{THEME['text']};'>"
-                    f"{icon} {ct.get('Data','')} {ct.get('Hora','')} — "
+                    f"{ct.get('Data','')} {ct.get('Hora','')} — "
                     f"{ct.get('Canal','')} ({ct.get('Sentido','')})</b><br>"
                     f"<span style='color:{THEME['text_secondary']};'>"
                     f"{ct.get('Contacto_Nome','')} | {ct.get('Assunto','')}</span><br>"
@@ -442,7 +443,7 @@ def render_contactos_iso(*_):
                             f"border-left:3px solid {THEME['accent']};"
                             f"padding:8px 14px;background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"border-radius:0 6px 6px 0;margin-bottom:8px;'>"
-                            f"<small style='color:{THEME['accent']};'>↳ Oportunidade: "
+                            f"<small style='color:{THEME['accent']};'>Oportunidade: "
                             f"<b>{op.get('Nome','')}</b> | "
                             f"Stage: {op.get('Stage','')} | "
                             f"Valor: €{valor:,.0f}</small>"
@@ -512,7 +513,7 @@ def render_contactos_iso(*_):
             col_kpi1, col_kpi2 = st.columns(2)
 
             with col_kpi1:
-                st.markdown("**🔗 Contactos sem Oportunidade Ligada**")
+                st.markdown("**Contactos sem Oportunidade Ligada**")
                 sem_op = ct_db[
                     ct_db["Oportunidade_ID"].isna() | (ct_db["Oportunidade_ID"] == "")
                 ]
@@ -534,7 +535,7 @@ def render_contactos_iso(*_):
                     st.success("Todos os contactos têm oportunidade ligada.")
 
             with col_kpi2:
-                st.markdown("**⚠️ Contactos sem Evidência**")
+                st.markdown("**Contactos sem Evidência**")
                 sem_ev = ct_db[ct_db["Evidencia_Tipo"] == "Nenhuma"]
                 if not sem_ev.empty:
                     for _, ct in sem_ev.head(10).iterrows():

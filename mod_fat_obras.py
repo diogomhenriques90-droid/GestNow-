@@ -509,7 +509,7 @@ def _grafico_timeline_financeira(faturas_cli, diarias_pag_db,
                     val = float(row.get('Valor_Total',0) or 0)
                     eventos.append({
                         'data':  row['Data_d'],
-                        'tipo':  '💶 Diárias',
+                        'tipo':  'Diárias',
                         'valor': -val,
                         'cor':   '#F59E0B',
                         'desc':  f"Pagamento diárias — €{val:,.2f}"
@@ -903,11 +903,11 @@ def render_fat_obras(obras_db, registos_db,
                else THEME['error']
 
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("🏭 Obras Ativas",   len(obras_ativas))
-    with c2: st.metric("💰 Receita Total",  f"€{rec_total:,.2f}")
-    with c3: st.metric("💸 Custo Total",    f"€{cust_total:,.2f}")
-    with c4: st.metric("📈 Margem Global",  f"{marg_pct_g:.1f}%")
-    with c5: st.metric("⭐ Score Médio",    f"{score_med:.0f}/100")
+    with c1: st.metric("Obras Ativas",   len(obras_ativas))
+    with c2: st.metric("Receita Total",  f"€{rec_total:,.2f}")
+    with c3: st.metric("Custo Total",    f"€{cust_total:,.2f}")
+    with c4: st.metric("Margem Global",  f"{marg_pct_g:.1f}%")
+    with c5: st.metric("Score Médio",    f"{score_med:.0f}/100")
 
     st.divider()
 
@@ -1119,25 +1119,25 @@ def render_fat_obras(obras_db, registos_db,
             c1,c2,c3,c4 = st.columns(4)
             with c1:
                 st.metric(
-                    "💰 Receita",
+                    "Receita",
                     f"€{pl_sel['receita_total']:,.2f}"
                 )
             with c2:
                 st.metric(
-                    "💸 Custo Total",
+                    "Custo Total",
                     f"€{pl_sel['custo_total']:,.2f}"
                 )
             with c3:
                 m_pct = pl_sel['margem_pct']
                 cor_m = "normal" if m_pct >= 20 else "inverse"
                 st.metric(
-                    "📈 Margem",
+                    "Margem",
                     f"{m_pct:.1f}%",
                     delta=f"€{pl_sel['margem_bruta']:,.2f}"
                 )
             with c4:
                 st.metric(
-                    "⭐ Score",
+                    "Score",
                     f"{score_sel}/100",
                     delta=ic_sel
                 )
@@ -1556,10 +1556,10 @@ def render_fat_obras(obras_db, registos_db,
 
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.metric("🔄 WIP Total", f"€{total_wip:,.2f}")
+                    st.metric("WIP Total", f"€{total_wip:,.2f}")
                 with c2:
                     st.metric(
-                        "✅ Pronto a Faturar",
+                        "Pronto a Faturar",
                         f"€{pronto_fat:,.2f}"
                     )
 
@@ -1689,11 +1689,11 @@ def render_fat_obras(obras_db, registos_db,
 
                 c1, c2, c3 = st.columns(3)
                 with c1:
-                    st.metric("📋 Faturas",    len(fc_tl))
+                    st.metric("Faturas",    len(fc_tl))
                 with c2:
-                    st.metric("💰 Total Fat.", f"€{total_fat_tl:,.2f}")
+                    st.metric("Total Fat.", f"€{total_fat_tl:,.2f}")
                 with c3:
-                    st.metric("✅ Recebido",   f"€{pagas_tl:,.2f}")
+                    st.metric("Recebido",   f"€{pagas_tl:,.2f}")
 
     # ════════════════════════════════════════════════════════════════
     # TAB — SCATTER LUCRATIVIDADE
@@ -1790,7 +1790,7 @@ def render_fat_obras(obras_db, registos_db,
                     "Responde em português, conciso e direto, "
                     "com dados concretos."
                 )
-                with st.spinner("🤖 A analisar..."):
+                with st.spinner("A analisar..."):
                     try:
                         client  = anthropic.Anthropic(api_key=api_key)
                         resp    = client.messages.create(
@@ -1809,7 +1809,7 @@ def render_fat_obras(obras_db, registos_db,
                             f"line-height:1.6;'>"
                             f"<p style='color:{THEME['accent']};"
                             f"font-weight:700;margin:0 0 8px;'>"
-                            f"🤖 ANÁLISE IA — LUCRATIVIDADE</p>"
+                            f"ANÁLISE IA — LUCRATIVIDADE</p>"
                             f"{insight.replace(chr(10),'<br>')}"
                             f"</div>",
                             unsafe_allow_html=True

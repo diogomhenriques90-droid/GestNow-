@@ -1059,7 +1059,7 @@ def render_fat_fiscal(obras_db, registos_db,
                 f"margin-bottom:6px;border-left:3px solid {ben['cor']};'>"
                 f"<b style='color:{THEME['text']};font-size:0.88rem;'>{ben['nome']}</b><br>"
                 f"<small style='color:{THEME['text_secondary']};'>{ben['desc']}</small><br>"
-                f"<small style='color:{ben['cor']};'>💡 {ben['impacto']}</small>"
+                f"<small style='color:{ben['cor']};'>{ben['impacto']}</small>"
                 f"</div>",
                 unsafe_allow_html=True
             )

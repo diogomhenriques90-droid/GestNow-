@@ -6,7 +6,7 @@ from streamlit_drawable_canvas import st_canvas
 import time
 
 from core import (
-    save_db, inv, fh, sl, load_db, canvas_to_b64,
+    save_db, inv, fh, load_db, canvas_to_b64,
     COLORS, TIPOS_FRENTE, REGRAS_OURO,
     log_audit, criar_notificacao, process_and_compress_image,
     _gcs_read, hp, _load_users_cached, THEME
@@ -366,7 +366,7 @@ def render_tecnico(*args):
             # Linha: data + botão ＋
             col_data, col_fab = st.columns([4, 1])
             with col_data:
-                prefix = "📍 Hoje" if eh_hoje_sel else dia_letra
+                prefix = "Hoje" if eh_hoje_sel else dia_letra
                 st.markdown(
                     f"<p style='color:{THEME['text']};font-weight:700;"
                     f"font-size:0.92rem;margin:0;'>"
@@ -508,7 +508,7 @@ def render_tecnico(*args):
                 st.markdown(
                     f"<div style='text-align:center;padding:50px 20px 40px;'>"
                     f"<div style='font-size:3.5rem;margin-bottom:12px;"
-                    f"opacity:0.25;'>📋</div>"
+                    f"opacity:0.25;'></div>"
                     f"<p style='color:{THEME['text_secondary']};font-weight:600;margin:0;"
                     f"font-size:0.9rem;'>Sem ponto registado neste dia</p>"
                     f"</div>",
@@ -566,7 +566,7 @@ def render_tecnico(*args):
                     f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;"
                     f"font-weight:700;letter-spacing:0.08em;"
                     f"text-transform:uppercase;margin:0 0 6px;'>"
-                    f"🏗️ Obra</p>",
+                    f"Obra</p>",
                     unsafe_allow_html=True
                 )
                 obras_lista = []
@@ -609,7 +609,7 @@ def render_tecnico(*args):
                     f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;"
                     f"font-weight:700;letter-spacing:0.08em;"
                     f"text-transform:uppercase;margin:8px 0 6px;'>"
-                    f"🔧 Frente de Trabalho</p>",
+                    f"Frente de Trabalho</p>",
                     unsafe_allow_html=True
                 )
                 frente_sel = st.selectbox(
@@ -629,7 +629,7 @@ def render_tecnico(*args):
                     f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;"
                     f"font-weight:700;letter-spacing:0.08em;"
                     f"text-transform:uppercase;margin:0 0 8px;'>"
-                    f"⏱️ Horas de Trabalho</p>",
+                    f"Horas de Trabalho</p>",
                     unsafe_allow_html=True
                 )
 
@@ -706,7 +706,7 @@ def render_tecnico(*args):
 
                 # Descrição
                 relatorio = st.text_area(
-                    "📝 Descrição (opcional)",
+                    "Descrição (opcional)",
                     placeholder="Ex: Montagem de instrumentos, calibração...",
                     key="reg_relat", height=70
                 )
@@ -729,7 +729,7 @@ def render_tecnico(*args):
                         type="primary"
                     )
 
-            if st.button("← Voltar", key="btn_voltar"):
+            if st.button("Voltar", key="btn_voltar"):
                 st.session_state.show_reg_form    = False
                 st.session_state.periodos_trabalho = [{"entrada": "08:00",
                                                         "saida":   "17:00"}]
@@ -782,7 +782,7 @@ def render_tecnico(*args):
                         )
                     criar_notificacao(
                         destinatario="admin",
-                        titulo="📋 Novo Registo de Ponto",
+                        titulo="Novo Registo de Ponto",
                         mensagem=(f"{user_nome} registou "
                                   f"{fh(total_horas)} em {obra_sel}"),
                         tipo="info",
@@ -953,7 +953,7 @@ def render_tecnico(*args):
                 st.markdown(
                     f"<div style='text-align:center;padding:40px 20px;'>"
                     f"<div style='font-size:3rem;margin-bottom:12px;"
-                    f"opacity:0.25;'>✅</div>"
+                    f"opacity:0.25;'></div>"
                     f"<p style='color:{THEME['text_secondary']};font-weight:600;margin:0;"
                     f"font-size:0.9rem;'>Sem registos pendentes de validação</p>"
                     f"</div>",
@@ -997,7 +997,7 @@ def render_tecnico(*args):
                         )
                         criar_notificacao(
                             destinatario="admin",
-                            titulo="✅ Validação em Massa",
+                            titulo="Validação em Massa",
                             mensagem=(
                                 f"{user_nome} validou "
                                 f"{len(ids_pend)} registo(s) de horas."
@@ -1065,7 +1065,7 @@ def render_tecnico(*args):
                         f"border-left:4px solid {THEME['text_secondary']};'>"
                         f"<div style='display:flex;"
                         f"justify-content:space-between;align-items:center;'>"
-                        f"<b style='color:{THEME['text']};'>👤 {tec}</b>"
+                        f"<b style='color:{THEME['text']};'>{tec}</b>"
                         f"<span style='color:{THEME['accent']};font-weight:900;"
                         f"font-size:1rem;'>{fh(total_tec)}</span>"
                         f"</div>"
@@ -1145,7 +1145,7 @@ def render_tecnico(*args):
                                 )
                                 criar_notificacao(
                                     destinatario=tec,
-                                    titulo="✅ Horas Validadas",
+                                    titulo="Horas Validadas",
                                     mensagem=(
                                         f"O teu registo de {fh(horas)} "
                                         f"em {obra_r} ({data_r}) "
@@ -1183,7 +1183,7 @@ def render_tecnico(*args):
                                 )
                                 criar_notificacao(
                                     destinatario=tec,
-                                    titulo="❌ Horas Rejeitadas",
+                                    titulo="Horas Rejeitadas",
                                     mensagem=(
                                         f"O teu registo de {fh(horas)} "
                                         f"em {obra_r} ({data_r}) "
@@ -1250,7 +1250,7 @@ def render_tecnico(*args):
                         st.markdown(
                             f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                             f"padding:12px 16px;margin-bottom:8px;'>"
-                            f"<b style='color:{THEME['text']};'>👤 {tec}</b>"
+                            f"<b style='color:{THEME['text']};'>{tec}</b>"
                             f"<span style='float:right;color:{THEME['accent']};"
                             f"font-weight:900;'>{fh(total)}</span><br>"
                             f"<small style='color:{THEME['text_secondary']};'>"
@@ -1297,8 +1297,8 @@ def render_tecnico(*args):
     # ── Tab HSE ───────────────────────────────────────────────────
     with tabs[1 + offset]:
         st.markdown("### Segurança HSE")
-        for ic, tit, des in REGRAS_OURO:
-            with st.expander(f"{ic} {tit}"):
+        for tit, des in REGRAS_OURO:
+            with st.expander(tit):
                 st.write(des)
         st.divider()
         st.markdown("### Reportar Incidente")
@@ -1355,7 +1355,7 @@ def render_tecnico(*args):
                     f"<div style='background:{THEME['surface']};border:2px solid {cp_};"
                     f"border-radius:10px;padding:12px;text-align:center;'>"
                     f"<b style='color:{cp_};'>"
-                    f"{'✅' if pv=='Sim' else '❌'} Documentos</b>"
+                    f"Documentos</b>"
                     f"<p style='color:{THEME['text_secondary']};font-size:0.73rem;margin:5px 0 0;'>"
                     f"{'Em ' + pvd if pv=='Sim' else 'Pendentes'}</p>"
                     f"</div>",
@@ -1368,11 +1368,10 @@ def render_tecnico(*args):
                 cp2 = (THEME['success'] if ps == 'Aceite'
                        else THEME['error'] if ps == 'Recusado'
                        else THEME['warning'])
-                ic_ = "✅" if ps == 'Aceite' else "❌" if ps == 'Recusado' else "⏳"
                 st.markdown(
                     f"<div style='background:{THEME['surface']};border:2px solid {cp2};"
                     f"border-radius:10px;padding:12px;text-align:center;'>"
-                    f"<b style='color:{cp2};'>{ic_} \u20AC{pv_}/h</b>"
+                    f"<b style='color:{cp2};'>\u20AC{pv_}/h</b>"
                     f"<p style='color:{THEME['text_secondary']};font-size:0.73rem;margin:5px 0 0;'>"
                     f"{'Aceite em ' + pd_ if ps=='Aceite' else ps if ps else 'Pendente'}"
                     f"</p></div>",
@@ -1395,7 +1394,7 @@ def render_tecnico(*args):
                     f"<div style='background:{THEME['warning']}1F;"
                     f"border-left:4px solid {THEME['warning']};border-radius:10px;"
                     f"padding:12px 16px;margin-bottom:14px;'>"
-                    f"<b style='color:{THEME['warning']};'>⚠️ Perfil incompleto</b>"
+                    f"<b style='color:{THEME['warning']};'>Perfil incompleto</b>"
                     f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;margin:4px 0 0;'>"
                     f"Por favor preenche os teus dados pessoais e profissionais "
                     f"para activar a tua conta.</p>"
@@ -1409,7 +1408,7 @@ def render_tecnico(*args):
                 st.markdown(
                     f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                     f"text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
-                    f"👤 Dados Pessoais</p>",
+                    f"Dados Pessoais</p>",
                     unsafe_allow_html=True
                 )
                 c1, c2 = st.columns(2)
@@ -1450,7 +1449,7 @@ def render_tecnico(*args):
                 st.markdown(
                     f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                     f"text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
-                    f"🏠 Morada</p>",
+                    f"Morada</p>",
                     unsafe_allow_html=True
                 )
                 mor_ = st.text_input(
@@ -1488,7 +1487,7 @@ def render_tecnico(*args):
                 st.markdown(
                     f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                     f"text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
-                    f"🚨 Contacto de Emergência</p>",
+                    f"Contacto de Emergência</p>",
                     unsafe_allow_html=True
                 )
                 c6, c7 = st.columns(2)
@@ -1520,7 +1519,7 @@ def render_tecnico(*args):
                 st.markdown(
                     f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                     f"text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
-                    f"🔐 Segurança</p>",
+                    f"Segurança</p>",
                     unsafe_allow_html=True
                 )
                 c8, c9 = st.columns(2)
@@ -1533,7 +1532,7 @@ def render_tecnico(*args):
                         "Nova password", type="password", key="p_pn"
                     )
                 pin_ = st.text_input(
-                    "🔢 Novo PIN (4 dígitos)",
+                    "Novo PIN (4 dígitos)",
                     max_chars=4, key="p_pin", placeholder="0000"
                 )
 
@@ -1541,7 +1540,7 @@ def render_tecnico(*args):
                     f"<div style='background:{THEME['accent']}14;"
                     f"border-radius:8px;padding:10px 14px;margin:8px 0;'>"
                     f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:0;'>"
-                    f"🔒 Nome, Tipo, Cargo e IBAN são geridos pelo Administrador."
+                    f"Nome, Tipo, Cargo e IBAN são geridos pelo Administrador."
                     f"</p></div>",
                     unsafe_allow_html=True
                 )
@@ -1616,7 +1615,7 @@ def render_tecnico(*args):
             if ct_validado:
                 st.success("Contrato assinado e validado pela empresa.")
             elif ct_assinado:
-                st.info("⏳ Assinatura submetida — aguarda validação do RH.")
+                st.info("Assinatura submetida — aguarda validação do RH.")
             elif ct_enviado:
                 st.info("O teu contrato está disponível para assinar.")
                 ct_b64 = user_data.get('Contrato_b64', '')
@@ -1641,7 +1640,7 @@ def render_tecnico(*args):
                     f"border-radius:10px;padding:14px;margin:12px 0;"
                     f"border-left:3px solid {THEME['accent']};'>"
                     f"<p style='color:{THEME['accent']};font-size:0.85rem;margin:0;'>"
-                    f"📋 <b>Instruções:</b><br>"
+                    f"<b>Instruções:</b><br>"
                     f"1. Descarrega o contrato acima<br>"
                     f"2. Imprime e assina à mão<br>"
                     f"3. Fotografa ou digitaliza<br>"
@@ -1650,7 +1649,7 @@ def render_tecnico(*args):
                 )
 
                 ficheiro_assin = st.file_uploader(
-                    "📤 Upload do contrato assinado (foto/PDF)",
+                    "Upload do contrato assinado (foto/PDF)",
                     type=["jpg", "jpeg", "png", "pdf"],
                     key="colab_ct_upload"
                 )
@@ -1675,7 +1674,7 @@ def render_tecnico(*args):
                             save_db(u_ct, "usuarios.csv")
                             criar_notificacao(
                                 destinatario="admin",
-                                titulo="✍️ Contrato Assinado",
+                                titulo="Contrato Assinado",
                                 mensagem=(f"{user_nome} submeteu "
                                           "o contrato assinado."),
                                 tipo="success",
@@ -1700,7 +1699,7 @@ def render_tecnico(*args):
             else:
                 st.markdown(
                     f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;'>"
-                    f"⏳ Contrato ainda não disponível. "
+                    f"Contrato ainda não disponível. "
                     f"Será notificado quando estiver pronto.</p>",
                     unsafe_allow_html=True
                 )
@@ -1822,7 +1821,7 @@ def render_tecnico(*args):
                         upd = (pd.concat([req_fer_db, n], ignore_index=True)
                                if not req_fer_db.empty else n)
                         save_db(upd, "req_ferramentas.csv")
-                        _notif("🔧 Ferramenta", f"{user_nome}: {d_[:40]}")
+                        _notif("Ferramenta", f"{user_nome}: {d_[:40]}")
                         inv("req_ferramentas.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
@@ -1865,7 +1864,7 @@ def render_tecnico(*args):
                     upd = (pd.concat([req_epi_db, n], ignore_index=True)
                            if not req_epi_db.empty else n)
                     save_db(upd, "req_epis.csv")
-                    _notif("🦺 EPI", f"{user_nome}: {q_}x {i_}")
+                    _notif("EPI", f"{user_nome}: {q_}x {i_}")
                     inv("req_epis.csv")
                     from core import _cached_load_all
                     _cached_load_all.clear()
@@ -1907,7 +1906,7 @@ def render_tecnico(*args):
                                if not req_mat_db.empty else n)
                         save_db(upd, "req_materiais.csv")
                         _notif(
-                            "📦 Material",
+                            "Material",
                             f"{user_nome}: {q_}{u_} de {d_[:30]}"
                         )
                         inv("req_materiais.csv")
@@ -1936,7 +1935,7 @@ def render_tecnico(*args):
                     )
                 dg_ = st.date_input("Data", value=hoje, key="fg_d")
                 rg_ = st.file_uploader(
-                    "📄 Recibo (obrigatório)",
+                    "Recibo (obrigatório)",
                     type=["png", "jpg", "jpeg", "pdf"], key="fg_r"
                 )
                 og_ = st.text_area("Observações", key="fg_obs")
@@ -1961,7 +1960,7 @@ def render_tecnico(*args):
                         upd = (pd.concat([req_mat_db, n], ignore_index=True)
                                if not req_mat_db.empty else n)
                         save_db(upd, "req_materiais.csv")
-                        _notif("⛽ Gasóleo", f"{user_nome}: {l_}L")
+                        _notif("Gasóleo", f"{user_nome}: {l_}L")
                         inv("req_materiais.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
@@ -1994,7 +1993,7 @@ def render_tecnico(*args):
                         "Valor Est. \u20AC", min_value=0.0, key="fa_v"
                     )
                 ft_ = st.file_uploader(
-                    "📄 Fatura/Orçamento (obrigatório)",
+                    "Fatura/Orçamento (obrigatório)",
                     type=["png", "jpg", "jpeg", "pdf"], key="fa_f"
                 )
                 if st.form_submit_button(
@@ -2017,7 +2016,7 @@ def render_tecnico(*args):
                         upd = (pd.concat([incs_db, n], ignore_index=True)
                                if not incs_db.empty else n)
                         save_db(upd, "incidentes.csv")
-                        _notif("🔧 Avaria", f"{u_}: {eq_} em {o_}")
+                        _notif("Avaria", f"{u_}: {eq_} em {o_}")
                         inv("incidentes.csv"); st.success(""); st.rerun()
                     else:
                         st.warning("Descreve e faz upload da fatura.")
@@ -2026,9 +2025,9 @@ def render_tecnico(*args):
             st.markdown("#### Os Meus Pedidos")
             sem = True
             for db_, tp_, cp4 in [
-                (req_fer_db, "🔧", "Descricao"),
-                (req_epi_db, "🦺", "Item"),
-                (req_mat_db, "📦", "Descricao"),
+                (req_fer_db, "Ferramenta", "Descricao"),
+                (req_epi_db, "EPI", "Item"),
+                (req_mat_db, "Material", "Descricao"),
             ]:
                 if not db_.empty and 'Solicitante' in db_.columns:
                     m_ = db_[db_['Solicitante'] == user_nome]
@@ -2045,7 +2044,7 @@ def render_tecnico(*args):
                                 f"border-radius:9px;margin-bottom:5px;"
                                 f"border-left:3px solid {cor};'>"
                                 f"<span style='color:{THEME['text']};'>"
-                                f"{tp_} {str(p_.get(cp4,''))[:40]}</span>"
+                                f"{tp_}: {str(p_.get(cp4,''))[:40]}</span>"
                                 f"<span style='color:{cor};font-size:0.77rem;"
                                 f"float:right;font-weight:700;'>"
                                 f"{p_.get('Status','')}</span><br>"

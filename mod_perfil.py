@@ -44,13 +44,19 @@ def render_perfil(*args):
         st.warning("Utilizador não encontrado na base de dados.")
         return
 
-    # Header
+    # Header — avatar com as iniciais do nome em vez de ícone placeholder
+    _partes_nome = user_nome.split()
+    _iniciais = ((_partes_nome[0][0] if _partes_nome else '') +
+                 (_partes_nome[-1][0] if len(_partes_nome) > 1 else '')).upper()
     st.markdown(f"""
     <div style="text-align:center;padding:30px 20px;
         background:{THEME['surface']};
         border-radius:{THEME['radius']};margin-bottom:25px;
         border:1px solid {THEME['border']};">
-        <div style="font-size:3rem;margin-bottom:10px;">👤</div>
+        <div style="width:72px;height:72px;border-radius:50%;
+            background:{THEME['accent']};color:#FFFFFF;
+            display:flex;align-items:center;justify-content:center;
+            font-size:1.6rem;font-weight:800;margin:0 auto 10px;">{_iniciais}</div>
         <div style="font-size:1.8rem;font-weight:800;color:{THEME['text']};">{user_nome}</div>
         <div style="font-size:1rem;color:{THEME['text_secondary']};">{cargo} | {user_tipo}</div>
     </div>
@@ -67,10 +73,10 @@ def render_perfil(*args):
         horas_tot = horas_apr = pendentes = n_registos = 0
 
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("⏱️ Horas Totais",   fh(horas_tot))
-    with c2: st.metric("✅ Horas Aprovadas", fh(horas_apr))
-    with c3: st.metric("⏳ Pendentes",       pendentes)
-    with c4: st.metric("📋 Registos",        n_registos)
+    with c1: st.metric("Horas Totais",   fh(horas_tot))
+    with c2: st.metric("Horas Aprovadas", fh(horas_apr))
+    with c3: st.metric("Pendentes",       pendentes)
+    with c4: st.metric("Registos",        n_registos)
 
     st.divider()
 
@@ -122,7 +128,7 @@ def render_perfil(*args):
                     horizontal=True, disabled='Sexo' in campos_bloqueados, key="pf_sexo")
 
             # Documentos
-            st.markdown("#### 🆔 Documentos")
+            st.markdown("#### Documentos")
             c8, c9 = st.columns(2)
             with c8:
                 nif  = st.text_input("NIF",  value=user_data.get('NIF',''),  disabled='NIF' in campos_bloqueados,  key="pf_nif")
@@ -257,7 +263,7 @@ def render_perfil(*args):
                     obras_minhas = ["Todas"] + meus['Obra'].unique().tolist()
                     obra_filt = st.selectbox("Filtrar por Obra", obras_minhas, key="pf_hist_obra")
                 with c2:
-                    status_opts = {"Todos": None, "✅ Aprovado": "1", "⏳ Pendente": "0", "❌ Rejeitado": "-1"}
+                    status_opts = {"Todos": None, "Aprovado": "1", "Pendente": "0", "Rejeitado": "-1"}
                     status_sel  = st.selectbox("Estado", list(status_opts.keys()), key="pf_hist_status")
 
                 if obra_filt != "Todas":
@@ -268,7 +274,7 @@ def render_perfil(*args):
                 total_h = meus['Horas_Total'].astype(float).sum()
                 st.metric("Total filtrado", fh(total_h))
 
-                meus['Estado'] = meus['Status'].map({"0":"⏳ Pendente","1":"✅ Aprovado","2":"🔵 Faturação","-1":"❌ Rejeitado"}).fillna("❓")
+                meus['Estado'] = meus['Status'].map({"0":"Pendente","1":"Aprovado","2":"Faturação","-1":"Rejeitado"}).fillna("Desconhecido")
                 cols_show = [c for c in ['Data','Obra','Frente','Turnos','Horas_Total','Estado','Relatorio'] if c in meus.columns]
                 st.dataframe(meus[cols_show].sort_values('Data', ascending=False), use_container_width=True, hide_index=True)
 

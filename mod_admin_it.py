@@ -13,15 +13,15 @@ def render_it():
     # KPIs de TI
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        st.metric("🚀 Deploy Cloud Run", "€ 127.50/mês")
+        st.metric("Deploy Cloud Run", "€ 127.50/mês")
     with c2:
-        st.metric("🤖 Tokens IA (mês)", "245,000")
+        st.metric("Tokens IA (mês)", "245,000")
     with c3:
-        st.metric("📧 Emails Ativos", "24")
+        st.metric("Emails Ativos", "24")
     with c4:
-        st.metric("🔒 SSL/Certificados", "✅ Válidos")
+        st.metric("SSL/Certificados", "Válidos")
     with c5:
-        st.metric("💾 Backup", "✅ Hoje 03:00")
+        st.metric("Backup", "Hoje 03:00")
     
     st.divider()
     
@@ -48,7 +48,7 @@ def render_it():
             # Custos fixos
             st.markdown(f"""
             <div style="background:{THEME['surface']}; border:1px solid {THEME['border']}; padding:15px; border-radius:12px; margin-bottom:10px;">
-                <div style="color:{THEME['text_secondary']}; font-size:0.85rem;">☁️ Cloud Run (GCP)</div>
+                <div style="color:{THEME['text_secondary']}; font-size:0.85rem;">Cloud Run (GCP)</div>
                 <div style="color:{THEME['accent']}; font-size:1.5rem; font-weight:700;">€ 127.50</div>
                 <div style="color:{THEME['text_secondary']}; font-size:0.75rem;">2Gi RAM, 2 CPU, 3600s timeout</div>
             </div>
@@ -56,7 +56,7 @@ def render_it():
 
             st.markdown(f"""
             <div style="background:{THEME['surface']}; border:1px solid {THEME['border']}; padding:15px; border-radius:12px; margin-bottom:10px;">
-                <div style="color:{THEME['text_secondary']}; font-size:0.85rem;">🗄️ Cloud Storage (GCS)</div>
+                <div style="color:{THEME['text_secondary']}; font-size:0.85rem;">Cloud Storage (GCS)</div>
                 <div style="color:{THEME['accent']}; font-size:1.5rem; font-weight:700;">€ 12.30</div>
                 <div style="color:{THEME['text_secondary']}; font-size:0.75rem;">2.3 GB dados + operações</div>
             </div>
@@ -64,7 +64,7 @@ def render_it():
 
             st.markdown(f"""
             <div style="background:{THEME['surface']}; border:1px solid {THEME['border']}; padding:15px; border-radius:12px; margin-bottom:10px;">
-                <div style="color:{THEME['text_secondary']}; font-size:0.85rem;">🔐 Domínio & SSL</div>
+                <div style="color:{THEME['text_secondary']}; font-size:0.85rem;">Domínio & SSL</div>
                 <div style="color:{THEME['accent']}; font-size:1.5rem; font-weight:700;">€ 15.00</div>
                 <div style="color:{THEME['text_secondary']}; font-size:0.75rem;">gestnow.app + certificados</div>
             </div>
@@ -72,7 +72,7 @@ def render_it():
 
             st.markdown(f"""
             <div style="background:{THEME['surface']}; border:1px solid {THEME['border']}; padding:15px; border-radius:12px; margin-bottom:10px;">
-                <div style="color:{THEME['text_secondary']}; font-size:0.85rem;">📦 Licenças Software</div>
+                <div style="color:{THEME['text_secondary']}; font-size:0.85rem;">Licenças Software</div>
                 <div style="color:{THEME['accent']}; font-size:1.5rem; font-weight:700;">€ 45.00</div>
                 <div style="color:{THEME['text_secondary']}; font-size:0.75rem;">APIs externas, bibliotecas</div>
             </div>
@@ -105,7 +105,7 @@ def render_it():
             
             st.markdown("#### Configuração de Deploy", unsafe_allow_html=True)
             
-            with st.expander("📝 Detalhes do Deploy"):
+            with st.expander("Detalhes do Deploy"):
                 st.code("""
                 Região: europe-west1 (Bélgica)
                 Memória: 2 GiB
@@ -128,11 +128,11 @@ def render_it():
         # Resumo geral
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.metric("🎯 Total Tokens (mês)", "245,000")
+            st.metric("Total Tokens (mês)", "245,000")
         with c2:
-            st.metric("💰 Custo IA Total", "€ 198.00")
+            st.metric("Custo IA Total", "€ 198.00")
         with c3:
-            st.metric("📊 Custo por Token", "$ 0.0008")
+            st.metric("Custo por Token", "$ 0.0008")
         
         st.divider()
         
@@ -141,13 +141,13 @@ def render_it():
         
         custos_ia = pd.DataFrame({
             'Módulo': [
-                '📊 Orçamentação (IA)',
-                '🛒 Compras (Cotações)',
-                '🏨 Dormidas (Pesquisa)',
-                '📋 Planeamento',
-                '🎯 Qualidade',
-                '💼 Comercial',
-                '👥 RH'
+                'Orçamentação (IA)',
+                'Compras (Cotações)',
+                'Dormidas (Pesquisa)',
+                'Planeamento',
+                'Qualidade',
+                'Comercial',
+                'RH'
             ],
             'Tokens': [65000, 42000, 38000, 35000, 28000, 22000, 15000],
             'Custo (€)': [52.00, 33.60, 30.40, 28.00, 22.40, 17.60, 12.00],
@@ -178,7 +178,7 @@ def render_it():
         col1, col2, c3 = st.columns(3)
         with col1:
             st.info("""
-            **🔴 Orçamentação**
+            **Orçamentação**
             - Cache de respostas similares
             - Reduzir contexto quando possível
             - **Economia potencial: € 15/mês**
@@ -186,7 +186,7 @@ def render_it():
         
         with col2:
             st.info("""
-            **🟡 Compras**
+            **Compras**
             - Agrupar cotações por fornecedor
             - Usar modelo mais económico
             - **Economia potencial: € 8/mês**
@@ -194,7 +194,7 @@ def render_it():
         
         with c3:
             st.info("""
-            **🟢 Dormidas**
+            **Dormidas**
             - Cache de hotéis por zona
             - Atualizar apenas preços
             - **Economia potencial: € 12/mês**
@@ -254,7 +254,7 @@ def render_it():
                 'Departamento': ['Admin', 'Comercial', 'RH', 'IT', 'Técnico', 'RH'],
                 'Tipo': ['Enterprise', 'Business', 'Business', 'Enterprise', 'Padrão', 'Padrão'],
                 'Usado': ['45 GB', '12 GB', '8 GB', '38 GB', '3.2 GB', '2.8 GB'],
-                'Status': ['✅ Ativo', '✅ Ativo', '✅ Ativo', '✅ Ativo', '✅ Ativo', '✅ Ativo'],
+                'Status': ['Ativo', 'Ativo', 'Ativo', 'Ativo', 'Ativo', 'Ativo'],
                 'Último Login': ['Hoje', 'Ontem', '2 dias', 'Hoje', 'Hoje', 'Ontem']
             })
             
@@ -289,11 +289,11 @@ def render_it():
             
             c1, c2, c3 = st.columns(3)
             with c1:
-                st.metric("👥 Total Utilizadores", "24")
+                st.metric("Total Utilizadores", "24")
             with c2:
-                st.metric("🔑 Sessões Ativas", "8")
+                st.metric("Sessões Ativas", "8")
             with c3:
-                st.metric("⚠️ Tentativas Falhadas", "3")
+                st.metric("Tentativas Falhadas", "3")
             
             st.divider()
             
@@ -304,7 +304,7 @@ def render_it():
                 'Data/Hora': ['02/04 10:45', '02/04 10:30', '02/04 09:15', '01/04 16:20'],
                 'IP': ['192.168.1.100', '85.240.12.34', '85.240.45.67', '85.240.89.12'],
                 'Dispositivo': ['Chrome/Windows', 'Safari/iOS', 'Chrome/Android', 'Chrome/Windows'],
-                'Status': ['✅ Sucesso', '✅ Sucesso', '✅ Sucesso', '✅ Sucesso']
+                'Status': ['Sucesso', 'Sucesso', 'Sucesso', 'Sucesso']
             })
             
             st.dataframe(acessos_df, use_container_width=True, hide_index=True)
@@ -324,8 +324,8 @@ def render_it():
                 'Tipo': ['Empresarial', 'Equipas', 'Profissional', 'Business', 'Pro', 'Teams'],
                 'Licenças': ['24', '5', '3', '24', '24', '10'],
                 'Custo/Mês': ['€ 120', '€ 75', '€ 180', '€ 96', '€ 120', '€ 40'],
-                'Validade': ['✅ Dez 2025', '✅ Jun 2025', '✅ Mar 2025', '✅ Indefinido', '✅ Dez 2025', '✅ Ago 2025'],
-                'Status': ['✅ Ativo', '✅ Ativo', '⚠️ Expira Breve', '✅ Ativo', '✅ Ativo', '✅ Ativo']
+                'Validade': ['Dez 2025', 'Jun 2025', 'Mar 2025', 'Indefinido', 'Dez 2025', 'Ago 2025'],
+                'Status': ['Ativo', 'Ativo', 'Expira Breve', 'Ativo', 'Ativo', 'Ativo']
             })
             
             st.dataframe(licencas_df, use_container_width=True, hide_index=True)
@@ -340,7 +340,7 @@ def render_it():
             
             st.markdown(f"""
             <div style="background:{THEME['surface']}; border:1px solid {THEME['border']}; padding:15px; border-radius:12px; border-left:4px solid {THEME['error']};">
-                <strong style="color:{THEME['text']};">⚠️ Segurança:</strong>
+                <strong style="color:{THEME['text']};">Segurança:</strong>
                 <span style="color:{THEME['text_secondary']};"> Nunca partilhes API keys publicamente. Rotação recomendada a cada 90 dias.</span>
             </div>
             """, unsafe_allow_html=True)
@@ -354,7 +354,7 @@ def render_it():
                     'Maps API',
                     'SendGrid (Email)'
                 ],
-                'Status': ['✅ Ativo', '✅ Ativo', '✅ Ativo', '⚠️ Limitado', '✅ Ativo', '✅ Ativo'],
+                'Status': ['Ativo', 'Ativo', 'Ativo', 'Limitado', 'Ativo', 'Ativo'],
                 'Uso Mensal': ['85%', '67%', '45%', '92%', '34%', '28%'],
                 'Limite': ['€ 200', '500K tokens', '1M tokens', '1000 req/dia', '25K req/dia', '10K emails'],
                 'Última Rotação': ['15 Jan 2025', '20 Fev 2025', '10 Mar 2025', '05 Jan 2025', '12 Fev 2025', '18 Mar 2025']
@@ -380,7 +380,7 @@ def render_it():
             
             c1, c2, c3, c4 = st.columns(4)
             with c1:
-                st.metric("Cloud Run", "✅ Saudável")
+                st.metric("Cloud Run", "Saudável")
             with c2:
                 st.metric("Cloud Storage", "2.3 GB / 5 GB")
             with c3:
@@ -497,19 +497,19 @@ def render_it():
                          if ultima_bkp else "Nunca realizado"
 
             cores_status = {
-                'ok':     (THEME['success'], "✅", "Backup recente"),
-                'aviso':  (THEME['warning'], "⚠️", "Backup em atraso"),
-                'critico':(THEME['error'], "🚨", "CRÍTICO — sem backup recente"),
-                'nunca':  (THEME['error'], "🚨", "Nunca foi feito backup"),
+                'ok':     (THEME['success'], "Backup recente"),
+                'aviso':  (THEME['warning'], "Backup em atraso"),
+                'critico':(THEME['error'], "CRÍTICO — sem backup recente"),
+                'nunca':  (THEME['error'], "Nunca foi feito backup"),
             }
-            cor, ic, txt = cores_status.get(
-                status_bkp, (THEME['text_secondary'], "❓", "Desconhecido"))
+            cor, txt = cores_status.get(
+                status_bkp, (THEME['text_secondary'], "Desconhecido"))
 
             st.markdown(
                 f"<div style='background:{THEME['surface']};border:2px solid {cor};"
                 f"border-radius:12px;padding:16px;margin-bottom:16px;'>"
                 f"<p style='color:{cor};font-weight:700;font-size:1rem;margin:0;'>"
-                f"{ic} {txt}</p>"
+                f"{txt}</p>"
                 f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;margin:5px 0 0;'>"
                 f"Último backup: <b>{ultima_str}</b></p></div>",
                 unsafe_allow_html=True
@@ -580,7 +580,7 @@ def render_it():
 
                 st.success(
                     f"Backup pronto — **{n_inc} ficheiros**."
-                    f"{' ⚠️ ' + str(len(erros_bkp)) + ' erros.' if erros_bkp else ''}"
+                    f"{' ' + str(len(erros_bkp)) + ' erros.' if erros_bkp else ''}"
                 )
                 st.download_button(
                     f"Descarregar {fname}",
@@ -590,7 +590,7 @@ def render_it():
                     key="btn_dl_backup_persistente"
                 )
                 if erros_bkp:
-                    with st.expander("⚠️ Ficheiros com erro"):
+                    with st.expander("Ficheiros com erro"):
                         for e in erros_bkp:
                             st.text(e)
                 if st.button("Limpar", key="btn_limpar_backup"):
@@ -604,7 +604,7 @@ def render_it():
                 f"<div style='background:{THEME['surface']};border:2px solid {THEME['error']};"
                 f"border-radius:10px;padding:14px;margin-bottom:12px;'>"
                 f"<p style='color:{THEME['error']};font-weight:700;margin:0;'>"
-                "⚠️ ATENÇÃO — Operação Irreversível</p>"
+                "ATENÇÃO — Operação Irreversível</p>"
                 f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;margin:5px 0 0;'>"
                 "O restauro substitui TODOS os dados atuais pelos do backup. "
                 "Faz um backup do estado atual ANTES de restaurar.</p></div>",
@@ -612,7 +612,7 @@ def render_it():
             )
 
             zip_upload = st.file_uploader(
-                "📂 Selecionar ficheiro de backup (.zip)",
+                "Selecionar ficheiro de backup (.zip)",
                 type=["zip"], key="bkp_upload_zip"
             )
 
@@ -622,7 +622,7 @@ def render_it():
                     f"({zip_upload.size/1024:.0f} KB)"
                 )
                 confirmar = st.checkbox(
-                    "✅ Confirmo que quero substituir todos os dados atuais",
+                    "Confirmo que quero substituir todos os dados atuais",
                     key="chk_confirmar_restauro"
                 )
                 if confirmar:
@@ -688,11 +688,11 @@ def render_it():
             
             c1, c2, c3 = st.columns(3)
             with c1:
-                st.metric("SSL/TLS", "✅ Válido até Dez 2025")
+                st.metric("SSL/TLS", "Válido até Dez 2025")
             with c2:
-                st.metric("Firewall", "✅ Ativo")
+                st.metric("Firewall", "Ativo")
             with c3:
-                st.metric("2FA", "✅ Obrigatório")
+                st.metric("2FA", "Obrigatório")
             
             st.divider()
             
@@ -720,8 +720,8 @@ def render_it():
                 'Marca/Modelo': ['Dell XPS 15', 'MacBook Pro', 'iPhone 15', 'iPad Pro', 'Lenovo ThinkPad'],
                 'Utilizador': ['João O.', 'Patricia O.', 'Marco S.', 'Rafael S.', 'Admin'],
                 'Data Compra': ['Jan 2024', 'Mar 2024', 'Jun 2024', 'Fev 2024', 'Nov 2023'],
-                'Garantia': ['✅ Jan 2027', '✅ Mar 2027', '✅ Jun 2026', '✅ Fev 2026', '⚠️ Nov 2025'],
-                'Status': ['✅ Ativo', '✅ Ativo', '✅ Ativo', '✅ Ativo', '✅ Ativo']
+                'Garantia': ['Jan 2027', 'Mar 2027', 'Jun 2026', 'Fev 2026', 'Nov 2025'],
+                'Status': ['Ativo', 'Ativo', 'Ativo', 'Ativo', 'Ativo']
             })
             
             st.dataframe(hardware_df, use_container_width=True, hide_index=True)
@@ -734,13 +734,13 @@ def render_it():
         
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            st.metric("⏱️ Uptime (30d)", "99.8%")
+            st.metric("Uptime (30d)", "99.8%")
         with c2:
-            st.metric("🐛 Erros (hoje)", "2")
+            st.metric("Erros (hoje)", "2")
         with c3:
-            st.metric("⚡ Tempo Resposta", "245ms")
+            st.metric("Tempo Resposta", "245ms")
         with c4:
-            st.metric("👥 Utilizadores Online", "8")
+            st.metric("Utilizadores Online", "8")
         
         st.divider()
         
@@ -760,7 +760,7 @@ def render_it():
             st.markdown("#### Alertas Recentes", unsafe_allow_html=True)
             
             st.warning("**02/04 09:15** - CPU > 80% por 5 min")
-            st.info("ℹ️ **02/04 08:00** - Backup concluído com sucesso")
+            st.info("**02/04 08:00** - Backup concluído com sucesso")
             st.success("**01/04 18:30** - Deploy v3.2.1 bem-sucedido")
             st.error("**01/04 14:20** - Erro 500 em /mod_tecnico (resolvido)")
         

@@ -140,8 +140,8 @@ def render_dormidas():
                     dormidas_db['Total'], errors='coerce'
                 ).fillna(0).sum()
                 c1, c2 = st.columns(2)
-                with c1: st.metric("📋 Registos",   len(dormidas_db))
-                with c2: st.metric("💰 Total Gasto", f"€ {total_geral:.2f}")
+                with c1: st.metric("Registos",   len(dormidas_db))
+                with c2: st.metric("Total Gasto", f"€ {total_geral:.2f}")
 
                 # Filtro por obra
                 obras_filt = ["Todas"] + dormidas_db['Obra'].unique().tolist()
@@ -211,7 +211,7 @@ def render_dormidas():
                     st.error("API key não configurada.")
                 else:
                     with st.spinner(
-                        f"🤖 A pesquisar hotéis perto de {local_pesq}..."
+                        f"A pesquisar hotéis perto de {local_pesq}..."
                     ):
                         try:
                             client = anthropic.Anthropic(api_key=api_key)
@@ -273,20 +273,20 @@ Responde APENAS em JSON:
                                     f"margin-bottom:10px;"
                                     f"border-left:4px solid {cor_h};'>"
                                     f"<b style='color:#F1F5F9;font-size:1rem;'>"
-                                    f"{'✅' if adequado else '⚠️'} "
+                                    f"{'Adequado' if adequado else 'Não adequado'} — "
                                     f"{h.get('nome','')}</b>"
                                     f"<span style='float:right;"
                                     f"color:{'#10B981' if dentro_orcamento else '#EF4444'};"
                                     f"font-weight:700;font-size:1.1rem;'>"
                                     f"€ {preco:.2f}/noite</span><br>"
                                     f"<small style='color:#64748B;'>"
-                                    f"📍 {h.get('cidade','')} · "
-                                    f"🚗 {h.get('distancia_km','')}km · "
-                                    f"🏨 {h.get('tipo','')}</small><br>"
+                                    f"{h.get('cidade','')} · "
+                                    f"{h.get('distancia_km','')}km · "
+                                    f"{h.get('tipo','')}</small><br>"
                                     f"<small style='color:#94A3B8;'>"
                                     f"{h.get('motivo','')}</small><br>"
                                     f"<small style='color:#3B82F6;'>"
-                                    f"💰 Total estimado "
+                                    f"Total estimado "
                                     f"({noites_pesq}n × {n_pessoas}p): "
                                     f"<b>€ {total_h:.2f}</b></small>"
                                     f"</div>",
@@ -303,7 +303,7 @@ Responde APENAS em JSON:
                                     st.session_state['hotel_pre_noites'] = noites_pesq
                                     st.info(
                                         "Dados pré-preenchidos! "
-                                        "Vai ao tab 📝 Registar para confirmar."
+                                        "Vai ao tab Registar para confirmar."
                                     )
 
                         except json.JSONDecodeError:
@@ -350,9 +350,9 @@ Responde APENAS em JSON:
             ).fillna(0).sum()
 
             c1, c2, c3 = st.columns(3)
-            with c1: st.metric("📋 Registos",    len(df_hist))
-            with c2: st.metric("🌙 Noites",       int(total_noites))
-            with c3: st.metric("💰 Total",        f"€ {total_hist:.2f}")
+            with c1: st.metric("Registos",    len(df_hist))
+            with c2: st.metric("Noites",       int(total_noites))
+            with c3: st.metric("Total",        f"€ {total_hist:.2f}")
 
             cols_h = [c for c in [
                 'Data_Entrada','Data_Saida','Trabalhador',

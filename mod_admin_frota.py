@@ -54,10 +54,10 @@ def render_frota():
     ]) if not avarfrota_db.empty else 0
 
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("🚗 Total Viaturas",  n_viat)
-    with c2: st.metric("✅ Ativas",           n_ativas)
-    with c3: st.metric("💰 Custo Mensal",    f"€ {custo_t:.2f}")
-    with c4: st.metric("⚠️ Avarias Pend.",   n_avarfrota)
+    with c1: st.metric("Total Viaturas",  n_viat)
+    with c2: st.metric("Ativas",           n_ativas)
+    with c3: st.metric("Custo Mensal",    f"€ {custo_t:.2f}")
+    with c4: st.metric("Avarias Pend.",   n_avarfrota)
 
     st.divider()
 
@@ -145,7 +145,7 @@ def render_frota():
                         f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:8px;"
                         f"border-left:4px solid {cor_sv};'>"
-                        f"<b style='color:{THEME['text']};'>🚗 {v.get('Matricula','')}</b>"
+                        f"<b style='color:{THEME['text']};'>{v.get('Matricula','')}</b>"
                         f"<span style='float:right;color:{cor_sv};'>"
                         f"{v.get('Status','')}</span><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
@@ -269,8 +269,8 @@ def render_frota():
                     comb_db['Valor'], errors='coerce'
                 ).fillna(0).sum()
                 c1, c2 = st.columns(2)
-                with c1: st.metric("⛽ Total Litros", f"{total_l:.0f}L")
-                with c2: st.metric("💰 Total Gasto",  f"€ {total_v:.2f}")
+                with c1: st.metric("Total Litros", f"{total_l:.0f}L")
+                with c2: st.metric("Total Gasto",  f"€ {total_v:.2f}")
 
                 cols_c = [col for col in [
                     'Data','Matricula','Litros','Valor','KM','Tipo_Comb'
@@ -358,7 +358,7 @@ def render_frota():
                         f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:8px;"
                         f"border-left:4px solid {cor_urg};'>"
-                        f"<b style='color:{THEME['text']};'>🚗 {av.get('Matricula','')}</b>"
+                        f"<b style='color:{THEME['text']};'>{av.get('Matricula','')}</b>"
                         f"<span style='float:right;color:{cor_av};'>"
                         f"{av.get('Status','')}</span><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"

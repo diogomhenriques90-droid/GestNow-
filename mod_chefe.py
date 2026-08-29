@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, date
 import time
 
 from core import (
-    save_db, inv, fh, sl, load_db,
+    save_db, inv, fh, load_db,
     THEME, TIPOS_FRENTE, REGRAS_OURO,
     log_audit, criar_notificacao, process_and_compress_image,
     hp, _load_users_cached, render_card, render_badge, escape_html
@@ -28,9 +28,6 @@ _DOT_COLOR = {
 _DOT_LABEL = {
     "0": "Pendente", "1": "Validado", "2": "Faturação",
     "3": "Pago", "4": "Pago", "-1": "Rejeitado",
-}
-_STATUS_ICON = {
-    "0": "🟠", "1": "🟢", "2": "🔵", "3": "⚫", "4": "⚫", "-1": "🔴",
 }
 _MESES_PT   = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
@@ -248,8 +245,8 @@ def _gerar_html_folha(obra, periodo_str, regs_df, responsavel,
 <!-- FAIXA OBRA -->
 <div class="obra-banner">
   <div>
-    <div class="obra-name">🏭 {obra}</div>
-    <div class="obra-periodo">📅 {periodo_str}</div>
+    <div class="obra-name">{obra}</div>
+    <div class="obra-periodo">{periodo_str}</div>
   </div>
   <div class="obra-badge">
     <div class="obra-badge-h">{fh(total_h)}</div>
@@ -280,7 +277,7 @@ def _gerar_html_folha(obra, periodo_str, regs_df, responsavel,
 </div>
 
 <!-- TABELA -->
-<div class="section-title">📋 Registos de Trabalho</div>
+<div class="section-title">Registos de Trabalho</div>
 <table>
   <thead>
     <tr>
@@ -505,7 +502,6 @@ def render_chefe(*args):
         background:{THEME['surface']};
         border-radius:{THEME['radius']};margin-bottom:20px;
         border:1px solid {THEME['border']};box-shadow:0 1px 3px rgba(16,24,40,0.05);">
-        <div style="font-size:2rem;margin-bottom:6px;">👷</div>
         <div style="font-size:1.3rem;font-weight:800;color:{THEME['text']};">{escape_html(user_nome)}</div>
         <div style="font-size:0.85rem;color:{THEME['text_secondary']};">{escape_html(cargo_user)} | {escape_html(user_tipo)}</div>
     </div>
@@ -537,10 +533,10 @@ def render_chefe(*args):
     num_tec = len(regs_equipa['Técnico'].unique()) if not regs_equipa.empty else 0
 
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("👷 Técnicos",   num_tec)
-    with c2: st.metric("⏱️ Horas Mês",  f"{horas_mes:.0f}h")
-    with c3: st.metric("⏳ Pendentes",  pendentes)
-    with c4: st.metric("🏭 Obras",
+    with c1: st.metric("Técnicos",   num_tec)
+    with c2: st.metric("Horas Mês",  f"{horas_mes:.0f}h")
+    with c3: st.metric("Pendentes",  pendentes)
+    with c4: st.metric("Obras",
         len(obras_chefe) or (len(obras_db) if not obras_db.empty else 0))
 
     st.divider()
@@ -571,14 +567,14 @@ def render_chefe(*args):
                     border-left:4px solid {cor};box-shadow:0 1px 3px rgba(16,24,40,0.05);">
                     <div style="display:flex;justify-content:space-between;">
                         <div>
-                            <b style="color:{THEME['text']};">👤 {escape_html(row['Técnico'])}</b>
+                            <b style="color:{THEME['text']};">{escape_html(row['Técnico'])}</b>
                             <div style="color:{THEME['text_secondary']};font-size:0.82rem;">
                                 {row['Registos']} registos · {fh(row['Horas'])} totais
                             </div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="color:{THEME['success']};font-size:0.82rem;">✅ {row['Aprovados']} aprovados</div>
-                            <div style="color:{THEME['warning']};font-size:0.82rem;">⏳ {row['Pendentes']} pendentes</div>
+                            <div style="color:{THEME['success']};font-size:0.82rem;">{row['Aprovados']} aprovados</div>
+                            <div style="color:{THEME['warning']};font-size:0.82rem;">{row['Pendentes']} pendentes</div>
                         </div>
                     </div>
                 </div>""", unsafe_allow_html=True)
@@ -643,7 +639,7 @@ def render_chefe(*args):
                     box-shadow:0 1px 3px rgba(16,24,40,0.05);">
                     <div>
                         <span style="color:{THEME['text']};font-weight:700;font-size:0.95rem;">
-                            ⏳ {len(df_pend)} registo(s) aguardam validação
+                            {len(df_pend)} registo(s) aguardam validação
                         </span><br>
                         <span style="color:{THEME['text_secondary']};font-size:0.78rem;">
                             {len(df_pend['Técnico'].unique())} técnico(s) ·
@@ -661,7 +657,7 @@ def render_chefe(*args):
                                 (registos_db['Técnico'] == tec) &
                                 (registos_db['Status']  == '0'), 'Status'] = '1'
                             criar_notificacao(destinatario=tec,
-                                titulo="🟢 Horas Validadas",
+                                titulo="Horas Validadas",
                                 mensagem=f"As tuas horas foram validadas por {user_nome}.",
                                 tipo="success", acao_url="/")
                         save_db(registos_db, "registos.csv")
@@ -679,7 +675,7 @@ def render_chefe(*args):
                                 (registos_db['Técnico'] == tec) &
                                 (registos_db['Status']  == '0'), 'Status'] = '-1'
                             criar_notificacao(destinatario=tec,
-                                titulo="❌ Horas Rejeitadas",
+                                titulo="Horas Rejeitadas",
                                 mensagem=f"As tuas horas foram rejeitadas. Contacta {user_nome}.",
                                 tipo="error", acao_url="/")
                         save_db(registos_db, "registos.csv")
@@ -709,7 +705,7 @@ def render_chefe(*args):
                             font-size:1rem;flex-shrink:0;">{escape_html(ini_t)}</div>
                           <div>
                             <div style="color:{THEME['text']};font-weight:700;font-size:0.95rem;">
-                              👤 {escape_html(tecnico)}
+                              {escape_html(tecnico)}
                             </div>
                             <div style="color:{THEME['text_secondary']};font-size:0.75rem;">
                               {len(regs_t)} registo(s) · {fh(total_h_t)} pendentes
@@ -733,7 +729,7 @@ def render_chefe(*args):
                                 (registos_db['Status']  == '0'), 'Status'] = '1'
                             save_db(registos_db, "registos.csv")
                             criar_notificacao(destinatario=tecnico,
-                                titulo="🟢 Horas Validadas",
+                                titulo="Horas Validadas",
                                 mensagem=f"As tuas horas foram validadas por {user_nome}.",
                                 tipo="success", acao_url="/")
                             inv("registos.csv")
@@ -749,7 +745,7 @@ def render_chefe(*args):
                                 (registos_db['Status']  == '0'), 'Status'] = '-1'
                             save_db(registos_db, "registos.csv")
                             criar_notificacao(destinatario=tecnico,
-                                titulo="❌ Horas Rejeitadas",
+                                titulo="Horas Rejeitadas",
                                 mensagem=f"As tuas horas foram rejeitadas. Contacta {user_nome}.",
                                 tipo="error", acao_url="/")
                             inv("registos.csv")
@@ -771,8 +767,8 @@ def render_chefe(*args):
                         <div class="val-reg-row">
                           <div class="val-reg-info">
                             <div class="val-reg-data">{data_r}</div>
-                            <div class="val-reg-desc">🏭 {obra_r} · {frente_r}</div>
-                            <div class="val-reg-meta">⏰ {turno_r}</div>
+                            <div class="val-reg-desc">{obra_r} · {frente_r}</div>
+                            <div class="val-reg-meta">{turno_r}</div>
                           </div>
                           <div class="val-reg-horas">{fh(horas_r)}</div>
                         </div>""", unsafe_allow_html=True)
@@ -785,7 +781,7 @@ def render_chefe(*args):
                                     registos_db['ID'] == reg_id, 'Status'] = '1'
                                 save_db(registos_db, "registos.csv")
                                 criar_notificacao(destinatario=tecnico,
-                                    titulo="🟢 Horas Validadas",
+                                    titulo="Horas Validadas",
                                     mensagem=f"{fh(horas_r)} em {obra_r} validadas.",
                                     tipo="success", acao_url="/")
                                 inv("registos.csv")
@@ -800,7 +796,7 @@ def render_chefe(*args):
                                     registos_db['ID'] == reg_id, 'Status'] = '-1'
                                 save_db(registos_db, "registos.csv")
                                 criar_notificacao(destinatario=tecnico,
-                                    titulo="❌ Horas Rejeitadas",
+                                    titulo="Horas Rejeitadas",
                                     mensagem=f"{fh(horas_r)} rejeitadas.",
                                     tipo="error", acao_url="/")
                                 inv("registos.csv")
@@ -816,7 +812,6 @@ def render_chefe(*args):
                 st.markdown(f"""
                 <div style="text-align:center;padding:60px 20px;
                     background:{THEME['surface']};border-radius:{THEME['radius']};border:1px solid {THEME['border']};">
-                    <div style="font-size:3rem;margin-bottom:12px;">✅</div>
                     <p style="color:{THEME['success']};font-weight:700;font-size:1.1rem;margin:0;">
                         Sem horas pendentes!
                     </p>
@@ -837,10 +832,10 @@ def render_chefe(*args):
             else:
                 col_tc, col_mes, col_ano = st.columns([3, 2, 1])
                 with col_tc:
-                    tec_sel = st.selectbox("👤 Colaborador", tecnicos_lista,
+                    tec_sel = st.selectbox("Colaborador", tecnicos_lista,
                                            key="hist_tec_sel")
                 with col_mes:
-                    mes_sel_idx = st.selectbox("📅 Mês", range(1, 13),
+                    mes_sel_idx = st.selectbox("Mês", range(1, 13),
                         format_func=lambda x: _MESES_PT[x-1],
                         index=hoje.month - 1, key="hist_mes_sel")
                 with col_ano:
@@ -1033,7 +1028,7 @@ def render_chefe(*args):
                             <div style="display:flex;justify-content:space-between;
                                 align-items:center;margin-bottom:6px;">
                                 <span style="color:{THEME['text']};font-weight:600;
-                                    font-size:0.88rem;">🏭 {escape_html(br['Obra'])}</span>
+                                    font-size:0.88rem;">{escape_html(br['Obra'])}</span>
                                 <span style="color:{THEME['accent']};font-weight:900;">
                                     {fh(br['Horas'])}</span>
                             </div>
@@ -1047,32 +1042,31 @@ def render_chefe(*args):
                         </div>""", unsafe_allow_html=True)
 
                     # ── Tabela detalhada ───────────────────────────────────────
-                    with st.expander("📋 Ver todos os registos do mês"):
+                    with st.expander("Ver todos os registos do mês"):
                         cols_show = [c for c in
                             ['Data','Obra','Frente','Turnos','Horas_Total','Status']
                             if c in regs_mes_tec.columns]
                         df_show = regs_mes_tec[cols_show].copy()
                         if 'Status' in df_show.columns:
                             df_show['Status'] = df_show['Status'].map({
-                                "0":"🟠 Pendente","1":"🟢 Validado",
-                                "2":"🔵 Faturação","3":"⚫ Processado","-1":"🔴 Rejeitado"
+                                "0":"Pendente","1":"Validado",
+                                "2":"Faturação","3":"Processado","-1":"Rejeitado"
                             }).fillna(df_show['Status'])
                         st.dataframe(df_show, use_container_width=True, hide_index=True)
 
                         # Indicadores finais
                         col_iv, col_ip, col_ir = st.columns(3)
                         with col_iv:
-                            st.metric("✅ Validados", n_val)
+                            st.metric("Validados", n_val)
                         with col_ip:
-                            st.metric("⏳ Pendentes", n_pend)
+                            st.metric("Pendentes", n_pend)
                         with col_ir:
-                            st.metric("❌ Rejeitados", n_rej)
+                            st.metric("Rejeitados", n_rej)
                 else:
                     st.markdown(f"""
                     <div style="text-align:center;padding:50px 20px;
                         background:{THEME['surface']};border-radius:16px;
                         border:1px solid {THEME['border']};margin-top:16px;">
-                        <div style="font-size:3rem;margin-bottom:12px;opacity:0.3;">📅</div>
                         <p style="color:{THEME['text_secondary']};font-size:0.9rem;margin:0;">
                             Sem registos para {mes_nome} {int(ano_sel)}
                         </p>
@@ -1198,7 +1192,7 @@ def render_chefe(*args):
 
             col_data, col_fab = st.columns([4,1])
             with col_data:
-                prefix = "📍 Hoje" if eh_hoje_sel else dia_letra_d
+                prefix = "Hoje" if eh_hoje_sel else dia_letra_d
                 st.markdown(
                     f"<p style='color:{THEME['text']};font-weight:700;font-size:0.92rem;margin:0;'>"
                     f"{prefix}, {data_sel.day} de {mes_nome_d}</p>",
@@ -1279,7 +1273,6 @@ def render_chefe(*args):
             else:
                 st.markdown(
                     f"<div style='text-align:center;padding:50px 20px 40px;'>"
-                    f"<div style='font-size:3.5rem;margin-bottom:12px;opacity:0.25;'>📋</div>"
                     f"<p style='color:{THEME['text_secondary']};font-weight:600;margin:0;font-size:0.9rem;'>"
                     f"Sem ponto registado neste dia</p></div>", unsafe_allow_html=True)
 
@@ -1312,7 +1305,7 @@ def render_chefe(*args):
             with st.form("form_ponto_ch", clear_on_submit=False):
                 st.markdown(f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                             "letter-spacing:0.08em;text-transform:uppercase;margin:0 0 6px;'>"
-                            "🏗️ Obra</p>", unsafe_allow_html=True)
+                            "Obra</p>", unsafe_allow_html=True)
                 obras_lista = []
                 if not obras_db.empty:
                     at = obras_db[obras_db['Ativa'] == 'Ativa']
@@ -1335,7 +1328,7 @@ def render_chefe(*args):
 
                 st.markdown(f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                             "letter-spacing:0.08em;text-transform:uppercase;margin:8px 0 6px;'>"
-                            "🔧 Frente de Trabalho</p>", unsafe_allow_html=True)
+                            "Frente de Trabalho</p>", unsafe_allow_html=True)
                 frente_sel = st.selectbox("Frente", TIPOS_FRENTE, key="ch_reg_frente",
                                           label_visibility="collapsed")
 
@@ -1343,7 +1336,7 @@ def render_chefe(*args):
                             unsafe_allow_html=True)
                 st.markdown(f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                             "letter-spacing:0.08em;text-transform:uppercase;margin:0 0 8px;'>"
-                            "⏱️ Horas de Trabalho</p>", unsafe_allow_html=True)
+                            "Horas de Trabalho</p>", unsafe_allow_html=True)
 
                 total_horas = 0.0
                 periodos_validos = []
@@ -1382,7 +1375,7 @@ def render_chefe(*args):
                         f"<span style='color:{THEME['text']};font-size:1.6rem;font-weight:900;'>{fh(total_horas)}</span>"
                         f"</div>", unsafe_allow_html=True)
 
-                relatorio = st.text_area("📝 Descrição (opcional)",
+                relatorio = st.text_area("Descrição (opcional)",
                     placeholder="Ex: Supervisão, reunião, visita...", key="ch_reg_relat", height=70)
                 st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
                 col_c, col_g = st.columns(2)
@@ -1391,7 +1384,7 @@ def render_chefe(*args):
                 with col_g:
                     guardar  = st.form_submit_button("Guardar Ponto", use_container_width=True, type="primary")
 
-            if st.button("← Voltar", key="ch_btn_voltar"):
+            if st.button("Voltar", key="ch_btn_voltar"):
                 st.session_state.show_reg_form_ch    = False
                 st.session_state.periodos_trabalho_ch = [{"entrada":"08:00","saida":"17:00"}]
                 st.session_state['_menu_locked'] = True
@@ -1431,7 +1424,7 @@ def render_chefe(*args):
                                   tabela="registos.csv", registro_id=reg_id,
                                   detalhes=f"{total_horas}h em {obra_sel}", ip="")
                     criar_notificacao(destinatario="admin",
-                        titulo="📋 Novo Registo de Ponto (Chefe)",
+                        titulo="Novo Registo de Ponto (Chefe)",
                         mensagem=f"{user_nome} registou {fh(total_horas)} em {obra_sel}",
                         tipo="info", acao_url="/admin?tab=validacoes")
                     st.session_state.show_reg_form_ch    = False
@@ -1470,7 +1463,7 @@ def render_chefe(*args):
             <div style="background:{THEME['surface']};border-radius:{THEME['radius']};padding:18px 20px;
                 margin-bottom:16px;border:1px solid {THEME['border']};">
                 <div style="color:{THEME['text']};font-weight:700;font-size:0.95rem;
-                    margin-bottom:4px;">⚙️ Passo 1 de 3 — Configurar Folha</div>
+                    margin-bottom:4px;">Passo 1 de 3 — Configurar Folha</div>
                 <div style="color:{THEME['text_secondary']};font-size:0.8rem;">
                     Seleciona a obra, o período e os técnicos a incluir.
                 </div>
@@ -1478,15 +1471,15 @@ def render_chefe(*args):
 
             obras_l_fp = obras_db['Obra'].unique().tolist() \
                          if not obras_db.empty else ["Sem Obras"]
-            obra_fp = st.selectbox("🏭 Obra", obras_l_fp, key="fp_ch_obra_sel")
+            obra_fp = st.selectbox("Obra", obras_l_fp, key="fp_ch_obra_sel")
 
             ini_s   = hoje - timedelta(days=hoje.weekday())
             col_d1, col_d2 = st.columns(2)
             with col_d1:
-                sem_ini = st.date_input("📅 Data Início",
+                sem_ini = st.date_input("Data Início",
                     value=ini_s, key="fp_ch_ini_sel")
             with col_d2:
-                sem_fim = st.date_input("📅 Data Fim",
+                sem_fim = st.date_input("Data Fim",
                     value=ini_s + timedelta(days=6), key="fp_ch_fim_sel")
 
             # Técnicos disponíveis nesse período/obra
@@ -1505,7 +1498,7 @@ def render_chefe(*args):
 
             if tec_disponiveis:
                 tec_sel_fp = st.multiselect(
-                    "👷 Técnicos a incluir (todos por omissão)",
+                    "Técnicos a incluir (todos por omissão)",
                     tec_disponiveis, default=tec_disponiveis,
                     key="fp_ch_tecs")
                 regs_fp = regs_fp[regs_fp['Técnico'].isin(tec_sel_fp)] \
@@ -1513,7 +1506,7 @@ def render_chefe(*args):
             else:
                 tec_sel_fp = []
 
-            nome_resp = st.text_input("✍️ Nome do Responsável pela Folha",
+            nome_resp = st.text_input("Nome do Responsável pela Folha",
                 value=user_nome, key="fp_ch_resp_nome")
 
             total_preview = pd.to_numeric(
@@ -1527,14 +1520,14 @@ def render_chefe(*args):
                     padding:14px 18px;margin:12px 0;
                     border:1px solid {THEME['border']};border-left:3px solid {THEME['success']};">
                     <div style="color:{THEME['success']};font-weight:700;font-size:0.88rem;">
-                        ✅ {len(regs_fp)} registos encontrados · {fh(total_preview)} totais
+                        {len(regs_fp)} registos encontrados · {fh(total_preview)} totais
                     </div>
                     <div style="color:{THEME['text_secondary']};font-size:0.78rem;margin-top:4px;">
                         {len(tec_sel_fp)} técnico(s) · {escape_html(obra_fp)} · {periodo_str}
                     </div>
                 </div>""", unsafe_allow_html=True)
 
-                if st.button("Gerar Preview da Folha →", use_container_width=True,
+                if st.button("Gerar Preview da Folha", use_container_width=True,
                              type="primary", key="btn_fp_preview"):
                     if not nome_resp.strip():
                         st.warning("Indica o nome do responsável.")
@@ -1559,7 +1552,7 @@ def render_chefe(*args):
             <div style="background:{THEME['surface']};border-radius:{THEME['radius']};padding:18px 20px;
                 margin-bottom:16px;border:1px solid {THEME['border']};">
                 <div style="color:{THEME['text']};font-weight:700;font-size:0.95rem;
-                    margin-bottom:4px;">👁️ Passo 2 de 3 — Preview da Folha</div>
+                    margin-bottom:4px;">Passo 2 de 3 — Preview da Folha</div>
                 <div style="color:{THEME['text_secondary']};font-size:0.8rem;">
                     Verifica os dados. Depois escolhe como queres assinar.
                 </div>
@@ -1619,7 +1612,6 @@ def render_chefe(*args):
                 <div style="background:{THEME['surface']};border-radius:12px;
                     padding:14px;border:1px solid {THEME['border']};border-top:3px solid {THEME['accent']};
                     text-align:center;margin-bottom:8px;">
-                    <div style="font-size:1.5rem;">✍️</div>
                     <div style="color:{THEME['accent']};font-weight:700;font-size:0.88rem;">
                         Assinatura Digital</div>
                     <div style="color:{THEME['text_secondary']};font-size:0.75rem;margin-top:4px;">
@@ -1638,7 +1630,6 @@ def render_chefe(*args):
                 <div style="background:{THEME['surface']};border-radius:12px;
                     padding:14px;border:1px solid {THEME['border']};border-top:3px solid {THEME['success']};
                     text-align:center;margin-bottom:8px;">
-                    <div style="font-size:1.5rem;">🖊️</div>
                     <div style="color:{THEME['success']};font-weight:700;font-size:0.88rem;">
                         Assinatura Manual</div>
                     <div style="color:{THEME['text_secondary']};font-size:0.75rem;margin-top:4px;">
@@ -1652,7 +1643,7 @@ def render_chefe(*args):
                     st.session_state['_menu_locked'] = True
                     st.rerun()
 
-            if st.button("← Voltar à Configuração", key="btn_fp_back",
+            if st.button("Voltar à Configuração", key="btn_fp_back",
                          use_container_width=True):
                 st.session_state.fp_step = 'configurar'
                 st.session_state['_menu_locked'] = True
@@ -1665,7 +1656,7 @@ def render_chefe(*args):
             <div style="background:{THEME['surface']};border-radius:{THEME['radius']};padding:18px 20px;
                 margin-bottom:16px;border:1px solid {THEME['border']};">
                 <div style="color:{THEME['text']};font-weight:700;font-size:0.95rem;
-                    margin-bottom:4px;">🔏 Passo 3 de 3 — Assinar e Submeter</div>
+                    margin-bottom:4px;">Passo 3 de 3 — Assinar e Submeter</div>
             </div>""", unsafe_allow_html=True)
 
             # ── Modo Digital ──────────────────────────────────────────────────
@@ -1674,7 +1665,7 @@ def render_chefe(*args):
                 <div style="background:{THEME['surface']};border-radius:12px;
                     padding:16px 18px;border:1px solid {THEME['border']};border-left:3px solid {THEME['accent']};margin-bottom:16px;">
                     <p style="color:{THEME['text']};font-size:0.85rem;margin:0;">
-                        ℹ️ A assinatura digital consiste na confirmação do teu nome completo
+                        A assinatura digital consiste na confirmação do teu nome completo
                         e aprovação explícita do conteúdo da folha.
                         É gerado um selo único com timestamp e hash de autenticidade.
                     </p>
@@ -1690,7 +1681,7 @@ def render_chefe(*args):
                         value=cargo_user,
                         key="fp_cargo_confirm")
                     aceito = st.checkbox(
-                        "✅ Confirmo que li os dados da folha de ponto e que "
+                        "Confirmo que li os dados da folha de ponto e que "
                         "são correctos. Autorizo a sua submissão.",
                         key="fp_aceito_check")
                     st.markdown(f"""
@@ -1706,7 +1697,7 @@ def render_chefe(*args):
 
                     col_s1, col_s2 = st.columns(2)
                     with col_s1:
-                        cancelar = st.form_submit_button("← Voltar",
+                        cancelar = st.form_submit_button("Voltar",
                             use_container_width=True)
                     with col_s2:
                         confirmar = st.form_submit_button("Assinar e Submeter",
@@ -1749,7 +1740,7 @@ def render_chefe(*args):
                                   detalhes=f"{nome_conf} · {st.session_state.fp_obra}",
                                   ip="")
                         criar_notificacao(destinatario="admin",
-                            titulo="📋 Folha de Ponto Assinada",
+                            titulo="Folha de Ponto Assinada",
                             mensagem=f"{user_nome} assinou digitalmente folha #{folha_id} "
                                      f"— {st.session_state.fp_obra}",
                             tipo="success", acao_url="/admin?tab=folhas")
@@ -1767,7 +1758,7 @@ def render_chefe(*args):
                 <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:12px;padding:14px 18px;
                     margin-bottom:16px;border-left:3px solid {THEME['success']};">
                     <p style="color:{THEME['success']};font-size:0.85rem;margin:0 0 8px;font-weight:700;">
-                        📋 Instruções:</p>
+                        Instruções:</p>
                     <p style="color:{THEME['text_secondary']};font-size:0.82rem;margin:0;">
                         1. Descarrega a folha no passo anterior (Preview)<br>
                         2. Imprime e faz assinar pelo cliente / representante<br>
@@ -1777,7 +1768,7 @@ def render_chefe(*args):
                 </div>""", unsafe_allow_html=True)
 
                 ficheiro_assin = st.file_uploader(
-                    "📤 Upload da folha assinada (JPG, PNG ou PDF)",
+                    "Upload da folha assinada (JPG, PNG ou PDF)",
                     type=["jpg","jpeg","png","pdf"],
                     key="fp_upload_assinada"
                 )
@@ -1822,7 +1813,7 @@ def render_chefe(*args):
                                   detalhes=f"{st.session_state.fp_obra} · assinatura manual",
                                   ip="")
                         criar_notificacao(destinatario="admin",
-                            titulo="📋 Folha Assinada Manualmente",
+                            titulo="Folha Assinada Manualmente",
                             mensagem=f"{user_nome} submeteu folha #{folha_id} assinada "
                                      f"manualmente — {st.session_state.fp_obra}",
                             tipo="success", acao_url="/admin?tab=folhas")
@@ -1834,7 +1825,7 @@ def render_chefe(*args):
                         st.session_state['_menu_locked'] = True
                         st.rerun()
 
-                if st.button("← Voltar ao Preview", key="btn_fp_back_man",
+                if st.button("Voltar ao Preview", key="btn_fp_back_man",
                              use_container_width=True):
                     st.session_state.fp_step = 'preview'
                     st.session_state['_menu_locked'] = True
@@ -1848,7 +1839,6 @@ def render_chefe(*args):
             <div style="text-align:center;padding:40px 20px;
                 background:{THEME['surface']};
                 border-radius:20px;border:2px solid {THEME['success']};margin:10px 0;">
-                <div style="font-size:3rem;margin-bottom:16px;">✅</div>
                 <h3 style="color:{THEME['success']};margin:0 0 8px;">Folha Submetida com Sucesso!</h3>
                 <p style="color:{THEME['text_secondary']};font-size:0.9rem;margin:0 0 20px;">
                     {modo_label} · #{st.session_state.fp_folha_id}
@@ -1856,10 +1846,10 @@ def render_chefe(*args):
                 <div style="background:{THEME['background']};border:1px solid {THEME['border']};border-radius:12px;padding:14px 20px;
                     font-family:monospace;font-size:0.82rem;color:{THEME['text']};
                     display:inline-block;">
-                    📋 {escape_html(st.session_state.fp_obra)}<br>
-                    📅 {st.session_state.fp_periodo}<br>
-                    ⏱️ {fh(st.session_state.fp_total_h)}<br>
-                    🔒 #{st.session_state.fp_folha_id}
+                    {escape_html(st.session_state.fp_obra)}<br>
+                    {st.session_state.fp_periodo}<br>
+                    {fh(st.session_state.fp_total_h)}<br>
+                    #{st.session_state.fp_folha_id}
                 </div>
                 <p style="color:{THEME['text_secondary']};font-size:0.78rem;margin:16px 0 0;">
                     O Admin foi notificado. A folha está visível em Faturação → Folhas de Ponto.
@@ -1879,7 +1869,7 @@ def render_chefe(*args):
 
         # ── Histórico de folhas emitidas ──────────────────────────────────────
         if not folhas_db.empty:
-            with st.expander("📁 Histórico de Folhas Emitidas"):
+            with st.expander("Histórico de Folhas Emitidas"):
                 cols_f = [c for c in ['ID','Obra','Periodo','Responsavel',
                                        'Data_Assinatura','Tipo_Assinatura','Status']
                           if c in folhas_db.columns]
@@ -1894,8 +1884,8 @@ def render_chefe(*args):
         sub_r, sub_rep, sub_list = st.tabs(["Regras de Ouro","Reportar","Incidentes"])
 
         with sub_r:
-            for ic, tit, des in REGRAS_OURO:
-                with st.expander(f"{ic} {tit}"):
+            for tit, des in REGRAS_OURO:
+                with st.expander(tit):
                     st.write(des)
 
         with sub_rep:

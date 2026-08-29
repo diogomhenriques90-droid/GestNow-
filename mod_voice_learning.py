@@ -225,21 +225,22 @@ def get_learning_insights():
             logs_df['hour'] = pd.to_datetime(logs_df['timestamp']).dt.hour
             insights["commands_by_hour"] = logs_df.groupby('hour').size().to_dict()
             
-            # Sugestões de melhoria
+            # Sugestões de melhoria (texto, severidade) — severidade em
+            # {'erro','aviso','info'}, usada no render para escolher a cor.
             if insights["success_rate"] < 80:
-                insights["suggestions"].append(f"📊 Taxa de sucesso baixa ({insights['success_rate']:.1f}%). Considere treinar o modelo com mais exemplos.")
-            
+                insights["suggestions"].append((f"Taxa de sucesso baixa ({insights['success_rate']:.1f}%). Considere treinar o modelo com mais exemplos.", "aviso"))
+
             if len(insights["most_failed_commands"]) > 0:
                 top_failed = list(insights["most_failed_commands"].keys())[:3]
-                insights["suggestions"].append(f"❌ Comandos mais falhados: {', '.join(top_failed)}")
-            
+                insights["suggestions"].append((f"Comandos mais falhados: {', '.join(top_failed)}", "erro"))
+
             # Verificar se há feedback negativo
             if os.path.exists(VOICE_FEEDBACK_FILE):
                 feedback_df = pd.read_csv(VOICE_FEEDBACK_FILE)
                 if not feedback_df.empty:
                     bad_feedback = len(feedback_df[feedback_df['feedback_type'] == 'bad'])
                     if bad_feedback > 0:
-                        insights["suggestions"].append(f"💬 {bad_feedback} feedbacks negativos registados. Reveja as respostas.")
+                        insights["suggestions"].append((f"{bad_feedback} feedbacks negativos registados. Reveja as respostas.", "info"))
             
     except Exception as e:
         print(f"Erro ao obter insights: {e}")
@@ -256,8 +257,7 @@ def render_voice_learning_dashboard():
     # Header com branding industrial
     st.markdown(f"""
     <div class="learning-card">
-        <div style="font-size:2rem; margin-bottom:10px;">🎤</div>
-        <div style="font-size:1.5rem; font-weight:800; color:{THEME["text"]};">🧠 Aprendizagem da IA com Voz</div>
+        <div style="font-size:1.5rem; font-weight:800; color:{THEME["text"]};">Aprendizagem da IA com Voz</div>
         <div style="font-size:0.95rem; color:{THEME["text_secondary"]};">Esta página mostra como a IA está aprendendo com os comandos dos utilizadores.</div>
     </div>
     """, unsafe_allow_html=True)
@@ -270,7 +270,7 @@ def render_voice_learning_dashboard():
         st.markdown(f"""
         <div class="metric-box">
             <div class="metric-value">{insights["total_commands"]}</div>
-            <div class="metric-label">🎤 Total de Comandos</div>
+            <div class="metric-label">Total de Comandos</div>
         </div>
         """, unsafe_allow_html=True)
     with col2:
@@ -278,14 +278,14 @@ def render_voice_learning_dashboard():
         st.markdown(f"""
         <div class="metric-box">
             <div class="metric-value" style="color:{success_color};">{insights["success_rate"]:.1f}%</div>
-            <div class="metric-label">📊 Taxa de Sucesso</div>
+            <div class="metric-label">Taxa de Sucesso</div>
         </div>
         """, unsafe_allow_html=True)
     with col3:
         st.markdown(f"""
         <div class="metric-box">
             <div class="metric-value">{len(insights["commands_by_user_type"])}</div>
-            <div class="metric-label">👥 Utilizadores Ativos</div>
+            <div class="metric-label">Utilizadores Ativos</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -310,7 +310,7 @@ def render_voice_learning_dashboard():
             )
             st.plotly_chart(fig)
         else:
-            st.info("ℹ️ Ainda sem dados suficientes")
+            st.info("Ainda sem dados suficientes")
 
     with col_graf2:
         if insights["commands_by_hour"]:
@@ -329,7 +329,7 @@ def render_voice_learning_dashboard():
             )
             st.plotly_chart(fig)
         else:
-            st.info("ℹ️ Ainda sem dados suficientes")
+            st.info("Ainda sem dados suficientes")
 
     # Comandos falhados
     st.divider()
@@ -347,10 +347,10 @@ def render_voice_learning_dashboard():
     with col_fail2:
         if insights["suggestions"]:
             st.markdown(f"#### Sugestões de Melhoria")
-            for s in insights["suggestions"]:
-                if "🔴" in s or "❌" in s:
+            for s, sev in insights["suggestions"]:
+                if sev == "erro":
                     st.error(s)
-                elif "📊" in s:
+                elif sev == "aviso":
                     st.warning(s)
                 else:
                     st.info(s)
@@ -368,11 +368,11 @@ def render_voice_learning_dashboard():
                 feedback_df = feedback_df.sort_values('timestamp', ascending=False).head(20)
                 st.dataframe(feedback_df, use_container_width=True)
             else:
-                st.info("ℹ️ Nenhum feedback registado ainda.")
+                st.info("Nenhum feedback registado ainda.")
         else:
-            st.info("ℹ️ Nenhum feedback registado ainda.")
+            st.info("Nenhum feedback registado ainda.")
     except Exception as e:
-        st.info("ℹ️ Nenhum feedback registado ainda.")
+        st.info("Nenhum feedback registado ainda.")
 
 # =============================================================================
 # 👍 WIDGET DE FEEDBACK (PARA USAR APÓS RESPOSTA)

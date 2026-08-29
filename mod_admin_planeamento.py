@@ -57,10 +57,10 @@ def render_planeamento():
             total_plan = total_reais = prod = ativos = 0
 
         c1, c2, c3, c4 = st.columns(4)
-        with c1: st.metric("📋 Pacotes Ativos",   ativos)
-        with c2: st.metric("⏱️ Horas Planeadas",  f"{total_plan:.0f}h")
-        with c3: st.metric("⏱️ Horas Reais",      f"{total_reais:.0f}h")
-        with c4: st.metric("📈 Produtividade",    f"{prod:.0f}%")
+        with c1: st.metric("Pacotes Ativos",   ativos)
+        with c2: st.metric("Horas Planeadas",  f"{total_plan:.0f}h")
+        with c3: st.metric("Horas Reais",      f"{total_reais:.0f}h")
+        with c4: st.metric("Produtividade",    f"{prod:.0f}%")
 
         st.divider()
 
@@ -292,17 +292,17 @@ def render_planeamento():
 
             c1, c2, c3 = st.columns(3)
             with c1:
-                st.metric("📋 Pacotes", len(df_rec))
+                st.metric("Pacotes", len(df_rec))
             with c2:
                 h_plan_r = pd.to_numeric(
                     df_rec['Horas_Plan'], errors='coerce'
                 ).fillna(0).sum()
-                st.metric("⏱️ Horas Planeadas", f"{h_plan_r:.0f}h")
+                st.metric("Horas Planeadas", f"{h_plan_r:.0f}h")
             with c3:
                 h_reais_r = pd.to_numeric(
                     df_rec['Horas_Reais'], errors='coerce'
                 ).fillna(0).sum()
-                st.metric("⏱️ Horas Reais", f"{h_reais_r:.0f}h")
+                st.metric("Horas Reais", f"{h_reais_r:.0f}h")
 
             st.dataframe(
                 df_rec[['Frente','Descricao','Horas_Plan',

@@ -627,9 +627,9 @@ def _gerar_pdf_mensal(mes: int, ano: int,
         ok_equil = abs(tot_d - tot_c) < 0.01
         cor_eq   = '#10B981' if ok_equil else '#EF4444'
         msg_eq   = (
-            "✅ EQUILIBRADO — Total Débito = Total Crédito"
+            "EQUILIBRADO — Total Débito = Total Crédito"
             if ok_equil else
-            f"⚠️ DESEQUILIBRADO — Diferença: €{abs(tot_d-tot_c):,.2f}"
+            f"DESEQUILIBRADO — Diferença: €{abs(tot_d-tot_c):,.2f}"
         )
         story.append(Paragraph(
             f"<font color='{cor_eq}'><b>{msg_eq}</b></font>",
@@ -755,7 +755,7 @@ def render_exportacao_contabilidade(*_):
         f"padding:20px;border-radius:14px;margin-bottom:16px;"
         f"border:1px solid {THEME['border']};'>"
         f"<h2 style='color:{THEME['text']};margin:0;font-size:1.4rem;'>"
-        "📤 Exportação para Contabilidade — Eticadata</h2>"
+        "Exportação para Contabilidade — Eticadata</h2>"
         f"<p style='color:{THEME['text_secondary']};margin:4px 0 0;font-size:0.85rem;'>"
         f"{empresa.get('nome','')} · "
         "3 formatos: CSV lançamentos · Excel · PDF relatório"
@@ -844,14 +844,14 @@ def render_exportacao_contabilidade(*_):
         }
 
         linhas_preview = [
-            ("🧾 Faturas emitidas a clientes", fat_emitida),
-            ("📥 Compras / Fornecedores",      compras_val),
-            ("👥 Salários brutos",             sal_val),
-            ("🏛️ Encargos SS empresa",         tsu_e_val),
-            ("💶 Diárias pagas",                diarias_val),
-            ("📉 Amortizações (estimativa mensal)", amort_val),
-            ("💰 IVA Liquidado",                iva_liq),
-            ("💰 IVA Dedutível",                iva_ded),
+            ("Faturas emitidas a clientes", fat_emitida),
+            ("Compras / Fornecedores",      compras_val),
+            ("Salários brutos",             sal_val),
+            ("Encargos SS empresa",         tsu_e_val),
+            ("Diárias pagas",                diarias_val),
+            ("Amortizações (estimativa mensal)", amort_val),
+            ("IVA Liquidado",                iva_liq),
+            ("IVA Dedutível",                iva_ded),
         ]
 
         cols_prev = st.columns(4)
@@ -948,7 +948,7 @@ def render_exportacao_contabilidade(*_):
                 f"border-radius:8px;padding:12px;"
                 f"text-align:center;margin-bottom:12px;'>"
                 f"<b style='color:{THEME['success']};'>"
-                f"✅ {n_lanc} linhas prontas — {mes_n} {ano_n}</b>"
+                f"{n_lanc} linhas prontas — {mes_n} {ano_n}</b>"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -1014,7 +1014,7 @@ def render_exportacao_contabilidade(*_):
 
             # Instrução de importação Eticadata
             st.markdown("---")
-            with st.expander("📖 Como importar no Eticadata"):
+            with st.expander("Como importar no Eticadata"):
                 st.markdown("""
                 **Passos para importar os lançamentos no Eticadata:**
 
@@ -1030,10 +1030,10 @@ def render_exportacao_contabilidade(*_):
                 6. Clica em **Importar**
                 7. Verifica os lançamentos no **Diário** e **Balancete**
 
-                > ⚠️ **Nota:** Antes de importar, confirma com o TOC que as
+                > **Nota:** Antes de importar, confirma com o TOC que as
                 > contas SNC configuradas no GESTNOW correspondem ao plano
                 > de contas do teu Eticadata. Podes ajustar em
-                > **⚙️ Plano de Contas SNC**.
+                > **Plano de Contas SNC**.
                 """)
 
     # ════════════════════════════════════════════════════════════════
@@ -1045,7 +1045,7 @@ def render_exportacao_contabilidade(*_):
         if not st.session_state.get('export_lancamentos'):
             st.info(
                 "Ainda sem export gerado. "
-                "Vai ao tab 📤 Exportar Mês e clica em Gerar."
+                "Vai ao tab Exportar Mês e clica em Gerar."
             )
         else:
             lancamentos = st.session_state['export_lancamentos']
@@ -1067,13 +1067,13 @@ def render_exportacao_contabilidade(*_):
             equilibrado = abs(tot_deb - tot_cred) < 0.01
 
             c1,c2,c3,c4 = st.columns(4)
-            with c1: st.metric("📋 Linhas", len(df_prev))
+            with c1: st.metric("Linhas", len(df_prev))
             with c2: st.metric(
-                "📊 Lançamentos",
+                "Lançamentos",
                 df_prev['N_Ordem_Lancamento'].nunique()
             )
-            with c3: st.metric("💸 Total Débito",  f"€{tot_deb:,.2f}")
-            with c4: st.metric("💰 Total Crédito", f"€{tot_cred:,.2f}")
+            with c3: st.metric("Total Débito",  f"€{tot_deb:,.2f}")
+            with c4: st.metric("Total Crédito", f"€{tot_cred:,.2f}")
 
             # Verificação equilíbrio
             if equilibrado:
@@ -1160,14 +1160,14 @@ def render_exportacao_contabilidade(*_):
         )
 
         grupos = {
-            "📈 Vendas & Clientes": [
+            "Vendas & Clientes": [
                 ("vendas_servicos",    "Prestações de Serviços (72xx)"),
                 ("clientes_cc",        "Clientes c/c (211)"),
                 ("iva_liquidado_23",   "IVA Liquidado 23% (24321)"),
                 ("iva_liquidado_6",    "IVA Liquidado 6% (24322)"),
                 ("iva_liquidado_0",    "IVA Isento / 0% (24323)"),
             ],
-            "📥 Compras & Fornecedores": [
+            "Compras & Fornecedores": [
                 ("fse_subempreitadas", "FSE — Subempreitadas (6221)"),
                 ("fse_materiais",      "FSE — Materiais (6222)"),
                 ("fse_combustivel",    "FSE — Combustível (6251)"),
@@ -1176,7 +1176,7 @@ def render_exportacao_contabilidade(*_):
                 ("iva_dedutivel_23",   "IVA Dedutível 23% (24331)"),
                 ("iva_dedutivel_6",    "IVA Dedutível 6% (24332)"),
             ],
-            "👥 Pessoal & Diárias": [
+            "Pessoal & Diárias": [
                 ("sal_base",           "Remunerações base (6311)"),
                 ("sal_diarias",        "Ajudas de custo / Diárias (6252)"),
                 ("tsu_empresa",        "Encargos SS empresa (6351)"),
@@ -1184,7 +1184,7 @@ def render_exportacao_contabilidade(*_):
                 ("ss_pagar",           "SS a pagar (2451)"),
                 ("irs_pagar",          "IRS retido a pagar (2421)"),
             ],
-            "📉 Imobilizado & Amortizações": [
+            "Imobilizado & Amortizações": [
                 ("amort_equip",        "Amortizações — Equipamento (6421)"),
                 ("amort_veic",         "Amortizações — Viaturas (6422)"),
                 ("amort_soft",         "Amortizações — Software (6423)"),
@@ -1192,7 +1192,7 @@ def render_exportacao_contabilidade(*_):
                 ("dep_acum_veic",      "Dep. acumuladas — Veic. (4382)"),
                 ("dep_acum_soft",      "Dep. acumuladas — Soft. (4383)"),
             ],
-            "🏦 Tesouraria": [
+            "Tesouraria": [
                 ("banco",              "Banco — Depósitos à ordem (1211)"),
                 ("caixa",              "Caixa (111)"),
             ],
@@ -1254,8 +1254,8 @@ def render_exportacao_contabilidade(*_):
             })
         df_contas = pd.DataFrame(rows_c)
         df_contas['Diferente do Padrão'] = df_contas.apply(
-            lambda r: "⚠️ Sim"
-            if r['Conta SNC Atual'] != r['Padrão'] else "✅ Padrão",
+            lambda r: "Sim"
+            if r['Conta SNC Atual'] != r['Padrão'] else "Padrão",
             axis=1
         )
         st.dataframe(
@@ -1349,7 +1349,6 @@ def render_exportacao_contabilidade(*_):
                 ano_h  = str(h.get('Ano',''))
                 eq     = h.get('Equilibrado','')
                 cor_eq = THEME['success'] if eq=='Sim' else THEME['error']
-                ic_eq  = "✅" if eq=='Sim' else "⚠️"
 
                 st.markdown(
                     f"<div class='cont-card' "
@@ -1358,7 +1357,7 @@ def render_exportacao_contabilidade(*_):
                     f"justify-content:space-between;'>"
                     f"<div>"
                     f"<b style='color:{THEME['text']};'>"
-                    f"📤 {meses_pt2.get(mes_h,mes_h)} {ano_h}</b><br>"
+                    f"{meses_pt2.get(mes_h,mes_h)} {ano_h}</b><br>"
                     f"<small style='color:{THEME['text_secondary']};'>"
                     f"Gerado em {h.get('Data_Export','')} · "
                     f"{h.get('N_Lancamentos','')} linhas · "
@@ -1367,7 +1366,7 @@ def render_exportacao_contabilidade(*_):
                     f"</div>"
                     f"<div style='text-align:right;'>"
                     f"<span style='color:{cor_eq};'>"
-                    f"{ic_eq} {eq}</span><br>"
+                    f"{eq}</span><br>"
                     f"<small style='color:{THEME['text_secondary']};'>"
                     f"D: €{float(h.get('Total_Debito',0) or 0):,.2f} · "
                     f"C: €{float(h.get('Total_Credito',0) or 0):,.2f}"

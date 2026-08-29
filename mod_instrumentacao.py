@@ -59,11 +59,11 @@ TIPOS_TAG = {
 }
 
 STATUS_INST = {
-    "0": ("Pendente", "status-pending", "⏳"),
-    "1": ("Material OK", "status-ok", "📦"),
-    "2": ("Calibrado", "status-calibrated", "🔬"),
-    "3": ("Instalado", "status-installed", "📍"),
-    "4": ("Concluído", "status-completed", "✅"),
+    "0": ("Pendente", "status-pending"),
+    "1": ("Material OK", "status-ok"),
+    "2": ("Calibrado", "status-calibrated"),
+    "3": ("Instalado", "status-installed"),
+    "4": ("Concluído", "status-completed"),
 }
 
 # =============================================================================
@@ -184,9 +184,9 @@ def _gerar_certificado_itr_a(tag, dados_calibracao, assinatura_b64, usuario, obr
             elements.append(Paragraph(f"<i>Assinado digitalmente por: {usuario}</i>", styles['Normal']))
             elements.append(Paragraph(f"<i>Hash: {dados_calibracao['hash']}</i>", styles['Normal']))
             elements.append(Spacer(1, 1*cm))
-            elements.append(Paragraph("✍️ __________________________", styles['Normal']))
+            elements.append(Paragraph("__________________________", styles['Normal']))
         else:
-            elements.append(Paragraph("<i style='color:red;'>⚠️ Assinatura não capturada</i>", styles['Normal']))
+            elements.append(Paragraph("<i style='color:red;'>Assinatura não capturada</i>", styles['Normal']))
         
         elements.append(Spacer(1, 2*cm))
         elements.append(Paragraph(f"<i>Documento gerado por GESTNOW v3 | Compliance SGS/ISO 9001</i>", styles['Normal']))
@@ -262,7 +262,6 @@ def render_instrumentacao(*args):
     
     st.markdown(f"""
     <div style="text-align:center; padding:30px 20px; background:{THEME['surface']}; border:1px solid {THEME['border']}; border-radius:{THEME['radius']}; margin-bottom:30px;">
-        <div style="font-size:3rem; margin-bottom:10px;">🔧</div>
         <div style="font-size:1.8rem; font-weight:800; color:{THEME['text']};">{t('instrumentation')}</div>
         <div style="font-size:1rem; color:{THEME['text_secondary']};">Gestão de Instrumentação Industrial</div>
     </div>
@@ -273,7 +272,7 @@ def render_instrumentacao(*args):
         st.warning("Nenhuma obra configurada como 'Instrumentação'.")
         return
     
-    obra_sel = st.selectbox("🏗️ Selecionar Projeto", o_inst, key="inst_project_sel")
+    obra_sel = st.selectbox("Selecionar Projeto", o_inst, key="inst_project_sel")
     o_key = obra_sel.replace(' ', '_').replace('/', '_')
 
     insts = load_db(f"inst_{o_key}_index.csv", ["ID","Tag","Tipo","Descricao","Fabricante","Modelo","Status","GPS_Lat","GPS_Lng","Foto_Local_b64","Assinatura_Calibracao_b64","Assinatura_Instalacao_b64","Hash_Validacao"])
@@ -293,7 +292,7 @@ def render_instrumentacao(*args):
         up = st.file_uploader(f"Upload PDF {c_mode}", type="pdf", key="up_ia")
         if up and st.button("Processar Vision", use_container_width=True, type="primary"):
             m = "PID" if "P&ID" in c_mode else "HOOKUP" if "Hook-Up" in c_mode else "PACKING"
-            with st.spinner("🤖 Claude 3.5 a analisar..."):
+            with st.spinner("Claude 3.5 a analisar..."):
                 res = _processar_ia_vision(up, m)
                 if res:
                     st.success("Dados Extraídos!")
@@ -353,7 +352,7 @@ def render_instrumentacao(*args):
                 st.success("Alterações guardadas!")
                 st.rerun()
         else:
-            st.info("ℹ️ Sem instrumentos. Use IA Vision para extrair tags.")
+            st.info("Sem instrumentos. Use IA Vision para extrair tags.")
 
     # --- TAB SCAN QR (NOVA) ---
     with t_scan:
@@ -378,10 +377,10 @@ def render_instrumentacao(*args):
                         
                         st.markdown(f"""
                         <div style="background:{THEME['surface']}; border:2px solid {THEME['accent']}; border-radius:15px; padding:20px; margin-bottom:20px;">
-                            <h3 style="margin:0 0 15px 0; color:{THEME['accent']};">🔧 {tag_scan}</h3>
+                            <h3 style="margin:0 0 15px 0; color:{THEME['accent']};">{tag_scan}</h3>
                             <p><strong>Tipo:</strong> {inst.get('Tipo', 'N/A')}</p>
                             <p><strong>Descrição:</strong> {inst.get('Descricao', 'N/A')}</p>
-                            <p><strong>Status:</strong> {STATUS_INST.get(inst.get('Status', '0'), ('Desconhecido', '', '❓'))[0]}</p>
+                            <p><strong>Status:</strong> {STATUS_INST.get(inst.get('Status', '0'), ('Desconhecido', ''))[0]}</p>
                             <p><strong>Obra:</strong> {obra_scan}</p>
                         </div>
                         """, unsafe_allow_html=True)
@@ -403,16 +402,16 @@ def render_instrumentacao(*args):
                             if st.button("Ver Certificado", use_container_width=True, key="btn_view_cert"):
                                 st.info("Funcionalidade em desenvolvimento.")
                         else:
-                            st.warning(f"⏳ Instrumento em status: {STATUS_INST.get(status, ('Pendente', '', '⏳'))[0]}")
+                            st.warning(f"Instrumento em status: {STATUS_INST.get(status, ('Pendente', ''))[0]}")
                     else:
                         st.warning(f"Instrumento {tag_scan} não encontrado na base de dados desta obra.")
                 else:
-                    st.info("ℹ️ Sem instrumentos carregados para esta obra.")
+                    st.info("Sem instrumentos carregados para esta obra.")
             else:
                 st.error("QR Code inválido ou não reconhecido.")
         else:
             st.info("Aguardando leitura de QR Code...")
-            with st.expander("ℹ️ Formato esperado do QR Code"):
+            with st.expander("Formato esperado do QR Code"):
                 st.markdown("""
                 **Formato curto:** `GN|PT-101|Obra_Exemplo`
                 
@@ -421,7 +420,7 @@ def render_instrumentacao(*args):
 
     # --- TAB ITR-A: CALIBRAÇÃO COM ASSINATURA DIGITAL ---
     with t_itra:
-        st.markdown("### Calibração ITR-A (5 pontos) + ✍️ Assinatura Digital", unsafe_allow_html=True)
+        st.markdown("### Calibração ITR-A (5 pontos) + Assinatura Digital", unsafe_allow_html=True)
         
         # Suporte para QR Code selecionado
         tag_default = st.session_state.get('qr_tag_selected', None)
@@ -473,7 +472,7 @@ def render_instrumentacao(*args):
                         
                         criar_notificacao(
                             destinatario=st.session_state.user,
-                            titulo="🔬 Calibração Concluída",
+                            titulo="Calibração Concluída",
                             mensagem=f"{tag_c} calibrado com erro máx de {err:.4f} {unit}",
                             tipo="success",
                             acao_url="/instrumentacao?tab=itra"
@@ -486,7 +485,7 @@ def render_instrumentacao(*args):
 
     # --- TAB ITR-B: INSTALAÇÃO + GPS + ASSINATURA ---
     with t_itrb:
-        st.markdown("### Instalação + GPS + ✍️ Assinatura", unsafe_allow_html=True)
+        st.markdown("### Instalação + GPS + Assinatura", unsafe_allow_html=True)
         
         tag_default = st.session_state.get('qr_tag_selected', None)
         inst_f = insts[insts['Status'] == '2']
@@ -494,7 +493,7 @@ def render_instrumentacao(*args):
             inst_f = pd.concat([inst_f[inst_f['Tag'] == tag_default], inst_f[inst_f['Tag'] != tag_default]])
         
         if inst_f.empty:
-            st.info("ℹ️ Aguardando instrumentos calibrados.")
+            st.info("Aguardando instrumentos calibrados.")
         else:
             tag_f = st.selectbox("Localizar Instrumento", inst_f['Tag'].tolist(), key="itrb_tag_sel")
             row_f = inst_f[inst_f['Tag'] == tag_f].iloc[0]
@@ -504,12 +503,12 @@ def render_instrumentacao(*args):
                 nav_url = f"https://www.google.com/maps/dir/?api=1&destination={lat},{lon}&travelmode=walking"
                 st.markdown(f"""
                 <div style="background:{THEME['surface']}; padding:20px; border-radius:15px; border:2px solid {THEME['accent']}; text-align:center;">
-                    <h4 style="color:{THEME['text']}; margin-bottom:15px;">📍 {tag_f} no GPS</h4>
+                    <h4 style="color:{THEME['text']}; margin-bottom:15px;">{tag_f} no GPS</h4>
                     <a href="{nav_url}" target="_blank" style="text-decoration:none;">
-                        <button style="background:{THEME['accent']}; color:white; border:none; padding:15px 30px; border-radius:10px; font-weight:bold; cursor:pointer; width:100%;">🗺️ Google Maps</button>
+                        <button style="background:{THEME['accent']}; color:white; border:none; padding:15px 30px; border-radius:10px; font-weight:bold; cursor:pointer; width:100%;">Google Maps</button>
                     </a>
                     <a href="https://waze.com/ul?ll={lat},{lon}&navigate=yes" target="_blank" style="text-decoration:none;">
-                        <button style="background:{THEME['accent']}; color:white; border:none; padding:15px 30px; border-radius:10px; font-weight:bold; cursor:pointer; width:100%; margin-top:10px;">🚗 Waze</button>
+                        <button style="background:{THEME['accent']}; color:white; border:none; padding:15px 30px; border-radius:10px; font-weight:bold; cursor:pointer; width:100%; margin-top:10px;">Waze</button>
                     </a>
                 </div>
                 """, unsafe_allow_html=True)
@@ -517,7 +516,7 @@ def render_instrumentacao(*args):
                 st.warning("GPS não registado.")
 
             st.divider()
-            f_foto = st.camera_input("📸 Foto da Instalação", key="itrb_foto")
+            f_foto = st.camera_input("Foto da Instalação", key="itrb_foto")
             assinatura_inst = render_signature_pad("Assinatura do Técnico Instalador", f"sig_inst_{tag_f}")
             
             if f_foto and assinatura_inst:
@@ -535,7 +534,7 @@ def render_instrumentacao(*args):
                     
                     criar_notificacao(
                         destinatario=st.session_state.user,
-                        titulo="🏗️ Instalação Concluída",
+                        titulo="Instalação Concluída",
                         mensagem=f"{tag_f} instalado com GPS e foto",
                         tipo="success",
                         acao_url="/instrumentacao?tab=itrb"
@@ -559,7 +558,7 @@ def render_instrumentacao(*args):
                 if pdf_z:
                     st.download_button("Descarregar Etiquetas", pdf_z, f"etiquetas_{obra_sel}.pdf", "application/pdf", key="dl_zebra")
                 else:
-                    st.info("ℹ️ Reportlab não disponível.")
+                    st.info("Reportlab não disponível.")
             
             # ✅ QR CODES EM LOTE
             if st.button("Gerar QR Codes para Imprimir", use_container_width=True, type="secondary", key="btn_qr_lote"):
@@ -574,7 +573,7 @@ def render_instrumentacao(*args):
                             st.image(render_qr_code_image(qr_data['short'], size=100), caption=tag)
                     st.info("Dica: Capture screenshot para guardar as etiquetas QR.")
                 else:
-                    st.info("ℹ️ Sem instrumentos para gerar QR Codes.")
+                    st.info("Sem instrumentos para gerar QR Codes.")
         
         with c_h:
             if st.button("Gerar Handover COMPLETO", use_container_width=True, type="primary", key="btn_handover"):

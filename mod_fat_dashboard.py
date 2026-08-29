@@ -199,9 +199,9 @@ def _calcular_score_obra(obra, registos_db, faturas_cli,
 
 
 def _rag_cor(score):
-    if score >= 70: return THEME['success'], "🟢"
-    if score >= 40: return THEME['warning'], "🟡"
-    return THEME['error'], "🔴"
+    if score >= 70: return THEME['success']
+    if score >= 40: return THEME['warning']
+    return THEME['error']
 
 
 def _calcular_saude_financeira(kpis, faturas_vencidas,
@@ -240,7 +240,7 @@ def _copiloto_ia(pergunta: str, contexto: dict) -> str:
         import anthropic
         api_key = os.environ.get("ANTHROPIC_API_KEY", "")
         if not api_key:
-            return "❌ API key não configurada."
+            return "API key não configurada."
 
         client = anthropic.Anthropic(api_key=api_key)
 
@@ -256,7 +256,7 @@ Formato das respostas:
 - Máximo 3 parágrafos curtos
 - Usa números concretos quando disponíveis
 - Termina sempre com 1 ação recomendada
-- Usa emojis moderadamente"""
+- Não uses emojis"""
 
         prompt = f"""Dados financeiros atuais da empresa:
 {json.dumps(contexto, ensure_ascii=False, indent=2)}
@@ -272,7 +272,7 @@ Pergunta do CFO: {pergunta}"""
         return resp.content[0].text
 
     except Exception as e:
-        return f"❌ Erro: {e}"
+        return f"Erro: {e}"
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -769,7 +769,6 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
         alertas.append({
             "urgencia": 1,
             "cor": THEME['error'],
-            "icone": "🔴",
             "titulo": f"{kpis['faturas_vencidas']} fatura(s) vencida(s)",
             "desc": "Clientes com pagamento em atraso",
             "acao": "Ver Aging"
@@ -780,7 +779,6 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
         alertas.append({
             "urgencia": 1,
             "cor": THEME['error'],
-            "icone": "🆘",
             "titulo": "Cash flow previsto NEGATIVO",
             "desc": f"Deficit de €{abs(kpis['cash_flow_prev']):,.0f}",
             "acao": "Ver Tesouraria"
@@ -791,7 +789,6 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
         alertas.append({
             "urgencia": 2,
             "cor": THEME['warning'],
-            "icone": "⚠️",
             "titulo": f"Margem baixa: {kpis['margem_pct']:.1f}%",
             "desc": "Margem abaixo do mínimo recomendado (20%)",
             "acao": "Ver P&L"
@@ -810,7 +807,6 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
             alertas.append({
                 "urgencia": 2,
                 "cor": THEME['warning'],
-                "icone": "🛡️",
                 "titulo": f"{len(prox)} seguro(s) a expirar em 60 dias",
                 "desc": "Verificar renovação urgente",
                 "acao": "Ver Seguros"
@@ -830,7 +826,6 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
             alertas.append({
                 "urgencia": 2,
                 "cor": THEME['warning'],
-                "icone": "🏦",
                 "titulo": f"{len(recentes)} IBAN alterado(s) recentemente",
                 "desc": "Verificar antes de efetuar pagamentos",
                 "acao": "Ver IBANs"
@@ -849,7 +844,6 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
             alertas.append({
                 "urgencia": 3,
                 "cor": THEME['accent'],
-                "icone": "📋",
                 "titulo": f"{len(prox_a)} alvará(s)/licença(s) a expirar",
                 "desc": "Renovação necessária em 90 dias",
                 "acao": "Ver Alvarás"
@@ -860,7 +854,6 @@ def _gerar_alertas(kpis, faturas_cli, seguros_db,
         alertas.append({
             "urgencia": 5,
             "cor": THEME['success'],
-            "icone": "✅",
             "titulo": "Sem alertas críticos",
             "desc": "Todos os indicadores dentro dos parâmetros",
             "acao": ""
@@ -986,7 +979,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
             align-items:center;">
             <div>
                 <h2 style="color:{THEME['text']};margin:0;font-size:1.6rem;">
-                    📊 Dashboard Executivo CFO
+                    Dashboard Executivo CFO
                 </h2>
                 <p style="color:{THEME['text_secondary']};margin:4px 0 0;font-size:0.85rem;">
                     {meses_pt[mes-1]} {ano} &nbsp;·&nbsp;
@@ -1004,40 +997,38 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
     """, unsafe_allow_html=True)
 
     # ── KPI Cards ─────────────────────────────────────────────────
-    trend_icon  = "↑" if kpis['trend_fat'] >= 0 else "↓"
     trend_class = "up" if kpis['trend_fat'] >= 0 else "down"
-    cf_icon     = "↑" if kpis['cash_flow_prev'] >= 0 else "↓"
     cf_class    = "up" if kpis['cash_flow_prev'] >= 0 else "down"
     mg_class    = "up" if kpis['margem_pct'] >= 20 else "down"
     venc_class  = "up" if kpis['faturas_vencidas'] == 0 else "down"
 
     c1,c2,c3,c4,c5,c6 = st.columns(6)
     cards = [
-        (c1, "💰 Faturação Mês",
+        (c1, "Faturação Mês",
          f"€{kpis['fat_mes']:,.0f}",
-         f"{trend_icon} {abs(kpis['trend_fat']):.1f}% vs mês ant.",
+         f"{abs(kpis['trend_fat']):.1f}% vs mês ant.",
          trend_class, THEME['accent']),
-        (c2, "📥 A Receber",
+        (c2, "A Receber",
          f"€{kpis['a_receber']:,.0f}",
          "Total em aberto",
          "up" if kpis['a_receber'] > 0 else "down", THEME['accent']),
-        (c3, "📤 A Pagar",
+        (c3, "A Pagar",
          f"€{kpis['a_pagar']:,.0f}",
          "Fornecedores pendentes",
          "down" if kpis['a_pagar'] > kpis['a_receber'] else "up",
          THEME['accent']),
-        (c4, "📈 Margem Mês",
+        (c4, "Margem Mês",
          f"{kpis['margem_pct']:.1f}%",
-         "↑ Bom" if kpis['margem_pct'] >= 20 else "↓ Atenção",
+         "Bom" if kpis['margem_pct'] >= 20 else "Atenção",
          mg_class, THEME['accent']),
-        (c5, "💵 Cash Flow 30d",
+        (c5, "Cash Flow 30d",
          f"€{kpis['cash_flow_prev']:,.0f}",
-         f"{cf_icon} Previsional",
+         "Previsional",
          cf_class, THEME['accent']),
-        (c6, "🔴 Fat. Vencidas",
+        (c6, "Fat. Vencidas",
          str(kpis['faturas_vencidas']),
-         "✅ Nenhuma" if kpis['faturas_vencidas'] == 0
-         else "❌ Urgente",
+         "Nenhuma" if kpis['faturas_vencidas'] == 0
+         else "Urgente",
          venc_class, THEME['accent']),
     ]
 
@@ -1064,13 +1055,13 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
         )
         # Nível de crise
         nivel_txt = {
-            range(70, 101): ("🟢 SAUDÁVEL",     THEME['success'],
+            range(70, 101): ("SAUDÁVEL",     THEME['success'],
                               "Reserva e margens OK"),
-            range(40, 70):  ("🟡 ATENÇÃO",       THEME['warning'],
+            range(40, 70):  ("ATENÇÃO",       THEME['warning'],
                               "Monitorizar de perto"),
-            range(20, 40):  ("🔴 ALERTA",        THEME['error'],
+            range(20, 40):  ("ALERTA",        THEME['error'],
                               "Ação corretiva necessária"),
-            range(0, 20):   ("🆘 CRISE IMINENTE",THEME['error'],
+            range(0, 20):   ("CRISE IMINENTE",THEME['error'],
                               "Ativar plano contingência"),
         }
         for r, (txt, cor, desc) in nivel_txt.items():
@@ -1091,7 +1082,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
             f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
             "font-weight:700;letter-spacing:0.08em;"
             "text-transform:uppercase;margin:0 0 8px;'>"
-            "⚡ Alertas do Dia</p>",
+            "Alertas do Dia</p>",
             unsafe_allow_html=True
         )
         for alerta in alertas[:5]:
@@ -1100,7 +1091,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
             acao_val = alerta.get('acao', '')
             if acao_val:
                 acao_html = (
-                    f"<small style='color:{THEME['accent']};cursor:pointer;'>→ "
+                    f"<small style='color:{THEME['accent']};cursor:pointer;'>"
                     + acao_val
                     + "</small>"
                 )
@@ -1114,7 +1105,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                 f"align-items:flex-start;'>"
                 f"<div>"
                 f"<b style='color:{alerta['cor']};font-size:0.88rem;'>"
-                f"{alerta['icone']} {alerta['titulo']}</b><br>"
+                f"{alerta['titulo']}</b><br>"
                 f"<small style='color:{THEME['text_secondary']};'>{alerta['desc']}</small>"
                 f"</div>"
                 f"{acao_html}"
@@ -1180,7 +1171,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
     st.markdown(
         f"<p style='color:{THEME['text']};font-weight:700;"
         "font-size:1rem;margin:0 0 12px;'>"
-        "🏗️ Scorecard de Obras</p>",
+        "Scorecard de Obras</p>",
         unsafe_allow_html=True
     )
 
@@ -1224,7 +1215,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                     obra, registos_db, faturas_cli,
                     pd.DataFrame(), obras_db
                 )
-                cor_o, ic_o = _rag_cor(score_o)
+                cor_o = _rag_cor(score_o)
 
                 # Métricas individuais
                 mg_c = THEME['success'] if det_o.get('Margem',0) >= 15 \
@@ -1236,11 +1227,6 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                 cb_c = THEME['success'] if det_o.get('Cobrança',0) >= 12 \
                        else THEME['warning'] if det_o.get('Cobrança',0) >= 8 \
                        else THEME['error']
-
-                # Ícones calculados antes dos f-strings
-                mg_ic = '🟢' if mg_c == THEME['success'] else '🟡' if mg_c == THEME['warning'] else '🔴'
-                vl_ic = '🟢' if vl_c == THEME['success'] else '🟡' if vl_c == THEME['warning'] else '🔴'
-                cb_ic = '🟢' if cb_c == THEME['success'] else '🟡' if cb_c == THEME['warning'] else '🔴'
 
                 col_nome, col_sc2, col_mg, col_vl, col_cb, col_rd = \
                     st.columns([2, 1, 1, 1, 1, 1])
@@ -1261,7 +1247,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                         f"border-radius:8px;padding:10px;"
                         f"text-align:center;'>"
                         f"<b style='color:{cor_o};font-size:1.1rem;'>"
-                        f"{ic_o} {score_o}</b>"
+                        f"{score_o}</b>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1271,7 +1257,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                         f"border-radius:8px;padding:10px;"
                         f"text-align:center;'>"
                         f"<span style='color:{mg_c};font-size:0.85rem;'>"
-                        f"{mg_ic} {det_o.get('Margem',0)}/20</span>"
+                        f"{det_o.get('Margem',0)}/20</span>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1281,7 +1267,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                         f"border-radius:8px;padding:10px;"
                         f"text-align:center;'>"
                         f"<span style='color:{vl_c};font-size:0.85rem;'>"
-                        f"{vl_ic} {det_o.get('Validação',0)}/15</span>"
+                        f"{det_o.get('Validação',0)}/15</span>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1291,7 +1277,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                         f"border-radius:8px;padding:10px;"
                         f"text-align:center;'>"
                         f"<span style='color:{cb_c};font-size:0.85rem;'>"
-                        f"{cb_ic} {det_o.get('Cobrança',0)}/15</span>"
+                        f"{det_o.get('Cobrança',0)}/15</span>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1321,7 +1307,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                         f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:16px;'>"
                         f"<h4 style='color:{THEME['text']};margin:0 0 12px;'>"
-                        f"📋 Análise — {obra_r}</h4>",
+                        f"Análise — {obra_r}</h4>",
                         unsafe_allow_html=True
                     )
                     for cat, val in det_r.items():
@@ -1355,7 +1341,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
     st.markdown(
         f"<p style='color:{THEME['text']};font-weight:700;"
         "font-size:1rem;margin:0 0 4px;'>"
-        "🤖 Co-Piloto Financeiro IA</p>"
+        "Co-Piloto Financeiro IA</p>"
         f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;"
         "margin:0 0 12px;'>"
         "Pergunta em linguagem natural sobre "
@@ -1373,7 +1359,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
     ]
     st.markdown(
         f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
-        "margin:0 0 6px;'>💡 Sugestões:</p>",
+        "margin:0 0 6px;'>Sugestões:</p>",
         unsafe_allow_html=True
     )
     cols_sug = st.columns(len(sugestoes))
@@ -1387,7 +1373,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
                 st.session_state['copiloto_input'] = sug
 
     pergunta = st.text_input(
-        "💬 Pergunta ao Co-Piloto",
+        "Pergunta ao Co-Piloto",
         value=st.session_state.get('copiloto_input', ''),
         placeholder="Ex: Quando é que ficamos sem cash flow "
                     "se a BASF não pagar?",
@@ -1425,14 +1411,14 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
             "mes_atual": f"{meses_pt[mes-1]} {ano}",
         }
 
-        with st.spinner("🤖 A analisar os dados..."):
+        with st.spinner("A analisar os dados..."):
             resposta = _copiloto_ia(pergunta, contexto_ia)
 
         st.markdown(
             f"<div class='copiloto-resp'>"
             f"<p style='color:{THEME['accent']};font-size:0.75rem;"
             f"font-weight:700;margin:0 0 8px;'>"
-            f"🤖 CO-PILOTO FINANCEIRO</p>"
+            f"CO-PILOTO FINANCEIRO</p>"
             f"{resposta.replace(chr(10), '<br>')}"
             f"</div>",
             unsafe_allow_html=True
@@ -1451,7 +1437,7 @@ def render_fat_dashboard(obras_db, registos_db, faturas_db,
 
     if st.session_state['copiloto_hist']:
         with st.expander(
-            f"📚 Histórico ({len(st.session_state['copiloto_hist'])} pergunta(s))"
+            f"Histórico ({len(st.session_state['copiloto_hist'])} pergunta(s))"
         ):
             for item in reversed(
                 st.session_state['copiloto_hist'][-10:]

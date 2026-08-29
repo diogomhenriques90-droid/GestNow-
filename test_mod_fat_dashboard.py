@@ -117,9 +117,9 @@ class TestTemaClaroAplicado(unittest.TestCase):
 
     def test_rag_cor_usa_theme(self):
         import mod_fat_dashboard
-        self.assertEqual(mod_fat_dashboard._rag_cor(80)[0], core.THEME["success"])
-        self.assertEqual(mod_fat_dashboard._rag_cor(50)[0], core.THEME["warning"])
-        self.assertEqual(mod_fat_dashboard._rag_cor(20)[0], core.THEME["error"])
+        self.assertEqual(mod_fat_dashboard._rag_cor(80), core.THEME["success"])
+        self.assertEqual(mod_fat_dashboard._rag_cor(50), core.THEME["warning"])
+        self.assertEqual(mod_fat_dashboard._rag_cor(20), core.THEME["error"])
 
     def test_alertas_usam_theme(self):
         import mod_fat_dashboard

@@ -53,13 +53,13 @@ def _hoje_str():
 # error. 7 estados, 4 tons semânticos disponíveis — reutilização
 # deliberada, não perda de informação (o texto do stage diferencia).
 PIPELINE_STAGES = [
-    {"id": "prospeto",    "nome": "🔍 Prospeto",       "cor": THEME['text_secondary'], "prob": 10},
-    {"id": "contactado",  "nome": "📞 Contactado",      "cor": THEME['accent'], "prob": 25},
-    {"id": "reuniao",     "nome": "🤝 Reunião Marcada", "cor": THEME['accent'], "prob": 40},
-    {"id": "proposta",    "nome": "📄 Proposta Enviada","cor": THEME['warning'], "prob": 60},
-    {"id": "negociacao",  "nome": "💬 Negociação",      "cor": THEME['warning'], "prob": 75},
-    {"id": "ganho",       "nome": "✅ Ganho",            "cor": THEME['success'], "prob": 100},
-    {"id": "perdido",     "nome": "❌ Perdido",          "cor": THEME['error'], "prob": 0},
+    {"id": "prospeto",    "nome": "Prospeto",       "cor": THEME['text_secondary'], "prob": 10},
+    {"id": "contactado",  "nome": "Contactado",      "cor": THEME['accent'], "prob": 25},
+    {"id": "reuniao",     "nome": "Reunião Marcada", "cor": THEME['accent'], "prob": 40},
+    {"id": "proposta",    "nome": "Proposta Enviada","cor": THEME['warning'], "prob": 60},
+    {"id": "negociacao",  "nome": "Negociação",      "cor": THEME['warning'], "prob": 75},
+    {"id": "ganho",       "nome": "Ganho",            "cor": THEME['success'], "prob": 100},
+    {"id": "perdido",     "nome": "Perdido",          "cor": THEME['error'], "prob": 0},
 ]
 
 STAGE_NOMES = [s["nome"] for s in PIPELINE_STAGES]
@@ -510,7 +510,7 @@ def render_comercial(*_):
                 f"<div class='alerta-visita' "
                 f"style='background:{cor_av}12;"
                 f"border-left-color:{cor_av};'>"
-                f"<b style='color:{cor_av};'>🗓️ Visita {txt_av}:</b> "
+                f"<b style='color:{cor_av};'>Visita {txt_av}:</b> "
                 f"{av['cliente']} — {av['data']} {av['hora']} "
                 f"({av['tipo']})"
                 f"</div>",
@@ -540,12 +540,12 @@ def render_comercial(*_):
     n_clientes = len(clientes_db) if not clientes_db.empty else 0
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
-    with c1: st.metric("📋 Oportunidades",  oport_ativas)
-    with c2: st.metric("💰 Pipeline",        f"\u20AC{val_pipeline:,.0f}")
-    with c3: st.metric("✅ Ganhos",           ganhos_n)
-    with c4: st.metric("🎯 Conversão",        f"{taxa_conv:.1f}%")
-    with c5: st.metric("🗓️ Visitas/Mês",     n_visitas_mes)
-    with c6: st.metric("👥 Clientes",         n_clientes)
+    with c1: st.metric("Oportunidades",  oport_ativas)
+    with c2: st.metric("Pipeline",        f"\u20AC{val_pipeline:,.0f}")
+    with c3: st.metric("Ganhos",           ganhos_n)
+    with c4: st.metric("Conversão",        f"{taxa_conv:.1f}%")
+    with c5: st.metric("Visitas/Mês",     n_visitas_mes)
+    with c6: st.metric("Clientes",         n_clientes)
 
     st.divider()
 
@@ -625,7 +625,7 @@ def render_comercial(*_):
                     for _, r in ct_sem_op.iterrows()
                 ] if not ct_sem_op.empty else ["— Nenhum —"]
                 op_contacto = st.selectbox(
-                    "🔗 Contacto de Origem (ISO)",
+                    "Contacto de Origem (ISO)",
                     ct_opts, key="op_contacto_orig",
                     help="Contactos ainda sem oportunidade ligada"
                 )
@@ -728,9 +728,9 @@ def render_comercial(*_):
                     alerta_f = ""
                     if op.get('Stage') not in ['ganho', 'perdido']:
                         if dias_fecho < 0:
-                            alerta_f = f"<span style='color:{THEME['error']};font-size:0.72rem;'>⚠️ Data fecho ultrapassada</span>"
+                            alerta_f = f"<span style='color:{THEME['error']};font-size:0.72rem;'>Data fecho ultrapassada</span>"
                         elif dias_fecho <= 14:
-                            alerta_f = f"<span style='color:{THEME['warning']};font-size:0.72rem;'>⏰ Fecho em {dias_fecho} dias</span>"
+                            alerta_f = f"<span style='color:{THEME['warning']};font-size:0.72rem;'>Fecho em {dias_fecho} dias</span>"
 
                     col_oi, col_oa = st.columns([5, 1])
                     with col_oi:
@@ -743,9 +743,9 @@ def render_comercial(*_):
                             f"<b style='color:{THEME['text']};font-size:0.9rem;'>"
                             f"{op.get('Nome', '')}</b><br>"
                             f"<small style='color:{THEME['text_secondary']};'>"
-                            f"🏢 {op.get('Cliente', '')} · "
-                            f"👤 {op.get('Comercial', '')} · "
-                            f"📅 {op.get('Data_Fecho_Est', '')}"
+                            f"{op.get('Cliente', '')} · "
+                            f"{op.get('Comercial', '')} · "
+                            f"{op.get('Data_Fecho_Est', '')}"
                             f"</small><br>{alerta_f}"
                             f"</div>"
                             f"<div style='text-align:right;'>"
@@ -788,7 +788,7 @@ def render_comercial(*_):
                     f"style='background:{cor_av}12;"
                     f"border-left-color:{cor_av};'>"
                     f"<b style='color:{cor_av};'>"
-                    f"🗓️ {av['cliente']}</b> — "
+                    f"{av['cliente']}</b> — "
                     f"{av['data']} às {av['hora']} · {av['tipo']}"
                     f"</div>",
                     unsafe_allow_html=True
@@ -928,16 +928,16 @@ def render_comercial(*_):
                     # Badge data
                     if est_v == 'Agendada':
                         if dias_v < 0:
-                            badge_v = "⚠️ EM ATRASO"
+                            badge_v = "EM ATRASO"
                             cor_badge = THEME['error']
                         elif dias_v == 0:
-                            badge_v = "🔴 HOJE"
+                            badge_v = "HOJE"
                             cor_badge = THEME['error']
                         elif dias_v == 1:
-                            badge_v = "🟡 AMANHÃ"
+                            badge_v = "AMANHÃ"
                             cor_badge = THEME['warning']
                         else:
-                            badge_v = f"📅 em {dias_v}d"
+                            badge_v = f"em {dias_v}d"
                             cor_badge = THEME['accent']
                     else:
                         badge_v   = est_v
@@ -959,10 +959,10 @@ def render_comercial(*_):
                             f"font-size:0.9rem;'>"
                             f"{vis.get('Cliente', '')}</b><br>"
                             f"<small style='color:{THEME['text_secondary']};'>"
-                            f"📅 {vis.get('Data', '')} "
+                            f"{vis.get('Data', '')} "
                             f"às {vis.get('Hora', '')} · "
                             f"{vis.get('Tipo', '')} · "
-                            f"👤 {vis.get('Comercial', '')}"
+                            f"{vis.get('Comercial', '')}"
                             f"</small>"
                             f"{local_html}"
                             f"</div>"
@@ -990,7 +990,7 @@ def render_comercial(*_):
                     # Resultado da visita (se realizada)
                     if est_v == 'Realizada':
                         with st.expander(
-                            f"📝 Resultado — {vis.get('Cliente', '')}",
+                            f"Resultado — {vis.get('Cliente', '')}",
                             expanded=False
                         ):
                             col_res1, col_res2 = st.columns(2)
@@ -1152,19 +1152,19 @@ def render_comercial(*_):
                         f"font-size:0.9rem;'>"
                         f"{cli.get('Nome', '')}</b><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
-                        f"🏭 {cli.get('Setor', '')} · "
-                        f"👤 {cli.get('Contacto', '')} · "
-                        f"📅 {cli.get('Data_Angariacao', '')} · "
-                        f"🎯 {cli.get('Origem', '')}"
+                        f"{cli.get('Setor', '')} · "
+                        f"{cli.get('Contacto', '')} · "
+                        f"{cli.get('Data_Angariacao', '')} · "
+                        f"{cli.get('Origem', '')}"
                         f"</small><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
-                        f"📧 {cli.get('Email', '')} · "
-                        f"📞 {cli.get('Telefone', '')}"
+                        f"{cli.get('Email', '')} · "
+                        f"{cli.get('Telefone', '')}"
                         f"</small>"
                         f"</div>"
                         f"<span style='color:{cor_p};"
                         f"font-weight:700;font-size:0.85rem;'>"
-                        f"⭐ {pot}</span>"
+                        f"{pot}</span>"
                         f"</div></div>",
                         unsafe_allow_html=True
                     )
@@ -1251,9 +1251,9 @@ def render_comercial(*_):
                 # Medalhas top 3
                 if len(rows_rank) >= 1:
                     st.markdown("#### Top Comerciais")
-                    medalhas = ["🥇", "🥈", "🥉"]
+                    posicoes = ["1º", "2º", "3º"]
                     for i, row in enumerate(rows_rank[:3]):
-                        med = medalhas[i] if i < 3 else "🏅"
+                        med = posicoes[i] if i < 3 else f"{i+1}º"
                         # Ouro/Prata/Bronze são uma convenção universal
                         # de pódio, não cores semânticas da app —
                         # mantidas literais de propósito (fora do
@@ -1295,8 +1295,7 @@ def render_comercial(*_):
 
             for i, (_, row_a) in enumerate(grp_ang.iterrows()):
                 pos   = i + 1
-                med_a = "🥇" if pos == 1 else "🥈" if pos == 2 \
-                        else "🥉" if pos == 3 else f"#{pos}"
+                med_a = f"#{pos}"
                 # Ouro/Prata/Bronze mantidas literais — mesmo critério
                 # do ranking de comerciais acima.
                 cor_a = "#F59E0B" if pos == 1 else "#94A3B8" if pos == 2 \

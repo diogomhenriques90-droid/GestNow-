@@ -27,23 +27,6 @@ def _load_chefes(users_db=None):
     return []
 
 
-def _badge_status(status: str) -> str:
-    cores = {
-        'Pendente':  ('#F59E0B', '🟠'),
-        'Aprovado':  ('#3B82F6', '🔵'),
-        'Enviado':   ('#8B5CF6', '🟣'),
-        'Entregue':  ('#10B981', '✅'),
-        'Rejeitado': ('#EF4444', '❌'),
-    }
-    cor, ic = cores.get(status, ('#6B7280', '⚪'))
-    return (
-        f"<span style='background:{cor}22;color:{cor};"
-        f"padding:2px 10px;border-radius:12px;"
-        f"font-size:0.75rem;font-weight:700;'>"
-        f"{ic} {status}</span>"
-    )
-
-
 def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                    incs_db, *extra):
     """Armazém completo: EPIs, Ferramentas, Materiais, Compras,
@@ -79,7 +62,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
         )
         criar_notificacao(
             destinatario=tec,
-            titulo="✅ Pedido Aprovado",
+            titulo="Pedido Aprovado",
             mensagem=f"O teu pedido de {item_desc} foi aprovado! "
                      f"Será enviado para {obra}.",
             tipo="success", acao_url="/tecnico"
@@ -98,7 +81,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
         save_db(df, csv)
         criar_notificacao(
             destinatario=tec,
-            titulo="❌ Pedido Rejeitado",
+            titulo="Pedido Rejeitado",
             mensagem=f"O teu pedido de {item_desc} foi rejeitado.",
             tipo="error", acao_url="/tecnico"
         )
@@ -116,7 +99,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
         save_db(df, csv)
         criar_notificacao(
             destinatario=tec,
-            titulo="📬 Material Enviado para Obra",
+            titulo="Material Enviado para Obra",
             mensagem=f"{item_desc} enviado para {obra}. "
                      f"Confirma a receção na app.",
             tipo="info", acao_url="/tecnico"
@@ -149,7 +132,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                 for idx, ped in pend.iterrows():
                     pid = ped.get('ID', f"EPI_{idx}")
                     with st.expander(
-                        f"🦺 {ped.get('Item','EPI')} — "
+                        f"{ped.get('Item','EPI')} — "
                         f"{ped.get('Solicitante','N/A')} "
                         f"({ped.get('Obra','N/A')})",
                         expanded=True
@@ -220,8 +203,8 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                             f"<span style='float:right;color:{THEME['text_secondary']};'>"
                             f"{ped.get('Data_Validacao','')}</span><br>"
                             f"<small style='color:{THEME['text_secondary']};'>"
-                            f"👤 {ped.get('Solicitante','')} · "
-                            f"🏗️ {ped.get('Obra','')}</small>"
+                            f"{ped.get('Solicitante','')} · "
+                            f"{ped.get('Obra','')}</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
@@ -284,7 +267,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                 for idx, ped in pend_f.iterrows():
                     pid = ped.get('ID', f"FER_{idx}")
                     with st.expander(
-                        f"🔧 {str(ped.get('Descricao',''))[:45]} — "
+                        f"{str(ped.get('Descricao',''))[:45]} — "
                         f"{ped.get('Solicitante','N/A')}",
                         expanded=True
                     ):
@@ -358,8 +341,8 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                             f"<b style='color:{THEME['text']};'>"
                             f"{str(ped.get('Descricao',''))[:40]}</b><br>"
                             f"<small style='color:{THEME['text_secondary']};'>"
-                            f"👤 {ped.get('Solicitante','')} · "
-                            f"🏗️ {ped.get('Obra','')}</small>"
+                            f"{ped.get('Solicitante','')} · "
+                            f"{ped.get('Obra','')}</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
@@ -428,7 +411,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                 for idx, ped in pend_m.iterrows():
                     pid = ped.get('ID', f"MAT_{idx}")
                     with st.expander(
-                        f"📦 {str(ped.get('Descricao',''))[:45]} — "
+                        f"{str(ped.get('Descricao',''))[:45]} — "
                         f"{ped.get('Solicitante','N/A')}",
                         expanded=True
                     ):
@@ -502,8 +485,8 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                             f"{ped.get('Quantidade','')} "
                             f"{ped.get('Unidade','')}</span><br>"
                             f"<small style='color:{THEME['text_secondary']};'>"
-                            f"👤 {ped.get('Solicitante','')} · "
-                            f"🏗️ {ped.get('Obra','')}</small>"
+                            f"{ped.get('Solicitante','')} · "
+                            f"{ped.get('Obra','')}</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
@@ -586,7 +569,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                 f"border:1px solid {THEME['border']};border-left:3px solid {THEME['accent']};border-radius:8px;"
                 f"padding:10px 16px;margin-bottom:12px;'>"
                 f"<b style='color:{THEME['accent']};'>"
-                f"📬 {len(enviados)} item(s) aguardam confirmação "
+                f"{len(enviados)} item(s) aguardam confirmação "
                 f"de receção na obra</b>"
                 f"</div>",
                 unsafe_allow_html=True
@@ -630,7 +613,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                     with col_r2:
                         # Upload foto de confirmação
                         foto = st.file_uploader(
-                            "📸 Foto de confirmação (opcional)",
+                            "Foto de confirmação (opcional)",
                             type=["jpg","jpeg","png"],
                             key=f"foto_rec_{iid}",
                             label_visibility="visible"
@@ -699,7 +682,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                                     )
                                     criar_notificacao(
                                         destinatario=tec,
-                                        titulo="📦 Material Entregue",
+                                        titulo="Material Entregue",
                                         mensagem=(
                                             f"{desc} entregue em "
                                             f"{obra}. "
@@ -760,7 +743,7 @@ def render_armazem(req_fer_db, req_mat_db, req_epi_db,
                 if r.get('Foto_Entrega_b64','')
             ] if entregues else []
             if fotos_com:
-                with st.expander("📸 Fotos de Confirmação"):
+                with st.expander("Fotos de Confirmação"):
                     for r in fotos_com[:6]:
                         try:
                             st.image(

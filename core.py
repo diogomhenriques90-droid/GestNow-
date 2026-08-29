@@ -103,7 +103,7 @@ def _gcs_write(fn, content_bytes):
         client = _gcs_client()
         if not client:
             logger.error(f"❌ _gcs_write({fn}): cliente GCS não inicializado (credenciais em falta?)")
-            st.toast("⚠️ Sem ligação ao GCS — dados não guardados", icon="⚙️")
+            st.toast("Sem ligação ao GCS — dados não guardados")
             return False
         bucket = client.bucket(GCS_BUCKET)
         blob   = bucket.blob(f"data/{fn}")
@@ -125,7 +125,7 @@ def _gcs_write(fn, content_bytes):
                 return True
         except Exception as e2:
             logger.error(f"❌ Verificação pós-erro falhou para {fn}: {e2}")
-        st.toast("⚠️ Erro ao guardar dados", icon="⚙️")
+        st.toast("Erro ao guardar dados")
     return False
 
 # =============================================================================
@@ -207,7 +207,7 @@ def _gcs_write_bin(path: str, data: bytes, content_type: str = "application/octe
         client = _gcs_client()
         if not client:
             logger.error(f"❌ _gcs_write_bin({path}): cliente GCS não inicializado")
-            st.toast("⚠️ Sem ligação ao GCS — ficheiro não guardado", icon="⚙️")
+            st.toast("Sem ligação ao GCS — ficheiro não guardado")
             return False
         bucket = client.bucket(GCS_BUCKET)
         blob   = bucket.blob(path)
@@ -215,7 +215,7 @@ def _gcs_write_bin(path: str, data: bytes, content_type: str = "application/octe
         return True
     except Exception as e:
         logger.error(f"❌ Erro GCS write bin {path}: {e}")
-        st.toast("⚠️ Erro ao guardar ficheiro", icon="⚙️")
+        st.toast("Erro ao guardar ficheiro")
     return False
 
 
@@ -545,7 +545,7 @@ def inv(ficheiro=None):
 # ─────────────────────────────────────────────────────────────────────────────
 # CLIENTES — fonte canónica única (clientes_financeiro.csv)
 # ─────────────────────────────────────────────────────────────────────────────
-NOVO_CLIENTE_OPT = "➕ Novo cliente..."
+NOVO_CLIENTE_OPT = "Novo cliente..."
 
 _CLIENTES_FINANCEIRO_COLS = [
     "ID", "Nome", "NIF", "Morada", "Email", "Telefone",
@@ -734,7 +734,7 @@ def registar_cliente_do_select(nome, key, origem="Manual"):
 # Categoria Operacional ≠ Categoria CCT (Relatório Único) e ≠ Categoria_Profissional
 # (texto livre do onboarding/perfil).
 # ─────────────────────────────────────────────────────────────────────────────
-NOVO_VALOR_LISTA_OPT = "➕ Novo..."
+NOVO_VALOR_LISTA_OPT = "Novo..."
 
 _RH_LISTAS_COLS = ["Lista", "Valor", "Criado_Por", "Data"]
 
@@ -1159,18 +1159,6 @@ def fh(h):
     except:
         return "0h00m"
 
-def sl(s):
-    mapping = {
-        "0":  ("Pendente",    "status-pending",    "⏳", COLORS["warning"]),
-        "1":  ("Material OK", "status-ok",         "📦✅", COLORS["success"]),
-        "2":  ("Calibrado",   "status-calibrated", "🧪", COLORS["info"]),
-        "3":  ("Instalado",   "status-installed",  "📍", COLORS["accent"]),
-        "4":  ("Concluído",   "status-completed",  "✅🎯", COLORS["success"]),
-        "-1": ("Rejeitado",   "status-rejected",   "❌", COLORS["error"]),
-    }
-    key = str(s).strip() if s else "0"
-    return mapping.get(key, ("Desconhecido", "status-unknown", "❓", COLORS["text_secondary"]))
-
 def process_and_compress_image(image_file, max_size=(1280, 1280), quality=85):
     try:
         from PIL import Image
@@ -1231,7 +1219,7 @@ def check_timeout():
             if inactive > 120:
                 logger.info(f"🔒 Timeout: {st.session_state.get('user')}")
                 st.session_state.clear()
-                st.toast("🔒 Sessão expirada", icon="🔐")
+                st.toast("Sessão expirada")
                 st.rerun()
             st.session_state['last_activity'] = datetime.now()
 
@@ -1278,16 +1266,16 @@ CATEGORIAS_SAFETY_WALK = [
     "Trabalho em Altura", "Elétrica", "Pressão", "Outro"
 ]
 REGRAS_OURO = [
-    ("🛡️", "EPI Industrial Obrigatório",  "Capacete, óculos, luvas e calçado de segurança."),
-    ("⚡", "LOTO - Lockout/Tagout",        "Bloqueio e etiquetagem de energias."),
-    ("🪜", "Trabalho em Altura",           "Arnés e linha de vida acima de 1.8m."),
-    ("⚡", "Energias Perigosas",           "Verificar ausência de tensão."),
-    ("🧪", "Calibração Certificada",       "Usar equipamentos com certificado válido."),
-    ("📍", "Procedimentos de Campo",       "Seguir ITRs e checklists."),
-    ("🔒", "Acesso Restrito",              "Áreas de instrumentação controladas."),
-    ("📋", "Análise de Risco",             "JSA/JHA obrigatório."),
-    ("🧤", "Mãos Limpas",                  "Luvas adequadas para instrumentos."),
-    ("📱", "Zona Livre de Telemóvel",       "Dispositivos proibidos em áreas classificadas."),
+    ("EPI Industrial Obrigatório",  "Capacete, óculos, luvas e calçado de segurança."),
+    ("LOTO - Lockout/Tagout",        "Bloqueio e etiquetagem de energias."),
+    ("Trabalho em Altura",           "Arnés e linha de vida acima de 1.8m."),
+    ("Energias Perigosas",           "Verificar ausência de tensão."),
+    ("Calibração Certificada",       "Usar equipamentos com certificado válido."),
+    ("Procedimentos de Campo",       "Seguir ITRs e checklists."),
+    ("Acesso Restrito",              "Áreas de instrumentação controladas."),
+    ("Análise de Risco",             "JSA/JHA obrigatório."),
+    ("Mãos Limpas",                  "Luvas adequadas para instrumentos."),
+    ("Zona Livre de Telemóvel",       "Dispositivos proibidos em áreas classificadas."),
 ]
 
 # =============================================================================
@@ -1672,7 +1660,7 @@ def render_connection_indicator():
         const indicator = document.getElementById('connection-indicator');
         if (indicator) {
             indicator.className = `connection-status ${status}`;
-            indicator.textContent = status === 'online' ? '🟢 Online' : '🔴 Offline';
+            indicator.textContent = status === 'online' ? 'Online' : 'Offline';
         }
     }
     window.addEventListener('online',  updateConnectionStatus);
@@ -1689,7 +1677,7 @@ def render_connection_indicator():
     .connection-status.offline { background:#EF4444; color:white; animation:pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
     </style>
-    <div id="connection-indicator" class="connection-status online">🟢 Online</div>
+    <div id="connection-indicator" class="connection-status online">Online</div>
     """, unsafe_allow_html=True)
 
 def render_offline_banner():
@@ -1709,7 +1697,7 @@ def render_offline_banner():
     </script>
     <div id="offline-banner" style="display:none;background:#EF4444;color:white;
         padding:15px;border-radius:10px;margin-bottom:20px;text-align:center;">
-        <strong>🔴 ESTÁ OFFLINE</strong> — Alterações guardadas localmente.
+        <strong>ESTÁ OFFLINE</strong> — Alterações guardadas localmente.
     </div>
     """, unsafe_allow_html=True)
 
@@ -1723,10 +1711,10 @@ def sync_data_when_online():
         return
     resultados = execute_offline_queue()
     if resultados["sucessos"] > 0:
-        st.success(f"✅ {resultados['sucessos']} ações sincronizadas!")
+        st.success(f"{resultados['sucessos']} ações sincronizadas!")
         _cached_load_db.clear()
     if resultados["falhas"] > 0:
-        st.error(f"❌ {resultados['falhas']} ações falharam.")
+        st.error(f"{resultados['falhas']} ações falharam.")
 
 # =============================================================================
 # QR CODE
@@ -1764,11 +1752,11 @@ def render_qr_code_image(qr_data, size=200):
     return f"https://api.qrserver.com/v1/create-qr-code/?size={size}x{size}&data={encoded}"
 
 def render_camera_scanner(label="Scan QR Code", key_prefix="qr_scan"):
-    st.markdown(f"### 📱 {label}", unsafe_allow_html=True)
+    st.markdown(f"### {label}", unsafe_allow_html=True)
     uploaded = st.file_uploader("Upload de foto do QR Code",
         type=["png","jpg","jpeg"], key=f"{key_prefix}_upload")
     if uploaded:
-        st.info("🔧 Leitura automática em desenvolvimento. Use o campo abaixo:")
+        st.info("Leitura automática em desenvolvimento. Use o campo abaixo:")
     qr_manual = st.text_input("Dados do QR Code (formato: GN|TAG|OBRA ou JSON)",
         key=f"{key_prefix}_input")
     if qr_manual and len(qr_manual.strip()) > 5:
@@ -1823,7 +1811,7 @@ def get_email_template(tipo, dados=None):
         "validacao_horas": {
             "assunto": "Horas Validadas - {obra}",
             "html":    """<html><body style="font-family:Arial,sans-serif;padding:20px;">
-                <h2>✅ Horas Validadas</h2>
+                <h2>Horas Validadas</h2>
                 <p>Olá <strong>{tecnico}</strong>,</p>
                 <p>As suas horas foram validadas com sucesso!</p>
                 <p><strong>Obra:</strong> {obra}<br>

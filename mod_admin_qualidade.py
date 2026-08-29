@@ -62,11 +62,11 @@ def render_qualidade(*_):
     n_docs = len(docs_sgq) if not docs_sgq.empty else 0
 
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("🔴 NC Abertas",    n_nc_aber)
-    with c2: st.metric("📋 NC Total",      n_nc_tot)
-    with c3: st.metric("⚠️ AC Vencidas",   n_ac_venc,
-                       delta="🔴 Urgente" if n_ac_venc > 0 else "✅")
-    with c4: st.metric("📄 Docs SGQ",      n_docs)
+    with c1: st.metric("NC Abertas",    n_nc_aber)
+    with c2: st.metric("NC Total",      n_nc_tot)
+    with c3: st.metric("AC Vencidas",   n_ac_venc,
+                       delta="Urgente" if n_ac_venc > 0 else "")
+    with c4: st.metric("Docs SGQ",      n_docs)
 
     st.divider()
 
@@ -132,9 +132,9 @@ def render_qualidade(*_):
                         d_pz = datetime.strptime(prazo_str,"%d/%m/%Y").date()
                         dias = (d_pz - hoje).days
                         if dias < 0:
-                            alerta_pz = f" 🔴 AC vencida há {abs(dias)}d!"
+                            alerta_pz = f" AC vencida há {abs(dias)}d!"
                         elif dias <= 5:
-                            alerta_pz = f" ⚠️ AC vence em {dias}d"
+                            alerta_pz = f" AC vence em {dias}d"
                     except:
                         pass
 
@@ -334,7 +334,7 @@ def render_qualidade(*_):
                     if nn_resp_ac and nn_resp_ac != user_nome:
                         criar_notificacao(
                             destinatario=nn_resp_ac,
-                            titulo=f"🔴 Nova NC [{nn_grav}] — {nn_obra}",
+                            titulo=f"Nova NC [{nn_grav}] — {nn_obra}",
                             mensagem=(
                                 f"Foste designado responsável pela "
                                 f"ação corretiva. Prazo: {nn_prazo}"
@@ -355,7 +355,7 @@ def render_qualidade(*_):
         col_ic1, col_ic2 = st.columns([1, 2])
 
         with col_ic1:
-            st.markdown("##### ➕ Nova Inspeção")
+            st.markdown("##### Nova Inspeção")
             obras_ativas2 = obras_db[
                 obras_db['Ativa']=='Ativa'
             ]['Obra'].tolist() if not obras_db.empty else []
@@ -409,7 +409,7 @@ def render_qualidade(*_):
                     st.rerun()
 
         with col_ic2:
-            st.markdown("##### 📋 Últimas Inspeções")
+            st.markdown("##### Últimas Inspeções")
             if insp_db.empty:
                 st.info("Sem inspeções.")
             else:
@@ -459,7 +459,7 @@ def render_qualidade(*_):
         col_dc1, col_dc2 = st.columns([1, 2])
 
         with col_dc1:
-            st.markdown("##### ➕ Novo Documento")
+            st.markdown("##### Novo Documento")
             with st.form("form_doc_sgq"):
                 d_cod   = st.text_input(
                     "Código *",
@@ -519,7 +519,7 @@ def render_qualidade(*_):
                         st.rerun()
 
         with col_dc2:
-            st.markdown("##### 📋 Índice de Documentos")
+            st.markdown("##### Índice de Documentos")
             if docs_sgq.empty:
                 st.info("Sem documentos registados.")
             else:

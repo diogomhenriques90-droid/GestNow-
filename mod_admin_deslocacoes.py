@@ -30,15 +30,15 @@ def _num(df, col):
         return 0.0
     return pd.to_numeric(df[col], errors='coerce').fillna(0).sum()
 
-def _cor_estado(estado: str) -> tuple:
+def _cor_estado(estado: str) -> str:
     return {
-        "Por Comprar":  (THEME['warning'], "🟡"),
-        "Reservado":    (THEME['accent'], "🔵"),
-        "Confirmado":   (THEME['success'], "✅"),
-        "Utilizado":    (THEME['text_secondary'], "✔️"),
-        "Cancelado":    (THEME['error'], "❌"),
-        "Reembolso Pendente": (THEME['warning'], "💰"),
-    }.get(estado, (THEME['text_secondary'], "⚪"))
+        "Por Comprar":  THEME['warning'],
+        "Reservado":    THEME['accent'],
+        "Confirmado":   THEME['success'],
+        "Utilizado":    THEME['text_secondary'],
+        "Cancelado":    THEME['error'],
+        "Reembolso Pendente": THEME['warning'],
+    }.get(estado, THEME['text_secondary'])
 
 def _dias_para_viagem(data_str: str) -> int:
     try:
@@ -192,11 +192,6 @@ def _render_card_opcao(opcao: dict, idx: int,
     """Renderiza card de opção de transporte com botão Seleccionar."""
 
     tipo   = opcao.get('tipo','')
-    ic_tipo = {
-        "Avião":     "✈️",
-        "Comboio":   "🚂",
-        "Autocarro": "🚌",
-    }.get(tipo, "🚍")
 
     preco  = float(opcao.get('preco_total', 0))
     preco_p= float(opcao.get('preco_por_pax', preco))
@@ -231,7 +226,7 @@ def _render_card_opcao(opcao: dict, idx: int,
             f"align-items:flex-start;'>"
             f"<div>"
             f"<b style='color:{THEME['text']};font-size:1rem;'>"
-            f"{ic_tipo} {opcao.get('companhia','')}</b>"
+            f"{tipo} · {opcao.get('companhia','')}</b>"
             f"<span style='background:rgba(14,124,134,0.12);"
             f"color:{THEME['accent']};padding:2px 8px;"
             f"border-radius:10px;font-size:0.72rem;"
@@ -242,10 +237,10 @@ def _render_card_opcao(opcao: dict, idx: int,
             f"<b style='color:{THEME['text']};'>→</b> "
             f"{opcao.get('destino','')}</span><br>"
             f"<span style='color:{THEME['text_secondary']};font-size:0.82rem;'>"
-            f"⏱️ {opcao.get('hora_partida','')} → "
+            f"{opcao.get('hora_partida','')} → "
             f"{opcao.get('hora_chegada','')} "
             f"({opcao.get('duracao','')}) · "
-            f"🧳 {bag}"
+            f"{bag}"
             f"</span>"
             f"</div>"
             f"<div style='text-align:right;'>"
@@ -328,9 +323,9 @@ def _render_dormidas(obras_db, users):
         ]['v'].sum()
 
     c1,c2,c3 = st.columns(3)
-    with c1: st.metric("🏨 Reservas Activas", n_ativas)
-    with c2: st.metric("💰 Custo Mês",        f"€{val_mes:,.2f}")
-    with c3: st.metric("📋 Total Registos",
+    with c1: st.metric("Reservas Activas", n_ativas)
+    with c2: st.metric("Custo Mês",        f"€{val_mes:,.2f}")
+    with c3: st.metric("Total Registos",
                        len(dormidas_db) if not dormidas_db.empty else 0)
 
     st.divider()
@@ -470,16 +465,16 @@ def _render_dormidas(obras_db, users):
                         f"margin-bottom:6px;"
                         f"border-left:4px solid {cor_e};'>"
                         f"<b style='color:{THEME['text']};'>"
-                        f"🏨 {dorm.get('Hotel','')}</b>"
+                        f"{dorm.get('Hotel','')}</b>"
                         f"<span style='float:right;"
                         f"color:{THEME['accent']};font-weight:700;'>"
                         f"€{total:.2f}</span><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
-                        f"👤 {dorm.get('Colaborador','')} · "
-                        f"🏗️ {dorm.get('Obra','')} · "
-                        f"📅 {dorm.get('Data_Checkin','')} → "
+                        f"{dorm.get('Colaborador','')} · "
+                        f"{dorm.get('Obra','')} · "
+                        f"{dorm.get('Data_Checkin','')} → "
                         f"{dorm.get('Data_Checkout','')} · "
-                        f"📍 {dorm.get('Cidade','')}</small>"
+                        f"{dorm.get('Cidade','')}</small>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -555,10 +550,10 @@ def _render_bilhetes(obras_db, users):
     ]) if not bilhetes_db.empty else 0
 
     c1,c2,c3,c4 = st.columns(4)
-    with c1: st.metric("🎫 Activos",      n_conf)
-    with c2: st.metric("💰 Custo Mês",   f"€{val_mes_b:,.2f}")
-    with c3: st.metric("✈️ Próx. 7 dias", proximas)
-    with c4: st.metric("💰 Reembolsos",   n_reemb)
+    with c1: st.metric("Activos",      n_conf)
+    with c2: st.metric("Custo Mês",   f"€{val_mes_b:,.2f}")
+    with c3: st.metric("Próx. 7 dias", proximas)
+    with c4: st.metric("Reembolsos",   n_reemb)
 
     # Alerta próximas viagens
     if proximas > 0 and not bilhetes_db.empty:
@@ -574,7 +569,7 @@ def _render_bilhetes(obras_db, users):
             f"<div style='background:{THEME['surface']};"
             f"border:1px solid {THEME['accent']};border-radius:8px;"
             f"padding:10px 14px;margin-bottom:8px;'>"
-            f"<b style='color:{THEME['accent']};'>✈️ Viagens próximas:</b> "
+            f"<b style='color:{THEME['accent']};'>Viagens próximas:</b> "
             f"<span style='color:{THEME['text_secondary']};'>{msg}</span>"
             f"</div>",
             unsafe_allow_html=True
@@ -644,7 +639,7 @@ def _render_bilhetes(obras_db, users):
                     key="p_data_ida"
                 )
                 p_volta = st.checkbox(
-                    "🔄 Incluir regresso",
+                    "Incluir regresso",
                     key="p_volta"
                 )
                 p_data_volta = None
@@ -702,12 +697,8 @@ def _render_bilhetes(obras_db, users):
         if st.session_state.get('pesquisa_params') and \
            st.session_state.get('resultados_ia') is None:
             params = st.session_state['pesquisa_params']
-            tipo_ic = {
-                "Avião":"✈️","Comboio":"🚂","Autocarro":"🚌"
-            }.get(params['tipo'],'🚍')
-
             with st.spinner(
-                f"🤖 A pesquisar {tipo_ic} de "
+                f"A pesquisar {params['tipo']} de "
                 f"{params['origem']} → {params['destino']} "
                 f"em {params['data_ida']}..."
             ):
@@ -733,10 +724,6 @@ def _render_bilhetes(obras_db, users):
             fonte  = st.session_state.get('fonte_pesquisa_ia','')
             aviso  = st.session_state.get('aviso_ia','')
 
-            tipo_ic = {
-                "Avião":"✈️","Comboio":"🚂","Autocarro":"🚌"
-            }.get(params.get('tipo',''),'🚍')
-
             fonte_html = (
                 f"  ·  <span style='color:{THEME['text_secondary']};font-size:0.8rem;'>{fonte}</span>"
                 if fonte else ""
@@ -747,14 +734,14 @@ def _render_bilhetes(obras_db, users):
                 f"border-radius:8px;padding:10px 14px;"
                 f"margin-bottom:12px;'>"
                 f"<b style='color:{THEME['success']};'>"
-                f"{tipo_ic} {len(resultados)} opção(ões) encontrada(s)</b>"
+                f"{params.get('tipo','')} · {len(resultados)} opção(ões) encontrada(s)</b>"
                 f"{fonte_html}"
                 f"</div>",
                 unsafe_allow_html=True
             )
 
             if aviso:
-                st.info(f"ℹ️ {aviso}")
+                st.info(f"{aviso}")
 
             if not resultados:
                 st.warning(
@@ -793,7 +780,7 @@ def _render_bilhetes(obras_db, users):
                 f"border:1px solid {THEME['success']};"
                 f"border-radius:10px;padding:14px;"
                 f"margin-bottom:12px;'>"
-                f"<b style='color:{THEME['success']};'>✅ Opção seleccionada: "
+                f"<b style='color:{THEME['success']};'>Opção seleccionada: "
                 f"{opcao.get('companhia','')} — "
                 f"{opcao.get('origem','')} → "
                 f"{opcao.get('destino','')} · "
@@ -803,7 +790,7 @@ def _render_bilhetes(obras_db, users):
             )
 
             with st.form("form_guardar_ia"):
-                st.markdown("##### 💾 Confirmar e Guardar")
+                st.markdown("##### Confirmar e Guardar")
                 col_g1, col_g2 = st.columns(2)
                 with col_g1:
                     g_colab = st.selectbox(
@@ -913,7 +900,7 @@ def _render_bilhetes(obras_db, users):
                     )
                     criar_notificacao(
                         destinatario=g_colab,
-                        titulo=f"🎫 Bilhete Registado — "
+                        titulo=f"Bilhete Registado — "
                                f"{opcao.get('origem','')} → "
                                f"{opcao.get('destino','')}",
                         mensagem=(
@@ -1106,7 +1093,7 @@ def _render_bilhetes(obras_db, users):
                     )
                     criar_notificacao(
                         destinatario=m_colab,
-                        titulo=f"🎫 Bilhete — "
+                        titulo=f"Bilhete — "
                                f"{m_origem} → {m_destino}",
                         mensagem=(
                             f"Bilhete {m_tipo} para "
@@ -1172,11 +1159,9 @@ def _render_bilhetes(obras_db, users):
             for _, bil in df_b.iterrows():
                 bid    = bil.get('ID','')
                 estado = bil.get('Estado','')
-                cor_e, ic_e = _cor_estado(estado)
+                cor_e = _cor_estado(estado)
                 preco  = float(bil.get('Preco_Total',0) or 0)
                 tipo_b = bil.get('Tipo','')
-                ic_t   = {"Avião":"✈️","Comboio":"🚂",
-                           "Autocarro":"🚌"}.get(tipo_b,'🚍')
                 dias_b = int(bil.get('dias',999))
 
                 cor_dias_b = (
@@ -1201,20 +1186,20 @@ def _render_bilhetes(obras_db, users):
                         f"justify-content:space-between;'>"
                         f"<div>"
                         f"<b style='color:{THEME['text']};'>"
-                        f"{ic_t} {bil.get('Companhia','')} — "
+                        f"{tipo_b} · {bil.get('Companhia','')} — "
                         f"{bil.get('Origem','')} → "
                         f"{bil.get('Destino','')}</b>"
                         f"<span style='background:{cor_e}22;"
                         f"color:{cor_e};padding:2px 8px;"
                         f"border-radius:10px;font-size:0.7rem;"
                         f"font-weight:700;margin-left:8px;'>"
-                        f"{ic_e} {estado}</span><br>"
+                        f"{estado}</span><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
-                        f"👤 {bil.get('Colaborador','')} · "
-                        f"🏗️ {bil.get('Obra','')} · "
-                        f"📅 {bil.get('Data_Ida','')} "
+                        f"{bil.get('Colaborador','')} · "
+                        f"{bil.get('Obra','')} · "
+                        f"{bil.get('Data_Ida','')} "
                         f"{bil.get('Hora_Partida','') and '@ ' + bil.get('Hora_Partida','')}"
-                        f" · 🎫 Ref: {bil.get('Referencia','—')}"
+                        f" · Ref: {bil.get('Referencia','—')}"
                         f"</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
@@ -1332,7 +1317,7 @@ def _render_bilhetes(obras_db, users):
                         f"border-radius:8px;padding:10px 14px;"
                         f"margin-bottom:10px;'>"
                         f"<b style='color:{THEME['warning']};'>"
-                        f"💰 Total pendente: "
+                        f"Total pendente: "
                         f"€{total_reemb:,.2f} "
                         f"({len(pend_r)} bilhete(s))</b>"
                         f"</div>",
@@ -1347,7 +1332,7 @@ def _render_bilhetes(obras_db, users):
                         ).fillna(0).sum()
 
                         with st.expander(
-                            f"👤 {colab_r} — "
+                            f"{colab_r} — "
                             f"€{total_c:.2f} "
                             f"({len(grp_r)} bilhete(s))",
                             expanded=True
@@ -1355,10 +1340,6 @@ def _render_bilhetes(obras_db, users):
                             for _, rb in grp_r.iterrows():
                                 rid   = rb.get('ID','')
                                 preco_r = float(rb.get('Preco_Total',0) or 0)
-                                ic_tr = {"Avião":"✈️","Comboio":"🚂",
-                                         "Autocarro":"🚌"}.get(
-                                    rb.get('Tipo',''),'🚍'
-                                )
                                 st.markdown(
                                     f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                     f"border-radius:8px;padding:10px;"
@@ -1366,10 +1347,10 @@ def _render_bilhetes(obras_db, users):
                                     f"justify-content:space-between;'>"
                                     f"<div>"
                                     f"<small style='color:{THEME['text']};'>"
-                                    f"{ic_tr} {rb.get('Origem','')} → "
+                                    f"{rb.get('Tipo','')} · {rb.get('Origem','')} → "
                                     f"{rb.get('Destino','')}</small><br>"
                                     f"<small style='color:{THEME['text_secondary']};'>"
-                                    f"📅 {rb.get('Data_Ida','')} · "
+                                    f"{rb.get('Data_Ida','')} · "
                                     f"{rb.get('Companhia','')} · "
                                     f"Ref: {rb.get('Referencia','—')}"
                                     f"</small></div>"
@@ -1410,7 +1391,7 @@ def _render_bilhetes(obras_db, users):
                                     )
                                     criar_notificacao(
                                         destinatario=colab_r,
-                                        titulo="💰 Reembolso Processado",
+                                        titulo="Reembolso Processado",
                                         mensagem=(
                                             f"Os teus reembolsos de "
                                             f"bilhetes de viagem "
@@ -1434,7 +1415,7 @@ def _render_bilhetes(obras_db, users):
                         errors='coerce'
                     ).fillna(0).sum()
                     st.metric(
-                        "✅ Total Reembolsado",
+                        "Total Reembolsado",
                         f"€{total_proc:,.2f}"
                     )
                     cols_proc = [c for c in [
@@ -1547,10 +1528,10 @@ def _render_resumo_viagem(obras_db, users):
     tot_tot = df_res['Total_Deslocacao'].sum()
 
     c1,c2,c3,c4 = st.columns(4)
-    with c1: st.metric("💰 Total Bilhetes",  f"€{tot_bil:,.2f}")
-    with c2: st.metric("🏨 Total Dormidas",   f"€{tot_dor:,.2f}")
-    with c3: st.metric("📊 Total Deslocações",f"€{tot_tot:,.2f}")
-    with c4: st.metric("👷 Colaboradores",     df_res['Colaborador'].nunique())
+    with c1: st.metric("Total Bilhetes",  f"€{tot_bil:,.2f}")
+    with c2: st.metric("Total Dormidas",   f"€{tot_dor:,.2f}")
+    with c3: st.metric("Total Deslocações",f"€{tot_tot:,.2f}")
+    with c4: st.metric("Colaboradores",     df_res['Colaborador'].nunique())
 
     st.divider()
 
@@ -1571,13 +1552,13 @@ def _render_resumo_viagem(obras_db, users):
             f"justify-content:space-between;'>"
             f"<div>"
             f"<b style='color:{THEME['text']};'>"
-            f"👤 {r.get('Colaborador','')}</b>"
+            f"{r.get('Colaborador','')}</b>"
             f"<span style='color:{THEME['text_secondary']};margin-left:8px;'>"
-            f"🏗️ {r.get('Obra','')}</span><br>"
+            f"{r.get('Obra','')}</span><br>"
             f"<small style='color:{THEME['text_secondary']};'>"
-            f"✈️ {int(r.get('Bilhetes',0))} bilhete(s) "
+            f"{int(r.get('Bilhetes',0))} bilhete(s) "
             f"€{r.get('Custo_Bilhetes',0):,.2f} · "
-            f"🏨 {int(r.get('Dormidas',0))} dormida(s) "
+            f"{int(r.get('Dormidas',0))} dormida(s) "
             f"€{r.get('Custo_Dormidas',0):,.2f}"
             f"</small>"
             f"</div>"

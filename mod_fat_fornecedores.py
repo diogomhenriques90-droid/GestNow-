@@ -40,8 +40,8 @@ def _validar_nif(nif: str) -> tuple[bool, str]:
     resto = total % 11
     check = 0 if resto in [0,1] else 11 - resto
     if check == int(nif[8]):
-        return True, "✅ NIF válido"
-    return False, "❌ Dígito de controlo inválido"
+        return True, "NIF válido"
+    return False, "Dígito de controlo inválido"
 
 def _dias_venc(data_str: str) -> int:
     try:
@@ -496,10 +496,10 @@ def render_fat_fornecedores(obras_db, *_):
          'Subempreiteiro' in fornecedores_db.columns else 0
 
     c1,c2,c3,c4 = st.columns(4)
-    with c1: st.metric("🏢 Fornecedores",   len(fornecedores_db))
-    with c2: st.metric("🔨 Subempreiteiros", n_sub)
-    with c3: st.metric("📤 A Pagar",         f"€{total_pagar:,.2f}")
-    with c4: st.metric("📋 Retenções Mês",   f"€{total_ret_mes:,.2f}")
+    with c1: st.metric("Fornecedores",   len(fornecedores_db))
+    with c2: st.metric("Subempreiteiros", n_sub)
+    with c3: st.metric("A Pagar",         f"€{total_pagar:,.2f}")
+    with c4: st.metric("Retenções Mês",   f"€{total_ret_mes:,.2f}")
 
     st.divider()
 
@@ -664,7 +664,7 @@ def render_fat_fornecedores(obras_db, *_):
                         f"<span class='badge' "
                         f"style='background:rgba(185,28,28,0.15);"
                         f"color:{THEME['error']};margin-left:6px;'>"
-                        f"🔨 Subempreiteiro</span>"
+                        f"Subempreiteiro</span>"
                     ) if is_sub else ""
 
                     st.markdown(
@@ -684,7 +684,7 @@ def render_fat_fornecedores(obras_db, *_):
                         f"</small><br>"
                         f"<small style='color:{THEME['text_secondary']};'>"
                         f"IBAN: {forn.get('IBAN','N/D')[:20]}..."
-                        f" · 📧 {forn.get('Email','')}"
+                        f" · {forn.get('Email','')}"
                         f"</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
@@ -736,7 +736,7 @@ def render_fat_fornecedores(obras_db, *_):
                                 save_db(fornecedores_db, "fornecedores.csv")
                                 criar_notificacao(
                                     destinatario="admin",
-                                    titulo="⚠️ IBAN Fornecedor Alterado",
+                                    titulo="IBAN Fornecedor Alterado",
                                     mensagem=(
                                         f"IBAN de {forn.get('Nome','')} "
                                         f"foi alterado por {user_nome}."
@@ -765,7 +765,7 @@ def render_fat_fornecedores(obras_db, *_):
             st.markdown(
                 f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;"
                 f"margin:0 0 6px;'>"
-                f"📷 Faz upload da fatura — "
+                f"Faz upload da fatura — "
                 f"a IA extrai os dados automaticamente</p>",
                 unsafe_allow_html=True
             )
@@ -784,7 +784,7 @@ def render_fat_fornecedores(obras_db, *_):
                     type="primary",
                     use_container_width=True
                 ):
-                    with st.spinner("🤖 A ler a fatura..."):
+                    with st.spinner("A ler a fatura..."):
                         fb = base64.b64encode(
                             upload_fat.read()
                         ).decode()
@@ -884,7 +884,7 @@ def render_fat_fornecedores(obras_db, *_):
                                 f"margin:4px 0;'>"
                                 f"<small style='color:{THEME['error']};"
                                 f"font-weight:700;'>"
-                                f"🔨 Subempreiteiro — Retenção "
+                                f"Subempreiteiro — Retenção "
                                 f"{f_ret_pct:.0f}% = "
                                 f"€{f_ret_val:.2f}</small></div>",
                                 unsafe_allow_html=True
@@ -1022,7 +1022,7 @@ def render_fat_fornecedores(obras_db, *_):
                         alerta_v = (
                             f"<span style='color:{THEME['error']};"
                             f"font-size:0.72rem;'>"
-                            f"⚠️ Em atraso {dias_v2} dias</span>"
+                            f"Em atraso {dias_v2} dias</span>"
                         )
 
                     ret_badge = ""
@@ -1115,7 +1115,7 @@ def render_fat_fornecedores(obras_db, *_):
         if subs.empty:
             st.warning(
                 "Sem subempreiteiros registados. "
-                "Regista no tab 🏢 Fornecedores com "
+                "Regista no tab Fornecedores com "
                 "categoria 'Subempreiteiro'."
             )
         else:
@@ -1137,7 +1137,7 @@ def render_fat_fornecedores(obras_db, *_):
                 st.markdown(
                     f"<div class='sub-card'>"
                     f"<b style='color:{THEME['text']};'>"
-                    f"🔨 {sub.get('Nome','')}</b>"
+                    f"{sub.get('Nome','')}</b>"
                     f"<span style='float:right;color:{THEME['error']};"
                     f"font-weight:700;'>"
                     f"Retido: €{ret_sub:,.2f}</span><br>"
@@ -1178,14 +1178,14 @@ def render_fat_fornecedores(obras_db, *_):
         if pendentes_pag.empty:
             st.info(
                 "Sem faturas aprovadas para pagamento. "
-                "Aprova faturas no tab 📥 Faturas Recebidas."
+                "Aprova faturas no tab Faturas Recebidas."
             )
         else:
             total_pag_lote = pd.to_numeric(
                 pendentes_pag['Total'], errors='coerce'
             ).fillna(0).sum()
             st.metric(
-                "💰 Total a pagar neste lote",
+                "Total a pagar neste lote",
                 f"€{total_pag_lote:,.2f}"
             )
 
@@ -1217,7 +1217,7 @@ def render_fat_fornecedores(obras_db, *_):
                     st.error(
                         f"ATENÇÃO: {len(recentes)} IBAN(s) "
                         f"alterado(s) nos últimos 30 dias! "
-                        f"Verifica no tab 🔒 Controlo IBANs "
+                        f"Verifica no tab Controlo IBANs "
                         f"antes de pagar."
                     )
 
@@ -1488,7 +1488,7 @@ def render_fat_fornecedores(obras_db, *_):
                     bloqueado = dias_alt < 30
 
                     # estado_iban calculado antes do f-string
-                    estado_iban = '🔒 BLOQUEADO' if bloqueado else '🔓 Desbloqueado'
+                    estado_iban = 'BLOQUEADO' if bloqueado else 'Desbloqueado'
                     cor_iban    = THEME['error'] if bloqueado else THEME['success']
 
                     st.markdown(
@@ -1497,7 +1497,7 @@ def render_fat_fornecedores(obras_db, *_):
                         f"border-radius:10px;padding:14px;"
                         f"margin-bottom:8px;'>"
                         f"<b style='color:{THEME['error']};'>"
-                        f"⚠️ {ih.get('Entidade','')} "
+                        f"{ih.get('Entidade','')} "
                         f"({ih.get('Tipo','')})</b>"
                         f"<span style='float:right;"
                         f"color:{cor_iban};"

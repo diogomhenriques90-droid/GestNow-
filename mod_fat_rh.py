@@ -770,12 +770,12 @@ def render_fat_rh(obras_db, registos_db, *_):
     ]) if not ferias_db.empty and 'Estado' in ferias_db.columns else 0
 
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("👥 Colaboradores",    n_ativos)
-    with c2: st.metric("💰 Massa Salarial",   f"€{total_sal:,.2f}")
-    with c3: st.metric("💸 Custo Real Total", f"€{total_custo_rh:,.2f}")
-    with c4: st.metric("📈 Acréscimo",
+    with c1: st.metric("Colaboradores",    n_ativos)
+    with c2: st.metric("Massa Salarial",   f"€{total_sal:,.2f}")
+    with c3: st.metric("Custo Real Total", f"€{total_custo_rh:,.2f}")
+    with c4: st.metric("Acréscimo",
                         f"+{round((total_custo_rh-total_sal)/total_sal*100,1) if total_sal>0 else 0:.1f}%")
-    with c5: st.metric("🏖️ Férias Pendentes", ferias_pend)
+    with c5: st.metric("Férias Pendentes", ferias_pend)
 
     st.divider()
 
@@ -881,10 +881,10 @@ def render_fat_rh(obras_db, registos_db, *_):
                         f"<div style='background:rgba(14,124,134,0.08);"
                         f"border:1px solid {THEME['accent']};border-radius:8px;"
                         f"padding:10px;margin:8px 0;font-size:0.8rem;'>"
-                        f"💰 Custo empresa: <b style='color:{THEME['accent']};'>"
+                        f"Custo empresa: <b style='color:{THEME['accent']};'>"
                         f"€{c_prev['total']:,.2f}/mês</b> "
                         f"(+{c_prev['pct_acrescimo']:.1f}%)<br>"
-                        f"💵 Líquido colaborador: "
+                        f"Líquido colaborador: "
                         f"<b style='color:{THEME['success']};'>"
                         f"€{lq_prev['liquido']:,.2f}/mês</b>"
                         f"</div>",
@@ -931,14 +931,14 @@ def render_fat_rh(obras_db, registos_db, *_):
                                         rh_db['Nome'] == nome_final, k
                                     ] = v
                             save_db(rh_db, "colaboradores_rh.csv")
-                            msg = f"✅ Ficha de {nome_final} atualizada!"
+                            msg = f"Ficha de {nome_final} atualizada!"
                         else:
                             nova_df = pd.DataFrame([nova_ficha])
                             upd = pd.concat(
                                 [rh_db, nova_df], ignore_index=True
                             ) if not rh_db.empty else nova_df
                             save_db(upd, "colaboradores_rh.csv")
-                            msg = f"✅ Ficha de {nome_final} criada!"
+                            msg = f"Ficha de {nome_final} criada!"
 
                         log_audit(
                             usuario=user_nome,
@@ -986,7 +986,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     )
 
                     with st.expander(
-                        f"👤 {colab.get('Nome','')} — "
+                        f"{colab.get('Nome','')} — "
                         f"€{sal:,.2f} base | "
                         f"€{c_real['total']:,.2f} custo real",
                         expanded=False
@@ -1109,7 +1109,7 @@ def render_fat_rh(obras_db, registos_db, *_):
         if rh_ativos.empty:
             st.info(
                 "Sem fichas financeiras. "
-                "Adiciona no tab 👤 Colaboradores."
+                "Adiciona no tab Colaboradores."
             )
         else:
             # Construir tabela
@@ -1409,7 +1409,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     du = _dias_uteis(f_ini, f_fim)
                     st.markdown(
                         f"<small style='color:{THEME['accent']};'>"
-                        f"📅 {du} dia(s) útil(eis)</small>",
+                        f"{du} dia(s) útil(eis)</small>",
                         unsafe_allow_html=True
                     )
 
@@ -1500,7 +1500,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                         alerta_ven = (
                             f"<span style='color:{THEME['error']};"
                             f"font-size:0.72rem;'>"
-                            f"⚠️ Risco legal: férias por gozar "
+                            f"Risco legal: férias por gozar "
                             f"até final do ano</span>"
                         )
 
@@ -1548,12 +1548,12 @@ def render_fat_rh(obras_db, registos_db, *_):
 
             with col_sub1:
                 st.metric(
-                    f"💰 Total {mes_sub[:5]}",
+                    f"Total {mes_sub[:5]}",
                     f"€{total_sub:,.2f}"
                 )
             with col_sub2:
                 st.metric(
-                    "📅 Data de Pagamento",
+                    "Data de Pagamento",
                     "Junho" if "Férias" in mes_sub else "20 Dezembro"
                 )
 
@@ -1596,10 +1596,10 @@ def render_fat_rh(obras_db, registos_db, *_):
                                      c['fct'] + c['fgct']
 
                 provisoes_lista = [
-                    ("📅 Sub. Férias (1/12)",   total_prov_m/2, THEME['accent']),
-                    ("🎄 Sub. Natal (1/12)",    total_prov_m/2, THEME['accent']),
-                    ("🏛️ TSU Empresa (23.75%)", total_tsu_emp,  THEME['error']),
-                    ("🛡️ Seguros+FCT",          total_seg_a,    THEME['warning']),
+                    ("Sub. Férias (1/12)",   total_prov_m/2, THEME['accent']),
+                    ("Sub. Natal (1/12)",    total_prov_m/2, THEME['accent']),
+                    ("TSU Empresa (23.75%)", total_tsu_emp,  THEME['error']),
+                    ("Seguros+FCT",          total_seg_a,    THEME['warning']),
                 ]
                 total_prov_total = sum(v for _,v,_ in provisoes_lista)
 
