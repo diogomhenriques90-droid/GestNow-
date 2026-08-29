@@ -10,7 +10,7 @@ import pandas as pd
 import os
 from datetime import datetime
 
-from core import save_db, load_db, hp, _gcs_read, _gcs_write
+from core import save_db, load_db, hp, _gcs_read, _gcs_write, THEME
 
 
 # Colunas padrão do usuarios.csv
@@ -56,63 +56,46 @@ def render_criar_admin():
 
     st.markdown("""
     <style>
-    .stApp { background:#0F172A !important; }
     .main .block-container { padding-top:2rem !important; max-width:520px; }
-    h1,h2,h3 { color:#F1F5F9 !important; }
-    p,div,span,label { color:#CBD5E1; }
-    .stTextInput>div>div>input {
-        background:#1E293B !important; color:#F1F5F9 !important;
-        border:1px solid #334155 !important; border-radius:10px !important;
-    }
-    .stSelectbox>div>div>div {
-        background:#1E293B !important; color:#F1F5F9 !important;
-        border:1px solid #334155 !important;
-    }
-    .stButton>button[kind="primary"] {
-        background:#DC2626 !important; color:white !important;
-        border:none !important; border-radius:12px !important;
-        font-weight:700 !important; height:48px !important;
-    }
     </style>
     """, unsafe_allow_html=True)
 
     # ── Verificar se o acesso é permitido ─────────────────────────
     if not _modo_setup_permitido():
-        st.error("⛔ Acesso negado. Já existe um Admin no sistema.")
+        st.error("Acesso negado. Já existe um Admin no sistema.")
         st.info("Para repor credenciais, define a variável de ambiente "
                 "`GESTNOW_SETUP=true` no Cloud Run e reinicia o serviço.")
         st.stop()
 
     # ── Cabeçalho ─────────────────────────────────────────────────
-    st.markdown("""
-    <div style='background:linear-gradient(135deg,#1E293B,#0F172A);
-        padding:28px;border-radius:16px;margin-bottom:24px;
-        border:1px solid rgba(220,38,38,0.4);text-align:center;'>
-        <p style='font-size:2.5rem;margin:0 0 8px;'>⚡</p>
-        <h2 style='color:#F1F5F9;margin:0;font-size:1.4rem;'>
+    st.markdown(f"""
+    <div style='background:{THEME['surface']};border:1px solid {THEME['border']};
+        padding:28px;border-radius:16px;margin-bottom:24px;text-align:center;'>
+        <h2 style='color:{THEME['text']};margin:0;font-size:1.4rem;'>
             GESTNOW v3 — Setup Inicial</h2>
-        <p style='color:#64748B;margin:8px 0 0;font-size:0.85rem;'>
+        <p style='color:{THEME['text_secondary']};margin:8px 0 0;font-size:0.85rem;'>
             Criação do utilizador Administrador</p>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown(
-        "<div style='background:rgba(245,158,11,0.1);border-left:3px solid "
-        "#F59E0B;border-radius:8px;padding:12px 16px;margin-bottom:20px;'>"
-        "<p style='color:#FCD34D;font-size:0.82rem;margin:0;'>"
-        "⚠️ Este ecrã só está disponível enquanto não existir um Admin "
-        "no sistema. Após criar o Admin, este acesso é bloqueado automaticamente."
-        "</p></div>",
-        unsafe_allow_html=True
-    )
+    st.markdown(f"""
+    <div style='background:{THEME['surface']};border:1px solid {THEME['border']};
+        border-left:3px solid {THEME['warning']};border-radius:8px;
+        padding:12px 16px;margin-bottom:20px;'>
+        <p style='color:{THEME['warning']};font-size:0.82rem;margin:0;'>
+            Este ecrã só está disponível enquanto não existir um Admin
+            no sistema. Após criar o Admin, este acesso é bloqueado automaticamente.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     # ── Formulário ────────────────────────────────────────────────
     with st.form("form_criar_admin", clear_on_submit=False):
 
         st.markdown(
-            "<p style='color:#64748B;font-size:0.72rem;font-weight:700;"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;font-weight:700;"
             "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 12px;'>"
-            "👤 Dados do Administrador</p>",
+            "Dados do Administrador</p>",
             unsafe_allow_html=True
         )
 
@@ -137,14 +120,14 @@ def render_criar_admin():
             )
 
         st.markdown(
-            "<hr style='border:none;border-top:1px solid #1E293B;margin:12px 0;'>",
+            f"<hr style='border:none;border-top:1px solid {THEME['border']};margin:12px 0;'>",
             unsafe_allow_html=True
         )
 
         st.markdown(
-            "<p style='color:#64748B;font-size:0.72rem;font-weight:700;"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;font-weight:700;"
             "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 12px;'>"
-            "🔐 Credenciais de Acesso</p>",
+            "Credenciais de Acesso</p>",
             unsafe_allow_html=True
         )
 
@@ -166,14 +149,14 @@ def render_criar_admin():
         )
 
         st.markdown(
-            "<hr style='border:none;border-top:1px solid #1E293B;margin:12px 0;'>",
+            f"<hr style='border:none;border-top:1px solid {THEME['border']};margin:12px 0;'>",
             unsafe_allow_html=True
         )
 
         st.markdown(
-            "<p style='color:#64748B;font-size:0.72rem;font-weight:700;"
+            f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;font-weight:700;"
             "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 12px;'>"
-            "🏢 Perfil</p>",
+            "Perfil</p>",
             unsafe_allow_html=True
         )
 
@@ -194,7 +177,7 @@ def render_criar_admin():
         st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
         submeter = st.form_submit_button(
-            "🚀 Criar Administrador",
+            "Criar Administrador",
             use_container_width=True,
             type="primary"
         )
@@ -216,7 +199,7 @@ def render_criar_admin():
 
         if erros:
             for e in erros:
-                st.error(f"⚠️ {e}")
+                st.error(e)
         else:
             try:
                 # Carregar utilizadores existentes
@@ -240,7 +223,7 @@ def render_criar_admin():
                 if not df_users.empty and \
                    nome.strip() in df_users['Nome'].values:
                     st.error(
-                        f"⚠️ Já existe um utilizador com o nome '{nome.strip()}'."
+                        f"Já existe um utilizador com o nome '{nome.strip()}'."
                     )
                     st.stop()
 
@@ -281,19 +264,19 @@ def render_criar_admin():
                 save_db(df_users, "usuarios.csv")
 
                 st.success(
-                    f"✅ Administrador **{nome.strip()}** criado com sucesso!"
+                    f"Administrador **{nome.strip()}** criado com sucesso!"
                 )
                 st.markdown(
-                    "<div style='background:rgba(16,185,129,0.1);"
-                    "border-left:3px solid #10B981;border-radius:8px;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
+                    f"border-left:3px solid {THEME['success']};border-radius:8px;"
                     "padding:14px 16px;margin-top:12px;'>"
-                    "<p style='color:#6EE7B7;font-size:0.85rem;margin:0;'>"
-                    "✅ Pode agora fazer login com as credenciais criadas.<br>"
-                    "🔒 Este ecrã de setup ficará automaticamente bloqueado."
+                    f"<p style='color:{THEME['success']};font-size:0.85rem;margin:0;'>"
+                    "Pode agora fazer login com as credenciais criadas.<br>"
+                    "Este ecrã de setup ficará automaticamente bloqueado."
                     "</p></div>",
                     unsafe_allow_html=True
                 )
                 st.balloons()
 
             except Exception as e:
-                st.error(f"❌ Erro ao criar administrador: {e}")
+                st.error(f"Erro ao criar administrador: {e}")

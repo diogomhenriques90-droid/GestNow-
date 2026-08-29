@@ -6,6 +6,7 @@ from core import (init_session, check_timeout, load_all, inject_pwa_meta,
                   inject_global_css, hp, save_db, log_audit,
                   criar_notificacao, load_db, _gcs_read, inv, tem_permissao,
                   _verificar_alerta_backup, _registar_backup, THEME,
+                  render_badge_html,
                   # FIX 1 — importar a versão cached de core em vez de redefinir
                   _load_users_cached)
 from translations import init_language, t, get_language_options, set_language
@@ -92,43 +93,11 @@ def _render_validacao_obrigatoria(user_nome):
     if not tem_pdfs_pend and not tem_preco_pend and not tem_perfil_pend and not tem_iban_pend:
         return False
 
-    st.markdown("""
-    <style>
-    .onboard-header {
-        background: linear-gradient(135deg, #1E40AF, #1E293B);
-        padding: 25px; border-radius: 20px; margin-bottom: 25px; text-align: center;
-        border: 2px solid rgba(59,130,246,0.4);
-    }
-    .step-card {
-        border-radius: 15px; padding: 20px; margin-bottom: 15px;
-        border: 2px solid rgba(255,255,255,0.1);
-    }
-    .step-active  { background:rgba(59,130,246,0.15); border-color:#3B82F6; }
-    .pdf-row {
-        background:rgba(255,255,255,0.04); border-radius:10px;
-        padding:12px 15px; margin-bottom:10px;
-    }
-    .stTextInput label, .stSelectbox label, .stNumberInput label,
-    .stTextArea label, .stDateInput label, .stRadio label, .stCheckbox label {
-        color: #F8FAFC !important; font-weight: 500 !important;
-    }
-    .stTextInput > div > div > input,
-    .stNumberInput > div > div > input,
-    .stTextArea > div > div > textarea {
-        background: #FFFFFF !important; color: #1E293B !important;
-        border: 1px solid rgba(0,0,0,0.2) !important;
-    }
-    .stSelectbox > div > div > div {
-        background: #FFFFFF !important; color: #1E293B !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     st.markdown(f"""
-    <div class="onboard-header">
-        <div style="font-size:2.5rem;margin-bottom:12px;">👋</div>
-        <h2 style="color:white;margin:0 0 8px 0;">Bem-vindo, {user_nome}!</h2>
-        <p style="color:rgba(255,255,255,0.7);margin:0;font-size:1rem;">
+    <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
+        border-radius:{THEME['radius']};padding:25px;margin-bottom:25px;text-align:center;">
+        <h2 style="color:{THEME['text']};margin:0 0 8px 0;">Bem-vindo, {user_nome}!</h2>
+        <p style="color:{THEME['text_secondary']};margin:0;font-size:1rem;">
             Completa os seguintes passos de integração para aceder à app.
         </p>
     </div>
@@ -137,22 +106,23 @@ def _render_validacao_obrigatoria(user_nome):
     col_s1, col_s2, col_s3, col_s4 = st.columns(4)
     iban_ok = str(user_data.get('IBAN_Comprovativo_b64', '')).strip() != ''
     passos = [
-        (pdfs_validados   == 'Sim',                 tem_pdfs_pend,  "📄", "Passo 1\nDocumentos"),
-        (preco_status in ['Aceite','Recusado'],      tem_preco_pend, "💰", "Passo 2\nPreço Hora"),
-        (perfil_completo  == 'Sim',                 tem_perfil_pend,"👤", "Passo 3\nMeu Perfil"),
-        (iban_ok,                                   tem_iban_pend,  "🏦", "Passo 4\nIBAN"),
+        (pdfs_validados   == 'Sim',                 tem_pdfs_pend,  "Passo 1 — Documentos"),
+        (preco_status in ['Aceite','Recusado'],      tem_preco_pend, "Passo 2 — Preço Hora"),
+        (perfil_completo  == 'Sim',                 tem_perfil_pend,"Passo 3 — Meu Perfil"),
+        (iban_ok,                                   tem_iban_pend,  "Passo 4 — IBAN"),
     ]
-    for col, (done, active, ic, label) in zip([col_s1,col_s2,col_s3,col_s4], passos):
-        cor = "#10B981" if done else "#3B82F6" if active else "#64748B"
+    _tone_cor = {"success": THEME['success'], "info": THEME['accent'], "neutral": THEME['border']}
+    for col, (done, active, label) in zip([col_s1,col_s2,col_s3,col_s4], passos):
+        tone = "success" if done else "info" if active else "neutral"
         with col:
-            st.markdown(f"""
-            <div style="text-align:center;padding:15px;
-                background:rgba(255,255,255,0.05);border-radius:12px;
-                border:2px solid {cor};">
-                <div style="font-size:1.8rem;">{ic}</div>
-                <div style="color:{cor};font-weight:bold;font-size:0.85rem;
-                    margin-top:5px;white-space:pre-line;">{label}</div>
-            </div>""", unsafe_allow_html=True)
+            st.markdown(
+                f"<div style='text-align:center;padding:15px;"
+                f"background:{THEME['surface']};border-radius:{THEME['radius']};"
+                f"border:2px solid {_tone_cor[tone]};'>"
+                f"{render_badge_html(label, tone)}"
+                f"</div>",
+                unsafe_allow_html=True
+            )
 
     st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
 
@@ -160,13 +130,14 @@ def _render_validacao_obrigatoria(user_nome):
     if tem_pdfs_pend:
         pct = int(pdfs_val_count / total_pdfs * 100) if total_pdfs > 0 else 0
         st.markdown(f"""
-        <div class="step-card step-active">
-            <h3 style="color:#60A5FA;margin:0 0 8px 0;">📄 Passo 1 — Documentos Obrigatórios</h3>
-            <p style="color:#94A3B8;margin:0 0 12px 0;font-size:0.9rem;">
+        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
+            border-radius:{THEME['radius']};padding:20px;margin-bottom:15px;">
+            <h3 style="color:{THEME['accent']};margin:0 0 8px 0;">Passo 1 — Documentos Obrigatórios</h3>
+            <p style="color:{THEME['text_secondary']};margin:0 0 12px 0;font-size:0.9rem;">
                 Lê e confirma cada documento. <b>{pdfs_val_count}/{total_pdfs}</b> validados.
             </p>
-            <div style="background:rgba(0,0,0,0.3);border-radius:6px;height:8px;">
-                <div style="background:#10B981;width:{pct}%;height:8px;border-radius:6px;"></div>
+            <div style="background:{THEME['border']};border-radius:6px;height:8px;">
+                <div style="background:{THEME['success']};width:{pct}%;height:8px;border-radius:6px;"></div>
             </div>
         </div>""", unsafe_allow_html=True)
 
@@ -178,17 +149,19 @@ def _render_validacao_obrigatoria(user_nome):
                 visto    = pdf_id in pdfs_vistos
 
                 st.markdown(f"""
-                <div class="pdf-row" style="border-left:4px solid {'#10B981' if visto else '#EF4444'};">
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
+                    border-left:4px solid {THEME['success'] if visto else THEME['error']};
+                    border-radius:10px;padding:12px 15px;margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <div>
-                            <b style="color:{'#10B981' if visto else '#F8FAFC'};">
-                                {'✅' if visto else '📄'} {pdf_nome}
+                            <b style="color:{THEME['success'] if visto else THEME['text']};">
+                                {pdf_nome}
                             </b>
-                            <p style="color:#64748B;font-size:0.82rem;margin:3px 0 0 0;">{pdf_desc}</p>
+                            <p style="color:{THEME['text_secondary']};font-size:0.82rem;margin:3px 0 0 0;">{pdf_desc}</p>
                         </div>
-                        <span style="color:{'#10B981' if visto else '#F59E0B'};
+                        <span style="color:{THEME['success'] if visto else THEME['warning']};
                             font-size:0.8rem;font-weight:bold;white-space:nowrap;margin-left:10px;">
-                            {'Validado' if visto else '⚠️ Por ler'}
+                            {'Validado' if visto else 'Por ler'}
                         </span>
                     </div>
                 </div>""", unsafe_allow_html=True)
@@ -199,7 +172,7 @@ def _render_validacao_obrigatoria(user_nome):
                         try:
                             pdf_data = base64.b64decode(pdf['Ficheiro_b64'])
                             st.download_button(
-                                f"📥 Ler: {pdf_nome}", data=pdf_data,
+                                f"Ler: {pdf_nome}", data=pdf_data,
                                 file_name=f"{pdf_nome}.pdf", mime="application/pdf",
                                 key=f"app_dl_pdf_{pdf_id}", use_container_width=True
                             )
@@ -207,7 +180,7 @@ def _render_validacao_obrigatoria(user_nome):
                             st.error("Erro ao carregar PDF")
                 with col_ok:
                     if not visto:
-                        if st.button("✅ Confirmar", key=f"app_val_pdf_{pdf_id}",
+                        if st.button("Confirmar", key=f"app_val_pdf_{pdf_id}",
                                      use_container_width=True, type="primary"):
                             pdfs_vistos.append(pdf_id)
                             novos_val = len([p for p in pdfs_vistos if p in pdf_ids_validos])
@@ -228,7 +201,7 @@ def _render_validacao_obrigatoria(user_nome):
                                           tabela="usuarios.csv", registro_id=user_nome,
                                           detalhes=f"Validou {novos_val} PDFs", ip="")
                                 criar_notificacao(destinatario="admin",
-                                    titulo="✅ PDFs Validados",
+                                    titulo="PDFs Validados",
                                     mensagem=f"{user_nome} validou todos os documentos.",
                                     tipo="success", acao_url="/admin?tab=rh")
                                 st.success("Todos os documentos confirmados!")
@@ -245,26 +218,27 @@ def _render_validacao_obrigatoria(user_nome):
     # ── PASSO 2: PREÇO HORA ───────────────────────────────────────────
     if tem_preco_pend:
         st.markdown(f"""
-        <div class="step-card step-active">
-            <h3 style="color:#60A5FA;margin:0 0 8px 0;">💰 Passo 2 — Validação do Preço Hora</h3>
-            <p style="color:#94A3B8;margin:0;font-size:0.9rem;">
+        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
+            border-radius:{THEME['radius']};padding:20px;margin-bottom:15px;">
+            <h3 style="color:{THEME['accent']};margin:0 0 8px 0;">Passo 2 — Validação do Preço Hora</h3>
+            <p style="color:{THEME['text_secondary']};margin:0;font-size:0.9rem;">
                 Aceita ou recusa o preço hora proposto pela empresa.
             </p>
         </div>""", unsafe_allow_html=True)
 
         st.markdown(f"""
-        <div style="background:rgba(255,255,255,0.07);border:2px solid rgba(255,255,255,0.15);
+        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
             border-radius:15px;padding:30px;text-align:center;margin-bottom:25px;">
-            <p style="color:#94A3B8;margin:0 0 10px 0;">Preço Hora Proposto:</p>
-            <p style="color:#10B981;font-size:3.5rem;font-weight:900;margin:0 0 15px 0;">
+            <p style="color:{THEME['text_secondary']};margin:0 0 10px 0;">Preço Hora Proposto:</p>
+            <p style="color:{THEME['success']};font-size:3.5rem;font-weight:900;margin:0 0 15px 0;">
                 € {preco_hora_valor}
-                <span style="font-size:1.4rem;color:#64748B;">/hora</span>
+                <span style="font-size:1.4rem;color:{THEME['text_secondary']};">/hora</span>
             </p>
         </div>""", unsafe_allow_html=True)
 
         col_ac, col_rec = st.columns(2)
         with col_ac:
-            if st.button("✅ ACEITAR", key="app_aceitar_preco",
+            if st.button("ACEITAR", key="app_aceitar_preco",
                           use_container_width=True, type="primary"):
                 u2 = _load_users_cached().copy()
                 mask = u2['Nome'] == user_nome
@@ -277,14 +251,14 @@ def _render_validacao_obrigatoria(user_nome):
                               tabela="usuarios.csv", registro_id=user_nome,
                               detalhes=f"Aceitou €{preco_hora_valor}/hora", ip="")
                     criar_notificacao(destinatario="admin",
-                        titulo="💰 Preço Hora Aceite",
+                        titulo="Preço Hora Aceite",
                         mensagem=f"{user_nome} aceitou €{preco_hora_valor}/hora.",
                         tipo="success", acao_url="/admin?tab=rh")
                     st.success("Preço hora aceite!")
                     st.balloons()
                     st.rerun()
         with col_rec:
-            if st.button("❌ RECUSAR", key="app_recusar_preco",
+            if st.button("RECUSAR", key="app_recusar_preco",
                           use_container_width=True, type="secondary"):
                 u2 = _load_users_cached().copy()
                 mask = u2['Nome'] == user_nome
@@ -297,7 +271,7 @@ def _render_validacao_obrigatoria(user_nome):
                               tabela="usuarios.csv", registro_id=user_nome,
                               detalhes=f"Recusou €{preco_hora_valor}/hora", ip="")
                     criar_notificacao(destinatario="admin",
-                        titulo="💰 Preço Hora RECUSADO",
+                        titulo="Preço Hora RECUSADO",
                         mensagem=f"{user_nome} RECUSOU €{preco_hora_valor}/hora.",
                         tipo="error", acao_url="/admin?tab=rh")
                     st.warning("Preço recusado. Admin notificado.")
@@ -306,10 +280,11 @@ def _render_validacao_obrigatoria(user_nome):
 
     # ── PASSO 3: PERFIL ───────────────────────────────────────────────
     if tem_perfil_pend:
-        st.markdown("""
-        <div class="step-card step-active">
-            <h3 style="color:#60A5FA;margin:0 0 8px 0;">👤 Passo 3 — Preencher o Meu Perfil</h3>
-            <p style="color:#94A3B8;margin:0;font-size:0.9rem;">
+        st.markdown(f"""
+        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
+            border-radius:{THEME['radius']};padding:20px;margin-bottom:15px;">
+            <h3 style="color:{THEME['accent']};margin:0 0 8px 0;">Passo 3 — Preencher o Meu Perfil</h3>
+            <p style="color:{THEME['text_secondary']};margin:0;font-size:0.9rem;">
                 Preenche os teus dados para os Recursos Humanos.
                 Campos com <b>*</b> são obrigatórios.
             </p>
@@ -348,7 +323,7 @@ def _render_validacao_obrigatoria(user_nome):
                 cod_postal = st.text_input("Código Postal",
                     value=user_data.get('Codigo_Postal',''), key="onb_cp", placeholder="XXXX-XXX")
 
-            st.markdown("#### 🆔 Documentos & Contacto")
+            st.markdown("#### Documentos & Contacto")
             col6, col7 = st.columns(2)
             with col6:
                 cc    = st.text_input("Nº Cartão Cidadão", value=user_data.get('CC',''), key="onb_cc")
@@ -404,7 +379,7 @@ def _render_validacao_obrigatoria(user_nome):
                 tam_bot = st.selectbox("Botas", bot_opts,
                     index=bot_opts.index(bot_v) if bot_v in bot_opts else 2, key="onb_bot")
 
-            submitted = st.form_submit_button("💾 Guardar e Continuar →",
+            submitted = st.form_submit_button("Guardar e Continuar",
                 use_container_width=True, type="primary")
 
         if submitted:
@@ -447,7 +422,7 @@ def _render_validacao_obrigatoria(user_nome):
                               tabela="usuarios.csv", registro_id=user_nome,
                               detalhes="Perfil preenchido no onboarding", ip="")
                     criar_notificacao(destinatario="admin",
-                        titulo="👤 Perfil Preenchido",
+                        titulo="Perfil Preenchido",
                         mensagem=f"{user_nome} completou todos os passos de integração.",
                         tipo="success", acao_url="/admin?tab=rh")
                     st.success("Perfil guardado! Bem-vindo(a) ao GESTNOW!")
@@ -457,28 +432,29 @@ def _render_validacao_obrigatoria(user_nome):
 
     # ── PASSO 4: UPLOAD COMPROVATIVO IBAN ─────────────────────────────
     if tem_iban_pend:
-        st.markdown("""
-        <div class="step-card step-active">
-            <h3 style="color:#60A5FA;margin:0 0 8px 0;">🏦 Passo 4 — Comprovativo Bancário</h3>
-            <p style="color:#94A3B8;margin:0;font-size:0.9rem;">
+        st.markdown(f"""
+        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
+            border-radius:{THEME['radius']};padding:20px;margin-bottom:15px;">
+            <h3 style="color:{THEME['accent']};margin:0 0 8px 0;">Passo 4 — Comprovativo Bancário</h3>
+            <p style="color:{THEME['text_secondary']};margin:0;font-size:0.9rem;">
                 Faz upload do comprovativo IBAN (extrato bancário, documento do banco
                 ou captura do homebanking com o IBAN visível).
             </p>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("""
-        <div style="background:rgba(59,130,246,0.08);border-radius:10px;
-            padding:14px;margin-bottom:16px;border-left:3px solid #3B82F6;">
-            <p style="color:#93C5FD;font-size:0.85rem;margin:0;">
-                ℹ️ O IBAN não é guardado como texto — apenas o comprovativo é armazenado
+        st.markdown(f"""
+        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
+            border-radius:10px;padding:14px;margin-bottom:16px;border-left:3px solid {THEME['accent']};">
+            <p style="color:{THEME['text_secondary']};font-size:0.85rem;margin:0;">
+                O IBAN não é guardado como texto — apenas o comprovativo é armazenado
                 de forma segura para acesso exclusivo do RH.
             </p>
         </div>
         """, unsafe_allow_html=True)
 
         ficheiro_iban = st.file_uploader(
-            "📄 Comprovativo bancário (PDF, JPG ou PNG)",
+            "Comprovativo bancário (PDF, JPG ou PNG)",
             type=["pdf","jpg","jpeg","png"],
             key="onb_iban_file"
         )
@@ -486,7 +462,7 @@ def _render_validacao_obrigatoria(user_nome):
         if ficheiro_iban:
             file_b64 = base64.b64encode(ficheiro_iban.read()).decode('utf-8')
             st.success(f"Ficheiro carregado: {ficheiro_iban.name}")
-            if st.button("💾 Guardar e Concluir Integração",
+            if st.button("Guardar e Concluir Integração",
                          use_container_width=True, type="primary",
                          key="btn_guardar_iban"):
                 u4 = _load_users_cached().copy()
@@ -501,7 +477,7 @@ def _render_validacao_obrigatoria(user_nome):
                               tabela="usuarios.csv", registro_id=user_nome,
                               detalhes="Comprovativo IBAN uploaded", ip="")
                     criar_notificacao(destinatario="admin",
-                        titulo="🏦 Comprovativo IBAN",
+                        titulo="Comprovativo IBAN",
                         mensagem=f"{user_nome} submeteu o comprovativo bancário.",
                         tipo="info", acao_url="/admin?tab=rh")
                     st.success("Integração completa! Bem-vindo(a) ao GESTNOW!")
@@ -525,12 +501,12 @@ if st.session_state.get('user'):
         # logótipo embutido aqui manualmente foi removido por ser
         # redundante (Identidade Visual, Fase 2).
         st.markdown(f"""
-        <div style="padding:12px;background:rgba(255,255,255,0.05);
+        <div style="padding:12px;background:{THEME['surface']};border:1px solid {THEME['border']};
             border-radius:12px;margin-bottom:16px;">
-            <div style="font-size:1rem;font-weight:600;color:#F8FAFC;">
-                👤 {st.session_state.user}
+            <div style="font-size:1rem;font-weight:600;color:{THEME['text']};">
+                {st.session_state.user}
             </div>
-            <div style="font-size:0.85rem;color:#94A3B8;">
+            <div style="font-size:0.85rem;color:{THEME['text_secondary']};">
                 {st.session_state.tipo} | {st.session_state.cargo}
             </div>
         </div>""", unsafe_allow_html=True)
@@ -539,7 +515,7 @@ if st.session_state.get('user'):
         lang_opts = get_language_options()
         curr_lang = st.session_state.language
         sel_lang  = st.selectbox(
-            "🌐", options=list(lang_opts.keys()),
+            t('language'), options=list(lang_opts.keys()),
             format_func=lambda x: lang_opts[x],
             index=list(lang_opts.keys()).index(curr_lang),
             label_visibility="collapsed", key="sidebar_language_sel"
@@ -585,7 +561,7 @@ if st.session_state.get('user'):
             st.session_state.menu_selected = menu_item
 
         st.divider()
-        if st.button("🔄 Atualizar Dados", use_container_width=True,
+        if st.button("Atualizar Dados", use_container_width=True,
                      type="secondary", key="sidebar_refresh_btn"):
             from core import _cached_load_all
             _cached_load_all.clear()
@@ -728,17 +704,12 @@ else:
                     ct_validado = row_ct.get('Contrato_Validado_Admin','') == 'Sim'
 
                     if ct_enviado and not ct_assinado and not ct_validado:
-                        st.markdown("""
-                        <style>.stApp{background:#0F172A!important;}</style>
-                        """, unsafe_allow_html=True)
-
-                        st.markdown("""
-                        <div style="background:linear-gradient(135deg,#1E40AF,#1E293B);
+                        st.markdown(f"""
+                        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
                             padding:30px;border-radius:20px;margin-bottom:25px;
-                            text-align:center;border:2px solid rgba(59,130,246,0.4);">
-                            <div style="font-size:3rem;margin-bottom:12px;">📄</div>
-                            <h2 style="color:white;margin:0 0 10px;">Contrato pendente de assinatura</h2>
-                            <p style="color:rgba(255,255,255,0.7);margin:0;font-size:0.95rem;">
+                            text-align:center;">
+                            <h2 style="color:{THEME['text']};margin:0 0 10px;">Contrato pendente de assinatura</h2>
+                            <p style="color:{THEME['text_secondary']};margin:0;font-size:0.95rem;">
                                 O teu contrato de trabalho está disponível.<br>
                                 Assina e faz upload para continuar a usar a app.
                             </p>
@@ -750,7 +721,7 @@ else:
                             try:
                                 ct_bytes = base64.b64decode(ct_b64)
                                 st.download_button(
-                                    "📥 Descarregar Contrato para Assinar",
+                                    "Descarregar Contrato para Assinar",
                                     data=ct_bytes,
                                     file_name=f"contrato_{user_nome.replace(' ','_')}.docx",
                                     mime="application/vnd.openxmlformats-officedocument"
@@ -761,11 +732,11 @@ else:
                             except:
                                 st.error("Erro ao processar o contrato.")
 
-                        st.markdown("""
-                        <div style="background:rgba(59,130,246,0.1);border-radius:10px;
-                            padding:14px;margin:16px 0;border-left:3px solid #3B82F6;">
-                            <p style="color:#93C5FD;font-size:0.85rem;margin:0;">
-                                📋 <b>Instruções:</b><br>
+                        st.markdown(f"""
+                        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
+                            border-radius:10px;padding:14px;margin:16px 0;border-left:3px solid {THEME['accent']};">
+                            <p style="color:{THEME['text_secondary']};font-size:0.85rem;margin:0;">
+                                <b>Instruções:</b><br>
                                 1. Descarrega o contrato acima<br>
                                 2. Imprime e assina à mão<br>
                                 3. Fotografa ou digitaliza<br>
@@ -775,7 +746,7 @@ else:
                         """, unsafe_allow_html=True)
 
                         ficheiro_assin = st.file_uploader(
-                            "📤 Upload do contrato assinado",
+                            "Upload do contrato assinado",
                             type=["jpg","jpeg","png","pdf","docx"],
                             key="blk_ct_upload"
                         )
@@ -786,11 +757,11 @@ else:
                                 f"({tam_kb:.0f} KB)"
                             )
                             st.markdown(
-                                "<p style='color:#F59E0B;font-size:0.82rem;margin:8px 0;'>"
-                                "⚠️ Confirma que o contrato está assinado antes de submeter.</p>",
+                                f"<p style='color:{THEME['warning']};font-size:0.82rem;margin:8px 0;'>"
+                                "Confirma que o contrato está assinado antes de submeter.</p>",
                                 unsafe_allow_html=True
                             )
-                            if st.button("✅ Submeter contrato assinado ao RH",
+                            if st.button("Submeter contrato assinado ao RH",
                                           key="blk_btn_assin",
                                           type="primary",
                                           use_container_width=True):
@@ -805,7 +776,7 @@ else:
                                     save_db(u_up, "usuarios.csv")
                                     criar_notificacao(
                                         destinatario="admin",
-                                        titulo="✍️ Contrato Assinado",
+                                        titulo="Contrato Assinado",
                                         mensagem=f"{user_nome} submeteu o contrato assinado.",
                                         tipo="success", acao_url="/admin?tab=rh"
                                     )
@@ -842,14 +813,14 @@ else:
                 st.warning(f"**Backup em atraso** — Último: **{_ultima_str}**")
             _col_b1, _col_b2 = st.columns(2)
             with _col_b1:
-                if st.button("💾 Fazer Backup Agora",
+                if st.button("Fazer Backup Agora",
                              key="alert_bkp_btn", type="primary",
                              use_container_width=True):
                     st.session_state['menu_selected'] = f"Admin"
                     st.session_state['_menu_locked']  = True
                     st.rerun()
             with _col_b2:
-                if st.button("✅ Confirmar backup feito",
+                if st.button("Confirmar backup feito",
                              key="alert_bkp_confirm",
                              use_container_width=True):
                     _registar_backup(user_nome)
@@ -874,11 +845,11 @@ else:
         elif f"Dashboard" in menu or menu == '':
             st.markdown(f"# Dashboard Geral")
             c1,c2,c3,c4 = st.columns(4)
-            with c1: st.metric("👥 Utilizadores", len(users))
-            with c2: st.metric("🏭 Obras Ativas",
+            with c1: st.metric("Utilizadores", len(users))
+            with c2: st.metric("Obras Ativas",
                 len(obras_db[obras_db['Ativa']=='Ativa']) if not obras_db.empty else 0)
-            with c3: st.metric("📋 Registos", len(registos_db) if not registos_db.empty else 0)
-            with c4: st.metric("⚠️ Incidentes", len(incs_db) if not incs_db.empty else 0)
+            with c3: st.metric("Registos", len(registos_db) if not registos_db.empty else 0)
+            with c4: st.metric("Incidentes", len(incs_db) if not incs_db.empty else 0)
             st.divider()
             from mod_dashboard import render_dashboard
             render_dashboard(*DATA)
@@ -920,16 +891,16 @@ else:
             from mod_inicio import render_inicio
             render_inicio(*DATA)
 
-st.markdown("""
+st.markdown(f"""
 <style>
-.footer {
+.footer {{
     position:fixed; bottom:60px; left:0; right:0;
-    background:linear-gradient(135deg,#1E293B,#0F172A);
+    background:{THEME['surface']};
     padding:12px 20px; text-align:center;
-    font-size:0.75rem; color:#64748B;
-    border-top:1px solid rgba(255,255,255,0.1); z-index:9998;
-}
-@media (max-width:768px) { .footer { display:none; } }
+    font-size:0.75rem; color:{THEME['text_secondary']};
+    border-top:1px solid {THEME['border']}; z-index:9998;
+}}
+@media (max-width:768px) {{ .footer {{ display:none; }} }}
 </style>
 <div class="footer">GESTNOW v3.0 - Plataforma de Gestão de Empresas/Gestão de Obras e Instrumentação Industrial</div>
 """, unsafe_allow_html=True)

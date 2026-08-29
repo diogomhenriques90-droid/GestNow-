@@ -14,6 +14,8 @@ import unittest
 from unittest.mock import patch
 from streamlit.testing.v1 import AppTest
 
+import core
+
 
 def _run(tipo, menu, user="Diogo Henriques", cargo="Administrador"):
     with patch("core._gcs_read", return_value=None):
@@ -164,6 +166,113 @@ class TestBarraInferiorSoMobile(unittest.TestCase):
         self.assertIn(".st-key-bottom_nav_bar", bloco)
         self.assertIn("display: none", bloco)
         self.assertIn(".bottom-nav-spacer", bloco)
+
+
+class TestOnboardingSemIconesTemaClaro(unittest.TestCase):
+    """Ecrã de onboarding de novos utilizadores (_render_validacao_obrigatoria
+    em app.py) — nunca teve nenhum teste antes desta sessão. Migrado do
+    visual escuro antigo (cores fixas) para o THEME central, e sem ícones,
+    ao mesmo tempo que os outros ecrãs da app.
+
+    A sessão é marcada como já autenticada (Técnico) ANTES do `import app`
+    dentro do script — assim o próprio fluxo normal de app.py chama
+    _render_validacao_obrigatoria sozinho (linha ~693), em vez de nós
+    chamarmos explicitamente depois de app.py já ter corrido o ecrã de
+    login como efeito secundário do import (o que gerava um erro de
+    "form aninhado" — dois st.form() na mesma execução de script)."""
+
+    def _run_passo(self, users_df, pdfs_df=None):
+        import pandas as pd
+        if pdfs_df is None:
+            pdfs_df = pd.DataFrame(columns=[
+                "ID","Nome","Descricao","Data_Upload","Upload_Por","Ficheiro_b64"
+            ])
+
+        orig_load_db = core.load_db
+
+        def _load_db_lado(fn, cols, silent=False):
+            if fn == "pdfs_obrigatorios.csv":
+                return pdfs_df
+            return orig_load_db(fn, cols, silent)
+
+        def _script():
+            import streamlit as st
+            st.session_state['user']          = 'Técnico Teste'
+            st.session_state['tipo']          = 'Técnico'
+            st.session_state['cargo']         = 'Técnico'
+            st.session_state['menu_selected'] = ''
+            st.session_state['_fv']           = {}
+            import app  # noqa: F401 — dispara o routing completo, que chama a função sozinho
+
+        with patch("core._gcs_read", return_value=None), \
+             patch("core._load_users_cached", return_value=users_df), \
+             patch("core.load_db", side_effect=_load_db_lado):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+        return at
+
+    def _base_user(self, **overrides):
+        import pandas as pd
+        linha = {
+            "Nome": "Técnico Teste", "PDFs_Validados": "Sim", "PDFs_Vistos": "[]",
+            "PrecoHoraStatus": "Aceite", "PrecoHora": "15.0",
+            "Perfil_Completo": "Sim", "IBAN_Comprovativo_b64": "abc",
+        }
+        linha.update(overrides)
+        return pd.DataFrame([linha])
+
+    def _sem_emoji(self, at):
+        import re
+        padrao = re.compile(r'[\U0001F300-\U0001FAFF☀-➿←-⇿⬀-⯿️]')
+        for m in at.markdown:
+            self.assertIsNone(padrao.search(m.value), f"emoji encontrado: {m.value!r}")
+
+    def test_passo1_documentos_sem_erro_sem_icones(self):
+        import pandas as pd
+        pdfs = pd.DataFrame([{
+            "ID": "1", "Nome": "Contrato", "Descricao": "Contrato de trabalho",
+            "Data_Upload": "", "Upload_Por": "", "Ficheiro_b64": "",
+        }])
+        at = self._run_passo(self._base_user(PDFs_Validados="Não"), pdfs)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self._sem_emoji(at)
+
+    def test_passo2_preco_hora_sem_erro_sem_icones(self):
+        at = self._run_passo(self._base_user(PrecoHoraStatus=""))
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self._sem_emoji(at)
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn(core.THEME["accent"], textos)
+
+    def test_passo3_perfil_sem_erro_sem_icones(self):
+        at = self._run_passo(self._base_user(Perfil_Completo=""))
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self._sem_emoji(at)
+
+    def test_contrato_pendente_sem_erro_sem_icones_tema_claro(self):
+        """Bloqueio "contrato pendente de assinatura" (linha ~695 de
+        app.py) — logo a seguir ao onboarding, mesma migração."""
+        at = self._run_passo(self._base_user(
+            Contrato_Enviado="Sim", Contrato_Assinado="",
+            Contrato_Validado_Admin="",
+        ))
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self._sem_emoji(at)
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn("Contrato pendente de assinatura", textos)
+        self.assertNotIn("#0F172A", textos)
+        self.assertNotIn("#1E40AF", textos)
+
+    def test_passo4_iban_sem_erro_sem_icones(self):
+        at = self._run_passo(self._base_user(IBAN_Comprovativo_b64=""))
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self._sem_emoji(at)
+        textos = " ".join(m.value for m in at.markdown)
+        # #60A5FA/#94A3B8 eram as cores escuras antigas, fora da paleta
+        # THEME — #1E293B não se testa aqui porque, por coincidência,
+        # é o valor atual de THEME['text'], por isso apareceria sempre.
+        self.assertNotIn("#60A5FA", textos)
+        self.assertNotIn("#94A3B8", textos)
 
 
 if __name__ == "__main__":
