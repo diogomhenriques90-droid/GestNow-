@@ -115,20 +115,14 @@ class TestTemaClaroAplicado(unittest.TestCase):
 
 
 class TestLoginComNomesDuplicados(unittest.TestCase):
-    """Caracteriza o comportamento ATUAL (Fase 0, antes da correção) quando
-    dois colaboradores partilham o mesmo Nome em usuarios.csv — já
-    aconteceu em produção (ver comentário em mod_dashboard_obra.py sobre
-    "NUNCA de join por nome... gerou duplicados no passado").
-
-    A via Password percorre as linhas por ordem e para (`break`) na
-    primeira que bater com o Nome introduzido — por isso só a password da
-    PRIMEIRA linha é alguma vez verificada, mesmo que seja a segunda
-    pessoa a tentar entrar com a sua própria password correta.
-
-    Depois da correção (recusar login quando há mais que um Nome a
-    bater), este teste passa a esperar um erro explícito em vez desta
-    rejeição silenciosa/ambígua.
-    """
+    """Fase 0: quando dois colaboradores partilham o mesmo Nome em
+    usuarios.csv — já aconteceu em produção (ver comentário em
+    mod_dashboard_obra.py sobre "NUNCA de join por nome... gerou
+    duplicados no passado") — a via Password recusa o login com um erro
+    explícito de ambiguidade, em vez de autenticar silenciosamente a
+    primeira linha que bater (o bug anterior, que já permitia por sorte
+    a uma das duas pessoas entrar na sua própria conta enquanto a outra
+    ficava de fora sem explicação)."""
 
     PWD_PRIMEIRA = "PasswordPrimeira123"
     PWD_SEGUNDA  = "PasswordSegunda456"
@@ -153,20 +147,61 @@ class TestLoginComNomesDuplicados(unittest.TestCase):
             at.button(key="FormSubmitter:form_login_pwd-ENTRAR").click().run()
         return at
 
-    def test_primeira_pessoa_entra_com_a_sua_password(self):
+    def test_primeira_pessoa_e_recusada_com_erro_de_ambiguidade(self):
+        # Antes da Fase 0, esta pessoa entrava "por sorte" (era a
+        # primeira linha). Agora fica de fora tal como a segunda, até o
+        # Admin resolver a duplicação.
         at = self._tentar_login(self.PWD_PRIMEIRA)
         self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertEqual(at.session_state["user"], "Maria Santos")
+        self.assertNotIn("user", at.session_state)
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("mais do que um utilizador com este nome", textos_erro)
 
-    def test_segunda_pessoa_nao_consegue_entrar_com_a_sua_propria_password(self):
-        # Bug atual: como o login para na primeira linha que bate com o
-        # Nome, só essa password é verificada — a segunda pessoa é
-        # rejeitada mesmo introduzindo a SUA password correta.
+    def test_segunda_pessoa_e_recusada_com_erro_de_ambiguidade(self):
         at = self._tentar_login(self.PWD_SEGUNDA)
         self.assertFalse(at.exception, msg=str(at.exception))
         self.assertNotIn("user", at.session_state)
         textos_erro = " ".join(m.value for m in at.error)
-        self.assertIn("Password incorreta", textos_erro)
+        self.assertIn("mais do que um utilizador com este nome", textos_erro)
+
+
+class TestLoginPinComNomesDuplicados(unittest.TestCase):
+    """Fase 0: o mesmo defeito existia na via PIN (verificava Nome+PIN em
+    conjunto, com `.iloc[0]` a escolher silenciosamente a primeira
+    correspondência) — agora verifica primeiro se o Nome é único, antes
+    de sequer olhar para o PIN."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.csv = (
+            "Nome,Password,Tipo,Cargo,PIN\n"
+            "Maria Santos,,Técnico,Instrumentista,1111\n"
+            "Maria Santos,,Chefe de Equipa,Chefe,2222\n"
+        ).encode("utf-8-sig")
+
+    def _tentar_login_pin(self, pin):
+        core._cached_load_db.clear()
+        with patch("mod_login._gcs_read", return_value=io.BytesIO(self.csv)):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="login_u2").set_value("Maria Santos").run()
+            at.text_input(key="login_p2").set_value(pin).run()
+            at.button(key="FormSubmitter:form_login_pin-ENTRAR COM PIN").click().run()
+        return at
+
+    def test_pin_da_primeira_e_recusado_com_erro_de_ambiguidade(self):
+        at = self._tentar_login_pin("1111")
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertNotIn("user", at.session_state)
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("mais do que um utilizador com este nome", textos_erro)
+
+    def test_pin_da_segunda_e_recusado_com_erro_de_ambiguidade(self):
+        at = self._tentar_login_pin("2222")
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertNotIn("user", at.session_state)
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("mais do que um utilizador com este nome", textos_erro)
 
 
 if __name__ == "__main__":

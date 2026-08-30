@@ -557,16 +557,11 @@ class TestCriarColaboradorObraReal(unittest.TestCase):
 
 
 class TestCriarColaboradorNomeDuplicado(unittest.TestCase):
-    """Caracteriza o comportamento ATUAL (Fase 0, antes da correção) da
-    verificação de nome duplicado no "Criar Colaborador": é feita por
-    `novo_nome.strip() in users_live['Nome'].values` — comparação exata,
-    sensível a maiúsculas/acentos. "Ana Teste" já existe na fixture
-    (_USUARIOS_CSV); uma variante só de maiúsculas ("ANA TESTE") passa
-    despercebida hoje.
-
-    Depois da correção (normalização tipo `_norm_nome_cliente`), este
-    teste passa a esperar o erro "Já existe um colaborador...".
-    """
+    """Fase 0: a verificação de nome duplicado no "Criar Colaborador"
+    passou a normalizar (via `_norm_nome_cliente`, reaproveitada de
+    core.py) antes de comparar — "Ana Teste" já existe na fixture
+    (_USUARIOS_CSV), e uma variante só de maiúsculas ("ANA TESTE") passa
+    a ser apanhada."""
 
     def _submeter(self, nome_novo):
         writes = {}
@@ -598,16 +593,14 @@ class TestCriarColaboradorNomeDuplicado(unittest.TestCase):
         self.assertIn("Já existe um colaborador", textos_erro)
         self.assertNotIn("usuarios.csv", writes)
 
-    def test_variante_so_de_maiusculas_passa_despercebida(self):
-        # Bug atual: "ANA TESTE" não é reconhecido como o mesmo nome que
-        # já existe ("Ana Teste"), porque a comparação é exata.
+    def test_variante_so_de_maiusculas_e_agora_apanhada(self):
+        # Antes da Fase 0, "ANA TESTE" passava despercebido como se fosse
+        # outra pessoa. Agora a normalização apanha-o.
         at, writes = self._submeter("ANA TESTE")
         self.assertFalse(at.exception, msg=str(at.exception))
         textos_erro = " ".join(m.value for m in at.error)
-        self.assertNotIn("Já existe um colaborador", textos_erro)
-        self.assertIn("usuarios.csv", writes)
-        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
-        self.assertIn("ANA TESTE", conteudo)
+        self.assertIn("Já existe um colaborador", textos_erro)
+        self.assertNotIn("usuarios.csv", writes)
 
 
 class TestTemaClaroAplicado(unittest.TestCase):

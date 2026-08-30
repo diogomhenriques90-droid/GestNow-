@@ -107,22 +107,24 @@ def render_login():
                     st.info("Se o problema persistir, verifica a ligação à internet.")
                 else:
                     # ✅ Comparação com strip nos dois lados
-                    user_found  = False
-                    user_match  = None
+                    matches = [
+                        user for _, user in users.iterrows()
+                        if str(user.get('Nome', '')).strip().lower()
+                           == username_clean.lower()
+                    ]
 
-                    for _, user in users.iterrows():
-                        nome_csv = str(user.get('Nome', '')).strip()
-                        if nome_csv.lower() == username_clean.lower():
-                            user_found = True
-                            user_match = user
-                            break
-
-                    if not user_found:
+                    if len(matches) == 0:
                         st.error(f"Utilizador '{username_clean}' não encontrado.")
-                        # Debug: mostrar lista de nomes disponíveis (remover em produção)
-                        # with st.expander("🔍 Debug — nomes no sistema"):
-                        #     st.write(users['Nome'].tolist())
+                    elif len(matches) > 1:
+                        # Mais do que um colaborador com o mesmo Nome —
+                        # nunca autenticar o primeiro "por sorte" (já
+                        # aconteceu em produção, ver mod_dashboard_obra.py).
+                        st.error(
+                            "Existe mais do que um utilizador com este nome. "
+                            "Contacta o administrador para resolver a ambiguidade."
+                        )
                     else:
+                        user_match = matches[0]
                         pwd_hash = str(user_match.get('Password', '')).strip()
 
                         if not pwd_hash:
@@ -194,31 +196,36 @@ def render_login():
                 if users.empty:
                     st.error("Não foi possível aceder à base de dados. Tenta novamente.")
                 else:
-                    # ✅ Comparação com strip nos dois lados
-                    if 'Nome' in users.columns and 'PIN' in users.columns:
-                        match = users[
-                            (users['Nome'].str.strip().str.lower() == u_pin_clean.lower()) &
-                            (users['PIN'].str.strip() == pin_clean)
-                        ]
-                    else:
-                        match = pd.DataFrame()
-
-                    if not match.empty:
-                        row = match.iloc[0]
-                        st.session_state['user']          = row['Nome'].strip()
-                        st.session_state['tipo']          = row.get('Tipo', 'Técnico').strip()
-                        st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()
-                        st.session_state['last_activity'] = datetime.now()
-                        st.session_state['menu_selected'] = ''
-                        st.success("Login com PIN bem-sucedido!")
-                        st.rerun()
-                    else:
-                        # Verificar se o utilizador existe mas o PIN está errado
-                        user_existe = users[
+                    # ✅ Verificar primeiro se o Nome é único, antes de
+                    # sequer olhar para o PIN — nunca autenticar por
+                    # coincidência de um PIN igual entre duas pessoas com
+                    # o mesmo Nome (já aconteceu em produção, ver
+                    # mod_dashboard_obra.py).
+                    if 'Nome' in users.columns:
+                        nome_matches = users[
                             users['Nome'].str.strip().str.lower() == u_pin_clean.lower()
                         ]
-                        if user_existe.empty:
-                            st.error(f"Utilizador '{u_pin_clean}' não encontrado.")
+                    else:
+                        nome_matches = pd.DataFrame()
+
+                    if nome_matches.empty:
+                        st.error(f"Utilizador '{u_pin_clean}' não encontrado.")
+                    elif len(nome_matches) > 1:
+                        st.error(
+                            "Existe mais do que um utilizador com este nome. "
+                            "Contacta o administrador para resolver a ambiguidade."
+                        )
+                    else:
+                        row = nome_matches.iloc[0]
+                        if 'PIN' in users.columns and \
+                           str(row.get('PIN', '')).strip() == pin_clean:
+                            st.session_state['user']          = row['Nome'].strip()
+                            st.session_state['tipo']          = row.get('Tipo', 'Técnico').strip()
+                            st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()
+                            st.session_state['last_activity'] = datetime.now()
+                            st.session_state['menu_selected'] = ''
+                            st.success("Login com PIN bem-sucedido!")
+                            st.rerun()
                         else:
                             st.error("PIN incorreto.")
 

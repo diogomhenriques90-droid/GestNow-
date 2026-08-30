@@ -11,7 +11,7 @@ from core import (
     cliente_select, registar_cliente_do_select,
     obra_select, get_cliente_da_obra,
     lista_rh_select, registar_valor_lista_rh, set_funcao_categoria,
-    THEME
+    THEME, _norm_nome_cliente
 )
 
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
@@ -862,9 +862,13 @@ def render_admin_rh(*args):
                 if erros:
                     st.error(f"Campos obrigatórios em falta: {', '.join(erros)}")
                 else:
-                    # Verificar nome duplicado
-                    if not users_live.empty and \
-                       novo_nome.strip() in users_live['Nome'].values:
+                    # Verificar nome duplicado (normalizado — maiúsculas/
+                    # acentos/espaços a mais não escondem um duplicado)
+                    nomes_existentes = {
+                        _norm_nome_cliente(n) for n in users_live['Nome'].astype(str)
+                        if n.strip()
+                    } if not users_live.empty else set()
+                    if _norm_nome_cliente(novo_nome) in nomes_existentes:
                         st.error(f"Já existe um colaborador com o nome '{novo_nome.strip()}'")
                     else:
                         novo_id  = str(uuid.uuid4())[:8].upper()

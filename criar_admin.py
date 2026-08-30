@@ -10,7 +10,7 @@ import pandas as pd
 import os
 from datetime import datetime
 
-from core import save_db, load_db, hp, _gcs_read, _gcs_write, THEME
+from core import save_db, load_db, hp, _gcs_read, _gcs_write, THEME, _norm_nome_cliente
 
 
 # Colunas padrão do usuarios.csv
@@ -219,9 +219,13 @@ def render_criar_admin():
                     if col not in df_users.columns:
                         df_users[col] = ""
 
-                # Verificar se nome já existe
-                if not df_users.empty and \
-                   nome.strip() in df_users['Nome'].values:
+                # Verificar se nome já existe (normalizado — maiúsculas/
+                # acentos/espaços a mais não escondem um duplicado)
+                nomes_existentes = {
+                    _norm_nome_cliente(n) for n in df_users['Nome'].astype(str)
+                    if n.strip()
+                }
+                if _norm_nome_cliente(nome) in nomes_existentes:
                     st.error(
                         f"Já existe um utilizador com o nome '{nome.strip()}'."
                     )

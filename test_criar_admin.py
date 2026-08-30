@@ -57,16 +57,11 @@ class TestCriarAdminSemAdminExistente(unittest.TestCase):
         self.assertNotIn("#334155", textos)
 
 
-class TestCriarAdminDeteccaoDeDuplicadoFraca(unittest.TestCase):
-    """Caracteriza o comportamento ATUAL (Fase 0, antes da correção) da
-    verificação de nome duplicado em criar_admin.py: é feita por
-    `nome.strip() in df_users['Nome'].values` — comparação exata,
-    sensível a maiúsculas/acentos. Uma variante do mesmo nome (só
-    maiúsculas diferentes) passa despercebida hoje.
-
-    Depois da correção (normalização tipo `_norm_nome_cliente`), este
-    teste passa a esperar o erro "Já existe um utilizador...".
-    """
+class TestCriarAdminDeteccaoDeDuplicado(unittest.TestCase):
+    """Fase 0: a verificação de nome duplicado em criar_admin.py passou a
+    normalizar (via `_norm_nome_cliente`, reaproveitada de core.py) antes
+    de comparar — maiúsculas, acentos e espaços a mais deixam de esconder
+    um duplicado."""
 
     def _csv_com_tecnico(self, nome):
         return io.BytesIO(f"Nome,Tipo\n{nome},Técnico\n".encode("utf-8-sig"))
@@ -105,16 +100,14 @@ class TestCriarAdminDeteccaoDeDuplicadoFraca(unittest.TestCase):
         self.assertIn("Já existe um utilizador", textos_erro)
         self.assertNotIn("usuarios.csv", writes)
 
-    def test_variante_so_de_maiusculas_passa_despercebida(self):
-        # Bug atual: "JOÃO SILVA" não é reconhecido como o mesmo nome que
-        # já existe ("João Silva"), porque a comparação é exata.
+    def test_variante_so_de_maiusculas_e_agora_apanhada(self):
+        # Antes da Fase 0, "JOÃO SILVA" passava despercebido como se fosse
+        # outra pessoa. Agora a normalização apanha-o.
         at, writes = self._submeter("João Silva", "JOÃO SILVA")
         self.assertFalse(at.exception, msg=str(at.exception))
         textos_erro = " ".join(m.value for m in at.error)
-        self.assertNotIn("Já existe um utilizador", textos_erro)
-        self.assertIn("usuarios.csv", writes)
-        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
-        self.assertIn("JOÃO SILVA", conteudo)
+        self.assertIn("Já existe um utilizador", textos_erro)
+        self.assertNotIn("usuarios.csv", writes)
 
 
 class TestCriarAdminComAdminExistente(unittest.TestCase):
