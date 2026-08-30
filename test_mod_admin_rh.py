@@ -556,6 +556,60 @@ class TestCriarColaboradorObraReal(unittest.TestCase):
         mock_write.assert_not_called()
 
 
+class TestCriarColaboradorNomeDuplicado(unittest.TestCase):
+    """Caracteriza o comportamento ATUAL (Fase 0, antes da correção) da
+    verificação de nome duplicado no "Criar Colaborador": é feita por
+    `novo_nome.strip() in users_live['Nome'].values` — comparação exata,
+    sensível a maiúsculas/acentos. "Ana Teste" já existe na fixture
+    (_USUARIOS_CSV); uma variante só de maiúsculas ("ANA TESTE") passa
+    despercebida hoje.
+
+    Depois da correção (normalização tipo `_norm_nome_cliente`), este
+    teste passa a esperar o erro "Já existe um colaborador...".
+    """
+
+    def _submeter(self, nome_novo):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script_criar, default_timeout=30)
+            at.run()
+            at.text_input(key="nc_nome").set_value(nome_novo).run()
+            at.text_input(key="nc_tel").set_value("911111111").run()
+            at.text_input(key="nc_pwd").set_value("segredo123").run()
+            at.selectbox(key="nc_local").set_value("Obra Real Y").run()
+            at.button(
+                key="FormSubmitter:form_criar_colab-Criar Colaborador"
+            ).click().run()
+        return at, writes
+
+    def test_nome_exatamente_igual_e_bloqueado(self):
+        at, writes = self._submeter("Ana Teste")
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("Já existe um colaborador", textos_erro)
+        self.assertNotIn("usuarios.csv", writes)
+
+    def test_variante_so_de_maiusculas_passa_despercebida(self):
+        # Bug atual: "ANA TESTE" não é reconhecido como o mesmo nome que
+        # já existe ("Ana Teste"), porque a comparação é exata.
+        at, writes = self._submeter("ANA TESTE")
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertNotIn("Já existe um colaborador", textos_erro)
+        self.assertIn("usuarios.csv", writes)
+        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
+        self.assertIn("ANA TESTE", conteudo)
+
+
 class TestTemaClaroAplicado(unittest.TestCase):
     """Fase 3 da Identidade Visual: mod_admin_rh.py lê as suas cores
     de core.THEME — nunca mais hexadecimais soltos, um só cinzento

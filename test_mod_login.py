@@ -10,12 +10,14 @@ por omissão — não há tentativa de login nestes testes).
 
 Correr:  python -m unittest test_mod_login -v
 """
+import io
 import unittest
 from unittest.mock import patch
 
 from streamlit.testing.v1 import AppTest
 
 import core
+from core import hp
 
 
 def _script():
@@ -110,6 +112,61 @@ class TestTemaClaroAplicado(unittest.TestCase):
         self.assertIn(core.THEME["accent"], html)
         self.assertNotIn("#3B82F6", html)
         self.assertNotIn("#64748B", html)
+
+
+class TestLoginComNomesDuplicados(unittest.TestCase):
+    """Caracteriza o comportamento ATUAL (Fase 0, antes da correção) quando
+    dois colaboradores partilham o mesmo Nome em usuarios.csv — já
+    aconteceu em produção (ver comentário em mod_dashboard_obra.py sobre
+    "NUNCA de join por nome... gerou duplicados no passado").
+
+    A via Password percorre as linhas por ordem e para (`break`) na
+    primeira que bater com o Nome introduzido — por isso só a password da
+    PRIMEIRA linha é alguma vez verificada, mesmo que seja a segunda
+    pessoa a tentar entrar com a sua própria password correta.
+
+    Depois da correção (recusar login quando há mais que um Nome a
+    bater), este teste passa a esperar um erro explícito em vez desta
+    rejeição silenciosa/ambígua.
+    """
+
+    PWD_PRIMEIRA = "PasswordPrimeira123"
+    PWD_SEGUNDA  = "PasswordSegunda456"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.hash_primeira = hp(cls.PWD_PRIMEIRA)
+        cls.hash_segunda  = hp(cls.PWD_SEGUNDA)
+        cls.csv = (
+            "Nome,Password,Tipo,Cargo,PIN\n"
+            f"Maria Santos,{cls.hash_primeira},Técnico,Instrumentista,\n"
+            f"Maria Santos,{cls.hash_segunda},Chefe de Equipa,Chefe,\n"
+        ).encode("utf-8-sig")
+
+    def _tentar_login(self, password):
+        core._cached_load_db.clear()
+        with patch("mod_login._gcs_read", return_value=io.BytesIO(self.csv)):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="login_u1").set_value("Maria Santos").run()
+            at.text_input(key="login_p1").set_value(password).run()
+            at.button(key="FormSubmitter:form_login_pwd-ENTRAR").click().run()
+        return at
+
+    def test_primeira_pessoa_entra_com_a_sua_password(self):
+        at = self._tentar_login(self.PWD_PRIMEIRA)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertEqual(at.session_state["user"], "Maria Santos")
+
+    def test_segunda_pessoa_nao_consegue_entrar_com_a_sua_propria_password(self):
+        # Bug atual: como o login para na primeira linha que bate com o
+        # Nome, só essa password é verificada — a segunda pessoa é
+        # rejeitada mesmo introduzindo a SUA password correta.
+        at = self._tentar_login(self.PWD_SEGUNDA)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertNotIn("user", at.session_state)
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("Password incorreta", textos_erro)
 
 
 if __name__ == "__main__":

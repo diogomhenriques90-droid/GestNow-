@@ -5,6 +5,7 @@ fixas) para o THEME central, e sem ícones.
 
 Correr:  python -m unittest test_criar_admin -v
 """
+import io
 import unittest
 from unittest.mock import patch
 import re
@@ -54,6 +55,66 @@ class TestCriarAdminSemAdminExistente(unittest.TestCase):
         self.assertNotIn("#0F172A", textos)
         self.assertNotIn("#DC2626", textos)
         self.assertNotIn("#334155", textos)
+
+
+class TestCriarAdminDeteccaoDeDuplicadoFraca(unittest.TestCase):
+    """Caracteriza o comportamento ATUAL (Fase 0, antes da correção) da
+    verificação de nome duplicado em criar_admin.py: é feita por
+    `nome.strip() in df_users['Nome'].values` — comparação exata,
+    sensível a maiúsculas/acentos. Uma variante do mesmo nome (só
+    maiúsculas diferentes) passa despercebida hoje.
+
+    Depois da correção (normalização tipo `_norm_nome_cliente`), este
+    teste passa a esperar o erro "Já existe um utilizador...".
+    """
+
+    def _csv_com_tecnico(self, nome):
+        return io.BytesIO(f"Nome,Tipo\n{nome},Técnico\n".encode("utf-8-sig"))
+
+    def _submeter(self, nome_existente, nome_novo):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        # Três mocks são necessários, não só o de criar_admin._gcs_read:
+        # save_db() usa a sua PRÓPRIA referência interna a _gcs_read (para
+        # o teste de perda de registos) e a _gcs_client (para o backup
+        # diário) — mockar só criar_admin._gcs_read deixa essas duas
+        # chamadas caírem na GCS real. Já aconteceu nesta sessão.
+        with patch("criar_admin._gcs_read",
+                   side_effect=lambda fn: self._csv_com_tecnico(nome_existente)), \
+             patch("core._gcs_read",
+                   side_effect=lambda fn: self._csv_com_tecnico(nome_existente)), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="ca_nome").set_value(nome_novo).run()
+            at.text_input(key="ca_pw").set_value("segredo123").run()
+            at.text_input(key="ca_pw2").set_value("segredo123").run()
+            at.button(
+                key="FormSubmitter:form_criar_admin-Criar Administrador"
+            ).click().run()
+        return at, writes
+
+    def test_nome_exatamente_igual_e_bloqueado(self):
+        at, writes = self._submeter("João Silva", "João Silva")
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("Já existe um utilizador", textos_erro)
+        self.assertNotIn("usuarios.csv", writes)
+
+    def test_variante_so_de_maiusculas_passa_despercebida(self):
+        # Bug atual: "JOÃO SILVA" não é reconhecido como o mesmo nome que
+        # já existe ("João Silva"), porque a comparação é exata.
+        at, writes = self._submeter("João Silva", "JOÃO SILVA")
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertNotIn("Já existe um utilizador", textos_erro)
+        self.assertIn("usuarios.csv", writes)
+        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
+        self.assertIn("JOÃO SILVA", conteudo)
 
 
 class TestCriarAdminComAdminExistente(unittest.TestCase):
