@@ -1017,6 +1017,7 @@ def _cached_load_all(_versions):
     """Backend cacheado de load_all. _versions força cache miss quando qualquer ficheiro muda."""
     users = load_db("usuarios.csv", [
         "Nome", "Password", "Tipo", "Email", "Telefone", "Cargo",
+        "Numero_Colaborador", "Bloqueado", "Bloqueado_Em",
         "Funcao", "Categoria_Operacional",
         "NIF", "NISS", "CC", "CC_Validade", "DataNasc", "Nacionalidade",
         "Morada", "Localidade", "Concelho", "Codigo_Postal", "Naturalidade",
@@ -1232,6 +1233,17 @@ def cp(p, h):
     except Exception as e:
         logger.warning(f"⚠️ Erro na verificação: {e}")
         return False
+
+def gerar_numero_colaborador(existentes):
+    """Gera um número de colaborador novo para login: 5 dígitos
+    (10000-99999), aleatório (não sequencial — não revela quantos
+    colaboradores existem nem a ordem de admissão), garantidamente
+    único face a `existentes`."""
+    existentes = {str(n).strip() for n in existentes if str(n).strip()}
+    while True:
+        candidato = str(secrets.randbelow(90000) + 10000)
+        if candidato not in existentes:
+            return candidato
 
 # =============================================================================
 # COMPONENTES UI

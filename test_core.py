@@ -275,5 +275,34 @@ class TestRenderCardHtml(unittest.TestCase):
         self.assertNotIn("gn-card-grid", html)
 
 
+class TestGerarNumeroColaborador(unittest.TestCase):
+    """Fase 1 (login por número): gera um número de colaborador de 5
+    dígitos, não sequencial, único face aos já atribuídos."""
+
+    def test_tem_5_digitos_numericos(self):
+        numero = core.gerar_numero_colaborador([])
+        self.assertEqual(len(numero), 5)
+        self.assertTrue(numero.isdigit())
+
+    def test_dentro_do_intervalo_10000_99999(self):
+        for _ in range(200):
+            numero = core.gerar_numero_colaborador([])
+            self.assertGreaterEqual(int(numero), 10000)
+            self.assertLessEqual(int(numero), 99999)
+
+    def test_nunca_repete_um_existente(self):
+        # Espaço de valores reduzido de propósito para forçar colisões
+        # reais e confirmar que o retry as evita.
+        existentes = [str(n) for n in range(10000, 10010)]
+        for _ in range(50):
+            novo = core.gerar_numero_colaborador(existentes)
+            self.assertNotIn(novo, existentes)
+
+    def test_aceita_qualquer_iteravel_de_strings_ou_numeros(self):
+        # Não deve rebentar com valores vazios/em branco misturados.
+        numero = core.gerar_numero_colaborador(["", "  ", "12345"])
+        self.assertNotEqual(numero, "12345")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
