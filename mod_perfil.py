@@ -213,8 +213,8 @@ def render_perfil(*args):
                     st.error("Preenche todos os campos.")
                 elif pwd_nova != pwd_conf:
                     st.error("As passwords não coincidem.")
-                elif len(pwd_nova) < 6:
-                    st.error("A password deve ter pelo menos 6 caracteres.")
+                elif len(pwd_nova) < 8:
+                    st.error("A password deve ter pelo menos 8 caracteres.")
                 else:
                     hash_atual = user_data.get('Password', '')
                     if cp(pwd_atual, hash_atual):
@@ -240,7 +240,7 @@ def render_perfil(*args):
                 elif pin_novo != pin_conf:
                     st.error("Os PINs não coincidem.")
                 else:
-                    users_fresh.loc[user_idx, 'PIN'] = pin_novo
+                    users_fresh.loc[user_idx, 'PIN'] = hp(pin_novo)
                     save_db(users_fresh, "usuarios.csv")
                     log_audit(usuario=user_nome, acao="ALTERAR_PIN", tabela="usuarios.csv",
                               registro_id=user_nome, detalhes="PIN alterado pelo utilizador", ip="")

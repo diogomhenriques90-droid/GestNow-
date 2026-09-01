@@ -204,5 +204,42 @@ class TestLoginPinComNomesDuplicados(unittest.TestCase):
         self.assertIn("mais do que um utilizador com este nome", textos_erro)
 
 
+class TestLoginPinComHash(unittest.TestCase):
+    """Fase 1: o PIN passou a ser gravado em hash (hp/cp), como a
+    password — o login por PIN tem de comparar por hash, não por
+    igualdade de texto simples."""
+
+    PIN = "4321"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.csv = (
+            "Nome,Password,Tipo,Cargo,PIN\n"
+            f"Rui Costa,,Técnico,Instrumentista,{hp(cls.PIN)}\n"
+        ).encode("utf-8-sig")
+
+    def _tentar(self, pin):
+        core._cached_load_db.clear()
+        with patch("mod_login._gcs_read", return_value=io.BytesIO(self.csv)):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="login_u2").set_value("Rui Costa").run()
+            at.text_input(key="login_p2").set_value(pin).run()
+            at.button(key="FormSubmitter:form_login_pin-ENTRAR COM PIN").click().run()
+        return at
+
+    def test_pin_correto_entra(self):
+        at = self._tentar(self.PIN)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertEqual(at.session_state["user"], "Rui Costa")
+
+    def test_pin_errado_nao_entra(self):
+        at = self._tentar("0000")
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertNotIn("user", at.session_state)
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("PIN incorreto", textos_erro)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

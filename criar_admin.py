@@ -190,8 +190,8 @@ def render_criar_admin():
             erros.append("Nome é obrigatório.")
         if not password.strip():
             erros.append("Password é obrigatória.")
-        elif len(password.strip()) < 4:
-            erros.append("Password deve ter pelo menos 4 caracteres.")
+        elif len(password.strip()) < 8:
+            erros.append("Password deve ter pelo menos 8 caracteres.")
         elif password.strip() != password2.strip():
             erros.append("As passwords não coincidem.")
         if pin.strip() and (len(pin.strip()) != 4 or not pin.strip().isdigit()):

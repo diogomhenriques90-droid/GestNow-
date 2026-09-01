@@ -217,8 +217,8 @@ def render_login():
                         )
                     else:
                         row = nome_matches.iloc[0]
-                        if 'PIN' in users.columns and \
-                           str(row.get('PIN', '')).strip() == pin_clean:
+                        pin_hash = str(row.get('PIN', '')).strip()
+                        if pin_hash and cp(pin_clean, pin_hash):
                             st.session_state['user']          = row['Nome'].strip()
                             st.session_state['tipo']          = row.get('Tipo', 'Técnico').strip()
                             st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()

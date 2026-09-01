@@ -803,7 +803,7 @@ def render_admin_rh(*args):
                         key="nc_tel", placeholder="9XXXXXXXX")
                     novo_pwd  = st.text_input("Password *",
                         key="nc_pwd", type="password",
-                        placeholder="Mínimo 4 caracteres")
+                        placeholder="Mínimo 8 caracteres")
 
                 # Cargo dinâmico baseado no tipo
                 cargos_disp = CARGOS_POR_TIPO.get(novo_tipo, ["Outro"])
@@ -853,8 +853,8 @@ def render_admin_rh(*args):
                 erros = []
                 if not novo_nome.strip():   erros.append("Nome Completo")
                 if not novo_tel.strip():    erros.append("Contacto")
-                if not novo_pwd.strip() or len(novo_pwd.strip()) < 4:
-                    erros.append("Password (mínimo 4 caracteres)")
+                if not novo_pwd.strip() or len(novo_pwd.strip()) < 8:
+                    erros.append("Password (mínimo 8 caracteres)")
                 if not novo_local.strip():  erros.append("Local da Obra")
                 novo_cliente = get_cliente_da_obra(novo_local)
                 if not novo_cliente:         erros.append("Cliente (a Obra escolhida não tem Cliente associado)")
@@ -1339,15 +1339,15 @@ def render_admin_rh(*args):
         with st.expander("Redefinir Password"):
             nova_pwd_admin = st.text_input(
                 "Nova Password *", type="password", key="rh_nova_pwd_admin",
-                placeholder="Mínimo 4 caracteres")
+                placeholder="Mínimo 8 caracteres")
             conf_pwd_admin = st.text_input(
                 "Confirmar Password *", type="password", key="rh_conf_pwd_admin")
             if st.button("Redefinir Password", key="btn_redef_pwd",
                          type="primary"):
                 if not nova_pwd_admin.strip():
                     st.error("Introduz uma nova password.")
-                elif len(nova_pwd_admin.strip()) < 4:
-                    st.error("Mínimo 4 caracteres.")
+                elif len(nova_pwd_admin.strip()) < 8:
+                    st.error("Mínimo 8 caracteres.")
                 elif nova_pwd_admin != conf_pwd_admin:
                     st.error("As passwords não coincidem.")
                 else:
