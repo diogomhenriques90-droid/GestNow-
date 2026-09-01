@@ -304,5 +304,136 @@ class TestGerarNumeroColaborador(unittest.TestCase):
         self.assertNotEqual(numero, "12345")
 
 
+class TestTentativasLogin(unittest.TestCase):
+    """Fase 1 (bloqueio de login): regista tentativas falhadas por
+    Número tentado — exista ou não uma conta real com esse número — e
+    conta quantas há dentro de uma janela de tempo, para decidir o
+    bloqueio progressivo/duro."""
+
+    def setUp(self):
+        core._cached_load_db.clear()
+        self.writes = {}
+
+    def _gcs_write(self, fn, content_bytes):
+        self.writes[fn] = content_bytes
+        return True
+
+    def _fake_read_vazio(self, fn):
+        return None
+
+    def test_primeira_tentativa_conta_como_uma(self):
+        with patch("core._gcs_read", side_effect=self._fake_read_vazio), \
+             patch("core._gcs_write", side_effect=self._gcs_write):
+            core.registar_tentativa_login("12345")
+
+        conteudo = self.writes["login_tentativas.csv"].decode("utf-8-sig")
+
+        def _read_apos_escrita(fn):
+            if fn == "login_tentativas.csv":
+                return io.BytesIO(self.writes[fn])
+            return None
+
+        core._cached_load_db.clear()
+        with patch("core._gcs_read", side_effect=_read_apos_escrita):
+            self.assertEqual(core.contar_falhas_recentes("12345"), 1)
+            self.assertEqual(core.contar_falhas_recentes("99999"), 0)
+
+    def test_tentativas_fora_da_janela_nao_contam(self):
+        from datetime import datetime, timedelta
+        antiga = (datetime.now() - timedelta(minutes=60)).strftime("%d/%m/%Y %H:%M:%S")
+        csv_antigo = f"Numero,Timestamp\n12345,{antiga}\n".encode("utf-8-sig")
+
+        def _read(fn):
+            if fn == "login_tentativas.csv":
+                return io.BytesIO(csv_antigo)
+            return None
+
+        with patch("core._gcs_read", side_effect=_read):
+            self.assertEqual(core.contar_falhas_recentes("12345", janela_minutos=30), 0)
+
+    def test_tentativas_com_mais_de_24h_sao_podadas_ao_registar(self):
+        from datetime import datetime, timedelta
+        antiga = (datetime.now() - timedelta(hours=25)).strftime("%d/%m/%Y %H:%M:%S")
+        csv_antigo = f"Numero,Timestamp\n11111,{antiga}\n".encode("utf-8-sig")
+
+        def _read(fn):
+            if fn == "login_tentativas.csv":
+                return io.BytesIO(csv_antigo)
+            return None
+
+        with patch("core._gcs_read", side_effect=_read), \
+             patch("core._gcs_write", side_effect=self._gcs_write):
+            core.registar_tentativa_login("22222")
+
+        conteudo = self.writes["login_tentativas.csv"].decode("utf-8-sig")
+        self.assertNotIn("11111", conteudo)
+        self.assertIn("22222", conteudo)
+
+    def test_limpar_tentativas_remove_so_as_desse_numero(self):
+        csv_duas = (
+            "Numero,Timestamp\n"
+            "33333,01/01/2026 10:00:00\n"
+            "44444,01/01/2026 10:00:00\n"
+        ).encode("utf-8-sig")
+
+        def _read(fn):
+            if fn == "login_tentativas.csv":
+                return io.BytesIO(csv_duas)
+            return None
+
+        with patch("core._gcs_read", side_effect=_read), \
+             patch("core._gcs_write", side_effect=self._gcs_write):
+            core.limpar_tentativas_login("33333")
+
+        conteudo = self.writes["login_tentativas.csv"].decode("utf-8-sig")
+        self.assertNotIn("33333", conteudo)
+        self.assertIn("44444", conteudo)
+
+
+class TestBloquearContaPorNumero(unittest.TestCase):
+    """Fase 1 (bloqueio de login): marca uma conta real como bloqueada
+    pelo Numero_Colaborador — devolve False sem gravar nada se o número
+    não corresponder a ninguém (a app nunca deve variar a resposta
+    externa consoante este resultado)."""
+
+    def setUp(self):
+        core._cached_load_db.clear()
+        self.writes = {}
+
+    def _gcs_write(self, fn, content_bytes):
+        self.writes[fn] = content_bytes
+        return True
+
+    def test_bloqueia_conta_real_e_devolve_true(self):
+        import pandas as pd
+        df = pd.DataFrame([
+            {"Nome": "Rui Costa", "Numero_Colaborador": "12345",
+             "Bloqueado": "", "Bloqueado_Em": ""},
+        ])
+        with patch("core._gcs_read", return_value=None), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=self._gcs_write):
+            resultado = core.bloquear_conta_por_numero("12345", df)
+
+        self.assertTrue(resultado)
+        conteudo = self.writes["usuarios.csv"].decode("utf-8-sig")
+        self.assertIn("Rui Costa", conteudo)
+        self.assertIn("Sim", conteudo)
+
+    def test_numero_inexistente_devolve_false_sem_gravar(self):
+        import pandas as pd
+        df = pd.DataFrame([
+            {"Nome": "Rui Costa", "Numero_Colaborador": "12345",
+             "Bloqueado": "", "Bloqueado_Em": ""},
+        ])
+        with patch("core._gcs_read", return_value=None), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=self._gcs_write):
+            resultado = core.bloquear_conta_por_numero("99999", df)
+
+        self.assertFalse(resultado)
+        self.assertNotIn("usuarios.csv", self.writes)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
