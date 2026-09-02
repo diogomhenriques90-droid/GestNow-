@@ -603,6 +603,147 @@ class TestCriarColaboradorNomeDuplicado(unittest.TestCase):
         self.assertNotIn("usuarios.csv", writes)
 
 
+_USUARIOS_PIN_CSV = (
+    "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
+    "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
+    "Estado_Civil,PrecoHora,Local_Obra,Cliente_Obra,"
+    "ID,Numero_Colaborador,PIN,Bloqueado,Bloqueado_Em\n"
+    "Ana Teste,Técnico,Instrumentista,ana@usuarios.pt,911111111,123456789,"
+    "11122233344,12345678,01/01/2030,15/05/1990,"
+    "Rua A 100,Lisboa,Lisboa,1000-001,PT50000000000000000000000,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,"
+    "A1B2C3D4,12345,,,\n"
+).encode("utf-8-sig")
+
+_USUARIOS_PIN_BLOQUEADA_CSV = (
+    "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
+    "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
+    "Estado_Civil,PrecoHora,Local_Obra,Cliente_Obra,"
+    "ID,Numero_Colaborador,PIN,Bloqueado,Bloqueado_Em\n"
+    "Ana Teste,Técnico,Instrumentista,ana@usuarios.pt,911111111,123456789,"
+    "11122233344,12345678,01/01/2030,15/05/1990,"
+    "Rua A 100,Lisboa,Lisboa,1000-001,PT50000000000000000000000,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,"
+    "A1B2C3D4,12345,,Sim,01/09/2026 10:00\n"
+).encode("utf-8-sig")
+
+
+def _fake_gcs_read_pin(fn):
+    if fn == "usuarios.csv":
+        return io.BytesIO(_USUARIOS_PIN_CSV)
+    if fn == "colaboradores_rh.csv":
+        return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    return None
+
+
+def _fake_gcs_read_pin_bloqueada(fn):
+    if fn == "usuarios.csv":
+        return io.BytesIO(_USUARIOS_PIN_BLOQUEADA_CSV)
+    if fn == "colaboradores_rh.csv":
+        return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    return None
+
+
+class TestRedefinirPin(unittest.TestCase):
+    """Fase 1 (login por número): bloco "Redefinir PIN" ao lado de
+    "Redefinir Password", com ID/Número de colaborador visíveis como
+    texto só de leitura — mesmo padrão já usado para Password."""
+
+    def _run_com(self, fake_read):
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=fake_read), \
+             patch("core._gcs_read", side_effect=fake_read), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+        return at
+
+    def test_mostra_id_e_numero_colaborador(self):
+        at = self._run_com(_fake_gcs_read_pin)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn("A1B2C3D4", textos)
+        self.assertIn("12345", textos)
+
+    def test_redefinir_pin_grava_hash_nao_texto_simples(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_pin), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_pin), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="rh_novo_pin_admin").set_value("4321").run()
+            at.text_input(key="rh_conf_pin_admin").set_value("4321").run()
+            at.button(key="btn_redef_pin").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
+        self.assertNotIn(",4321,", conteudo)
+        self.assertIn("$2b$", conteudo)
+
+    def test_pins_diferentes_sao_recusados(self):
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_pin), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_pin), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="rh_novo_pin_admin").set_value("1111").run()
+            at.text_input(key="rh_conf_pin_admin").set_value("2222").run()
+            at.button(key="btn_redef_pin").click().run()
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("não coincidem", textos_erro)
+
+    def test_sem_conta_bloqueada_nao_mostra_botao_desbloquear(self):
+        at = self._run_com(_fake_gcs_read_pin)
+        with self.assertRaises(Exception):
+            at.button(key="btn_desbloquear_conta")
+
+    def test_conta_bloqueada_mostra_aviso_e_botao(self):
+        at = self._run_com(_fake_gcs_read_pin_bloqueada)
+        textos = " ".join(m.value for m in at.warning)
+        self.assertIn("bloqueada", textos.lower())
+        self.assertTrue(at.button(key="btn_desbloquear_conta"))
+
+    def test_desbloquear_limpa_bloqueio_e_tentativas(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_pin_bloqueada), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_pin_bloqueada), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write), \
+             patch("mod_admin_rh.limpar_tentativas_login") as mock_limpar:
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.button(key="btn_desbloquear_conta").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        mock_limpar.assert_called_once_with("12345")
+        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
+        linha_ana = [l for l in conteudo.splitlines() if l.startswith("Ana Teste")][0]
+        self.assertNotIn("Sim", linha_ana)
+
+
 class TestTemaClaroAplicado(unittest.TestCase):
     """Fase 3 da Identidade Visual: mod_admin_rh.py lê as suas cores
     de core.THEME — nunca mais hexadecimais soltos, um só cinzento

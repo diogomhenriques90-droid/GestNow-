@@ -11,7 +11,7 @@ from core import (
     cliente_select, registar_cliente_do_select,
     obra_select, get_cliente_da_obra,
     lista_rh_select, registar_valor_lista_rh, set_funcao_categoria,
-    THEME, _norm_nome_cliente
+    THEME, _norm_nome_cliente, limpar_tentativas_login
 )
 
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
@@ -1365,6 +1365,72 @@ def render_admin_rh(*args):
                                   registro_id=nome_sel,
                                   detalhes="Password redefinida pelo Admin")
                         st.success(f"Password de {nome_sel} redefinida.")
+                        st.rerun()
+
+        # ── Redefinir PIN ────────────────────────────────────────────
+        st.markdown("---")
+        with st.expander("Redefinir PIN"):
+            st.markdown(
+                f"<p style='color:{THEME['text_secondary']}; font-size:0.8rem;'>"
+                f"ID: <code>{row.get('ID','—') or '—'}</code> &nbsp;·&nbsp; "
+                f"Número de colaborador: <code>{row.get('Numero_Colaborador','—') or '—'}</code>"
+                f"</p>",
+                unsafe_allow_html=True
+            )
+            novo_pin_admin = st.text_input(
+                "Novo PIN (4 dígitos) *", type="password", max_chars=4,
+                key="rh_novo_pin_admin", placeholder="0000")
+            conf_pin_admin = st.text_input(
+                "Confirmar PIN *", type="password", max_chars=4,
+                key="rh_conf_pin_admin")
+            if st.button("Redefinir PIN", key="btn_redef_pin",
+                         type="primary"):
+                if len(novo_pin_admin.strip()) != 4 or not novo_pin_admin.strip().isdigit():
+                    st.error("O PIN deve ter exatamente 4 dígitos numéricos.")
+                elif novo_pin_admin != conf_pin_admin:
+                    st.error("Os PINs não coincidem.")
+                else:
+                    u_pin = _load_users_fresh()
+                    mk_pin = u_pin["Nome"] == nome_sel
+                    if mk_pin.any():
+                        u_pin.loc[mk_pin, "PIN"] = hp(novo_pin_admin.strip())
+                        save_db(u_pin, "usuarios.csv")
+                        inv("usuarios.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        log_audit(usuario=st.session_state.get("user","admin"),
+                                  acao="REDEFINIR_PIN",
+                                  tabela="usuarios.csv",
+                                  registro_id=nome_sel,
+                                  detalhes="PIN redefinido pelo Admin")
+                        st.success(f"PIN de {nome_sel} redefinido.")
+                        st.rerun()
+
+            if str(row.get("Bloqueado", "")).strip().lower() == "sim":
+                st.markdown("---")
+                st.warning(
+                    f"Conta bloqueada em {row.get('Bloqueado_Em','') or 'data desconhecida'} "
+                    "por tentativas de login falhadas."
+                )
+                if st.button("Desbloquear conta", key="btn_desbloquear_conta"):
+                    u_desb = _load_users_fresh()
+                    mk_desb = u_desb["Nome"] == nome_sel
+                    if mk_desb.any():
+                        u_desb.loc[mk_desb, "Bloqueado"]    = ""
+                        u_desb.loc[mk_desb, "Bloqueado_Em"] = ""
+                        save_db(u_desb, "usuarios.csv")
+                        inv("usuarios.csv")
+                        numero_desb = str(row.get("Numero_Colaborador", "")).strip()
+                        if numero_desb:
+                            limpar_tentativas_login(numero_desb)
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        log_audit(usuario=st.session_state.get("user","admin"),
+                                  acao="DESBLOQUEAR_CONTA",
+                                  tabela="usuarios.csv",
+                                  registro_id=nome_sel,
+                                  detalhes="Conta desbloqueada pelo Admin")
+                        st.success(f"Conta de {nome_sel} desbloqueada.")
                         st.rerun()
 
         # ── Remover ou Lista Negra ────────────────────────────────
