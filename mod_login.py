@@ -2,7 +2,20 @@ import streamlit as st
 import pandas as pd
 import io, base64
 from datetime import datetime
-from core import cp, _gcs_read, inv, THEME
+from core import (
+    cp, _gcs_read, inv, THEME,
+    registar_tentativa_login, contar_falhas_recentes,
+    limpar_tentativas_login, bloquear_conta_por_numero,
+    criar_notificacao,
+)
+
+# Tipos que entram por PIN (colaboradores de campo, normalmente ao
+# telemóvel) — todos os outros entram por Password. Ver briefing da
+# Fase 1: PIN prioriza rapidez em campo, Password prioriza força para
+# quem mexe em dados financeiros/pessoais a partir de um computador.
+TIPOS_PIN = {"Técnico", "Instrumentista", "Engenheiro", "Chefe de Equipa", "Armazém"}
+
+_LIMITE_TENTATIVAS = 3
 
 def _load_users_fresh():
     """Lê usuarios.csv SEMPRE do GCS sem cache, com strip de todos os valores."""
@@ -73,160 +86,248 @@ def render_login():
     )
 
     st.markdown("<div class='login-card'>", unsafe_allow_html=True)
-    tab_pwd, tab_pin = st.tabs(["Password", "PIN"])
 
     # ═══════════════════════════════════════════════════════════════
-    # TAB PASSWORD
+    # LOGIN POR NÚMERO DE COLABORADOR (via principal)
     # ═══════════════════════════════════════════════════════════════
-    with tab_pwd:
-        with st.form("form_login_pwd", clear_on_submit=False):
-            username = st.text_input("Utilizador", key="login_u1",
-                                     placeholder="Nome completo")
-            password = st.text_input("Password", type="password", key="login_p1",
-                                     placeholder="••••••••")
-            submitted = st.form_submit_button(
-                "ENTRAR", use_container_width=True, type="primary"
-            )
+    with st.form("form_login_numero", clear_on_submit=False):
+        numero = st.text_input("Número de colaborador", key="login_numero",
+                                max_chars=5, placeholder="00000")
+        credencial = st.text_input("Credencial", type="password",
+                                    key="login_credencial",
+                                    placeholder="••••••••")
+        submitted_num = st.form_submit_button(
+            "ENTRAR", use_container_width=True, type="primary"
+        )
 
-        if submitted:
-            if not username or not password:
-                st.warning("Preenche o utilizador e a password.")
+    if submitted_num:
+        if not numero or not credencial:
+            st.warning("Preenche os dois campos.")
+        elif not (numero.strip().isdigit() and len(numero.strip()) == 5):
+            st.error("Credenciais inválidas.")
+        else:
+            numero_clean = numero.strip()
+
+            with st.spinner("A verificar credenciais..."):
+                users = _load_users_fresh()
+
+            if users.empty:
+                st.error(
+                    "Não foi possível aceder à base de dados. "
+                    "Tenta novamente em alguns segundos."
+                )
             else:
-                # ✅ Strip do input do utilizador antes de comparar
-                username_clean = username.strip()
-                password_clean = password.strip()
+                match = users[
+                    users['Numero_Colaborador'].astype(str).str.strip() == numero_clean
+                ] if 'Numero_Colaborador' in users.columns else pd.DataFrame()
 
-                with st.spinner("A verificar credenciais..."):
-                    users = _load_users_fresh()
+                row       = None
+                bloqueada = False
+                sucesso   = False
 
-                if users.empty:
-                    st.error(
-                        "Não foi possível aceder à base de dados. "
-                        "Tenta novamente em alguns segundos."
-                    )
-                    st.info("Se o problema persistir, verifica a ligação à internet.")
+                if not match.empty:
+                    row = match.iloc[0]
+                    bloqueada = str(row.get('Bloqueado', '')).strip().lower() == 'sim'
+                    if not bloqueada:
+                        tipo = str(row.get('Tipo', '')).strip()
+                        campo_credencial = 'PIN' if tipo in TIPOS_PIN else 'Password'
+                        hash_guardado = str(row.get(campo_credencial, '')).strip()
+                        if hash_guardado and cp(credencial, hash_guardado):
+                            sucesso = True
+
+                if sucesso:
+                    st.session_state['user']          = row['Nome'].strip()
+                    st.session_state['tipo']          = row.get('Tipo', 'Técnico').strip()
+                    st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()
+                    st.session_state['last_activity'] = datetime.now()
+                    st.session_state['menu_selected'] = ''
+                    limpar_tentativas_login(numero_clean)
+                    st.success("Login bem-sucedido!")
+                    st.balloons()
+                    st.rerun()
                 else:
-                    # ✅ Comparação com strip nos dois lados
-                    matches = [
-                        user for _, user in users.iterrows()
-                        if str(user.get('Nome', '')).strip().lower()
-                           == username_clean.lower()
-                    ]
-
-                    if len(matches) == 0:
-                        st.error(f"Utilizador '{username_clean}' não encontrado.")
-                    elif len(matches) > 1:
-                        # Mais do que um colaborador com o mesmo Nome —
-                        # nunca autenticar o primeiro "por sorte" (já
-                        # aconteceu em produção, ver mod_dashboard_obra.py).
-                        st.error(
-                            "Existe mais do que um utilizador com este nome. "
-                            "Contacta o administrador para resolver a ambiguidade."
-                        )
-                    else:
-                        user_match = matches[0]
-                        pwd_hash = str(user_match.get('Password', '')).strip()
-
-                        if not pwd_hash:
-                            st.error(
-                                "Este utilizador não tem password definida. "
-                                "Contacta o administrador."
-                            )
-                        elif cp(password_clean, pwd_hash):
-                            # ✅ Login bem-sucedido
-                            st.session_state['user']          = user_match['Nome'].strip()
-                            st.session_state['tipo']          = user_match.get('Tipo', 'Técnico').strip()
-                            st.session_state['cargo']         = user_match.get('Cargo', 'Técnico').strip()
-                            st.session_state['last_activity'] = datetime.now()
-                            st.session_state['menu_selected'] = ''
-                            # Limpar contadores de erro
-                            st.session_state['login_tentativas'] = 0
-                            st.success("Login bem-sucedido!")
-                            st.balloons()
-                            st.rerun()
-                        else:
-                            st.error("Password incorreta.")
-                            tentativas = st.session_state.get('login_tentativas', 0) + 1
-                            st.session_state['login_tentativas'] = tentativas
-                            if tentativas >= 3:
-                                st.warning(
-                                    "Várias tentativas falhadas. "
-                                    "Contacta o administrador para resetar a tua password."
+                    # Regista a tentativa quer o número exista quer não —
+                    # a resposta abaixo é sempre a mesma nos dois casos.
+                    registar_tentativa_login(numero_clean)
+                    if not match.empty and not bloqueada:
+                        falhas = contar_falhas_recentes(numero_clean)
+                        if falhas >= _LIMITE_TENTATIVAS:
+                            ficou_bloqueada = bloquear_conta_por_numero(numero_clean, users)
+                            if ficou_bloqueada:
+                                criar_notificacao(
+                                    destinatario="admin",
+                                    titulo="Conta bloqueada",
+                                    mensagem=(
+                                        f"A conta de {row['Nome'].strip()} "
+                                        f"(nº {numero_clean}) foi bloqueada "
+                                        "após tentativas de login falhadas."
+                                    ),
+                                    tipo="warning",
                                 )
+                    st.error("Credenciais inválidas.")
 
-        st.divider()
-        st.markdown(
-            f"<p style='text-align:center; color:{THEME['text_secondary']}; font-size:0.85rem;'>"
-            f"Esqueceste a password? Contacta o administrador.</p>",
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            f"<p style='text-align:center; font-size:0.8rem;'>"
-            f"<a href='/?page=criar_admin' style='color:{THEME['accent']};'>"
-            f"Criar utilizador Admin</a></p>",
-            unsafe_allow_html=True
-        )
+    st.markdown(
+        f"<p style='text-align:center; color:{THEME['text_secondary']}; font-size:0.85rem; margin-top:8px;'>"
+        f"Esqueceste a credencial ou a conta está bloqueada? Contacta o administrador.</p>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        f"<p style='text-align:center; font-size:0.8rem;'>"
+        f"<a href='/?page=criar_admin' style='color:{THEME['accent']};'>"
+        f"Criar utilizador Admin</a></p>",
+        unsafe_allow_html=True
+    )
+
+    st.divider()
 
     # ═══════════════════════════════════════════════════════════════
-    # TAB PIN
+    # ACESSO ANTIGO (por Nome) — só durante a janela de transição
     # ═══════════════════════════════════════════════════════════════
-    with tab_pin:
-        with st.form("form_login_pin", clear_on_submit=False):
-            u_pin = st.text_input("Utilizador", key="login_u2",
-                                   placeholder="Nome completo")
-            pin   = st.text_input("PIN (4 dígitos)", type="password",
-                                   max_chars=4, key="login_p2",
-                                   placeholder="0000")
-            submitted_pin = st.form_submit_button(
-                "ENTRAR COM PIN", use_container_width=True, type="primary"
-            )
+    with st.expander("Acesso antigo (por Nome)"):
+        st.markdown(
+            f"<p style='color:{THEME['text_secondary']}; font-size:0.8rem;'>"
+            "Disponível apenas durante a transição para o número de "
+            "colaborador. Vai deixar de existir em breve.</p>",
+            unsafe_allow_html=True
+        )
+        tab_pwd, tab_pin = st.tabs(["Password", "PIN"])
 
-        if submitted_pin:
-            if not u_pin or not pin:
-                st.warning("Preenche o utilizador e o PIN.")
-            elif len(pin.strip()) != 4 or not pin.strip().isdigit():
-                st.error("O PIN deve ter exatamente 4 dígitos numéricos.")
-            else:
-                u_pin_clean = u_pin.strip()
-                pin_clean   = pin.strip()
+        with tab_pwd:
+            with st.form("form_login_pwd", clear_on_submit=False):
+                username = st.text_input("Utilizador", key="login_u1",
+                                         placeholder="Nome completo")
+                password = st.text_input("Password", type="password", key="login_p1",
+                                         placeholder="••••••••")
+                submitted = st.form_submit_button(
+                    "ENTRAR", use_container_width=True, type="primary"
+                )
 
-                with st.spinner("A verificar PIN..."):
-                    users = _load_users_fresh()
-
-                if users.empty:
-                    st.error("Não foi possível aceder à base de dados. Tenta novamente.")
+            if submitted:
+                if not username or not password:
+                    st.warning("Preenche o utilizador e a password.")
                 else:
-                    # ✅ Verificar primeiro se o Nome é único, antes de
-                    # sequer olhar para o PIN — nunca autenticar por
-                    # coincidência de um PIN igual entre duas pessoas com
-                    # o mesmo Nome (já aconteceu em produção, ver
-                    # mod_dashboard_obra.py).
-                    if 'Nome' in users.columns:
-                        nome_matches = users[
-                            users['Nome'].str.strip().str.lower() == u_pin_clean.lower()
-                        ]
-                    else:
-                        nome_matches = pd.DataFrame()
+                    # ✅ Strip do input do utilizador antes de comparar
+                    username_clean = username.strip()
+                    password_clean = password.strip()
 
-                    if nome_matches.empty:
-                        st.error(f"Utilizador '{u_pin_clean}' não encontrado.")
-                    elif len(nome_matches) > 1:
+                    with st.spinner("A verificar credenciais..."):
+                        users = _load_users_fresh()
+
+                    if users.empty:
                         st.error(
-                            "Existe mais do que um utilizador com este nome. "
-                            "Contacta o administrador para resolver a ambiguidade."
+                            "Não foi possível aceder à base de dados. "
+                            "Tenta novamente em alguns segundos."
                         )
+                        st.info("Se o problema persistir, verifica a ligação à internet.")
                     else:
-                        row = nome_matches.iloc[0]
-                        pin_hash = str(row.get('PIN', '')).strip()
-                        if pin_hash and cp(pin_clean, pin_hash):
-                            st.session_state['user']          = row['Nome'].strip()
-                            st.session_state['tipo']          = row.get('Tipo', 'Técnico').strip()
-                            st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()
-                            st.session_state['last_activity'] = datetime.now()
-                            st.session_state['menu_selected'] = ''
-                            st.success("Login com PIN bem-sucedido!")
-                            st.rerun()
+                        # ✅ Comparação com strip nos dois lados
+                        matches = [
+                            user for _, user in users.iterrows()
+                            if str(user.get('Nome', '')).strip().lower()
+                               == username_clean.lower()
+                        ]
+
+                        if len(matches) == 0:
+                            st.error(f"Utilizador '{username_clean}' não encontrado.")
+                        elif len(matches) > 1:
+                            # Mais do que um colaborador com o mesmo Nome —
+                            # nunca autenticar o primeiro "por sorte" (já
+                            # aconteceu em produção, ver mod_dashboard_obra.py).
+                            st.error(
+                                "Existe mais do que um utilizador com este nome. "
+                                "Contacta o administrador para resolver a ambiguidade."
+                            )
                         else:
-                            st.error("PIN incorreto.")
+                            user_match = matches[0]
+                            pwd_hash = str(user_match.get('Password', '')).strip()
+
+                            if not pwd_hash:
+                                st.error(
+                                    "Este utilizador não tem password definida. "
+                                    "Contacta o administrador."
+                                )
+                            elif cp(password_clean, pwd_hash):
+                                # ✅ Login bem-sucedido
+                                st.session_state['user']          = user_match['Nome'].strip()
+                                st.session_state['tipo']          = user_match.get('Tipo', 'Técnico').strip()
+                                st.session_state['cargo']         = user_match.get('Cargo', 'Técnico').strip()
+                                st.session_state['last_activity'] = datetime.now()
+                                st.session_state['menu_selected'] = ''
+                                # Limpar contadores de erro
+                                st.session_state['login_tentativas'] = 0
+                                st.success("Login bem-sucedido!")
+                                st.balloons()
+                                st.rerun()
+                            else:
+                                st.error("Password incorreta.")
+                                tentativas = st.session_state.get('login_tentativas', 0) + 1
+                                st.session_state['login_tentativas'] = tentativas
+                                if tentativas >= 3:
+                                    st.warning(
+                                        "Várias tentativas falhadas. "
+                                        "Contacta o administrador para resetar a tua password."
+                                    )
+
+        # ═══════════════════════════════════════════════════════════
+        # TAB PIN
+        # ═══════════════════════════════════════════════════════════
+        with tab_pin:
+            with st.form("form_login_pin", clear_on_submit=False):
+                u_pin = st.text_input("Utilizador", key="login_u2",
+                                       placeholder="Nome completo")
+                pin   = st.text_input("PIN (4 dígitos)", type="password",
+                                       max_chars=4, key="login_p2",
+                                       placeholder="0000")
+                submitted_pin = st.form_submit_button(
+                    "ENTRAR COM PIN", use_container_width=True, type="primary"
+                )
+
+            if submitted_pin:
+                if not u_pin or not pin:
+                    st.warning("Preenche o utilizador e o PIN.")
+                elif len(pin.strip()) != 4 or not pin.strip().isdigit():
+                    st.error("O PIN deve ter exatamente 4 dígitos numéricos.")
+                else:
+                    u_pin_clean = u_pin.strip()
+                    pin_clean   = pin.strip()
+
+                    with st.spinner("A verificar PIN..."):
+                        users = _load_users_fresh()
+
+                    if users.empty:
+                        st.error("Não foi possível aceder à base de dados. Tenta novamente.")
+                    else:
+                        # ✅ Verificar primeiro se o Nome é único, antes de
+                        # sequer olhar para o PIN — nunca autenticar por
+                        # coincidência de um PIN igual entre duas pessoas com
+                        # o mesmo Nome (já aconteceu em produção, ver
+                        # mod_dashboard_obra.py).
+                        if 'Nome' in users.columns:
+                            nome_matches = users[
+                                users['Nome'].str.strip().str.lower() == u_pin_clean.lower()
+                            ]
+                        else:
+                            nome_matches = pd.DataFrame()
+
+                        if nome_matches.empty:
+                            st.error(f"Utilizador '{u_pin_clean}' não encontrado.")
+                        elif len(nome_matches) > 1:
+                            st.error(
+                                "Existe mais do que um utilizador com este nome. "
+                                "Contacta o administrador para resolver a ambiguidade."
+                            )
+                        else:
+                            row = nome_matches.iloc[0]
+                            pin_hash = str(row.get('PIN', '')).strip()
+                            if pin_hash and cp(pin_clean, pin_hash):
+                                st.session_state['user']          = row['Nome'].strip()
+                                st.session_state['tipo']          = row.get('Tipo', 'Técnico').strip()
+                                st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()
+                                st.session_state['last_activity'] = datetime.now()
+                                st.session_state['menu_selected'] = ''
+                                st.success("Login com PIN bem-sucedido!")
+                                st.rerun()
+                            else:
+                                st.error("PIN incorreto.")
 
     st.markdown("</div></div>", unsafe_allow_html=True)

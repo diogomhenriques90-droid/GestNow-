@@ -12,12 +12,21 @@ Correr:  python -m unittest test_mod_login -v
 """
 import io
 import unittest
+from contextlib import ExitStack, contextmanager
 from unittest.mock import patch
 
 from streamlit.testing.v1 import AppTest
 
 import core
 from core import hp
+
+
+@contextmanager
+def _apply(patches):
+    with ExitStack() as stack:
+        for p in patches:
+            stack.enter_context(p)
+        yield
 
 
 def _script():
@@ -239,6 +248,119 @@ class TestLoginPinComHash(unittest.TestCase):
         self.assertNotIn("user", at.session_state)
         textos_erro = " ".join(m.value for m in at.error)
         self.assertIn("PIN incorreto", textos_erro)
+
+
+class TestLoginPorNumero(unittest.TestCase):
+    """Fase 1: via principal de login — Número de colaborador + um
+    único campo de credencial, sempre com o mesmo aspeto, que o sistema
+    valida como PIN ou Password consoante o Tipo, sem nunca revelar
+    isso no ecrã antes da submissão."""
+
+    PIN_TECNICO   = "1234"
+    PWD_ADMIN     = "password123"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.csv = (
+            "Nome,Password,PIN,Tipo,Cargo,Numero_Colaborador,Bloqueado\n"
+            f"Rui Costa,,{hp(cls.PIN_TECNICO)},Técnico,Instrumentista,12345,\n"
+            f"Ana Silva,{hp(cls.PWD_ADMIN)},,Admin,Administrador,54321,\n"
+            "Marta Reis,,,Chefe de Equipa,Chefe,67890,Sim\n"
+        ).encode("utf-8-sig")
+
+    def _submeter(self, numero, credencial, extra_patches=()):
+        core._cached_load_db.clear()
+        with patch("mod_login._gcs_read", return_value=io.BytesIO(self.csv)), \
+             patch("mod_login.registar_tentativa_login") as mock_registar, \
+             patch("mod_login.contar_falhas_recentes", return_value=0) as mock_contar, \
+             patch("mod_login.limpar_tentativas_login") as mock_limpar, \
+             patch("mod_login.bloquear_conta_por_numero", return_value=False) as mock_bloquear, \
+             patch("mod_login.criar_notificacao") as mock_notif, \
+             _apply(extra_patches):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="login_numero").set_value(numero).run()
+            at.text_input(key="login_credencial").set_value(credencial).run()
+            at.button(key="FormSubmitter:form_login_numero-ENTRAR").click().run()
+        return at, dict(
+            registar=mock_registar, contar=mock_contar,
+            limpar=mock_limpar, bloquear=mock_bloquear, notif=mock_notif,
+        )
+
+    def test_tecnico_entra_com_pin(self):
+        at, mocks = self._submeter("12345", self.PIN_TECNICO)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertEqual(at.session_state["user"], "Rui Costa")
+        mocks["limpar"].assert_called_once_with("12345")
+
+    def test_admin_entra_com_password(self):
+        at, mocks = self._submeter("54321", self.PWD_ADMIN)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertEqual(at.session_state["user"], "Ana Silva")
+
+    def test_credencial_errada_mensagem_generica(self):
+        at, mocks = self._submeter("12345", "credencial-errada")
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertNotIn("user", at.session_state)
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("Credenciais inválidas", textos_erro)
+        mocks["registar"].assert_called_once_with("12345")
+
+    def test_numero_inexistente_mesma_mensagem_generica(self):
+        at, mocks = self._submeter("99999", "qualquer-coisa")
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertNotIn("user", at.session_state)
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("Credenciais inválidas", textos_erro)
+        mocks["registar"].assert_called_once_with("99999")
+
+    def test_conta_ja_bloqueada_recusa_mesmo_com_credencial_certa(self):
+        # Marta Reis está com Bloqueado=Sim na fixture — sem PIN/Password
+        # definidos, então nenhuma credencial "acerta" de propósito;
+        # confirma-se que a resposta é a mesma genérica, sem tentar
+        # sequer validar a credencial.
+        at, mocks = self._submeter("67890", "qualquer-coisa")
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertNotIn("user", at.session_state)
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("Credenciais inválidas", textos_erro)
+
+    def test_formato_invalido_nao_chega_a_consultar_dados(self):
+        at, mocks = self._submeter("abc", "qualquer-coisa")
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("Credenciais inválidas", textos_erro)
+        mocks["registar"].assert_not_called()
+
+    def test_bloqueio_disparado_ao_atingir_limite(self):
+        at, mocks = self._submeter(
+            "12345", "credencial-errada",
+            extra_patches=[patch("mod_login.contar_falhas_recentes", return_value=3)],
+        )
+        self.assertFalse(at.exception, msg=str(at.exception))
+        mocks["bloquear"].assert_called_once()
+        self.assertEqual(mocks["bloquear"].call_args[0][0], "12345")
+
+    def test_notifica_admin_quando_bloqueio_se_efetiva(self):
+        at, mocks = self._submeter(
+            "12345", "credencial-errada",
+            extra_patches=[
+                patch("mod_login.contar_falhas_recentes", return_value=3),
+                patch("mod_login.bloquear_conta_por_numero", return_value=True),
+            ],
+        )
+        self.assertFalse(at.exception, msg=str(at.exception))
+        mocks["notif"].assert_called_once()
+        self.assertEqual(mocks["notif"].call_args.kwargs.get("destinatario"), "admin")
+
+    def test_falha_abaixo_do_limite_nao_bloqueia(self):
+        at, mocks = self._submeter(
+            "12345", "credencial-errada",
+            extra_patches=[patch("mod_login.contar_falhas_recentes", return_value=2)],
+        )
+        self.assertFalse(at.exception, msg=str(at.exception))
+        mocks["bloquear"].assert_not_called()
+        mocks["notif"].assert_not_called()
 
 
 if __name__ == "__main__":
