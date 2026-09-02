@@ -29,6 +29,19 @@ def _apply(patches):
         yield
 
 
+def _script_com_reset_pendente(numero):
+    import streamlit as st
+    st.session_state.setdefault('_fv', {})
+    # Semeia só na primeira execução — o script corre de novo a cada
+    # interação/rerun, e mesmo um setdefault reintroduziria a chave
+    # depois de o próprio fluxo de reset a remover com sucesso.
+    if not st.session_state.get('_ja_semeado_reset'):
+        st.session_state['_forcar_reset_numero'] = numero
+        st.session_state['_ja_semeado_reset']    = True
+    from mod_login import render_login
+    render_login()
+
+
 def _script():
     import streamlit as st
     st.session_state.setdefault('_fv', {})
@@ -361,6 +374,89 @@ class TestLoginPorNumero(unittest.TestCase):
         self.assertFalse(at.exception, msg=str(at.exception))
         mocks["bloquear"].assert_not_called()
         mocks["notif"].assert_not_called()
+
+
+class TestForcarResetPasswordCurta(unittest.TestCase):
+    """Fase 1: quem ainda tiver uma Password anterior ao mínimo de 8
+    caracteres (legado de antes da correção) autentica normalmente,
+    mas a sessão só fica completa depois de definir uma password nova
+    — não entra logo com a password curta."""
+
+    PWD_CURTA = "curta1"   # 6 caracteres — válida antes, curta agora
+
+    @classmethod
+    def setUpClass(cls):
+        cls.csv = (
+            "Nome,Password,PIN,Tipo,Cargo,Numero_Colaborador,Bloqueado\n"
+            f"Ana Silva,{hp(cls.PWD_CURTA)},,Admin,Administrador,54321,\n"
+        ).encode("utf-8-sig")
+
+    def _base_patches(self):
+        return [
+            patch("mod_login._gcs_read", return_value=io.BytesIO(self.csv)),
+            patch("mod_login.registar_tentativa_login"),
+            patch("mod_login.contar_falhas_recentes", return_value=0),
+            patch("mod_login.limpar_tentativas_login"),
+            patch("mod_login.bloquear_conta_por_numero", return_value=False),
+            patch("mod_login.criar_notificacao"),
+        ]
+
+    def test_password_curta_nao_completa_a_sessao_logo(self):
+        core._cached_load_db.clear()
+        with _apply(self._base_patches()):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="login_numero").set_value("54321").run()
+            at.text_input(key="login_credencial").set_value(self.PWD_CURTA).run()
+            at.button(key="FormSubmitter:form_login_numero-ENTRAR").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertNotIn("user", at.session_state)
+        self.assertEqual(at.session_state["_forcar_reset_numero"], "54321")
+        textos = " ".join(m.value for m in at.warning)
+        self.assertIn("8 caracteres", textos)
+
+    def test_password_nova_curta_e_recusada(self):
+        # Parte já do ecrã de reset pendente (pré-semeado no session_state),
+        # em vez de encadear a partir do formulário de login — misturar os
+        # dois no mesmo `at` faz o AppTest tentar reidratar widgets
+        # (login_numero) que já não existem na árvore da segunda tela.
+        core._cached_load_db.clear()
+        with _apply(self._base_patches()):
+            at = AppTest.from_function(
+                _script_com_reset_pendente, args=("54321",), default_timeout=30)
+            at.run()
+            at.text_input(key="reset_nova_pwd").set_value("curta2").run()
+            at.text_input(key="reset_conf_pwd").set_value("curta2").run()
+            at.button(key="FormSubmitter:form_forcar_reset-Definir Password").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertNotIn("user", at.session_state)
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("Mínimo 8 caracteres", textos_erro)
+
+    def test_password_nova_valida_completa_o_login(self):
+        core._cached_load_db.clear()
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        with _apply(self._base_patches() + [patch("core._gcs_write", side_effect=_gcs_write),
+                                             patch("core._gcs_client", return_value=None)]):
+            at = AppTest.from_function(
+                _script_com_reset_pendente, args=("54321",), default_timeout=30)
+            at.run()
+            at.text_input(key="reset_nova_pwd").set_value("passwordNova8").run()
+            at.text_input(key="reset_conf_pwd").set_value("passwordNova8").run()
+            at.button(key="FormSubmitter:form_forcar_reset-Definir Password").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertEqual(at.session_state["user"], "Ana Silva")
+        self.assertNotIn("_forcar_reset_numero", at.session_state)
+        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
+        self.assertIn("$2b$", conteudo)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ import pandas as pd
 import io, base64
 from datetime import datetime
 from core import (
-    cp, _gcs_read, inv, THEME,
+    cp, hp, save_db, _gcs_read, inv, THEME,
     registar_tentativa_login, contar_falhas_recentes,
     limpar_tentativas_login, bloquear_conta_por_numero,
     criar_notificacao,
@@ -46,7 +46,61 @@ def _load_users_fresh():
             time.sleep(0.3)
     return pd.DataFrame()
 
+def _render_forcar_reset_password():
+    """Ecrã intermédio: mostrado quando alguém autentica com sucesso
+    através de uma Password mais curta que o mínimo atual (8
+    caracteres) — legado de antes da Fase 1. A sessão só fica completa
+    depois de definir uma password nova."""
+    numero = st.session_state.get('_forcar_reset_numero', '')
+
+    st.warning(
+        "A tua password é mais curta do que o mínimo atual "
+        "(8 caracteres). Define uma password nova para continuar."
+    )
+    with st.form("form_forcar_reset", clear_on_submit=False):
+        nova = st.text_input("Nova Password", type="password",
+                              key="reset_nova_pwd")
+        conf = st.text_input("Confirmar Nova Password", type="password",
+                              key="reset_conf_pwd")
+        submitted = st.form_submit_button(
+            "Definir Password", use_container_width=True, type="primary"
+        )
+
+    if submitted:
+        if len(nova) < 8:
+            st.error("Mínimo 8 caracteres.")
+        elif nova != conf:
+            st.error("As passwords não coincidem.")
+        else:
+            users = _load_users_fresh()
+            mask = users['Numero_Colaborador'].astype(str).str.strip() == numero \
+                if 'Numero_Colaborador' in users.columns else pd.Series(dtype=bool)
+            if mask.any():
+                row = users.loc[mask].iloc[0]
+                users.loc[mask, 'Password'] = hp(nova)
+                save_db(users, "usuarios.csv")
+                inv("usuarios.csv")
+                del st.session_state['_forcar_reset_numero']
+                st.session_state['user']          = row['Nome'].strip()
+                st.session_state['tipo']          = row.get('Tipo', 'Técnico').strip()
+                st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()
+                st.session_state['last_activity'] = datetime.now()
+                st.session_state['menu_selected'] = ''
+                st.success("Password atualizada. A entrar...")
+                st.rerun()
+            else:
+                del st.session_state['_forcar_reset_numero']
+                st.error("Ocorreu um erro a localizar a conta. Tenta entrar novamente.")
+                st.rerun()
+
 def render_login():
+    if st.session_state.get('_forcar_reset_numero'):
+        st.markdown("<div class='login-wrap'><div class='login-card'>",
+                    unsafe_allow_html=True)
+        _render_forcar_reset_password()
+        st.markdown("</div></div>", unsafe_allow_html=True)
+        return
+
     # Limpar estado antigo que possa causar loops
     for key in ['login_error', 'login_tentativas']:
         if key not in st.session_state:
@@ -136,15 +190,22 @@ def render_login():
                             sucesso = True
 
                 if sucesso:
-                    st.session_state['user']          = row['Nome'].strip()
-                    st.session_state['tipo']          = row.get('Tipo', 'Técnico').strip()
-                    st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()
-                    st.session_state['last_activity'] = datetime.now()
-                    st.session_state['menu_selected'] = ''
                     limpar_tentativas_login(numero_clean)
-                    st.success("Login bem-sucedido!")
-                    st.balloons()
-                    st.rerun()
+                    if campo_credencial == 'Password' and len(credencial) < 8:
+                        # Password anterior ao mínimo de 8 caracteres —
+                        # não completa a sessão ainda, força a definição
+                        # de uma password nova primeiro.
+                        st.session_state['_forcar_reset_numero'] = numero_clean
+                        st.rerun()
+                    else:
+                        st.session_state['user']          = row['Nome'].strip()
+                        st.session_state['tipo']          = row.get('Tipo', 'Técnico').strip()
+                        st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()
+                        st.session_state['last_activity'] = datetime.now()
+                        st.session_state['menu_selected'] = ''
+                        st.success("Login bem-sucedido!")
+                        st.balloons()
+                        st.rerun()
                 else:
                     # Regista a tentativa quer o número exista quer não —
                     # a resposta abaixo é sempre a mesma nos dois casos.
