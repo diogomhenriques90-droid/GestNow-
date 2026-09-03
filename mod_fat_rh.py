@@ -14,7 +14,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit, criar_notificacao, _gcs_read
+from core import save_db, inv, load_db, log_audit, criar_notificacao, _gcs_read, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # CONSTANTES LEGAIS PORTUGAL 2025
@@ -68,7 +68,8 @@ def _custo_real(salario_base: float) -> dict:
         salario_base + sub_ferias_prov + sub_natal_prov +
         tsu_emp + seg_acid + fct + fgct, 2
     )
-    pct_sobre_base = round((total - salario_base) / salario_base * 100, 1)
+    pct_sobre_base = round((total - salario_base) / salario_base * 100, 1) \
+                     if salario_base > 0 else 0.0
 
     return {
         "salario_base":      salario_base,
@@ -198,12 +199,13 @@ def _gerar_recibo_vencimento(colaborador: dict,
     liq_calc = _liquido(sal_base, ec, dep)
     custo_c  = _custo_real(sal_base)
 
-    # Horas do mês nos registos
+    # Horas do mês nos registos — apenas validados (Status 1,2,3,4)
     horas_mes = 0.0
     diarias_m = 0.0
     if not registos_db.empty and 'Técnico' in registos_db.columns:
         regs_c = registos_db[
-            registos_db['Técnico'] == colaborador.get('Nome','')
+            (registos_db['Técnico'] == colaborador.get('Nome','')) &
+            (registos_db['Status'].astype(str).isin(['1','2','3','4']))
         ].copy()
         regs_c['Data_d'] = pd.to_datetime(
             regs_c['Data'], dayfirst=True, errors='coerce'
@@ -676,8 +678,30 @@ def render_fat_rh(obras_db, registos_db, *_):
     rh_db     = _load("colaboradores_rh.csv", [
         "ID","Nome","NIF","NISS","Tipo","Cargo","Salario_Base",
         "Data_Inicio","Estado_Civil","N_Dependentes",
-        "Banco_IBAN","Contrato","Ativo"
+        "Banco_IBAN","Contrato","Ativo",
+        "Genero","DataNasc","Naturalidade","Nacionalidade","Pais_Residencia",
+        "CC","CC_Validade","Passaporte","Passaporte_Validade",
+        "IRS_Escalao","IRS_Percentagem","Titular_Unico","Taxa_Retencao_IRS",
+        "Isencao_IRS","Artigo_IRS",
+        "Tipo_Contrato","Modalidade_Horario","Horas_Semana",
+        "Contrato_Inicio","Contrato_Fim","Contrato_Indeterminado",
+        "Periodo_Experimental","Periodo_Experimental_Fim",
+        "Local_Trabalho","Funcao_Contratual",
+        "Subsidio_Alimentacao","Subsidio_Ferias","Subsidio_Natal",
+        "Premio_Producao","Outros_Complementos","Forma_Pagamento",
+        "IBAN_Validado","SWIFT_BIC",
+        "Nivel_Habilitacoes","Situacao_Profissional","Profissao_CPP",
+        "Categoria_CCT","IRCT_Aplicavel","Vinculo_Empresa",
+        "Reducao_Horario","Data_Ultima_Promocao","Antiguidade_Anos",
+        "Nivel_Remuneratorio","Grau_Deficiencia","Deficiencia_Tipo",
+        "Seg_Social_Cartao","Cartao_Prof_Num","Cartao_Prof_Validade",
+        "Alvara_Num","Alvara_Validade",
     ])
+    # rh_ativos — apenas colaboradores activos, para KPIs/listas/gráficos.
+    # rh_db (completo) é preservado para os save_db() de edição de fichas,
+    # para não eliminar do CSV os registos desactivados.
+    rh_ativos = rh_db[rh_db['Ativo'] != 'Não'].reset_index(drop=True) \
+        if not rh_db.empty and 'Ativo' in rh_db.columns else rh_db
     ferias_db = _load("ferias_db.csv", [
         "ID","Colaborador","Data_Inicio","Data_Fim",
         "Dias_Uteis","Estado","Aprovado_Por","Obra"
@@ -709,35 +733,33 @@ def render_fat_rh(obras_db, registos_db, *_):
                  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .rh-card {
-        background:#1E293B; border-radius:12px;
+    .rh-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:14px 16px; margin-bottom:8px;
-        border-left:4px solid #8B5CF6;
-    }
-    .custo-breakdown {
-        background:linear-gradient(135deg,
-            rgba(30,41,59,0.9),rgba(15,23,42,0.9));
+        border-left:4px solid {THEME['accent']};
+    }}
+    .custo-breakdown {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
         border-radius:12px; padding:16px; margin-bottom:8px;
-    }
-    .ferias-badge {
+    }}
+    .ferias-badge {{
         display:inline-block; padding:3px 10px;
         border-radius:20px; font-size:0.72rem; font-weight:700;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── KPIs ──────────────────────────────────────────────────────
-    n_colab   = len(rh_db) if not rh_db.empty else 0
-    n_ativos  = len(rh_db[rh_db.get('Ativo','Sim')=='Sim']) \
-                if not rh_db.empty and 'Ativo' in rh_db.columns \
-                else n_colab
+    n_colab   = len(rh_ativos) if not rh_ativos.empty else 0
+    n_ativos  = n_colab
 
     total_sal = 0.0
     total_custo_rh = 0.0
-    if not rh_db.empty:
-        for _, row in rh_db.iterrows():
+    if not rh_ativos.empty:
+        for _, row in rh_ativos.iterrows():
             sal = float(row.get('Salario_Base',0) or 0)
             total_sal      += sal
             total_custo_rh += _custo_real(sal)['total']
@@ -748,36 +770,36 @@ def render_fat_rh(obras_db, registos_db, *_):
     ]) if not ferias_db.empty and 'Estado' in ferias_db.columns else 0
 
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("👥 Colaboradores",    n_ativos)
-    with c2: st.metric("💰 Massa Salarial",   f"€{total_sal:,.2f}")
-    with c3: st.metric("💸 Custo Real Total", f"€{total_custo_rh:,.2f}")
-    with c4: st.metric("📈 Acréscimo",
+    with c1: st.metric("Colaboradores",    n_ativos)
+    with c2: st.metric("Massa Salarial",   f"€{total_sal:,.2f}")
+    with c3: st.metric("Custo Real Total", f"€{total_custo_rh:,.2f}")
+    with c4: st.metric("Acréscimo",
                         f"+{round((total_custo_rh-total_sal)/total_sal*100,1) if total_sal>0 else 0:.1f}%")
-    with c5: st.metric("🏖️ Férias Pendentes", ferias_pend)
+    with c5: st.metric("Férias Pendentes", ferias_pend)
 
     st.divider()
 
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_colab, t_mapa, t_recibos,
      t_ferias, t_prov, t_irs) = st.tabs([
-        "👤 Colaboradores",
-        "💰 Mapa Remunerações",
-        "📄 Recibos Vencimento",
-        "🏖️ Férias & Subsídios",
-        "📊 Provisões",
-        "📋 Mapa IRS/SS",
+        "Colaboradores",
+        "Mapa Remunerações",
+        "Recibos Vencimento",
+        "Férias & Subsídios",
+        "Provisões",
+        "Mapa IRS/SS",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB — COLABORADORES (ficha financeira)
     # ════════════════════════════════════════════════════════════════
     with t_colab:
-        st.markdown("### 👤 Fichas Financeiras dos Colaboradores")
+        st.markdown("### Fichas Financeiras dos Colaboradores")
 
         col_form_c, col_lista_c = st.columns([1, 2])
 
         with col_form_c:
-            st.markdown("#### ➕ Adicionar/Editar Colaborador")
+            st.markdown("#### Adicionar/Editar Colaborador")
 
             # Pré-preencher com utilizadores existentes
             users_lista = users_df['Nome'].tolist() \
@@ -856,21 +878,21 @@ def render_fat_rh(obras_db, registos_db, *_):
                     c_prev = _custo_real(rh_sal)
                     lq_prev = _liquido(rh_sal, rh_ec, rh_dep)
                     st.markdown(
-                        f"<div style='background:rgba(59,130,246,0.1);"
-                        f"border:1px solid #3B82F6;border-radius:8px;"
+                        f"<div style='background:rgba(14,124,134,0.08);"
+                        f"border:1px solid {THEME['accent']};border-radius:8px;"
                         f"padding:10px;margin:8px 0;font-size:0.8rem;'>"
-                        f"💰 Custo empresa: <b style='color:#3B82F6;'>"
+                        f"Custo empresa: <b style='color:{THEME['accent']};'>"
                         f"€{c_prev['total']:,.2f}/mês</b> "
                         f"(+{c_prev['pct_acrescimo']:.1f}%)<br>"
-                        f"💵 Líquido colaborador: "
-                        f"<b style='color:#10B981;'>"
+                        f"Líquido colaborador: "
+                        f"<b style='color:{THEME['success']};'>"
                         f"€{lq_prev['liquido']:,.2f}/mês</b>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
 
                 if st.form_submit_button(
-                    "💾 Guardar Ficha",
+                    "Guardar Ficha",
                     use_container_width=True, type="primary"
                 ):
                     nome_final = nome_sel if users_lista \
@@ -878,7 +900,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                                      'rh_nome',''
                                  )
                     if not nome_final:
-                        st.error("❌ Nome obrigatório.")
+                        st.error("Nome obrigatório.")
                     else:
                         # Verificar se já existe
                         existe = not rh_db.empty and \
@@ -909,14 +931,14 @@ def render_fat_rh(obras_db, registos_db, *_):
                                         rh_db['Nome'] == nome_final, k
                                     ] = v
                             save_db(rh_db, "colaboradores_rh.csv")
-                            msg = f"✅ Ficha de {nome_final} atualizada!"
+                            msg = f"Ficha de {nome_final} atualizada!"
                         else:
                             nova_df = pd.DataFrame([nova_ficha])
                             upd = pd.concat(
                                 [rh_db, nova_df], ignore_index=True
                             ) if not rh_db.empty else nova_df
                             save_db(upd, "colaboradores_rh.csv")
-                            msg = f"✅ Ficha de {nome_final} criada!"
+                            msg = f"Ficha de {nome_final} criada!"
 
                         log_audit(
                             usuario=user_nome,
@@ -931,30 +953,30 @@ def render_fat_rh(obras_db, registos_db, *_):
                         st.rerun()
 
         with col_lista_c:
-            st.markdown("#### 📋 Fichas Registadas")
+            st.markdown("#### Fichas Registadas")
 
             # Gráficos
             col_gc1, col_gc2 = st.columns(2)
             with col_gc1:
-                fig_mapa = _grafico_mapa_remuneracoes(rh_db, users_df)
+                fig_mapa = _grafico_mapa_remuneracoes(rh_ativos, users_df)
                 if fig_mapa:
                     st.plotly_chart(
                         fig_mapa, use_container_width=True
                     )
             with col_gc2:
-                fig_dnt = _grafico_evolucao_custo_rh(rh_db)
+                fig_dnt = _grafico_evolucao_custo_rh(rh_ativos)
                 if fig_dnt:
                     st.plotly_chart(
                         fig_dnt, use_container_width=True
                     )
 
-            if rh_db.empty:
+            if rh_ativos.empty:
                 st.info(
-                    "📋 Sem fichas financeiras. "
+                    "Sem fichas financeiras. "
                     "Adiciona colaboradores no formulário."
                 )
             else:
-                for _, colab in rh_db.iterrows():
+                for _, colab in rh_ativos.iterrows():
                     sal    = float(colab.get('Salario_Base',0) or 0)
                     c_real = _custo_real(sal)
                     lq     = _liquido(
@@ -964,7 +986,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     )
 
                     with st.expander(
-                        f"👤 {colab.get('Nome','')} — "
+                        f"{colab.get('Nome','')} — "
                         f"€{sal:,.2f} base | "
                         f"€{c_real['total']:,.2f} custo real",
                         expanded=False
@@ -973,7 +995,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                         with col_cd1:
                             st.markdown(
                                 f"<div class='custo-breakdown'>"
-                                f"<p style='color:#94A3B8;"
+                                f"<p style='color:{THEME['text_secondary']};"
                                 f"font-size:0.75rem;font-weight:700;"
                                 f"text-transform:uppercase;margin:0 0 8px;'>"
                                 f"CUSTO EMPRESA</p>",
@@ -981,25 +1003,26 @@ def render_fat_rh(obras_db, registos_db, *_):
                             )
                             items_custo = [
                                 ("Salário Base", c_real['salario_base'],
-                                 "#3B82F6"),
+                                 THEME['accent']),
                                 ("Sub.Férias (1/12)", c_real['sub_ferias_prov'],
-                                 "#8B5CF6"),
+                                 THEME['accent']),
                                 ("Sub.Natal (1/12)", c_real['sub_natal_prov'],
-                                 "#8B5CF6"),
+                                 THEME['accent']),
                                 ("TSU Empresa", c_real['tsu_empresa'],
-                                 "#EF4444"),
+                                 THEME['error']),
                                 ("Seg.Acidentes", c_real['seg_acid_trabalho'],
-                                 "#F59E0B"),
+                                 THEME['warning']),
                                 ("FCT+FGCT", c_real['fct']+c_real['fgct'],
-                                 "#F59E0B"),
+                                 THEME['warning']),
                             ]
                             for label, val, cor in items_custo:
-                                pct = val/c_real['total']*100
+                                pct = (val/c_real['total']*100) \
+                                      if c_real['total'] > 0 else 0.0
                                 st.markdown(
                                     f"<div style='display:flex;"
                                     f"justify-content:space-between;"
                                     f"margin-bottom:4px;'>"
-                                    f"<small style='color:#94A3B8;'>"
+                                    f"<small style='color:{THEME['text_secondary']};'>"
                                     f"{label}</small>"
                                     f"<small style='color:{cor};"
                                     f"font-weight:700;'>"
@@ -1009,11 +1032,11 @@ def render_fat_rh(obras_db, registos_db, *_):
                                 )
                             st.markdown(
                                 f"<div style='border-top:"
-                                f"1px solid #334155;padding-top:6px;"
+                                f"1px solid {THEME['border']};padding-top:6px;"
                                 f"margin-top:4px;display:flex;"
                                 f"justify-content:space-between;'>"
-                                f"<b style='color:#F1F5F9;'>TOTAL</b>"
-                                f"<b style='color:#10B981;"
+                                f"<b style='color:{THEME['text']};'>TOTAL</b>"
+                                f"<b style='color:{THEME['success']};"
                                 f"font-size:1.05rem;'>"
                                 f"€{c_real['total']:,.2f}</b></div>"
                                 f"</div>",
@@ -1022,24 +1045,24 @@ def render_fat_rh(obras_db, registos_db, *_):
                         with col_cd2:
                             st.markdown(
                                 f"<div class='custo-breakdown'>"
-                                f"<p style='color:#94A3B8;"
+                                f"<p style='color:{THEME['text_secondary']};"
                                 f"font-size:0.75rem;font-weight:700;"
                                 f"text-transform:uppercase;margin:0 0 8px;'>"
                                 f"RECIBO COLABORADOR</p>",
                                 unsafe_allow_html=True
                             )
                             items_liq = [
-                                ("Salário Bruto", lq['bruto'], "#F1F5F9"),
+                                ("Salário Bruto", lq['bruto'], THEME['text']),
                                 ("TSU (11%)", -lq['tsu_trabalhador'],
-                                 "#EF4444"),
-                                ("IRS (estimado)", -lq['irs'], "#EF4444"),
+                                 THEME['error']),
+                                ("IRS (estimado)", -lq['irs'], THEME['error']),
                             ]
                             for label, val, cor in items_liq:
                                 st.markdown(
                                     f"<div style='display:flex;"
                                     f"justify-content:space-between;"
                                     f"margin-bottom:4px;'>"
-                                    f"<small style='color:#94A3B8;'>"
+                                    f"<small style='color:{THEME['text_secondary']};'>"
                                     f"{label}</small>"
                                     f"<small style='color:{cor};"
                                     f"font-weight:700;'>"
@@ -1049,11 +1072,11 @@ def render_fat_rh(obras_db, registos_db, *_):
                                 )
                             st.markdown(
                                 f"<div style='border-top:"
-                                f"1px solid #334155;padding-top:6px;"
+                                f"1px solid {THEME['border']};padding-top:6px;"
                                 f"margin-top:4px;display:flex;"
                                 f"justify-content:space-between;'>"
-                                f"<b style='color:#F1F5F9;'>LÍQUIDO</b>"
-                                f"<b style='color:#3B82F6;"
+                                f"<b style='color:{THEME['text']};'>LÍQUIDO</b>"
+                                f"<b style='color:{THEME['accent']};"
                                 f"font-size:1.05rem;'>"
                                 f"€{lq['liquido']:,.2f}</b></div>"
                                 f"</div>",
@@ -1067,7 +1090,7 @@ def render_fat_rh(obras_db, registos_db, *_):
     # TAB — MAPA DE REMUNERAÇÕES
     # ════════════════════════════════════════════════════════════════
     with t_mapa:
-        st.markdown("### 💰 Mapa de Remunerações Mensal")
+        st.markdown("### Mapa de Remunerações Mensal")
 
         col_m1, col_m2 = st.columns(2)
         with col_m1:
@@ -1083,10 +1106,10 @@ def render_fat_rh(obras_db, registos_db, *_):
 
         mes_num_m = meses_pt.index(mes_mapa) + 1
 
-        if rh_db.empty:
+        if rh_ativos.empty:
             st.info(
-                "📋 Sem fichas financeiras. "
-                "Adiciona no tab 👤 Colaboradores."
+                "Sem fichas financeiras. "
+                "Adiciona no tab Colaboradores."
             )
         else:
             # Construir tabela
@@ -1095,7 +1118,7 @@ def render_fat_rh(obras_db, registos_db, *_):
             tot_tsu_t = tot_irs_mapa = tot_liq = 0.0
             tot_tsu_e = tot_sub_fv   = tot_custo = 0.0
 
-            for _, colab in rh_db.iterrows():
+            for _, colab in rh_ativos.iterrows():
                 sal  = float(colab.get('Salario_Base',0) or 0)
                 ec   = colab.get('Estado_Civil','Solteiro(a)')
                 dep  = int(colab.get('N_Dependentes',0) or 0)
@@ -1103,12 +1126,13 @@ def render_fat_rh(obras_db, registos_db, *_):
                 lq   = _liquido(sal, ec, dep)
                 sub_alim = 22 * SUB_ALIM_DIA
 
-                # Horas do mês (para calcular sub. alimentação real)
+                # Dias trabalhados no mês — apenas registos validados (Status 1,2,3,4)
                 horas_m = 0
                 if not registos_db.empty and \
                    'Técnico' in registos_db.columns:
                     regs_c = registos_db[
-                        registos_db['Técnico'] == colab.get('Nome','')
+                        (registos_db['Técnico'] == colab.get('Nome','')) &
+                        (registos_db['Status'].astype(str).isin(['1','2','3','4']))
                     ].copy()
                     regs_c['Data_d'] = pd.to_datetime(
                         regs_c['Data'], dayfirst=True, errors='coerce'
@@ -1153,26 +1177,26 @@ def render_fat_rh(obras_db, registos_db, *_):
 
                 # Totais
                 st.markdown(
-                    f"<div style='background:#1E293B;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                     f"border-radius:10px;padding:14px;"
                     f"display:grid;"
                     f"grid-template-columns:repeat(5,1fr);"
                     f"gap:12px;margin-top:8px;'>"
                     f"<div style='text-align:center;'>"
-                    f"<small style='color:#64748B;'>Massa Salarial</small><br>"
-                    f"<b style='color:#3B82F6;'>€{tot_base:,.2f}</b></div>"
+                    f"<small style='color:{THEME['text_secondary']};'>Massa Salarial</small><br>"
+                    f"<b style='color:{THEME['accent']};'>€{tot_base:,.2f}</b></div>"
                     f"<div style='text-align:center;'>"
-                    f"<small style='color:#64748B;'>Total Bruto</small><br>"
-                    f"<b style='color:#F1F5F9;'>€{tot_bruto:,.2f}</b></div>"
+                    f"<small style='color:{THEME['text_secondary']};'>Total Bruto</small><br>"
+                    f"<b style='color:{THEME['text']};'>€{tot_bruto:,.2f}</b></div>"
                     f"<div style='text-align:center;'>"
-                    f"<small style='color:#64748B;'>Total Líquido</small><br>"
-                    f"<b style='color:#10B981;'>€{tot_liq:,.2f}</b></div>"
+                    f"<small style='color:{THEME['text_secondary']};'>Total Líquido</small><br>"
+                    f"<b style='color:{THEME['success']};'>€{tot_liq:,.2f}</b></div>"
                     f"<div style='text-align:center;'>"
-                    f"<small style='color:#64748B;'>TSU Empresa</small><br>"
-                    f"<b style='color:#EF4444;'>€{tot_tsu_e:,.2f}</b></div>"
+                    f"<small style='color:{THEME['text_secondary']};'>TSU Empresa</small><br>"
+                    f"<b style='color:{THEME['error']};'>€{tot_tsu_e:,.2f}</b></div>"
                     f"<div style='text-align:center;'>"
-                    f"<small style='color:#64748B;'>Custo Total RH</small><br>"
-                    f"<b style='color:#F59E0B;"
+                    f"<small style='color:{THEME['text_secondary']};'>Custo Total RH</small><br>"
+                    f"<b style='color:{THEME['warning']};"
                     f"font-size:1.1rem;'>€{tot_custo:,.2f}</b></div>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -1183,7 +1207,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    f"📥 Exportar Mapa {mes_mapa} {ano_mapa}",
+                    f"Exportar Mapa {mes_mapa} {ano_mapa}",
                     data=csv_mapa.encode('utf-8-sig'),
                     file_name=(
                         f"mapa_remuneracoes_"
@@ -1197,7 +1221,7 @@ def render_fat_rh(obras_db, registos_db, *_):
     # TAB — RECIBOS DE VENCIMENTO
     # ════════════════════════════════════════════════════════════════
     with t_recibos:
-        st.markdown("### 📄 Recibos de Vencimento")
+        st.markdown("### Recibos de Vencimento")
 
         col_r1, col_r2 = st.columns(2)
         with col_r1:
@@ -1213,12 +1237,12 @@ def render_fat_rh(obras_db, registos_db, *_):
 
         mes_num_r = meses_pt.index(mes_rec) + 1
 
-        if rh_db.empty:
-            st.info("📋 Sem fichas financeiras para gerar recibos.")
+        if rh_ativos.empty:
+            st.info("Sem fichas financeiras para gerar recibos.")
         else:
             # Gerar todos em ZIP
             if st.button(
-                f"📦 Gerar Todos os Recibos — {mes_rec} {ano_rec}",
+                f"Gerar Todos os Recibos — {mes_rec} {ano_rec}",
                 key="btn_recibos_todos",
                 type="primary",
                 use_container_width=True
@@ -1227,12 +1251,12 @@ def render_fat_rh(obras_db, registos_db, *_):
                 buf_zip = io.BytesIO()
                 n_gerados = 0
                 with st.spinner(
-                    f"A gerar {len(rh_db)} recibo(s)..."
+                    f"A gerar {len(rh_ativos)} recibo(s)..."
                 ):
                     with zf.ZipFile(
                         buf_zip, 'w', zf.ZIP_DEFLATED
                     ) as zfile:
-                        for _, colab in rh_db.iterrows():
+                        for _, colab in rh_ativos.iterrows():
                             try:
                                 pdf_r = _gerar_recibo_vencimento(
                                     dict(colab),
@@ -1251,7 +1275,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                                 n_gerados += 1
                             except Exception as ex:
                                 st.warning(
-                                    f"⚠️ Erro em "
+                                    f"Erro em "
                                     f"{colab.get('Nome','')}: {ex}"
                                 )
 
@@ -1260,12 +1284,12 @@ def render_fat_rh(obras_db, registos_db, *_):
                 st.session_state['recibos_zip_nome'] = (
                     f"recibos_{mes_num_r:02d}_{ano_rec}.zip"
                 )
-                st.success(f"✅ {n_gerados} recibo(s) gerado(s)!")
+                st.success(f"{n_gerados} recibo(s) gerado(s)!")
                 st.rerun()
 
             if st.session_state.get('recibos_zip'):
                 st.download_button(
-                    f"📥 Descarregar ZIP Recibos",
+                    f"Descarregar ZIP Recibos",
                     data=st.session_state['recibos_zip'],
                     file_name=st.session_state.get(
                         'recibos_zip_nome','recibos.zip'
@@ -1277,19 +1301,19 @@ def render_fat_rh(obras_db, registos_db, *_):
                 )
 
             st.markdown("---")
-            st.markdown("#### 📄 Recibo Individual")
+            st.markdown("#### Recibo Individual")
 
             colab_sel_r = st.selectbox(
                 "Colaborador",
-                rh_db['Nome'].tolist()
-                if 'Nome' in rh_db.columns else [],
+                rh_ativos['Nome'].tolist()
+                if 'Nome' in rh_ativos.columns else [],
                 key="rec_colab_sel"
             )
 
             if colab_sel_r:
-                colab_row = rh_db[
-                    rh_db['Nome'] == colab_sel_r
-                ].iloc[0] if not rh_db.empty else None
+                colab_row = rh_ativos[
+                    rh_ativos['Nome'] == colab_sel_r
+                ].iloc[0] if not rh_ativos.empty else None
 
                 if colab_row is not None:
                     sal_prev = float(colab_row.get('Salario_Base',0) or 0)
@@ -1302,24 +1326,24 @@ def render_fat_rh(obras_db, registos_db, *_):
 
                     # Preview
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:14px;'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"{colab_sel_r}</b> — "
                         f"{mes_rec} {ano_rec}<br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Bruto: €{sal_prev:,.2f} · "
                         f"TSU: -€{lq_pr['tsu_trabalhador']:,.2f} · "
                         f"IRS: -€{lq_pr['irs']:,.2f} · "
                         f"</small>"
-                        f"<b style='color:#3B82F6;'>"
+                        f"<b style='color:{THEME['accent']};'>"
                         f"Líquido: €{lq_pr['liquido']:,.2f}</b>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
 
                     if st.button(
-                        f"📄 Gerar Recibo — {colab_sel_r}",
+                        f"Gerar Recibo — {colab_sel_r}",
                         key="btn_recibo_ind",
                         type="primary",
                         use_container_width=True
@@ -1339,7 +1363,7 @@ def render_fat_rh(obras_db, registos_db, *_):
 
                     if st.session_state.get('recibo_ind_bytes'):
                         st.download_button(
-                            "📥 Descarregar Recibo",
+                            "Descarregar Recibo",
                             data=st.session_state['recibo_ind_bytes'],
                             file_name=st.session_state.get(
                                 'recibo_ind_nome','recibo.pdf'
@@ -1353,15 +1377,15 @@ def render_fat_rh(obras_db, registos_db, *_):
     # TAB — FÉRIAS & SUBSÍDIOS
     # ════════════════════════════════════════════════════════════════
     with t_ferias:
-        st.markdown("### 🏖️ Gestão de Férias & Subsídios")
+        st.markdown("### Gestão de Férias & Subsídios")
 
         col_f1, col_f2 = st.columns([1, 2])
 
         with col_f1:
-            st.markdown("#### ➕ Marcar Férias")
+            st.markdown("#### Marcar Férias")
             with st.form("form_ferias"):
-                colab_lista_f = rh_db['Nome'].tolist() \
-                                if not rh_db.empty else []
+                colab_lista_f = rh_ativos['Nome'].tolist() \
+                                if not rh_ativos.empty else []
                 f_colab = st.selectbox(
                     "Colaborador *",
                     colab_lista_f if colab_lista_f else [""],
@@ -1384,8 +1408,8 @@ def render_fat_rh(obras_db, registos_db, *_):
                 if f_ini and f_fim and f_fim >= f_ini:
                     du = _dias_uteis(f_ini, f_fim)
                     st.markdown(
-                        f"<small style='color:#3B82F6;'>"
-                        f"📅 {du} dia(s) útil(eis)</small>",
+                        f"<small style='color:{THEME['accent']};'>"
+                        f"{du} dia(s) útil(eis)</small>",
                         unsafe_allow_html=True
                     )
 
@@ -1404,11 +1428,11 @@ def render_fat_rh(obras_db, registos_db, *_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Marcar Férias",
+                    "Marcar Férias",
                     use_container_width=True, type="primary"
                 ):
                     if not f_colab or f_fim < f_ini:
-                        st.error("❌ Dados inválidos.")
+                        st.error("Dados inválidos.")
                     else:
                         du2 = _dias_uteis(f_ini, f_fim)
                         nova_fer = pd.DataFrame([{
@@ -1428,13 +1452,13 @@ def render_fat_rh(obras_db, registos_db, *_):
                         save_db(upd_fer, "ferias_db.csv")
                         inv("ferias_db.csv")
                         st.success(
-                            f"✅ Férias marcadas para {f_colab}! "
+                            f"Férias marcadas para {f_colab}! "
                             f"{du2} dia(s)"
                         )
                         st.rerun()
 
         with col_f2:
-            st.markdown("#### 📊 Calendário de Férias")
+            st.markdown("#### Calendário de Férias")
 
             # Heatmap calendário
             fig_cal = _grafico_ferias_calendario(ferias_db, users_df)
@@ -1443,12 +1467,12 @@ def render_fat_rh(obras_db, registos_db, *_):
                     fig_cal, use_container_width=True
                 )
             else:
-                st.info("📅 Sem férias marcadas.")
+                st.info("Sem férias marcadas.")
 
             # Controlo de dias disponíveis
-            if not rh_db.empty and not ferias_db.empty:
-                st.markdown("#### 📋 Saldo de Férias")
-                for _, colab in rh_db.iterrows():
+            if not rh_ativos.empty and not ferias_db.empty:
+                st.markdown("#### Saldo de Férias")
+                for _, colab in rh_ativos.iterrows():
                     nome_c = colab.get('Nome','')
                     # Dias gozados este ano
                     fer_colab = ferias_db[
@@ -1465,34 +1489,34 @@ def render_fat_rh(obras_db, registos_db, *_):
                     dias_disponiveis = DIAS_FERIAS_ANO - dias_gozados
                     pct_fer = dias_gozados / DIAS_FERIAS_ANO * 100
 
-                    cor_fer = "#10B981" if dias_disponiveis > 10 \
-                              else "#F59E0B" if dias_disponiveis > 5 \
-                              else "#EF4444"
+                    cor_fer = THEME['success'] if dias_disponiveis > 10 \
+                              else THEME['warning'] if dias_disponiveis > 5 \
+                              else THEME['error']
 
                     # Alerta férias vencidas
                     alerta_ven = ""
                     if dias_disponiveis > 0 and \
                        date.today().month >= 10:
                         alerta_ven = (
-                            f"<span style='color:#EF4444;"
+                            f"<span style='color:{THEME['error']};"
                             f"font-size:0.72rem;'>"
-                            f"⚠️ Risco legal: férias por gozar "
+                            f"Risco legal: férias por gozar "
                             f"até final do ano</span>"
                         )
 
                     st.markdown(
                         f"<div class='rh-card' "
                         f"style='border-left-color:{cor_fer};'>"
-                        f"<b style='color:#F1F5F9;'>{nome_c}</b>"
+                        f"<b style='color:{THEME['text']};'>{nome_c}</b>"
                         f"<span style='float:right;color:{cor_fer};"
                         f"font-weight:700;'>"
                         f"{dias_disponiveis} dias disponíveis</span><br>"
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['background']};"
                         f"border-radius:4px;height:6px;margin:6px 0;'>"
                         f"<div style='background:{cor_fer};"
                         f"width:{pct_fer:.0f}%;height:6px;"
                         f"border-radius:4px;'></div></div>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Gozados: {dias_gozados} / "
                         f"{DIAS_FERIAS_ANO} dias · "
                         f"{pct_fer:.0f}%</small><br>"
@@ -1502,7 +1526,7 @@ def render_fat_rh(obras_db, registos_db, *_):
 
         # Subsídios
         st.markdown("---")
-        st.markdown("#### 💰 Subsídios de Férias e Natal")
+        st.markdown("#### Subsídios de Férias e Natal")
         st.info(
             f"Sub. Férias — pago normalmente em **junho**, "
             f"antes das férias. "
@@ -1510,7 +1534,7 @@ def render_fat_rh(obras_db, registos_db, *_):
             f"Valor de cada um: 1 mês de salário base."
         )
 
-        if not rh_db.empty:
+        if not rh_ativos.empty:
             mes_sub = st.selectbox(
                 "Calcular para mês",
                 ["Junho (Sub. Férias)","Dezembro (Sub. Natal)"],
@@ -1518,18 +1542,18 @@ def render_fat_rh(obras_db, registos_db, *_):
             )
             col_sub1, col_sub2 = st.columns(2)
             total_sub = 0.0
-            for _, colab in rh_db.iterrows():
+            for _, colab in rh_ativos.iterrows():
                 sal_s = float(colab.get('Salario_Base',0) or 0)
                 total_sub += sal_s
 
             with col_sub1:
                 st.metric(
-                    f"💰 Total {mes_sub[:5]}",
+                    f"Total {mes_sub[:5]}",
                     f"€{total_sub:,.2f}"
                 )
             with col_sub2:
                 st.metric(
-                    "📅 Data de Pagamento",
+                    "Data de Pagamento",
                     "Junho" if "Férias" in mes_sub else "20 Dezembro"
                 )
 
@@ -1537,32 +1561,32 @@ def render_fat_rh(obras_db, registos_db, *_):
     # TAB — PROVISÕES
     # ════════════════════════════════════════════════════════════════
     with t_prov:
-        st.markdown("### 📊 Provisões Obrigatórias")
+        st.markdown("### Provisões Obrigatórias")
         st.info(
             "As provisões são reservas mensais para fazer face "
             "às obrigações futuras — subsídios, TSU, seguros. "
             "Devem ser contabilizadas todos os meses."
         )
 
-        if rh_db.empty:
-            st.info("📋 Sem fichas para calcular provisões.")
+        if rh_ativos.empty:
+            st.info("Sem fichas para calcular provisões.")
         else:
             col_pv1, col_pv2 = st.columns(2)
             with col_pv1:
                 st.plotly_chart(
                     _grafico_provisoes_acumuladas(
-                        rh_db, mes_atual, ano_atual
+                        rh_ativos, mes_atual, ano_atual
                     ),
                     use_container_width=True
                 )
             with col_pv2:
                 # Resumo provisões do mês
-                st.markdown("#### 📋 Provisões do Mês Atual")
+                st.markdown("#### Provisões do Mês Atual")
                 total_prov_m  = 0.0
                 total_tsu_emp = 0.0
                 total_seg_a   = 0.0
 
-                for _, colab in rh_db.iterrows():
+                for _, colab in rh_ativos.iterrows():
                     sal = float(colab.get('Salario_Base',0) or 0)
                     c   = _custo_real(sal)
                     total_prov_m  += c['sub_ferias_prov'] + \
@@ -1572,10 +1596,10 @@ def render_fat_rh(obras_db, registos_db, *_):
                                      c['fct'] + c['fgct']
 
                 provisoes_lista = [
-                    ("📅 Sub. Férias (1/12)",   total_prov_m/2, "#8B5CF6"),
-                    ("🎄 Sub. Natal (1/12)",    total_prov_m/2, "#3B82F6"),
-                    ("🏛️ TSU Empresa (23.75%)", total_tsu_emp,  "#EF4444"),
-                    ("🛡️ Seguros+FCT",          total_seg_a,    "#F59E0B"),
+                    ("Sub. Férias (1/12)",   total_prov_m/2, THEME['accent']),
+                    ("Sub. Natal (1/12)",    total_prov_m/2, THEME['accent']),
+                    ("TSU Empresa (23.75%)", total_tsu_emp,  THEME['error']),
+                    ("Seguros+FCT",          total_seg_a,    THEME['warning']),
                 ]
                 total_prov_total = sum(v for _,v,_ in provisoes_lista)
 
@@ -1584,8 +1608,8 @@ def render_fat_rh(obras_db, registos_db, *_):
                         f"<div style='display:flex;"
                         f"justify-content:space-between;"
                         f"padding:8px 0;border-bottom:"
-                        f"1px solid #1E293B;'>"
-                        f"<span style='color:#94A3B8;'>{label}</span>"
+                        f"1px solid {THEME['border']};'>"
+                        f"<span style='color:{THEME['text_secondary']};'>{label}</span>"
                         f"<b style='color:{cor};'>&#8364;{val:.2f}</b></div>",
                         unsafe_allow_html=True
                     )
@@ -1593,10 +1617,10 @@ def render_fat_rh(obras_db, registos_db, *_):
                     f"<div style='display:flex;"
                     f"justify-content:space-between;"
                     f"padding:10px 0;border-top:"
-                    f"2px solid #334155;margin-top:4px;'>"
-                    f"<b style='color:#F1F5F9;"
+                    f"2px solid {THEME['border']};margin-top:4px;'>"
+                    f"<b style='color:{THEME['text']};"
                     f"font-size:1rem;'>TOTAL MENSAL</b>"
-                    f"<b style='color:#F59E0B;"
+                    f"<b style='color:{THEME['warning']};"
                     f"font-size:1.1rem;'>"
                     f"€{total_prov_total:,.2f}</b></div>",
                     unsafe_allow_html=True
@@ -1604,13 +1628,13 @@ def render_fat_rh(obras_db, registos_db, *_):
 
                 # Botão registar provisão
                 if st.button(
-                    f"✅ Registar Provisão — "
+                    f"Registar Provisão — "
                     f"{meses_pt[mes_atual-1]} {ano_atual}",
                     key="btn_reg_prov",
                     use_container_width=True
                 ):
                     novas_prov = []
-                    for _, colab in rh_db.iterrows():
+                    for _, colab in rh_ativos.iterrows():
                         sal = float(colab.get('Salario_Base',0) or 0)
                         c   = _custo_real(sal)
                         for tipo, val in [
@@ -1635,7 +1659,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     save_db(upd_prov, "provisoes_db.csv")
                     inv("provisoes_db.csv")
                     st.success(
-                        f"✅ Provisões de "
+                        f"Provisões de "
                         f"{meses_pt[mes_atual-1]} registadas!"
                     )
                     st.rerun()
@@ -1644,7 +1668,7 @@ def render_fat_rh(obras_db, registos_db, *_):
     # TAB — MAPA IRS/SS ANUAL
     # ════════════════════════════════════════════════════════════════
     with t_irs:
-        st.markdown("### 📋 Mapa Anual IRS / Segurança Social")
+        st.markdown("### Mapa Anual IRS / Segurança Social")
         st.info(
             "Resumo anual para declaração de rendimentos (IRS) "
             "e declaração de remunerações (SS). "
@@ -1655,11 +1679,11 @@ def render_fat_rh(obras_db, registos_db, *_):
             "Ano", min_value=2020, value=ano_atual, key="irs_ano"
         )
 
-        if rh_db.empty:
-            st.info("📋 Sem fichas financeiras.")
+        if rh_ativos.empty:
+            st.info("Sem fichas financeiras.")
         else:
             rows_irs = []
-            for _, colab in rh_db.iterrows():
+            for _, colab in rh_ativos.iterrows():
                 sal  = float(colab.get('Salario_Base',0) or 0)
                 ec   = colab.get('Estado_Civil','Solteiro(a)')
                 dep  = int(colab.get('N_Dependentes',0) or 0)
@@ -1696,7 +1720,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    f"📥 Export IRS/SS {ano_irs}",
+                    f"Export IRS/SS {ano_irs}",
                     data=csv_irs.encode('utf-8-sig'),
                     file_name=f"mapa_irs_ss_{ano_irs}.csv",
                     mime="text/csv",
@@ -1711,13 +1735,13 @@ def render_fat_rh(obras_db, registos_db, *_):
                     key="dri_mes"
                 )
                 if st.button(
-                    f"📋 Gerar DRI — {mes_dri}",
+                    f"Gerar DRI — {mes_dri}",
                     key="btn_dri",
                     use_container_width=True
                 ):
                     mes_dri_num = meses_pt.index(mes_dri) + 1
                     rows_dri    = []
-                    for _, colab in rh_db.iterrows():
+                    for _, colab in rh_ativos.iterrows():
                         sal  = float(colab.get('Salario_Base',0) or 0)
                         c    = _custo_real(sal)
                         lq_d = _liquido(sal)
@@ -1733,16 +1757,16 @@ def render_fat_rh(obras_db, registos_db, *_):
                     total_ss = sum(
                         float(colab.get('Salario_Base',0) or 0) *
                         (TSU_EMPRESA + TSU_TRABALHADOR) / 100
-                        for _, colab in rh_db.iterrows()
+                        for _, colab in rh_ativos.iterrows()
                     )
                     st.markdown(
-                        f"<div style='background:rgba(59,130,246,0.1);"
-                        f"border:1px solid #3B82F6;border-radius:8px;"
+                        f"<div style='background:rgba(14,124,134,0.08);"
+                        f"border:1px solid {THEME['accent']};border-radius:8px;"
                         f"padding:12px;margin:8px 0;'>"
-                        f"<b style='color:#3B82F6;'>"
+                        f"<b style='color:{THEME['accent']};'>"
                         f"DRI {mes_dri} {ano_irs} — "
                         f"Total SS a pagar: €{total_ss:,.2f}</b><br>"
-                        f"<small style='color:#94A3B8;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Prazo: dia 10 do mês seguinte</small>"
                         f"</div>",
                         unsafe_allow_html=True
@@ -1754,7 +1778,7 @@ def render_fat_rh(obras_db, registos_db, *_):
                         index=False, encoding='utf-8-sig'
                     )
                     st.download_button(
-                        f"📥 DRI {mes_dri} {ano_irs}",
+                        f"DRI {mes_dri} {ano_irs}",
                         data=csv_dri.encode('utf-8-sig'),
                         file_name=(
                             f"DRI_{mes_dri_num:02d}_{ano_irs}.csv"

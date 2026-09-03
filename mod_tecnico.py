@@ -6,19 +6,19 @@ from streamlit_drawable_canvas import st_canvas
 import time
 
 from core import (
-    save_db, inv, fh, sl, load_db, canvas_to_b64,
-    ICONS, COLORS, TIPOS_FRENTE, REGRAS_OURO,
+    save_db, inv, fh, load_db, canvas_to_b64,
+    COLORS, TIPOS_FRENTE, REGRAS_OURO,
     log_audit, criar_notificacao, process_and_compress_image,
-    _gcs_read, hp, _load_users_cached
+    _gcs_read, hp, _load_users_cached, THEME
 )
 
 _DOT_COLOR = {
-    "0":  "#F97316",
-    "1":  "#10B981",
-    "2":  "#3B82F6",
-    "3":  "#6B7280",
-    "4":  "#6B7280",
-    "-1": "#EF4444",
+    "0":  THEME['warning'],
+    "1":  THEME['success'],
+    "2":  THEME['accent'],
+    "3":  THEME['text_secondary'],
+    "4":  THEME['text_secondary'],
+    "-1": THEME['error'],
 }
 _DOT_LABEL = {
     "0":  "Pendente",
@@ -34,10 +34,8 @@ _DIAS_LETRA = ['D','S','T','Q','Q','S','S']
 _HORAS_30   = [f"{h:02d}:{m:02d}" for h in range(0, 24) for m in (0, 30)]
 
 
-def _load_users_fresh():
-    return _load_users_cached()
 
-
+@st.fragment
 def render_tecnico(*args):
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
@@ -53,7 +51,7 @@ def render_tecnico(*args):
                 cargo_user in ['Chefe de Equipa', 'Encarregado'])
 
     try:
-        users_fresh = _load_users_fresh()
+        users_fresh = _load_users_cached()
         user_match  = users_fresh[users_fresh['Nome'] == user_nome]
         user_data   = user_match.iloc[0]  if not user_match.empty else None
         user_idx    = user_match.index[0] if not user_match.empty else None
@@ -70,158 +68,159 @@ def render_tecnico(*args):
     for k, v in [
         ('data_consulta',      hoje),
         ('semana_offset',      0),
-        ('show_reg_form',      False),
         ('periodos_trabalho',  [{"entrada": "08:00", "saida": "17:00"}]),
     ]:
         if k not in st.session_state:
             st.session_state[k] = v
+    # Registo de horas desactivado no GestNow — usar CPS Ponto
+    st.session_state['show_reg_form'] = False
 
     # ── CSS global ────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .stApp { background:#0F172A !important; }
-    .main .block-container { padding-top:0.5rem !important; }
-    h1,h2,h3,h4,h5,h6 { color:#F1F5F9 !important; }
-    p,div,span { color:#CBD5E1; }
+    .stApp {{ background:{THEME['background']} !important; }}
+    .main .block-container {{ padding-top:0.5rem !important; }}
+    h1,h2,h3,h4,h5,h6 {{ color:{THEME['text']} !important; }}
+    p,div,span {{ color:{THEME['text']}; }}
 
     /* Tabs */
-    .stTabs [data-baseweb="tab-list"] {
-        background:#1E293B !important;
-        border-bottom:2px solid #334155 !important;
+    .stTabs [data-baseweb="tab-list"] {{
+        background:{THEME['surface']} !important;
+        border-bottom:2px solid {THEME['border']} !important;
         gap:0 !important;
-    }
-    .stTabs [data-baseweb="tab"] {
-        color:#64748B !important; font-size:0.76rem !important;
+    }}
+    .stTabs [data-baseweb="tab"] {{
+        color:{THEME['text_secondary']} !important; font-size:0.76rem !important;
         padding:10px 6px !important; background:transparent !important;
-    }
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        color:#DC2626 !important; font-weight:700 !important;
-        border-bottom:3px solid #DC2626 !important;
-    }
+    }}
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {{
+        color:{THEME['accent']} !important; font-weight:700 !important;
+        border-bottom:3px solid {THEME['accent']} !important;
+    }}
 
     /* Botões */
-    .stButton>button {
+    .stButton>button {{
         border-radius:12px !important; font-weight:600 !important;
         height:44px !important;
-    }
-    .stButton>button[kind="primary"] {
-        background:#DC2626 !important; color:white !important;
+    }}
+    .stButton>button[kind="primary"] {{
+        background:{THEME['accent']} !important; color:white !important;
         border:none !important;
-    }
-    .stButton>button[kind="secondary"] {
-        background:#1E293B !important; color:#CBD5E1 !important;
-        border:1px solid #334155 !important;
-    }
+    }}
+    .stButton>button[kind="secondary"] {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important;
+    }}
 
     /* Inputs */
     .stTextInput label,.stSelectbox label,.stNumberInput label,
-    .stTextArea label,.stRadio label,.stCheckbox label {
-        color:#CBD5E1 !important; font-size:0.82rem !important;
+    .stTextArea label,.stRadio label,.stCheckbox label {{
+        color:{THEME['text']} !important; font-size:0.82rem !important;
         font-weight:500 !important;
-    }
+    }}
     .stTextInput>div>div>input,
     .stNumberInput>div>div>input,
-    .stTextArea>div>div>textarea {
-        background:#1E293B !important; color:#F1F5F9 !important;
-        border:1px solid #334155 !important; border-radius:10px !important;
-    }
-    .stSelectbox>div>div>div {
-        background:#1E293B !important; color:#F1F5F9 !important;
-        border:1px solid #334155 !important;
-    }
+    .stTextArea>div>div>textarea {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important; border-radius:10px !important;
+    }}
+    .stSelectbox>div>div>div {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important;
+    }}
 
     /* Calendário — botões circulares */
-    [data-testid="stHorizontalBlock"] .stButton>button {
+    [data-testid="stHorizontalBlock"] .stButton>button {{
         border-radius:50% !important; padding:0 !important;
         height:38px !important; min-height:38px !important;
         width:38px !important; font-size:0.82rem !important;
         font-weight:600 !important;
-    }
+    }}
 
-    .streamlit-expanderHeader {
-        background:#1E293B !important; color:#F1F5F9 !important;
+    .streamlit-expanderHeader {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
         border-radius:10px !important;
-    }
+    }}
 
     /* Cards de ponto — estilo Meivworld */
-    .ponto-card {
-        background:#1E3A4A;
+    .ponto-card {{
+        background:{THEME['surface']};
+        border:1px solid {THEME['border']};
         border-radius:14px;
         padding:16px 18px;
         margin-bottom:10px;
-        box-shadow:0 2px 8px rgba(0,0,0,0.3);
-    }
-    .ponto-card-header {
+    }}
+    .ponto-card-header {{
         display:flex;
         justify-content:space-between;
         align-items:flex-start;
         margin-bottom:10px;
-    }
-    .ponto-card-title {
+    }}
+    .ponto-card-title {{
         font-weight:700;
-        color:#F1F5F9;
+        color:{THEME['text']};
         font-size:0.95rem;
         margin:0;
-    }
-    .ponto-card-horas {
+    }}
+    .ponto-card-horas {{
         font-weight:900;
-        color:#F1F5F9;
+        color:{THEME['text']};
         font-size:1.2rem;
-    }
-    .ponto-card-status {
+    }}
+    .ponto-card-status {{
         font-size:0.72rem;
         font-weight:600;
         padding:2px 8px;
         border-radius:10px;
         display:inline-block;
         margin-top:2px;
-    }
-    .ponto-card-grid {
+    }}
+    .ponto-card-grid {{
         display:grid;
         grid-template-columns:1fr 1fr;
         gap:6px 16px;
-        border-top:1px solid rgba(255,255,255,0.08);
+        border-top:1px solid {THEME['border']};
         padding-top:10px;
         margin-top:4px;
-    }
-    .ponto-card-label {
-        color:#64748B;
+    }}
+    .ponto-card-label {{
+        color:{THEME['text_secondary']};
         font-size:0.72rem;
         font-weight:600;
         text-transform:uppercase;
         letter-spacing:0.05em;
-    }
-    .ponto-card-value {
-        color:#CBD5E1;
+    }}
+    .ponto-card-value {{
+        color:{THEME['text']};
         font-size:0.85rem;
         font-weight:500;
-    }
-    .total-horas-bar {
+    }}
+    .total-horas-bar {{
         display:flex;
         justify-content:space-between;
         align-items:center;
         padding:12px 4px 8px;
-        border-bottom:1px solid #1E293B;
+        border-bottom:1px solid {THEME['border']};
         margin-bottom:12px;
-    }
-    .total-horas-label {
-        color:#64748B;
+    }}
+    .total-horas-label {{
+        color:{THEME['text_secondary']};
         font-size:0.82rem;
         font-weight:600;
-    }
-    .total-horas-value {
-        color:#DC2626;
+    }}
+    .total-horas-value {{
+        color:{THEME['accent']};
         font-size:1.05rem;
         font-weight:900;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── Tabs ──────────────────────────────────────────────────────
-    menu = ["📋 Pontos", "🛡️ HSE", "👤 Perfil", "📦 Pedidos"]
+    menu = ["Pontos", "HSE", "Perfil", "Pedidos"]
     if is_chefe:
-        menu.insert(1, "✅ Validar Horas")
-        menu.insert(2, "📊 Folha")
+        menu.insert(1, "Validar Horas")
+        menu.insert(2, "Folha")
     tabs = st.tabs(menu)
 
     # ════════════════════════════════════════════════════════════════
@@ -268,9 +267,9 @@ def render_tecnico(*args):
             with col_mes:
                 st.markdown(
                     f"<div style='text-align:center;padding:6px 0;'>"
-                    f"<p style='color:#F1F5F9;font-weight:700;font-size:0.88rem;"
+                    f"<p style='color:{THEME['text']};font-weight:700;font-size:0.88rem;"
                     f"margin:0 0 2px;'>Pontos</p>"
-                    f"<p style='color:#DC2626;font-weight:900;font-size:1.05rem;"
+                    f"<p style='color:{THEME['accent']};font-weight:900;font-size:1.05rem;"
                     f"margin:0;'>{mes_label} {ano_label}</p>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -288,7 +287,7 @@ def render_tecnico(*args):
                             st.markdown(
                                 f"<img src='data:image/jpeg;base64,{foto_b64}' "
                                 f"style='width:34px;height:34px;border-radius:50%;"
-                                f"object-fit:cover;border:2px solid #DC2626;"
+                                f"object-fit:cover;border:2px solid {THEME['accent']};"
                                 f"margin-top:2px;'>",
                                 unsafe_allow_html=True
                             )
@@ -300,8 +299,7 @@ def render_tecnico(*args):
             for col, d in zip(letras_cols, dias_sem):
                 with col:
                     dl    = _DIAS_LETRA[(d.weekday() + 1) % 7]
-                    fim_s = (d.weekday() + 1) % 7 in (0, 6)
-                    cor_l = "#475569" if fim_s else "#64748B"
+                    cor_l = THEME['text_secondary']
                     st.markdown(
                         f"<p style='text-align:center;color:{cor_l};"
                         f"font-size:0.6rem;font-weight:700;margin:0;"
@@ -340,22 +338,22 @@ def render_tecnico(*args):
 
             # Legenda
             st.markdown(
-                "<div style='display:flex;gap:12px;justify-content:center;"
-                "flex-wrap:wrap;margin:4px 0 8px;'>"
-                "<span style='font-size:0.62rem;color:#64748B;'>"
-                "<span style='color:#F97316;'>●</span> Pendente</span>"
-                "<span style='font-size:0.62rem;color:#64748B;'>"
-                "<span style='color:#10B981;'>●</span> Validado</span>"
-                "<span style='font-size:0.62rem;color:#64748B;'>"
-                "<span style='color:#3B82F6;'>●</span> Faturação</span>"
-                "<span style='font-size:0.62rem;color:#64748B;'>"
-                "<span style='color:#6B7280;'>●</span> Pago</span>"
-                "</div>",
+                f"<div style='display:flex;gap:12px;justify-content:center;"
+                f"flex-wrap:wrap;margin:4px 0 8px;'>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'>"
+                f"<span style='color:{THEME['warning']};'>●</span> Pendente</span>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'>"
+                f"<span style='color:{THEME['success']};'>●</span> Validado</span>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'>"
+                f"<span style='color:{THEME['accent']};'>●</span> Faturação</span>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'>"
+                f"<span style='color:{THEME['text_secondary']};'>●</span> Pago</span>"
+                f"</div>",
                 unsafe_allow_html=True
             )
 
             st.markdown(
-                "<hr style='border:none;border-top:1px solid #1E293B;margin:4px 0 10px;'>",
+                f"<hr style='border:none;border-top:1px solid {THEME['border']};margin:4px 0 10px;'>",
                 unsafe_allow_html=True
             )
 
@@ -368,9 +366,9 @@ def render_tecnico(*args):
             # Linha: data + botão ＋
             col_data, col_fab = st.columns([4, 1])
             with col_data:
-                prefix = "📍 Hoje" if eh_hoje_sel else dia_letra
+                prefix = "Hoje" if eh_hoje_sel else dia_letra
                 st.markdown(
-                    f"<p style='color:#F1F5F9;font-weight:700;"
+                    f"<p style='color:{THEME['text']};font-weight:700;"
                     f"font-size:0.92rem;margin:0;'>"
                     f"{prefix}, {data_sel.day} de {mes_nome}</p>",
                     unsafe_allow_html=True
@@ -378,12 +376,17 @@ def render_tecnico(*args):
             with col_fab:
                 if st.button("＋", key="fab_btn", type="primary",
                              use_container_width=True):
-                    st.session_state.show_reg_form    = True
-                    st.session_state.periodos_trabalho = [{"entrada": "08:00",
-                                                           "saida":   "17:00"}]
+                    st.session_state['_pt_redirect_msg'] = True
                     st.rerun()
 
             st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+
+            if st.session_state.pop('_pt_redirect_msg', False):
+                st.info("O registo de horas é feito na **CPS Ponto**.")
+                st.link_button(
+                    "Abrir CPS Ponto",
+                    "https://cps-ponto-773461449136.europe-west1.run.app",
+                    use_container_width=True, type="primary")
 
             # Carregar registos do dia
             regs_dia = pd.DataFrame()
@@ -417,7 +420,7 @@ def render_tecnico(*args):
                 # ── Cards de ponto — estilo Meivworld ─────────
                 for _, r in regs_dia.iterrows():
                     s_str   = str(r.get('Status', '0'))
-                    dot_c   = _DOT_COLOR.get(s_str, '#6B7280')
+                    dot_c   = _DOT_COLOR.get(s_str, THEME['text_secondary'])
                     dot_l   = _DOT_LABEL.get(s_str, 'Pendente')
                     turnos  = str(r.get('Turnos', ''))
                     obra    = str(r.get('Obra', ''))
@@ -490,8 +493,8 @@ def render_tecnico(*args):
 
                         # Relatorio se existir
                         + (
-                            f"<p style='color:#475569;font-size:0.73rem;"
-                            f"margin:8px 0 0;border-top:1px solid rgba(255,255,255,0.06);"
+                            f"<p style='color:{THEME['text_secondary']};font-size:0.73rem;"
+                            f"margin:8px 0 0;border-top:1px solid {THEME['border']};"
                             f"padding-top:6px;'>{relat}</p>"
                             if relat else ""
                         ) +
@@ -503,12 +506,12 @@ def render_tecnico(*args):
             else:
                 # Estado vazio — estilo Meivworld
                 st.markdown(
-                    "<div style='text-align:center;padding:50px 20px 40px;'>"
-                    "<div style='font-size:3.5rem;margin-bottom:12px;"
-                    "opacity:0.25;'>📋</div>"
-                    "<p style='color:#475569;font-weight:600;margin:0;"
-                    "font-size:0.9rem;'>Sem ponto registado neste dia</p>"
-                    "</div>",
+                    f"<div style='text-align:center;padding:50px 20px 40px;'>"
+                    f"<div style='font-size:3.5rem;margin-bottom:12px;"
+                    f"opacity:0.25;'></div>"
+                    f"<p style='color:{THEME['text_secondary']};font-weight:600;margin:0;"
+                    f"font-size:0.9rem;'>Sem ponto registado neste dia</p>"
+                    f"</div>",
                     unsafe_allow_html=True
                 )
 
@@ -524,31 +527,31 @@ def render_tecnico(*args):
                 foto_html = (
                     f"<img src='data:image/jpeg;base64,{foto_b64}' "
                     f"style='width:44px;height:44px;border-radius:50%;"
-                    f"object-fit:cover;border:2px solid #DC2626;"
+                    f"object-fit:cover;border:2px solid {THEME['accent']};"
                     f"flex-shrink:0;'>"
                 )
             else:
                 cargo_abrev = str(cargo_user)[:1].upper()
                 foto_html = (
                     f"<div style='width:44px;height:44px;border-radius:50%;"
-                    f"background:#DC2626;display:flex;align-items:center;"
+                    f"background:{THEME['accent']};display:flex;align-items:center;"
                     f"justify-content:center;font-weight:900;color:white;"
                     f"font-size:1.1rem;flex-shrink:0;'>{cargo_abrev}</div>"
                 )
 
             st.markdown(
-                f"<div style='background:#1E293B;border-radius:14px;"
+                f"<div style='background:{THEME['surface']};border-radius:14px;"
                 f"padding:14px 16px;margin-bottom:14px;"
-                f"border:1px solid #334155;"
+                f"border:1px solid {THEME['border']};"
                 f"display:flex;align-items:center;gap:14px;'>"
                 f"{foto_html}"
                 f"<div style='flex:1;'>"
-                f"<p style='color:#94A3B8;font-size:0.7rem;margin:0;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.7rem;margin:0;'>"
                 f"Registo de ponto</p>"
-                f"<p style='color:#F1F5F9;font-weight:700;"
+                f"<p style='color:{THEME['text']};font-weight:700;"
                 f"font-size:0.95rem;margin:2px 0 0;'>"
                 f"{user_nome}</p>"
-                f"<p style='color:#DC2626;font-size:0.82rem;"
+                f"<p style='color:{THEME['accent']};font-size:0.82rem;"
                 f"font-weight:600;margin:1px 0 0;'>"
                 f"{data_sel.strftime('%d/%m/%Y')}</p>"
                 f"</div>"
@@ -560,10 +563,10 @@ def render_tecnico(*args):
 
                 # ── Obra ─────────────────────────────────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;"
-                    "font-weight:700;letter-spacing:0.08em;"
-                    "text-transform:uppercase;margin:0 0 6px;'>"
-                    "🏗️ Obra</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;"
+                    f"font-weight:700;letter-spacing:0.08em;"
+                    f"text-transform:uppercase;margin:0 0 6px;'>"
+                    f"Obra</p>",
                     unsafe_allow_html=True
                 )
                 obras_lista = []
@@ -585,24 +588,28 @@ def render_tecnico(*args):
                     cod = str(oi.get('Codigo', ''))
                     cli = str(oi.get('Cliente', ''))
                     if cod or cli:
+                        cod_html = (
+                            f"<p style='color:{THEME['accent']};font-size:0.72rem;"
+                            f"margin:2px 0 0;'>{cod}</p>"
+                        ) if cod else ''
                         st.markdown(
-                            f"<div style='background:#0F172A;border-radius:10px;"
+                            f"<div style='background:{THEME['border']};border-radius:10px;"
                             f"padding:10px 14px;margin:-4px 0 10px;"
-                            f"border-left:3px solid #DC2626;'>"
-                            f"<p style='color:#F1F5F9;font-weight:700;"
+                            f"border-left:3px solid {THEME['accent']};'>"
+                            f"<p style='color:{THEME['text']};font-weight:700;"
                             f"font-size:0.82rem;margin:0;'>"
                             f"{cli if cli else obra_sel}</p>"
-                            f"{'<p style=color:#DC2626;font-size:0.72rem;margin:2px 0 0;>' + cod + '</p>' if cod else ''}"
+                            f"{cod_html}"
                             f"</div>",
                             unsafe_allow_html=True
                         )
 
                 # ── Frente ────────────────────────────────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;"
-                    "font-weight:700;letter-spacing:0.08em;"
-                    "text-transform:uppercase;margin:8px 0 6px;'>"
-                    "🔧 Frente de Trabalho</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;"
+                    f"font-weight:700;letter-spacing:0.08em;"
+                    f"text-transform:uppercase;margin:8px 0 6px;'>"
+                    f"Frente de Trabalho</p>",
                     unsafe_allow_html=True
                 )
                 frente_sel = st.selectbox(
@@ -612,17 +619,17 @@ def render_tecnico(*args):
                 )
 
                 st.markdown(
-                    "<hr style='border:none;border-top:1px solid #1E293B;"
-                    "margin:12px 0;'>",
+                    f"<hr style='border:none;border-top:1px solid {THEME['border']};"
+                    f"margin:12px 0;'>",
                     unsafe_allow_html=True
                 )
 
                 # ── Períodos de trabalho ──────────────────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;"
-                    "font-weight:700;letter-spacing:0.08em;"
-                    "text-transform:uppercase;margin:0 0 8px;'>"
-                    "⏱️ Horas de Trabalho</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;"
+                    f"font-weight:700;letter-spacing:0.08em;"
+                    f"text-transform:uppercase;margin:0 0 8px;'>"
+                    f"Horas de Trabalho</p>",
                     unsafe_allow_html=True
                 )
 
@@ -634,8 +641,8 @@ def render_tecnico(*args):
                 ):
                     if idx > 0:
                         st.markdown(
-                            "<hr style='border:none;border-top:1px dashed "
-                            "#1E293B;margin:6px 0;'>",
+                            f"<hr style='border:none;border-top:1px dashed "
+                            f"{THEME['border']};margin:6px 0;'>",
                             unsafe_allow_html=True
                         )
 
@@ -673,25 +680,25 @@ def render_tecnico(*args):
                             "horas":   round(delta, 2)
                         })
                         st.markdown(
-                            f"<p style='text-align:right;color:#DC2626;"
+                            f"<p style='text-align:right;color:{THEME['accent']};"
                             f"font-weight:700;font-size:0.8rem;margin:0 0 4px;'>"
                             f"= {fh(delta)}</p>",
                             unsafe_allow_html=True
                         )
                     elif delta < 0:
-                        st.warning("⚠️ Saída antes da entrada")
+                        st.warning("Saída antes da entrada")
 
                 # Total acumulado
                 if total_horas > 0:
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin:10px 0;"
                         f"display:flex;justify-content:space-between;"
                         f"align-items:center;'>"
-                        f"<span style='color:#64748B;font-size:0.78rem;"
+                        f"<span style='color:{THEME['text_secondary']};font-size:0.78rem;"
                         f"font-weight:600;text-transform:uppercase;"
                         f"letter-spacing:0.06em;'>Total</span>"
-                        f"<span style='color:#F1F5F9;font-size:1.6rem;"
+                        f"<span style='color:{THEME['text']};font-size:1.6rem;"
                         f"font-weight:900;'>{fh(total_horas)}</span>"
                         f"</div>",
                         unsafe_allow_html=True
@@ -699,7 +706,7 @@ def render_tecnico(*args):
 
                 # Descrição
                 relatorio = st.text_area(
-                    "📝 Descrição (opcional)",
+                    "Descrição (opcional)",
                     placeholder="Ex: Montagem de instrumentos, calibração...",
                     key="reg_relat", height=70
                 )
@@ -712,17 +719,17 @@ def render_tecnico(*args):
                 col_c, col_g = st.columns(2)
                 with col_c:
                     mais_per = st.form_submit_button(
-                        "➕ Adicionar Período",
+                        "Adicionar Período",
                         use_container_width=True
                     )
                 with col_g:
                     guardar = st.form_submit_button(
-                        "💾 Guardar Ponto",
+                        "Guardar Ponto",
                         use_container_width=True,
                         type="primary"
                     )
 
-            if st.button("← Voltar", key="btn_voltar"):
+            if st.button("Voltar", key="btn_voltar"):
                 st.session_state.show_reg_form    = False
                 st.session_state.periodos_trabalho = [{"entrada": "08:00",
                                                         "saida":   "17:00"}]
@@ -736,9 +743,9 @@ def render_tecnico(*args):
 
             if guardar:
                 if total_horas <= 0:
-                    st.error("⚠️ Horas têm de ser superiores a 0.")
+                    st.error("Horas têm de ser superiores a 0.")
                 elif not obra_sel or obra_sel == "Sem obras":
-                    st.error("⚠️ Seleciona uma obra.")
+                    st.error("Seleciona uma obra.")
                 else:
                     regs_atual = (registos_db.copy()
                                   if not registos_db.empty
@@ -775,7 +782,7 @@ def render_tecnico(*args):
                         )
                     criar_notificacao(
                         destinatario="admin",
-                        titulo="📋 Novo Registo de Ponto",
+                        titulo="Novo Registo de Ponto",
                         mensagem=(f"{user_nome} registou "
                                   f"{fh(total_horas)} em {obra_sel}"),
                         tipo="info",
@@ -787,6 +794,8 @@ def render_tecnico(*args):
                                                             "saida":   "17:00"}]
                     st.session_state.data_consulta    = data_sel
                     inv("registos.csv")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
                     st.rerun()
 
     # ════════════════════════════════════════════════════════════════
@@ -800,12 +809,12 @@ def render_tecnico(*args):
         # TAB 1 — PRIMEIRA VALIDAÇÃO (Chefe de Equipa)
         # ════════════════════════════════════════════════════════
         with tabs[1]:
-            st.markdown("### ✅ Primeira Validação de Horas")
+            st.markdown("### Primeira Validação de Horas")
             st.markdown(
-                "<p style='color:#64748B;font-size:0.85rem;margin:0 0 16px;'>"
-                "Valida ou rejeita os registos de ponto da tua equipa. "
-                "Apenas registos <b style='color:#F97316;'>Pendentes</b> "
-                "são apresentados.</p>",
+                f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;margin:0 0 16px;'>"
+                f"Valida ou rejeita os registos de ponto da tua equipa. "
+                f"Apenas registos <b style='color:{THEME['warning']};'>Pendentes</b> "
+                f"são apresentados.</p>",
                 unsafe_allow_html=True
             )
 
@@ -899,55 +908,55 @@ def render_tecnico(*args):
             col_k1, col_k2, col_k3 = st.columns(3)
             with col_k1:
                 st.markdown(
-                    f"<div style='background:#1E293B;border-radius:10px;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                     f"padding:12px;text-align:center;"
-                    f"border-top:3px solid #F97316;'>"
-                    f"<p style='color:#64748B;font-size:0.72rem;"
+                    f"border-top:3px solid {THEME['warning']};'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;"
                     f"text-transform:uppercase;margin:0;'>Pendentes</p>"
-                    f"<b style='color:#F97316;font-size:1.6rem;'>"
+                    f"<b style='color:{THEME['warning']};font-size:1.6rem;'>"
                     f"{n_pend}</b>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
             with col_k2:
                 st.markdown(
-                    f"<div style='background:#1E293B;border-radius:10px;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                     f"padding:12px;text-align:center;"
-                    f"border-top:3px solid #3B82F6;'>"
-                    f"<p style='color:#64748B;font-size:0.72rem;"
+                    f"border-top:3px solid {THEME['accent']};'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;"
                     f"text-transform:uppercase;margin:0;'>Horas</p>"
-                    f"<b style='color:#3B82F6;font-size:1.6rem;'>"
+                    f"<b style='color:{THEME['accent']};font-size:1.6rem;'>"
                     f"{fh(h_pend)}</b>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
             with col_k3:
                 st.markdown(
-                    f"<div style='background:#1E293B;border-radius:10px;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                     f"padding:12px;text-align:center;"
-                    f"border-top:3px solid #8B5CF6;'>"
-                    f"<p style='color:#64748B;font-size:0.72rem;"
+                    f"border-top:3px solid {THEME['text_secondary']};'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.72rem;"
                     f"text-transform:uppercase;margin:0;'>Técnicos</p>"
-                    f"<b style='color:#8B5CF6;font-size:1.6rem;'>"
+                    f"<b style='color:{THEME['text_secondary']};font-size:1.6rem;'>"
                     f"{tec_pend}</b>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
 
             st.markdown(
-                "<hr style='border:none;border-top:1px solid #1E293B;"
-                "margin:16px 0 12px;'>",
+                f"<hr style='border:none;border-top:1px solid {THEME['border']};"
+                f"margin:16px 0 12px;'>",
                 unsafe_allow_html=True
             )
 
             if pend.empty:
                 st.markdown(
-                    "<div style='text-align:center;padding:40px 20px;'>"
-                    "<div style='font-size:3rem;margin-bottom:12px;"
-                    "opacity:0.25;'>✅</div>"
-                    "<p style='color:#475569;font-weight:600;margin:0;"
-                    "font-size:0.9rem;'>Sem registos pendentes de validação</p>"
-                    "</div>",
+                    f"<div style='text-align:center;padding:40px 20px;'>"
+                    f"<div style='font-size:3rem;margin-bottom:12px;"
+                    f"opacity:0.25;'></div>"
+                    f"<p style='color:{THEME['text_secondary']};font-weight:600;margin:0;"
+                    f"font-size:0.9rem;'>Sem registos pendentes de validação</p>"
+                    f"</div>",
                     unsafe_allow_html=True
                 )
             else:
@@ -955,14 +964,14 @@ def render_tecnico(*args):
                 col_masa1, col_masa2, col_masa3 = st.columns([2, 1, 1])
                 with col_masa1:
                     st.markdown(
-                        f"<p style='color:#94A3B8;font-size:0.82rem;"
+                        f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;"
                         f"margin:10px 0;'>"
                         f"{n_pend} registo(s) para validar</p>",
                         unsafe_allow_html=True
                     )
                 with col_masa2:
                     if st.button(
-                        "✅ Validar Todos",
+                        "Validar Todos",
                         key="val_todos",
                         use_container_width=True,
                         type="primary"
@@ -988,7 +997,7 @@ def render_tecnico(*args):
                         )
                         criar_notificacao(
                             destinatario="admin",
-                            titulo="✅ Validação em Massa",
+                            titulo="Validação em Massa",
                             mensagem=(
                                 f"{user_nome} validou "
                                 f"{len(ids_pend)} registo(s) de horas."
@@ -997,10 +1006,12 @@ def render_tecnico(*args):
                             acao_url="/admin?tab=validacoes"
                         )
                         inv("registos.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.rerun()
                 with col_masa3:
                     if st.button(
-                        "❌ Rejeitar Todos",
+                        "Rejeitar Todos",
                         key="rej_todos",
                         use_container_width=True
                     ):
@@ -1024,6 +1035,8 @@ def render_tecnico(*args):
                             ip=""
                         )
                         inv("registos.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.rerun()
 
                 st.markdown(
@@ -1047,16 +1060,16 @@ def render_tecnico(*args):
 
                     # Cabeçalho do técnico
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                         f"padding:12px 16px;margin-bottom:4px;"
-                        f"border-left:4px solid #8B5CF6;'>"
+                        f"border-left:4px solid {THEME['text_secondary']};'>"
                         f"<div style='display:flex;"
                         f"justify-content:space-between;align-items:center;'>"
-                        f"<b style='color:#F1F5F9;'>👤 {tec}</b>"
-                        f"<span style='color:#DC2626;font-weight:900;"
+                        f"<b style='color:{THEME['text']};'>{tec}</b>"
+                        f"<span style='color:{THEME['accent']};font-weight:900;"
                         f"font-size:1rem;'>{fh(total_tec)}</span>"
                         f"</div>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{n_tec} registo(s) pendente(s)</small>"
                         f"</div>",
                         unsafe_allow_html=True
@@ -1079,28 +1092,28 @@ def render_tecnico(*args):
                         col_rc, col_rv, col_rr = st.columns([5, 1, 1])
                         with col_rc:
                             st.markdown(
-                                f"<div style='background:#0F172A;"
+                                f"<div style='background:{THEME['border']};"
                                 f"border-radius:10px;padding:12px 14px;"
                                 f"margin-bottom:6px;margin-left:12px;"
-                                f"border-left:3px solid #F97316;'>"
+                                f"border-left:3px solid {THEME['warning']};'>"
                                 f"<div style='display:flex;"
                                 f"justify-content:space-between;"
                                 f"align-items:flex-start;'>"
                                 f"<div>"
-                                f"<p style='color:#F1F5F9;font-weight:700;"
+                                f"<p style='color:{THEME['text']};font-weight:700;"
                                 f"font-size:0.88rem;margin:0;'>"
                                 f"{obra_r}</p>"
-                                f"<p style='color:#64748B;font-size:0.75rem;"
+                                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
                                 f"margin:2px 0 0;'>"
                                 f"{frente} · {turnos} · {data_r}</p>"
                                 + (
-                                    f"<p style='color:#475569;"
+                                    f"<p style='color:{THEME['text_secondary']};"
                                     f"font-size:0.72rem;margin:3px 0 0;'>"
                                     f"{relat}</p>"
                                     if relat else ""
                                 ) +
                                 f"</div>"
-                                f"<b style='color:#F1F5F9;"
+                                f"<b style='color:{THEME['text']};"
                                 f"font-size:1rem;white-space:nowrap;"
                                 f"margin-left:12px;'>"
                                 f"{fh(horas)}</b>"
@@ -1109,7 +1122,7 @@ def render_tecnico(*args):
                             )
                         with col_rv:
                             if st.button(
-                                "✅",
+                                "",
                                 key=f"val_{rid}",
                                 use_container_width=True,
                                 help="Validar este registo"
@@ -1132,7 +1145,7 @@ def render_tecnico(*args):
                                 )
                                 criar_notificacao(
                                     destinatario=tec,
-                                    titulo="✅ Horas Validadas",
+                                    titulo="Horas Validadas",
                                     mensagem=(
                                         f"O teu registo de {fh(horas)} "
                                         f"em {obra_r} ({data_r}) "
@@ -1142,10 +1155,12 @@ def render_tecnico(*args):
                                     acao_url="/"
                                 )
                                 inv("registos.csv")
+                                from core import _cached_load_all
+                                _cached_load_all.clear()
                                 st.rerun()
                         with col_rr:
                             if st.button(
-                                "❌",
+                                "",
                                 key=f"rej_{rid}",
                                 use_container_width=True,
                                 help="Rejeitar este registo"
@@ -1168,7 +1183,7 @@ def render_tecnico(*args):
                                 )
                                 criar_notificacao(
                                     destinatario=tec,
-                                    titulo="❌ Horas Rejeitadas",
+                                    titulo="Horas Rejeitadas",
                                     mensagem=(
                                         f"O teu registo de {fh(horas)} "
                                         f"em {obra_r} ({data_r}) "
@@ -1179,6 +1194,8 @@ def render_tecnico(*args):
                                     acao_url="/"
                                 )
                                 inv("registos.csv")
+                                from core import _cached_load_all
+                                _cached_load_all.clear()
                                 st.rerun()
 
                     st.markdown(
@@ -1190,7 +1207,7 @@ def render_tecnico(*args):
         # TAB 2 — FOLHA DE PONTO (Chefe)
         # ════════════════════════════════════════════════════
         with tabs[2]:
-            st.markdown("### 📊 Folha de Ponto")
+            st.markdown("### Folha de Ponto")
             st.info("Seleciona a obra e o período para gerar a folha assinada.")
 
             obra_f = st.selectbox(
@@ -1231,12 +1248,12 @@ def render_tecnico(*args):
                             rt['Horas_Total'], errors='coerce'
                         ).fillna(0).sum()
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:10px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                             f"padding:12px 16px;margin-bottom:8px;'>"
-                            f"<b style='color:#F1F5F9;'>👤 {tec}</b>"
-                            f"<span style='float:right;color:#DC2626;"
+                            f"<b style='color:{THEME['text']};'>{tec}</b>"
+                            f"<span style='float:right;color:{THEME['accent']};"
                             f"font-weight:900;'>{fh(total)}</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{len(rt)} dia(s)</small>"
                             f"</div>",
                             unsafe_allow_html=True
@@ -1246,7 +1263,7 @@ def render_tecnico(*args):
                         "Nome do Responsável", key="fp_resp"
                     )
                     if st.button(
-                        "🔒 Gerar Folha com Selo",
+                        "Gerar Folha com Selo",
                         use_container_width=True,
                         type="primary"
                     ):
@@ -1268,21 +1285,23 @@ def render_tecnico(*args):
                             upd = (pd.concat([folhas_db, nova], ignore_index=True)
                                    if not folhas_db.empty else nova)
                             save_db(upd, "folhas_ponto.csv")
-                            st.success(f"✅ Folha #{selo} gerada — {ts}")
+                            st.success(f"Folha #{selo} gerada — {ts}")
                             inv("folhas_ponto.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                         else:
-                            st.warning("⚠️ Indica o nome do responsável.")
+                            st.warning("Indica o nome do responsável.")
                 else:
                     st.info("Sem registos para este período.")
 
     # ── Tab HSE ───────────────────────────────────────────────────
     with tabs[1 + offset]:
-        st.markdown("### 🛡️ Segurança HSE")
-        for ic, tit, des in REGRAS_OURO:
-            with st.expander(f"{ic} {tit}"):
+        st.markdown("### Segurança HSE")
+        for tit, des in REGRAS_OURO:
+            with st.expander(tit):
                 st.write(des)
         st.divider()
-        st.markdown("### 🚨 Reportar Incidente")
+        st.markdown("### Reportar Incidente")
         with st.form("hse_form"):
             o_hse = st.selectbox(
                 "Obra",
@@ -1297,7 +1316,7 @@ def render_tecnico(*args):
             )
             d_hse = st.text_area("Descrição", key="hse_desc")
             if st.form_submit_button(
-                "📤 Submeter",
+                "Submeter",
                 use_container_width=True,
                 type="primary"
             ):
@@ -1316,26 +1335,28 @@ def render_tecnico(*args):
                            if not incs_db.empty else ni)
                     save_db(upd, "incidentes.csv")
                     inv("incidentes.csv")
-                    st.success("✅ Alerta HSE enviado!")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
+                    st.success("Alerta HSE enviado!")
                     st.rerun()
                 else:
-                    st.warning("⚠️ Descreve o incidente.")
+                    st.warning("Descreve o incidente.")
 
     # ── Tab Perfil ────────────────────────────────────────────────
     with tabs[-2]:
-        st.markdown("### 👤 Perfil")
+        st.markdown("### Perfil")
         if user_data is not None:
             col_v1, col_v2 = st.columns(2)
             with col_v1:
                 pv  = user_data.get('PDFs_Validados', 'Não')
                 pvd = user_data.get('PDFs_Validacao_Data', '')
-                cp_ = "#10B981" if pv == 'Sim' else "#EF4444"
+                cp_ = THEME['success'] if pv == 'Sim' else THEME['error']
                 st.markdown(
-                    f"<div style='background:#1E293B;border:2px solid {cp_};"
+                    f"<div style='background:{THEME['surface']};border:2px solid {cp_};"
                     f"border-radius:10px;padding:12px;text-align:center;'>"
                     f"<b style='color:{cp_};'>"
-                    f"{'✅' if pv=='Sim' else '❌'} Documentos</b>"
-                    f"<p style='color:#64748B;font-size:0.73rem;margin:5px 0 0;'>"
+                    f"Documentos</b>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.73rem;margin:5px 0 0;'>"
                     f"{'Em ' + pvd if pv=='Sim' else 'Pendentes'}</p>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -1344,15 +1365,14 @@ def render_tecnico(*args):
                 ps  = user_data.get('PrecoHoraStatus', '')
                 pv_ = user_data.get('PrecoHora', '15.0')
                 pd_ = user_data.get('PrecoHoraData', '')
-                cp2 = ("#10B981" if ps == 'Aceite'
-                       else "#EF4444" if ps == 'Recusado'
-                       else "#F59E0B")
-                ic_ = "✅" if ps == 'Aceite' else "❌" if ps == 'Recusado' else "⏳"
+                cp2 = (THEME['success'] if ps == 'Aceite'
+                       else THEME['error'] if ps == 'Recusado'
+                       else THEME['warning'])
                 st.markdown(
-                    f"<div style='background:#1E293B;border:2px solid {cp2};"
+                    f"<div style='background:{THEME['surface']};border:2px solid {cp2};"
                     f"border-radius:10px;padding:12px;text-align:center;'>"
-                    f"<b style='color:{cp2};'>{ic_} \u20AC{pv_}/h</b>"
-                    f"<p style='color:#64748B;font-size:0.73rem;margin:5px 0 0;'>"
+                    f"<b style='color:{cp2};'>\u20AC{pv_}/h</b>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.73rem;margin:5px 0 0;'>"
                     f"{'Aceite em ' + pd_ if ps=='Aceite' else ps if ps else 'Pendente'}"
                     f"</p></div>",
                     unsafe_allow_html=True
@@ -1371,14 +1391,14 @@ def render_tecnico(*args):
             )
             if perfil_incompleto:
                 st.markdown(
-                    "<div style='background:rgba(245,158,11,0.12);"
-                    "border-left:4px solid #F59E0B;border-radius:10px;"
-                    "padding:12px 16px;margin-bottom:14px;'>"
-                    "<b style='color:#FCD34D;'>⚠️ Perfil incompleto</b>"
-                    "<p style='color:#94A3B8;font-size:0.82rem;margin:4px 0 0;'>"
-                    "Por favor preenche os teus dados pessoais e profissionais "
-                    "para activar a tua conta.</p>"
-                    "</div>",
+                    f"<div style='background:{THEME['warning']}1F;"
+                    f"border-left:4px solid {THEME['warning']};border-radius:10px;"
+                    f"padding:12px 16px;margin-bottom:14px;'>"
+                    f"<b style='color:{THEME['warning']};'>Perfil incompleto</b>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;margin:4px 0 0;'>"
+                    f"Por favor preenche os teus dados pessoais e profissionais "
+                    f"para activar a tua conta.</p>"
+                    f"</div>",
                     unsafe_allow_html=True
                 )
 
@@ -1386,9 +1406,9 @@ def render_tecnico(*args):
 
                 # ── Secção 1: Dados Pessoais ──────────────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
-                    "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
-                    "👤 Dados Pessoais</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
+                    f"text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
+                    f"Dados Pessoais</p>",
                     unsafe_allow_html=True
                 )
                 c1, c2 = st.columns(2)
@@ -1420,16 +1440,16 @@ def render_tecnico(*args):
                     )
 
                 st.markdown(
-                    "<hr style='border:none;border-top:1px solid #1E293B;"
-                    "margin:10px 0;'>",
+                    f"<hr style='border:none;border-top:1px solid {THEME['border']};"
+                    f"margin:10px 0;'>",
                     unsafe_allow_html=True
                 )
 
                 # ── Secção 2: Morada ──────────────────────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
-                    "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
-                    "🏠 Morada</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
+                    f"text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
+                    f"Morada</p>",
                     unsafe_allow_html=True
                 )
                 mor_ = st.text_input(
@@ -1458,16 +1478,16 @@ def render_tecnico(*args):
                     )
 
                 st.markdown(
-                    "<hr style='border:none;border-top:1px solid #1E293B;"
-                    "margin:10px 0;'>",
+                    f"<hr style='border:none;border-top:1px solid {THEME['border']};"
+                    f"margin:10px 0;'>",
                     unsafe_allow_html=True
                 )
 
                 # ── Secção 3: Contacto de Emergência ─────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
-                    "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
-                    "🚨 Contacto de Emergência</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
+                    f"text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
+                    f"Contacto de Emergência</p>",
                     unsafe_allow_html=True
                 )
                 c6, c7 = st.columns(2)
@@ -1490,16 +1510,16 @@ def render_tecnico(*args):
                     )
 
                 st.markdown(
-                    "<hr style='border:none;border-top:1px solid #1E293B;"
-                    "margin:10px 0;'>",
+                    f"<hr style='border:none;border-top:1px solid {THEME['border']};"
+                    f"margin:10px 0;'>",
                     unsafe_allow_html=True
                 )
 
                 # ── Secção 4: Segurança ───────────────────────
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
-                    "text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
-                    "🔐 Segurança</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
+                    f"text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px;'>"
+                    f"Segurança</p>",
                     unsafe_allow_html=True
                 )
                 c8, c9 = st.columns(2)
@@ -1512,25 +1532,25 @@ def render_tecnico(*args):
                         "Nova password", type="password", key="p_pn"
                     )
                 pin_ = st.text_input(
-                    "🔢 Novo PIN (4 dígitos)",
+                    "Novo PIN (4 dígitos)",
                     max_chars=4, key="p_pin", placeholder="0000"
                 )
 
                 st.markdown(
-                    "<div style='background:rgba(59,130,246,0.08);"
-                    "border-radius:8px;padding:10px 14px;margin:8px 0;'>"
-                    "<p style='color:#64748B;font-size:0.75rem;margin:0;'>"
-                    "🔒 Nome, Tipo, Cargo e IBAN são geridos pelo Administrador."
-                    "</p></div>",
+                    f"<div style='background:{THEME['accent']}14;"
+                    f"border-radius:8px;padding:10px 14px;margin:8px 0;'>"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;margin:0;'>"
+                    f"Nome, Tipo, Cargo e IBAN são geridos pelo Administrador."
+                    f"</p></div>",
                     unsafe_allow_html=True
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Perfil",
+                    "Guardar Perfil",
                     use_container_width=True,
                     type="primary"
                 ):
-                    ul = _load_users_fresh()
+                    ul = _load_users_cached()
                     if not ul.empty:
                         m = ul['Nome'] == user_nome
                         if m.any():
@@ -1556,19 +1576,19 @@ def render_tecnico(*args):
                                 from core import cp as chk
                                 ph = str(ul.loc[m, 'Password'].values[0])
                                 if chk(pa_.strip(), ph):
-                                    if len(pn_.strip()) >= 4:
+                                    if len(pn_.strip()) >= 8:
                                         ul.loc[m, 'Password'] = hp(pn_.strip())
-                                        st.success("🔐 Password atualizada!")
+                                        st.success("Password atualizada!")
                                     else:
-                                        st.error("❌ Mínimo 4 caracteres.")
+                                        st.error("Mínimo 8 caracteres.")
                                 else:
-                                    st.error("❌ Password atual incorreta.")
+                                    st.error("Password atual incorreta.")
                             if pin_.strip():
                                 if (len(pin_.strip()) == 4
                                         and pin_.strip().isdigit()):
-                                    ul.loc[m, 'PIN'] = pin_.strip()
+                                    ul.loc[m, 'PIN'] = hp(pin_.strip())
                                 else:
-                                    st.error("❌ PIN: 4 dígitos numéricos.")
+                                    st.error("PIN: 4 dígitos numéricos.")
                             save_db(ul, "usuarios.csv")
                             log_audit(
                                 usuario=user_nome,
@@ -1579,29 +1599,31 @@ def render_tecnico(*args):
                                 ip=""
                             )
                             inv("usuarios.csv")
-                            st.success("✅ Perfil atualizado!")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
+                            st.success("Perfil atualizado!")
                             st.rerun()
 
             # ── Contrato ──────────────────────────────────────
             st.markdown("---")
-            st.markdown("#### 📄 Contrato de Trabalho")
+            st.markdown("#### Contrato de Trabalho")
 
             ct_enviado  = user_data.get('Contrato_Enviado', '')  == 'Sim'
             ct_assinado = user_data.get('Contrato_Assinado', '') == 'Sim'
             ct_validado = user_data.get('Contrato_Validado_Admin', '') == 'Sim'
 
             if ct_validado:
-                st.success("✅ Contrato assinado e validado pela empresa.")
+                st.success("Contrato assinado e validado pela empresa.")
             elif ct_assinado:
-                st.info("⏳ Assinatura submetida — aguarda validação do RH.")
+                st.info("Assinatura submetida — aguarda validação do RH.")
             elif ct_enviado:
-                st.info("📄 O teu contrato está disponível para assinar.")
+                st.info("O teu contrato está disponível para assinar.")
                 ct_b64 = user_data.get('Contrato_b64', '')
                 if ct_b64:
                     try:
                         ct_bytes = base64.b64decode(ct_b64)
                         st.download_button(
-                            "📥 Descarregar Contrato para Assinar",
+                            "Descarregar Contrato para Assinar",
                             data=ct_bytes,
                             file_name=(
                                 f"contrato_{user_nome.replace(' ', '_')}.docx"
@@ -1614,26 +1636,26 @@ def render_tecnico(*args):
                         st.error("Erro ao processar o contrato.")
 
                 st.markdown(
-                    "<div style='background:rgba(59,130,246,0.1);"
-                    "border-radius:10px;padding:14px;margin:12px 0;"
-                    "border-left:3px solid #3B82F6;'>"
-                    "<p style='color:#93C5FD;font-size:0.85rem;margin:0;'>"
-                    "📋 <b>Instruções:</b><br>"
-                    "1. Descarrega o contrato acima<br>"
-                    "2. Imprime e assina à mão<br>"
-                    "3. Fotografa ou digitaliza<br>"
-                    "4. Faz upload abaixo</p></div>",
+                    f"<div style='background:{THEME['accent']}1A;"
+                    f"border-radius:10px;padding:14px;margin:12px 0;"
+                    f"border-left:3px solid {THEME['accent']};'>"
+                    f"<p style='color:{THEME['accent']};font-size:0.85rem;margin:0;'>"
+                    f"<b>Instruções:</b><br>"
+                    f"1. Descarrega o contrato acima<br>"
+                    f"2. Imprime e assina à mão<br>"
+                    f"3. Fotografa ou digitaliza<br>"
+                    f"4. Faz upload abaixo</p></div>",
                     unsafe_allow_html=True
                 )
 
                 ficheiro_assin = st.file_uploader(
-                    "📤 Upload do contrato assinado (foto/PDF)",
+                    "Upload do contrato assinado (foto/PDF)",
                     type=["jpg", "jpeg", "png", "pdf"],
                     key="colab_ct_upload"
                 )
                 if ficheiro_assin:
                     if st.button(
-                        "✅ Submeter assinatura",
+                        "Submeter assinatura",
                         key="btn_submeter_assin",
                         type="primary",
                         use_container_width=True
@@ -1641,7 +1663,7 @@ def render_tecnico(*args):
                         f_b64 = base64.b64encode(
                             ficheiro_assin.read()
                         ).decode()
-                        u_ct  = _load_users_fresh()
+                        u_ct  = _load_users_cached()
                         mask  = u_ct['Nome'] == user_nome
                         if mask.any():
                             u_ct.loc[mask, 'Contrato_Assinado']        = 'Sim'
@@ -1652,7 +1674,7 @@ def render_tecnico(*args):
                             save_db(u_ct, "usuarios.csv")
                             criar_notificacao(
                                 destinatario="admin",
-                                titulo="✍️ Contrato Assinado",
+                                titulo="Contrato Assinado",
                                 mensagem=(f"{user_nome} submeteu "
                                           "o contrato assinado."),
                                 tipo="success",
@@ -1667,22 +1689,24 @@ def render_tecnico(*args):
                                 ip=""
                             )
                             inv("usuarios.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                             st.success(
-                                "✅ Assinatura submetida! O RH será notificado."
+                                "Assinatura submetida! O RH será notificado."
                             )
                             time.sleep(1)
                             st.rerun()
             else:
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.85rem;'>"
-                    "⏳ Contrato ainda não disponível. "
-                    "Será notificado quando estiver pronto.</p>",
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;'>"
+                    f"Contrato ainda não disponível. "
+                    f"Será notificado quando estiver pronto.</p>",
                     unsafe_allow_html=True
                 )
 
             # ── Histórico de Diárias ──────────────────────────
             st.markdown("---")
-            st.markdown("#### 💶 Histórico de Diárias")
+            st.markdown("#### Histórico de Diárias")
             try:
                 diarias_hist = load_db("diarias_pagamentos.csv", [
                     "ID", "Semana_Inicio", "Semana_Fim", "Técnico",
@@ -1698,7 +1722,7 @@ def render_tecnico(*args):
                             meus_pag['Valor_Total'], errors='coerce'
                         ).fillna(0).sum()
                         st.markdown(
-                            f"<p style='color:#10B981;font-weight:700;'>"
+                            f"<p style='color:{THEME['success']};font-weight:700;'>"
                             f"Total recebido: \u20AC {total_recebido:.2f}</p>",
                             unsafe_allow_html=True
                         )
@@ -1706,17 +1730,17 @@ def render_tecnico(*args):
                             col_di, col_dr = st.columns([4, 1])
                             with col_di:
                                 st.markdown(
-                                    f"<div style='background:#1E293B;"
+                                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                     f"border-radius:8px;padding:10px;"
                                     f"margin-bottom:5px;'>"
-                                    f"<b style='color:#F1F5F9;font-size:0.85rem;'>"
+                                    f"<b style='color:{THEME['text']};font-size:0.85rem;'>"
                                     f"{dp.get('Semana_Inicio','')} — "
                                     f"{dp.get('Semana_Fim','')}</b>"
-                                    f"<span style='float:right;color:#10B981;"
+                                    f"<span style='float:right;color:{THEME['success']};"
                                     f"font-weight:700;'>"
                                     f"\u20AC {float(dp.get('Valor_Total',0)):.2f}"
                                     f"</span><br>"
-                                    f"<small style='color:#64748B;'>"
+                                    f"<small style='color:{THEME['text_secondary']};'>"
                                     f"{dp.get('Obras','')} · "
                                     f"{dp.get('Dias_Total','')} dia(s) · "
                                     f"{dp.get('Status','')}</small>"
@@ -1728,7 +1752,7 @@ def render_tecnico(*args):
                                 if rec:
                                     try:
                                         st.download_button(
-                                            "📄",
+                                            "",
                                             data=base64.b64decode(rec),
                                             file_name=(
                                                 f"recibo_"
@@ -1748,14 +1772,14 @@ def render_tecnico(*args):
             except:
                 st.info("Módulo de diárias não disponível.")
         else:
-            st.warning("⚠️ Não foi possível carregar os dados.")
+            st.warning("Não foi possível carregar os dados.")
 
     # ── Tab Pedidos ───────────────────────────────────────────────
     with tabs[-1]:
-        st.markdown("### 📦 Pedidos")
+        st.markdown("### Pedidos")
         s1, s2, s3, s4, s5, s6 = st.tabs([
-            "🔧 Ferramentas", "🦺 EPIs", "📦 Materiais",
-            "⛽ Gasóleo", "🔧 Avarias", "📋 Os Meus"
+            "Ferramentas", "EPIs", "Materiais",
+            "Gasóleo", "Avarias", "Os Meus"
         ])
 
         def _notif(t, m):
@@ -1782,7 +1806,7 @@ def render_tecnico(*args):
                     type=["png", "jpg", "jpeg"], key="ff_f"
                 )
                 if st.form_submit_button(
-                    "📤 Enviar",
+                    "Enviar",
                     use_container_width=True, type="primary"
                 ):
                     if d_:
@@ -1797,10 +1821,13 @@ def render_tecnico(*args):
                         upd = (pd.concat([req_fer_db, n], ignore_index=True)
                                if not req_fer_db.empty else n)
                         save_db(upd, "req_ferramentas.csv")
-                        _notif("🔧 Ferramenta", f"{user_nome}: {d_[:40]}")
-                        inv("req_ferramentas.csv"); st.success("✅"); st.rerun()
+                        _notif("Ferramenta", f"{user_nome}: {d_[:40]}")
+                        inv("req_ferramentas.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        st.success(""); st.rerun()
                     else:
-                        st.warning("⚠️ Descreve a ferramenta.")
+                        st.warning("Descreve a ferramenta.")
 
         with s2:
             with st.form("fe"):
@@ -1824,7 +1851,7 @@ def render_tecnico(*args):
                 with c2_:
                     q_ = st.number_input("Qtd", min_value=1, value=1, key="fe_q")
                 if st.form_submit_button(
-                    "📤 Enviar",
+                    "Enviar",
                     use_container_width=True, type="primary"
                 ):
                     n = pd.DataFrame([{
@@ -1837,8 +1864,11 @@ def render_tecnico(*args):
                     upd = (pd.concat([req_epi_db, n], ignore_index=True)
                            if not req_epi_db.empty else n)
                     save_db(upd, "req_epis.csv")
-                    _notif("🦺 EPI", f"{user_nome}: {q_}x {i_}")
-                    inv("req_epis.csv"); st.success("✅"); st.rerun()
+                    _notif("EPI", f"{user_nome}: {q_}x {i_}")
+                    inv("req_epis.csv")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
+                    st.success(""); st.rerun()
 
         with s3:
             with st.form("fm"):
@@ -1860,7 +1890,7 @@ def render_tecnico(*args):
                     "Urgência", ["Baixa", "Média", "Alta"], key="fm_ug"
                 )
                 if st.form_submit_button(
-                    "📤 Enviar",
+                    "Enviar",
                     use_container_width=True, type="primary"
                 ):
                     if d_:
@@ -1876,12 +1906,15 @@ def render_tecnico(*args):
                                if not req_mat_db.empty else n)
                         save_db(upd, "req_materiais.csv")
                         _notif(
-                            "📦 Material",
+                            "Material",
                             f"{user_nome}: {q_}{u_} de {d_[:30]}"
                         )
-                        inv("req_materiais.csv"); st.success("✅"); st.rerun()
+                        inv("req_materiais.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        st.success(""); st.rerun()
                     else:
-                        st.warning("⚠️ Descreve o material.")
+                        st.warning("Descreve o material.")
 
         with s4:
             with st.form("fg"):
@@ -1902,12 +1935,12 @@ def render_tecnico(*args):
                     )
                 dg_ = st.date_input("Data", value=hoje, key="fg_d")
                 rg_ = st.file_uploader(
-                    "📄 Recibo (obrigatório)",
+                    "Recibo (obrigatório)",
                     type=["png", "jpg", "jpeg", "pdf"], key="fg_r"
                 )
                 og_ = st.text_area("Observações", key="fg_obs")
                 if st.form_submit_button(
-                    "📤 Enviar",
+                    "Enviar",
                     use_container_width=True, type="primary"
                 ):
                     if rg_ and l_ > 0:
@@ -1927,10 +1960,13 @@ def render_tecnico(*args):
                         upd = (pd.concat([req_mat_db, n], ignore_index=True)
                                if not req_mat_db.empty else n)
                         save_db(upd, "req_materiais.csv")
-                        _notif("⛽ Gasóleo", f"{user_nome}: {l_}L")
-                        inv("req_materiais.csv"); st.success("✅"); st.rerun()
+                        _notif("Gasóleo", f"{user_nome}: {l_}L")
+                        inv("req_materiais.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        st.success(""); st.rerun()
                     else:
-                        st.warning("⚠️ Faz upload do recibo e indica os litros.")
+                        st.warning("Faz upload do recibo e indica os litros.")
 
         with s5:
             with st.form("fa"):
@@ -1957,11 +1993,11 @@ def render_tecnico(*args):
                         "Valor Est. \u20AC", min_value=0.0, key="fa_v"
                     )
                 ft_ = st.file_uploader(
-                    "📄 Fatura/Orçamento (obrigatório)",
+                    "Fatura/Orçamento (obrigatório)",
                     type=["png", "jpg", "jpeg", "pdf"], key="fa_f"
                 )
                 if st.form_submit_button(
-                    "📤 Enviar",
+                    "Enviar",
                     use_container_width=True, type="primary"
                 ):
                     if ft_ and d_:
@@ -1980,18 +2016,18 @@ def render_tecnico(*args):
                         upd = (pd.concat([incs_db, n], ignore_index=True)
                                if not incs_db.empty else n)
                         save_db(upd, "incidentes.csv")
-                        _notif("🔧 Avaria", f"{u_}: {eq_} em {o_}")
-                        inv("incidentes.csv"); st.success("✅"); st.rerun()
+                        _notif("Avaria", f"{u_}: {eq_} em {o_}")
+                        inv("incidentes.csv"); st.success(""); st.rerun()
                     else:
-                        st.warning("⚠️ Descreve e faz upload da fatura.")
+                        st.warning("Descreve e faz upload da fatura.")
 
         with s6:
-            st.markdown("#### 📋 Os Meus Pedidos")
+            st.markdown("#### Os Meus Pedidos")
             sem = True
             for db_, tp_, cp4 in [
-                (req_fer_db, "🔧", "Descricao"),
-                (req_epi_db, "🦺", "Item"),
-                (req_mat_db, "📦", "Descricao"),
+                (req_fer_db, "Ferramenta", "Descricao"),
+                (req_epi_db, "EPI", "Item"),
+                (req_mat_db, "Material", "Descricao"),
             ]:
                 if not db_.empty and 'Solicitante' in db_.columns:
                     m_ = db_[db_['Solicitante'] == user_nome]
@@ -1999,22 +2035,22 @@ def render_tecnico(*args):
                         sem = False
                         for _, p_ in m_.tail(5).iterrows():
                             cor = {
-                                "Pendente":  "#F97316",
-                                "Aprovado":  "#10B981",
-                                "Rejeitado": "#EF4444"
-                            }.get(p_.get('Status', ''), "#6B7280")
+                                "Pendente":  THEME['warning'],
+                                "Aprovado":  THEME['success'],
+                                "Rejeitado": THEME['error']
+                            }.get(p_.get('Status', ''), THEME['text_secondary'])
                             st.markdown(
-                                f"<div style='background:#1E293B;padding:10px;"
+                                f"<div style='background:{THEME['surface']};padding:10px;"
                                 f"border-radius:9px;margin-bottom:5px;"
                                 f"border-left:3px solid {cor};'>"
-                                f"<span style='color:#F1F5F9;'>"
-                                f"{tp_} {str(p_.get(cp4,''))[:40]}</span>"
+                                f"<span style='color:{THEME['text']};'>"
+                                f"{tp_}: {str(p_.get(cp4,''))[:40]}</span>"
                                 f"<span style='color:{cor};font-size:0.77rem;"
                                 f"float:right;font-weight:700;'>"
                                 f"{p_.get('Status','')}</span><br>"
-                                f"<small style='color:#475569;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"{p_.get('Data','')}</small></div>",
                                 unsafe_allow_html=True
                             )
             if sem:
-                st.info("📋 Ainda não fizeste nenhum pedido.")
+                st.info("Ainda não fizeste nenhum pedido.")

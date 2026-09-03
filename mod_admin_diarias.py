@@ -9,7 +9,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
 
-from core import save_db, inv, load_db, log_audit, _gcs_read, fh
+from core import save_db, inv, load_db, log_audit, _gcs_read, fh, THEME
 
 _VALOR_DIARIA_PADRAO = 12.0
 _MIN_HORAS_DIARIA    = 4.0
@@ -47,6 +47,21 @@ def _get_valor_diaria(obra: str, diarias_config: pd.DataFrame) -> float:
             except:
                 pass
     return _VALOR_DIARIA_PADRAO
+
+
+_MODALIDADE_DIARIA_OPTS = ["Corrida Semanal", "Outro"]
+_MODALIDADE_DIARIA_PADRAO = "Corrida Semanal"
+
+
+def _get_modalidade_diaria(obra: str, diarias_config: pd.DataFrame) -> str:
+    if not diarias_config.empty and 'Obra' in diarias_config.columns \
+       and 'Modalidade' in diarias_config.columns:
+        match = diarias_config[diarias_config['Obra'] == obra]
+        if not match.empty:
+            valor = str(match.iloc[0]['Modalidade']).strip()
+            if valor in _MODALIDADE_DIARIA_OPTS:
+                return valor
+    return _MODALIDADE_DIARIA_PADRAO
 
 
 def _get_config_empresa() -> dict:
@@ -238,10 +253,10 @@ def _calcular_diarias_semana(
     # ✅ Debug info para confirmar dados encontrados
     if grupo.empty:
         st.warning(
-            f"⚠️ Sem registos com Status 1 ou 2 entre "
+            f"Sem registos com Status 1 ou 2 entre "
             f"{semana_inicio.strftime('%d/%m/%Y')} e "
             f"{semana_fim.strftime('%d/%m/%Y')}. "
-            f"Certifica-te que as horas estão validadas (🟢 verde)."
+            f"Certifica-te que as horas estão validadas (verde)."
         )
 
     grupo['Elegivel'] = grupo.apply(
@@ -454,14 +469,14 @@ def render_admin_diarias(*args):
     admin_nome = st.session_state.get('user', 'Admin')
     hoje       = date.today()
 
-    st.markdown("# 💶 Diárias & Ajudas de Custo")
+    st.markdown("# Diárias & Ajudas de Custo")
 
     tab_semana, tab_config, tab_faltas, tab_historico, tab_empresa = st.tabs([
-        "📅 Semana Atual",
-        "⚙️ Configurar Valores",
-        "❌ Faltas Injustificadas",
-        "📋 Histórico",
-        "🏢 Empresa",
+        "Semana Atual",
+        "Configurar Valores",
+        "Faltas Injustificadas",
+        "Histórico",
+        "Empresa",
     ])
 
     # ════════════════════════════════════════════════════════════════
@@ -486,14 +501,14 @@ def render_admin_diarias(*args):
         periodo_label = (f"{semana_ini.strftime('%d/%m/%Y')} — "
                          f"{semana_fim.strftime('%d/%m/%Y')}")
         st.markdown(
-            f"<p style='color:#94A3B8;font-size:0.85rem;margin:0 0 12px;'>"
-            f"📅 Período: <b style='color:#F1F5F9;'>{periodo_label}</b></p>",
+            f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;margin:0 0 12px;'>"
+            f"Período: <b style='color:{THEME['text']};'>{periodo_label}</b></p>",
             unsafe_allow_html=True
         )
 
         users_fresh = _load_users_fresh()
 
-        if st.button("🔄 Calcular Diárias",
+        if st.button("Calcular Diárias",
                      key="btn_calcular", type="primary",
                      use_container_width=True):
             st.session_state['diarias_calc'] = True
@@ -505,20 +520,20 @@ def render_admin_diarias(*args):
             )
 
             if df_calc.empty:
-                st.warning("⚠️ Sem registos validados neste período.")
+                st.warning("Sem registos validados neste período.")
             else:
                 total_geral = df_calc['Valor_Total'].sum()
 
                 c1, c2, c3 = st.columns(3)
-                with c1: st.metric("👥 Colaboradores",  len(df_calc))
-                with c2: st.metric("📋 Total Dias",
+                with c1: st.metric("Colaboradores",  len(df_calc))
+                with c2: st.metric("Total Dias",
                                    int(df_calc['Dias_Total'].sum()))
-                with c3: st.metric("💶 Total a Pagar",
+                with c3: st.metric("Total a Pagar",
                                    f"€ {total_geral:.2f}")
 
                 st.markdown("<div style='height:10px;'></div>",
                             unsafe_allow_html=True)
-                st.markdown("### 👥 Detalhe por Colaborador")
+                st.markdown("### Detalhe por Colaborador")
 
                 for _, row in df_calc.iterrows():
                     detalhe = {}
@@ -530,14 +545,14 @@ def render_admin_diarias(*args):
                     col_info, col_rec = st.columns([5, 1])
                     with col_info:
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:10px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                             f"padding:12px 16px;margin-bottom:6px;'>"
-                            f"<b style='color:#F1F5F9;'>{row['Técnico']}</b>"
-                            f"<span style='float:right;color:#10B981;"
+                            f"<b style='color:{THEME['text']};'>{row['Técnico']}</b>"
+                            f"<span style='float:right;color:{THEME['accent']};"
                             f"font-weight:900;'>€ {row['Valor_Total']:.2f}</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{row['Obras']} · {row['Dias_Total']} dia(s) · "
-                            f"IBAN: {row['IBAN'][:12] + '...' if len(str(row['IBAN'])) > 12 else row['IBAN'] or '❌ Sem IBAN'}"
+                            f"IBAN: {row['IBAN'][:12] + '...' if len(str(row['IBAN'])) > 12 else row['IBAN'] or 'Sem IBAN'}"
                             f"</small></div>",
                             unsafe_allow_html=True
                         )
@@ -554,7 +569,7 @@ def render_admin_diarias(*args):
                                  f"{row['Técnico'].replace(' ','_')}_"
                                  f"{semana_ini.strftime('%Y%m%d')}.pdf")
                         st.download_button(
-                            "📄",
+                            "",
                             data=pdf_bytes,
                             file_name=fname,
                             mime="application/pdf",
@@ -572,7 +587,7 @@ def render_admin_diarias(*args):
                         df_calc, semana_ini, semana_fim
                     )
                     st.download_button(
-                        "📥 Excel (Secretária)",
+                        "Excel (Secretária)",
                         data=excel_bytes,
                         file_name=(f"diarias_"
                                    f"{semana_ini.strftime('%Y%m%d')}.xlsx"),
@@ -586,7 +601,7 @@ def render_admin_diarias(*args):
                     cfg_emp  = _get_config_empresa()
                     iban_emp = cfg_emp.get('iban', '').strip()
                     if not iban_emp:
-                        st.warning("⚠️ Configura o IBAN da empresa no tab 🏢")
+                        st.warning("Configura o IBAN da empresa no tab Empresa")
                     else:
                         df_com_iban = df_calc[
                             df_calc['IBAN'].str.strip().str.len() >= 15
@@ -600,7 +615,7 @@ def render_admin_diarias(*args):
                             fname_xml = (f"montepio_diarias_"
                                          f"{semana_ini.strftime('%Y%m%d')}.xml")
                             st.download_button(
-                                "🏦 Montepio XML",
+                                "Montepio XML",
                                 data=xml_bytes,
                                 file_name=fname_xml,
                                 mime="application/xml",
@@ -611,7 +626,7 @@ def render_admin_diarias(*args):
                             )
                             if sem_iban > 0:
                                 st.warning(
-                                    f"⚠️ {sem_iban} sem IBAN — não incluídos."
+                                    f"{sem_iban} sem IBAN — não incluídos."
                                 )
                         except Exception as ex:
                             st.error(f"Erro ao gerar XML: {ex}")
@@ -627,10 +642,10 @@ def render_admin_diarias(*args):
                         semana_ja_paga = not jp.empty
 
                     if semana_ja_paga:
-                        st.success("✅ Semana marcada como paga.")
+                        st.success("Semana marcada como paga.")
                     else:
                         if st.button(
-                            "✅ Marcar como Paga",
+                            "Marcar como Paga",
                             key="btn_marcar_pago",
                             type="primary",
                             use_container_width=True
@@ -687,8 +702,10 @@ def render_admin_diarias(*args):
                                 ip=""
                             )
                             inv("diarias_pagamentos.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                             st.success(
-                                f"✅ {len(df_calc)} colaboradores marcados "
+                                f"{len(df_calc)} colaboradores marcados "
                                 f"como pagos — € {total_geral:.2f}"
                             )
                             st.session_state['diarias_calc'] = False
@@ -698,7 +715,7 @@ def render_admin_diarias(*args):
     # TAB 2 — CONFIGURAR VALORES  ← SUBSTITUIR ESTE BLOCO
     # ════════════════════════════════════════════════════════════════
     with tab_config:
-        st.markdown("### ⚙️ Valor da Diária por Obra")
+        st.markdown("### Valor da Diária por Obra")
         st.info(
             f"Valor padrão: **€ {_VALOR_DIARIA_PADRAO:.2f}/dia** "
             f"(aplicado a obras sem configuração específica). "
@@ -710,7 +727,7 @@ def render_admin_diarias(*args):
                       if not obras_db.empty else []
 
         if not obras_lista:
-            st.warning("⚠️ Sem obras registadas.")
+            st.warning("Sem obras registadas.")
         else:
             # ── Construir dataframe editável ──────────────────────
             rows_cfg = []
@@ -718,15 +735,16 @@ def render_admin_diarias(*args):
                 rows_cfg.append({
                     "Obra":       obra,
                     "€ / Dia":    _get_valor_diaria(obra, diarias_config),
+                    "Modalidade": _get_modalidade_diaria(obra, diarias_config),
                     "Ativa":      True,
                 })
             df_cfg = pd.DataFrame(rows_cfg)
 
             st.markdown(
-                "<p style='color:#94A3B8;font-size:0.82rem;"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;"
                 "margin:0 0 6px;'>"
-                "✏️ Edita directamente na tabela e clica "
-                "<b>💾 Guardar</b>.</p>",
+                "Edita directamente na tabela e clica "
+                "<b>Guardar</b>.</p>",
                 unsafe_allow_html=True
             )
 
@@ -748,6 +766,11 @@ def render_admin_diarias(*args):
                         format="€ %.2f",
                         width="small"
                     ),
+                    "Modalidade": st.column_config.SelectboxColumn(
+                        "Modalidade",
+                        options=_MODALIDADE_DIARIA_OPTS,
+                        width="medium"
+                    ),
                     "Ativa": st.column_config.CheckboxColumn(
                         "Ativa",
                         help="Desativa para excluir da contagem",
@@ -760,7 +783,7 @@ def render_admin_diarias(*args):
             col_sv1, col_sv2 = st.columns(2)
             with col_sv1:
                 if st.button(
-                    "💾 Guardar Configuração",
+                    "Guardar Configuração",
                     use_container_width=True,
                     type="primary",
                     key="btn_guardar_diarias_cfg"
@@ -770,6 +793,7 @@ def render_admin_diarias(*args):
                         novas_config.append({
                             "Obra":          row["Obra"],
                             "Valor_Diaria":  str(row["€ / Dia"]),
+                            "Modalidade":    row["Modalidade"],
                             "Atualizado_Em": datetime.now().strftime(
                                 '%d/%m/%Y %H:%M'
                             ),
@@ -780,22 +804,24 @@ def render_admin_diarias(*args):
                         "diarias_config.csv"
                     )
                     inv("diarias_config.csv")
-                    st.success("✅ Configuração guardada!")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
+                    st.success("Configuração guardada!")
                     st.rerun()
 
             with col_sv2:
                 # Preview — total semanal estimado por obra
                 total_est = df_editado['€ / Dia'].sum()
                 st.markdown(
-                    f"<div style='background:#1E293B;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                     f"border-radius:8px;padding:10px;"
                     f"text-align:center;'>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"Custo máx. estimado / dia</small><br>"
-                    f"<b style='color:#10B981;"
+                    f"<b style='color:{THEME['accent']};"
                     f"font-size:1.1rem;'>"
                     f"€{total_est:,.2f}</b><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"(todas as obras × 1 técnico)</small>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -804,7 +830,7 @@ def render_admin_diarias(*args):
     # TAB 3 — FALTAS INJUSTIFICADAS
     # ════════════════════════════════════════════════════════════════
     with tab_faltas:
-        st.markdown("### ❌ Registar Falta Injustificada")
+        st.markdown("### Registar Falta Injustificada")
         st.info(
             "Dias com falta injustificada **não contam** para diária, "
             "mesmo que haja registo de ponto."
@@ -835,7 +861,7 @@ def render_admin_diarias(*args):
                 )
 
             if st.form_submit_button(
-                "❌ Registar Falta Injustificada",
+                "Registar Falta Injustificada",
                 use_container_width=True, type="primary"
             ):
                 nova_falta = pd.DataFrame([{
@@ -861,15 +887,17 @@ def render_admin_diarias(*args):
                     ip=""
                 )
                 inv("diarias_faltas.csv")
+                from core import _cached_load_all
+                _cached_load_all.clear()
                 st.success(
-                    f"✅ Falta registada: {tec_falta} — "
+                    f"Falta registada: {tec_falta} — "
                     f"{data_falta.strftime('%d/%m/%Y')}"
                 )
                 st.rerun()
 
         if not diarias_faltas.empty:
             st.markdown("---")
-            st.markdown("#### 📋 Faltas Registadas Recentes")
+            st.markdown("#### Faltas Registadas Recentes")
             faltas_show = diarias_faltas.sort_values(
                 'Data', ascending=False
             ).head(20)
@@ -877,13 +905,13 @@ def render_admin_diarias(*args):
                 col_fi, col_fd = st.columns([5, 1])
                 with col_fi:
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:8px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:8px;"
                         f"padding:10px 14px;margin-bottom:5px;"
-                        f"border-left:3px solid #EF4444;'>"
-                        f"<b style='color:#F1F5F9;'>{f.get('Técnico','')}</b>"
-                        f"<span style='float:right;color:#64748B;"
+                        f"border-left:3px solid {THEME['error']};'>"
+                        f"<b style='color:{THEME['text']};'>{f.get('Técnico','')}</b>"
+                        f"<span style='float:right;color:{THEME['text_secondary']};"
                         f"font-size:0.8rem;'>{f.get('Data','')}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{f.get('Obra','')} · "
                         f"{f.get('Motivo','') or 'Sem motivo'}"
                         f"</small></div>",
@@ -891,7 +919,7 @@ def render_admin_diarias(*args):
                     )
                 with col_fd:
                     if st.button(
-                        "🗑️",
+                        "",
                         key=f"del_falta_{f.get('ID','')}",
                         help="Remover falta"
                     ):
@@ -900,13 +928,15 @@ def render_admin_diarias(*args):
                         ]
                         save_db(df_up, "diarias_faltas.csv")
                         inv("diarias_faltas.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB 4 — HISTÓRICO
     # ════════════════════════════════════════════════════════════════
     with tab_historico:
-        st.markdown("### 📋 Histórico de Pagamentos")
+        st.markdown("### Histórico de Pagamentos")
 
         if diarias_pagamentos.empty:
             st.info("Sem pagamentos registados.")
@@ -923,7 +953,7 @@ def render_admin_diarias(*args):
                 fim_sem   = pags_sem.iloc[0].get('Semana_Fim', '')
 
                 with st.expander(
-                    f"📅 {semana} — {fim_sem} · "
+                    f"{semana} — {fim_sem} · "
                     f"{len(pags_sem)} colaboradores · "
                     f"€ {total_sem:.2f}"
                 ):
@@ -931,16 +961,16 @@ def render_admin_diarias(*args):
                         col_pi, col_pr = st.columns([4, 1])
                         with col_pi:
                             st.markdown(
-                                f"<div style='background:#1E293B;"
+                                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                 f"border-radius:8px;padding:10px;"
                                 f"margin-bottom:4px;'>"
-                                f"<b style='color:#F1F5F9;'>"
+                                f"<b style='color:{THEME['text']};'>"
                                 f"{p.get('Técnico','')}</b>"
-                                f"<span style='float:right;color:#10B981;"
+                                f"<span style='float:right;color:{THEME['accent']};"
                                 f"font-weight:700;'>"
-                                f"€ {float(p.get('Valor_Total',0)):.2f}"
+                                f"€ {float(p.get('Valor_Total',0) or 0):.2f}"
                                 f"</span><br>"
-                                f"<small style='color:#64748B;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"{p.get('Obras','')} · "
                                 f"{p.get('Dias_Total','')} dia(s)"
                                 f"</small></div>",
@@ -951,7 +981,7 @@ def render_admin_diarias(*args):
                             if rec_b64:
                                 try:
                                     st.download_button(
-                                        "📄",
+                                        "",
                                         data=base64.b64decode(rec_b64),
                                         file_name=(
                                             f"recibo_"
@@ -973,7 +1003,7 @@ def render_admin_diarias(*args):
                             s_fim = datetime.strptime(fim_sem, '%d/%m/%Y').date()
                             xl_h  = _gerar_excel_semana(pags_sem, s_ini, s_fim)
                             st.download_button(
-                                "📥 Excel",
+                                "Excel",
                                 data=xl_h,
                                 file_name=(f"diarias_"
                                            f"{semana.replace('/','')}.xlsx"),
@@ -996,7 +1026,7 @@ def render_admin_diarias(*args):
                                     df_iban, s_ini, s_fim, cfg_h
                                 ).encode('utf-8')
                                 st.download_button(
-                                    "🏦 XML Montepio",
+                                    "XML Montepio",
                                     data=xml_h,
                                     file_name=(f"montepio_"
                                                f"{semana.replace('/','')}.xml"),
@@ -1010,7 +1040,7 @@ def render_admin_diarias(*args):
     # TAB 5 — CONFIGURAÇÃO DA EMPRESA
     # ════════════════════════════════════════════════════════════════
     with tab_empresa:
-        st.markdown("### 🏢 Dados da Empresa Ordenante")
+        st.markdown("### Dados da Empresa Ordenante")
         st.info(
             "Estes dados são usados para gerar o ficheiro SEPA XML "
             "para o Montepio Net24 Empresas."
@@ -1054,11 +1084,11 @@ def render_admin_diarias(*args):
             )
 
             st.markdown(
-                "<div style='background:rgba(59,130,246,0.1);border-radius:8px;"
-                "padding:12px;margin-top:8px;border-left:3px solid #3B82F6;'>"
-                "<p style='color:#93C5FD;font-size:0.82rem;margin:0;'>"
-                "ℹ️ <b>Como usar o ficheiro SEPA no Montepio:</b><br>"
-                "1. Descarrega o ficheiro XML no separador 📅 Semana Atual<br>"
+                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:8px;"
+                f"padding:12px;margin-top:8px;border-left:3px solid {THEME['accent']};'>"
+                f"<p style='color:{THEME['text']};font-size:0.82rem;margin:0;'>"
+                "<b>Como usar o ficheiro SEPA no Montepio:</b><br>"
+                "1. Descarrega o ficheiro XML no separador Semana Atual<br>"
                 "2. Abre o Net24 Empresas<br>"
                 "3. Vai a <b>Gestão de Ficheiros → Importar Ficheiro</b><br>"
                 "4. Seleciona o ficheiro XML gerado<br>"
@@ -1069,7 +1099,7 @@ def render_admin_diarias(*args):
             )
 
             if st.form_submit_button(
-                "💾 Guardar Configuração",
+                "Guardar Configuração",
                 use_container_width=True, type="primary"
             ):
                 erros_emp = []
@@ -1079,7 +1109,7 @@ def render_admin_diarias(*args):
 
                 if erros_emp:
                     st.error(
-                        f"❌ Campos obrigatórios: {', '.join(erros_emp)}"
+                        f"Campos obrigatórios: {', '.join(erros_emp)}"
                     )
                 else:
                     nova_cfg = {
@@ -1090,6 +1120,5 @@ def render_admin_diarias(*args):
                         "morada": emp_morada.strip(),
                     }
                     _save_config_empresa(nova_cfg)
-                    inv()
-                    st.success("✅ Configuração guardada!")
+                    st.success("Configuração guardada!")
                     st.rerun()

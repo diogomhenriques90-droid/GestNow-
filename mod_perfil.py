@@ -7,7 +7,7 @@ import pandas as pd
 import json
 from datetime import datetime, timedelta
 
-from core import save_db, inv, load_db, fh, hp, cp, log_audit, ICONS
+from core import save_db, inv, load_db, fh, hp, cp, log_audit, THEME
 
 
 def render_perfil(*args):
@@ -41,18 +41,24 @@ def render_perfil(*args):
         return
 
     if user_data is None:
-        st.warning("⚠️ Utilizador não encontrado na base de dados.")
+        st.warning("Utilizador não encontrado na base de dados.")
         return
 
-    # Header
+    # Header — avatar com as iniciais do nome em vez de ícone placeholder
+    _partes_nome = user_nome.split()
+    _iniciais = ((_partes_nome[0][0] if _partes_nome else '') +
+                 (_partes_nome[-1][0] if len(_partes_nome) > 1 else '')).upper()
     st.markdown(f"""
     <div style="text-align:center;padding:30px 20px;
-        background:linear-gradient(135deg,#1E293B,#0F172A);
-        border-radius:20px;margin-bottom:25px;
-        border:1px solid rgba(255,255,255,0.1);">
-        <div style="font-size:3rem;margin-bottom:10px;">👤</div>
-        <div style="font-size:1.8rem;font-weight:800;color:#F8FAFC;">{user_nome}</div>
-        <div style="font-size:1rem;color:#94A3B8;">{cargo} | {user_tipo}</div>
+        background:{THEME['surface']};
+        border-radius:{THEME['radius']};margin-bottom:25px;
+        border:1px solid {THEME['border']};">
+        <div style="width:72px;height:72px;border-radius:50%;
+            background:{THEME['accent']};color:#FFFFFF;
+            display:flex;align-items:center;justify-content:center;
+            font-size:1.6rem;font-weight:800;margin:0 auto 10px;">{_iniciais}</div>
+        <div style="font-size:1.8rem;font-weight:800;color:{THEME['text']};">{user_nome}</div>
+        <div style="font-size:1rem;color:{THEME['text_secondary']};">{cargo} | {user_tipo}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -67,14 +73,14 @@ def render_perfil(*args):
         horas_tot = horas_apr = pendentes = n_registos = 0
 
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("⏱️ Horas Totais",   fh(horas_tot))
-    with c2: st.metric("✅ Horas Aprovadas", fh(horas_apr))
-    with c3: st.metric("⏳ Pendentes",       pendentes)
-    with c4: st.metric("📋 Registos",        n_registos)
+    with c1: st.metric("Horas Totais",   fh(horas_tot))
+    with c2: st.metric("Horas Aprovadas", fh(horas_apr))
+    with c3: st.metric("Pendentes",       pendentes)
+    with c4: st.metric("Registos",        n_registos)
 
     st.divider()
 
-    tabs = st.tabs(["✏️ Editar Perfil", "🔐 Password & PIN", "📊 Histórico de Horas"])
+    tabs = st.tabs(["Editar Perfil", "Password & PIN", "Histórico de Horas"])
 
     # ── TAB 0: EDITAR PERFIL ─────────────────────────────────────────
     with tabs[0]:
@@ -85,7 +91,7 @@ def render_perfil(*args):
 
         with st.form("form_perfil_edit"):
             # Identificação
-            st.markdown("#### 📋 Identificação")
+            st.markdown("#### Identificação")
             c1, c2 = st.columns(2)
             with c1:
                 telefone = st.text_input("Telefone",  value=user_data.get('Telefone',''),  disabled='Telefone' in campos_bloqueados,  key="pf_tel")
@@ -96,7 +102,7 @@ def render_perfil(*args):
                 grau     = st.text_input("Grau Parentesco", value=user_data.get('Grau_Parentesco',''), disabled='Grau_Parentesco' in campos_bloqueados, key="pf_grau")
 
             # Morada
-            st.markdown("#### 📍 Morada")
+            st.markdown("#### Morada")
             morada = st.text_input("Morada", value=user_data.get('Morada',''), disabled='Morada' in campos_bloqueados, key="pf_morada")
             c3, c4, c5 = st.columns(3)
             with c3: localidade = st.text_input("Localidade", value=user_data.get('Localidade',''), disabled='Localidade' in campos_bloqueados, key="pf_loc")
@@ -104,7 +110,7 @@ def render_perfil(*args):
             with c5: cod_postal = st.text_input("Código Postal", value=user_data.get('Codigo_Postal',''), disabled='Codigo_Postal' in campos_bloqueados, key="pf_cp")
 
             # Dados Pessoais
-            st.markdown("#### 🌍 Dados Pessoais")
+            st.markdown("#### Dados Pessoais")
             c6, c7 = st.columns(2)
             with c6:
                 naturalidade = st.text_input("Naturalidade", value=user_data.get('Naturalidade',''), disabled='Naturalidade' in campos_bloqueados, key="pf_nat")
@@ -122,7 +128,7 @@ def render_perfil(*args):
                     horizontal=True, disabled='Sexo' in campos_bloqueados, key="pf_sexo")
 
             # Documentos
-            st.markdown("#### 🆔 Documentos")
+            st.markdown("#### Documentos")
             c8, c9 = st.columns(2)
             with c8:
                 nif  = st.text_input("NIF",  value=user_data.get('NIF',''),  disabled='NIF' in campos_bloqueados,  key="pf_nif")
@@ -137,7 +143,7 @@ def render_perfil(*args):
                     disabled='Dependentes' in campos_bloqueados, key="pf_dep")
 
             # Profissional
-            st.markdown("#### 💼 Dados Profissionais")
+            st.markdown("#### Dados Profissionais")
             profissao = st.text_input("Profissão", value=user_data.get('Profissao',''), disabled='Profissao' in campos_bloqueados, key="pf_prof")
             c10, c11 = st.columns(2)
             with c10:
@@ -151,7 +157,7 @@ def render_perfil(*args):
                     disabled='Habilitacoes_Literarias' in campos_bloqueados, key="pf_hab")
 
             # Fardamento
-            st.markdown("#### 👕 Fardamento")
+            st.markdown("#### Fardamento")
             c12, c13, c14 = st.columns(3)
             cam_opts = ["XS","S","M","L","XL","XXL","XXXL"]
             cal_opts = ["XS (34/36)","S (38)","M (40/42)","L (42/44)","XL (46/48)","XXL (50/52)"]
@@ -168,9 +174,9 @@ def render_perfil(*args):
 
             obs = st.text_area("Observações", value=user_data.get('Observacoes',''), disabled='Observacoes' in campos_bloqueados, key="pf_obs")
 
-            st.info("🔒 Nome, Tipo, Cargo e IBAN são geridos pelo Admin e não são editáveis aqui.")
+            st.info("Nome, Tipo, Cargo e IBAN são geridos pelo Admin e não são editáveis aqui.")
 
-            if st.form_submit_button("💾 Guardar Alterações", use_container_width=True, type="primary"):
+            if st.form_submit_button("Guardar Alterações", use_container_width=True, type="primary"):
                 updates = {
                     'Telefone': telefone, 'Email': email, 'Morada': morada,
                     'Localidade': localidade, 'Concelho': concelho, 'Codigo_Postal': cod_postal,
@@ -190,23 +196,25 @@ def render_perfil(*args):
                 log_audit(usuario=user_nome, acao="EDITAR_PERFIL", tabela="usuarios.csv",
                           registro_id=user_nome, detalhes="Perfil atualizado via mod_perfil", ip="")
                 inv("usuarios.csv")
-                st.success("✅ Perfil atualizado com sucesso!")
+                from core import _cached_load_all
+                _cached_load_all.clear()
+                st.success("Perfil atualizado com sucesso!")
                 st.rerun()
 
     # ── TAB 1: PASSWORD & PIN ────────────────────────────────────────
     with tabs[1]:
-        st.markdown("#### 🔐 Alterar Password")
+        st.markdown("#### Alterar Password")
         with st.form("form_pwd"):
             pwd_atual = st.text_input("Password Atual", type="password", key="pf_pwd_atual")
             pwd_nova  = st.text_input("Nova Password",  type="password", key="pf_pwd_nova")
             pwd_conf  = st.text_input("Confirmar Nova Password", type="password", key="pf_pwd_conf")
-            if st.form_submit_button("🔑 Alterar Password", use_container_width=True, type="primary"):
+            if st.form_submit_button("Alterar Password", use_container_width=True, type="primary"):
                 if not pwd_atual or not pwd_nova:
-                    st.error("❌ Preenche todos os campos.")
+                    st.error("Preenche todos os campos.")
                 elif pwd_nova != pwd_conf:
-                    st.error("❌ As passwords não coincidem.")
-                elif len(pwd_nova) < 6:
-                    st.error("❌ A password deve ter pelo menos 6 caracteres.")
+                    st.error("As passwords não coincidem.")
+                elif len(pwd_nova) < 8:
+                    st.error("A password deve ter pelo menos 8 caracteres.")
                 else:
                     hash_atual = user_data.get('Password', '')
                     if cp(pwd_atual, hash_atual):
@@ -215,35 +223,39 @@ def render_perfil(*args):
                         log_audit(usuario=user_nome, acao="ALTERAR_PASSWORD", tabela="usuarios.csv",
                                   registro_id=user_nome, detalhes="Password alterada pelo utilizador", ip="")
                         inv("usuarios.csv")
-                        st.success("✅ Password alterada com sucesso!")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        st.success("Password alterada com sucesso!")
                     else:
-                        st.error("❌ Password atual incorreta.")
+                        st.error("Password atual incorreta.")
 
         st.divider()
-        st.markdown("#### 🔢 Alterar PIN")
+        st.markdown("#### Alterar PIN")
         with st.form("form_pin"):
             pin_novo  = st.text_input("Novo PIN (4 dígitos)", type="password", max_chars=4, key="pf_pin_novo")
             pin_conf  = st.text_input("Confirmar PIN", type="password", max_chars=4, key="pf_pin_conf")
-            if st.form_submit_button("🔢 Alterar PIN", use_container_width=True):
+            if st.form_submit_button("Alterar PIN", use_container_width=True):
                 if len(pin_novo) != 4 or not pin_novo.isdigit():
-                    st.error("❌ O PIN deve ter exatamente 4 dígitos.")
+                    st.error("O PIN deve ter exatamente 4 dígitos.")
                 elif pin_novo != pin_conf:
-                    st.error("❌ Os PINs não coincidem.")
+                    st.error("Os PINs não coincidem.")
                 else:
-                    users_fresh.loc[user_idx, 'PIN'] = pin_novo
+                    users_fresh.loc[user_idx, 'PIN'] = hp(pin_novo)
                     save_db(users_fresh, "usuarios.csv")
                     log_audit(usuario=user_nome, acao="ALTERAR_PIN", tabela="usuarios.csv",
                               registro_id=user_nome, detalhes="PIN alterado pelo utilizador", ip="")
                     inv("usuarios.csv")
-                    st.success("✅ PIN alterado com sucesso!")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
+                    st.success("PIN alterado com sucesso!")
 
     # ── TAB 2: HISTÓRICO DE HORAS ────────────────────────────────────
     with tabs[2]:
-        st.markdown("#### 📊 Histórico de Horas")
+        st.markdown("#### Histórico de Horas")
         if not registos_db.empty:
             meus = registos_db[registos_db['Técnico'] == user_nome].copy()
             if meus.empty:
-                st.info("📋 Sem registos ainda.")
+                st.info("Sem registos ainda.")
             else:
                 # Filtros
                 c1, c2 = st.columns(2)
@@ -251,7 +263,7 @@ def render_perfil(*args):
                     obras_minhas = ["Todas"] + meus['Obra'].unique().tolist()
                     obra_filt = st.selectbox("Filtrar por Obra", obras_minhas, key="pf_hist_obra")
                 with c2:
-                    status_opts = {"Todos": None, "✅ Aprovado": "1", "⏳ Pendente": "0", "❌ Rejeitado": "-1"}
+                    status_opts = {"Todos": None, "Aprovado": "1", "Pendente": "0", "Rejeitado": "-1"}
                     status_sel  = st.selectbox("Estado", list(status_opts.keys()), key="pf_hist_status")
 
                 if obra_filt != "Todas":
@@ -262,12 +274,12 @@ def render_perfil(*args):
                 total_h = meus['Horas_Total'].astype(float).sum()
                 st.metric("Total filtrado", fh(total_h))
 
-                meus['Estado'] = meus['Status'].map({"0":"⏳ Pendente","1":"✅ Aprovado","2":"🔵 Faturação","-1":"❌ Rejeitado"}).fillna("❓")
+                meus['Estado'] = meus['Status'].map({"0":"Pendente","1":"Aprovado","2":"Faturação","-1":"Rejeitado"}).fillna("Desconhecido")
                 cols_show = [c for c in ['Data','Obra','Frente','Turnos','Horas_Total','Estado','Relatorio'] if c in meus.columns]
                 st.dataframe(meus[cols_show].sort_values('Data', ascending=False), use_container_width=True, hide_index=True)
 
                 # Exportar CSV
                 csv = meus[cols_show].to_csv(index=False).encode('utf-8')
-                st.download_button("📥 Exportar CSV", csv, f"horas_{user_nome}.csv", "text/csv")
+                st.download_button("Exportar CSV", csv, f"horas_{user_nome}.csv", "text/csv")
         else:
-            st.info("📋 Sem registos de horas.")
+            st.info("Sem registos de horas.")

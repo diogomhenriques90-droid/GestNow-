@@ -7,7 +7,7 @@ import streamlit as st
 import pandas as pd
 import uuid
 from datetime import datetime, date
-from core import save_db, inv, load_db, log_audit, criar_notificacao
+from core import save_db, inv, load_db, log_audit, criar_notificacao, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -40,7 +40,7 @@ def render_compras(*_):
     user_nome = st.session_state.get('user', 'Admin')
     hoje      = date.today()
 
-    st.markdown("### 🛒 Gestão de Compras")
+    st.markdown("### Gestão de Compras")
 
     # ── KPIs ──────────────────────────────────────────────────────
     n_pend  = len(compras_db[compras_db['Status'] == 'Pendente']) \
@@ -59,33 +59,33 @@ def render_compras(*_):
         val_mes = cc[mask_m]['Total_N'].sum()
 
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("🟠 Pendentes",    n_pend)
-    with c2: st.metric("✅ Aprovadas",     n_apr)
-    with c3: st.metric("💰 Valor Mês",    f"€{val_mes:,.2f}")
-    with c4: st.metric("📋 Total Registo",len(compras_db) if not compras_db.empty else 0)
+    with c1: st.metric("Pendentes",    n_pend)
+    with c2: st.metric("Aprovadas",     n_apr)
+    with c3: st.metric("Valor Mês",    f"€{val_mes:,.2f}")
+    with c4: st.metric("Total Registo",len(compras_db) if not compras_db.empty else 0)
 
     st.divider()
 
     # ── Tabs ──────────────────────────────────────────────────────
     tab_pend, tab_nova, tab_hist, tab_forn = st.tabs([
-        "🟠 Pendentes",
-        "➕ Nova Compra",
-        "📋 Histórico",
-        "🏢 Fornecedores",
+        "Pendentes",
+        "Nova Compra",
+        "Histórico",
+        "Fornecedores",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # PENDENTES
     # ════════════════════════════════════════════════════════════════
     with tab_pend:
-        st.markdown("#### 🟠 Compras Pendentes de Aprovação")
+        st.markdown("#### Compras Pendentes de Aprovação")
 
         if compras_db.empty:
-            st.info("📋 Sem compras registadas.")
+            st.info("Sem compras registadas.")
         else:
             pend = compras_db[compras_db['Status'] == 'Pendente'].copy()
             if pend.empty:
-                st.success("✅ Sem compras pendentes!")
+                st.success("Sem compras pendentes!")
             else:
                 # Filtros
                 col_f1, col_f2 = st.columns(2)
@@ -107,10 +107,10 @@ def render_compras(*_):
                     df_p.get('Total',0), errors='coerce'
                 ).fillna(0).sum()
                 st.markdown(
-                    f"<div style='background:rgba(245,158,11,0.1);"
-                    f"border:1px solid #F59E0B;border-radius:8px;"
+                    f"<div style='background:{THEME['surface']};"
+                    f"border:1px solid {THEME['warning']};border-radius:8px;"
                     f"padding:10px 16px;margin-bottom:12px;'>"
-                    f"<b style='color:#F59E0B;'>"
+                    f"<b style='color:{THEME['warning']};'>"
                     f"{len(df_p)} compra(s) · Total: €{total_pend:,.2f}</b>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -120,46 +120,46 @@ def render_compras(*_):
                     cid    = row.get('ID','')
                     total  = float(row.get('Total',0) or 0)
                     urg    = row.get('Urgencia','Normal')
-                    cor_u  = {"Urgente":"#EF4444","Normal":"#F59E0B",
-                              "Baixa":"#10B981"}.get(urg,"#6B7280")
+                    cor_u  = {"Urgente":THEME['error'],"Normal":THEME['warning'],
+                              "Baixa":THEME['success']}.get(urg,THEME['text_secondary'])
 
                     with st.expander(
-                        f"🛒 {str(row.get('Descricao',''))[:45]} — "
+                        f"{str(row.get('Descricao',''))[:45]} — "
                         f"{row.get('Obra','')} · €{total:,.2f}",
                         expanded=(urg == 'Urgente')
                     ):
                         col_d1, col_d2 = st.columns(2)
                         with col_d1:
                             st.markdown(
-                                f"<div style='background:#1E293B;"
+                                f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                 f"border-radius:8px;padding:12px;'>"
-                                f"<p style='color:#64748B;font-size:0.75rem;"
+                                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
                                 f"margin:0 0 6px;'>DETALHES</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Solicitante:</b> {row.get('Solicitante','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Obra:</b> {row.get('Obra','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Fornecedor:</b> {row.get('Fornecedor','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Categoria:</b> {row.get('Categoria','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Quantidade:</b> {row.get('Quantidade','')} "
                                 f"{row.get('Unidade','')}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Valor unit.:</b> €{float(row.get('Valor_Unit',0) or 0):,.2f}</p>"
-                                f"<p style='color:#F1F5F9;margin:2px 0;'>"
+                                f"<p style='color:{THEME['text']};margin:2px 0;'>"
                                 f"<b>Data:</b> {row.get('Data','')}</p>"
                                 f"</div>",
                                 unsafe_allow_html=True
                             )
                         with col_d2:
                             st.markdown(
-                                f"<div style='background:{cor_u}18;"
+                                f"<div style='background:{THEME['surface']};"
                                 f"border:1px solid {cor_u};"
                                 f"border-radius:8px;padding:12px;"
                                 f"text-align:center;'>"
-                                f"<p style='color:#64748B;font-size:0.75rem;"
+                                f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
                                 f"margin:0 0 4px;'>TOTAL</p>"
                                 f"<b style='color:{cor_u};"
                                 f"font-size:1.6rem;'>€{total:,.2f}</b><br>"
@@ -170,11 +170,11 @@ def render_compras(*_):
                             )
                             if row.get('Notas'):
                                 st.markdown(
-                                    f"<div style='background:#1E293B;"
+                                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                                     f"border-radius:6px;padding:8px;"
                                     f"margin-top:8px;'>"
-                                    f"<small style='color:#94A3B8;'>"
-                                    f"📝 {row.get('Notas','')}</small>"
+                                    f"<small style='color:{THEME['text_secondary']};'>"
+                                    f"Notas: {row.get('Notas','')}</small>"
                                     f"</div>",
                                     unsafe_allow_html=True
                                 )
@@ -183,7 +183,7 @@ def render_compras(*_):
                         if row.get('Fatura_b64'):
                             fat_str = str(row.get('Fatura_b64',''))
                             if fat_str.startswith('JVBER'):
-                                st.info("📄 Fatura PDF anexada")
+                                st.info("Fatura PDF anexada")
                             elif len(fat_str) > 100:
                                 try:
                                     st.image(
@@ -204,7 +204,7 @@ def render_compras(*_):
                         col_a, col_r = st.columns(2)
                         with col_a:
                             if st.button(
-                                "✅ Aprovar",
+                                "Aprovar",
                                 key=f"cp_apr_{cid}",
                                 use_container_width=True,
                                 type="primary"
@@ -237,7 +237,7 @@ def render_compras(*_):
                                 )
                                 criar_notificacao(
                                     destinatario=row.get('Solicitante',''),
-                                    titulo="✅ Compra Aprovada",
+                                    titulo="Compra Aprovada",
                                     mensagem=(
                                         f"A tua compra de "
                                         f"{row.get('Descricao','')} "
@@ -247,7 +247,7 @@ def render_compras(*_):
                                     acao_url="/tecnico"
                                 )
                                 inv("compras.csv")
-                                st.success("✅ Aprovado!")
+                                st.success("Aprovado!")
                                 st.rerun()
 
                         with col_r:
@@ -258,7 +258,7 @@ def render_compras(*_):
                                 label_visibility="collapsed"
                             )
                             if st.button(
-                                "❌ Rejeitar",
+                                "Rejeitar",
                                 key=f"cp_rej_{cid}",
                                 use_container_width=True
                             ):
@@ -278,7 +278,7 @@ def render_compras(*_):
                                 save_db(compras_db, "compras.csv")
                                 criar_notificacao(
                                     destinatario=row.get('Solicitante',''),
-                                    titulo="❌ Compra Rejeitada",
+                                    titulo="Compra Rejeitada",
                                     mensagem=(
                                         f"A tua compra de "
                                         f"{row.get('Descricao','')} "
@@ -289,14 +289,14 @@ def render_compras(*_):
                                     acao_url="/tecnico"
                                 )
                                 inv("compras.csv")
-                                st.error("❌ Rejeitado.")
+                                st.error("Rejeitado.")
                                 st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # NOVA COMPRA
     # ════════════════════════════════════════════════════════════════
     with tab_nova:
-        st.markdown("#### ➕ Registar Nova Compra")
+        st.markdown("#### Registar Nova Compra")
 
         obras_ativas = []
         if not obras_db.empty and 'Ativa' in obras_db.columns:
@@ -314,7 +314,7 @@ def render_compras(*_):
                 )
                 nc_desc = st.text_area(
                     "Descrição *",
-                    key="nc_desc",
+                    key="nc_compra_desc",
                     placeholder="Ex: Cabo XLR 10m × 5 un."
                 )
                 nc_forn = st.text_input(
@@ -357,7 +357,7 @@ def render_compras(*_):
 
             nc_total = round(nc_qtd * nc_vunit, 2)
             if nc_total > 0:
-                st.info(f"💰 Total calculado: **€{nc_total:,.2f}**")
+                st.info(f"Total calculado: **€{nc_total:,.2f}**")
 
             nc_fatura = st.file_uploader(
                 "Anexar Fatura/Orçamento (opcional)",
@@ -366,14 +366,14 @@ def render_compras(*_):
             )
 
             submitted = st.form_submit_button(
-                "💾 Registar Compra",
+                "Registar Compra",
                 use_container_width=True,
                 type="primary"
             )
 
             if submitted:
                 if not nc_desc.strip() or nc_qtd <= 0:
-                    st.error("❌ Descrição e quantidade obrigatórias.")
+                    st.error("Descrição e quantidade obrigatórias.")
                 else:
                     # Processar fatura
                     fatura_b64 = ""
@@ -420,7 +420,7 @@ def render_compras(*_):
                     )
                     inv("compras.csv")
                     st.success(
-                        f"✅ Compra registada! "
+                        f"Compra registada! "
                         f"Total: €{nc_total:,.2f}"
                     )
                     st.rerun()
@@ -429,10 +429,10 @@ def render_compras(*_):
     # HISTÓRICO
     # ════════════════════════════════════════════════════════════════
     with tab_hist:
-        st.markdown("#### 📋 Histórico de Compras")
+        st.markdown("#### Histórico de Compras")
 
         if compras_db.empty:
-            st.info("📋 Sem compras registadas.")
+            st.info("Sem compras registadas.")
         else:
             col_hf1, col_hf2, col_hf3 = st.columns(3)
             with col_hf1:
@@ -461,8 +461,8 @@ def render_compras(*_):
                 total_h = df_h['Total_N'].sum()
 
                 col_km1, col_km2 = st.columns(2)
-                with col_km1: st.metric("📋 Compras",  len(df_h))
-                with col_km2: st.metric("💰 Total",    f"€{total_h:,.2f}")
+                with col_km1: st.metric("Compras",  len(df_h))
+                with col_km2: st.metric("Total",    f"€{total_h:,.2f}")
 
                 cols_show = [c for c in [
                     'Data','Solicitante','Obra','Fornecedor',
@@ -478,7 +478,7 @@ def render_compras(*_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar CSV",
+                    "Exportar CSV",
                     data=csv_h.encode('utf-8-sig'),
                     file_name=f"compras_{hoje.strftime('%Y%m')}.csv",
                     mime="text/csv",
@@ -512,13 +512,13 @@ def render_compras(*_):
                         )
                         st.plotly_chart(fig)
             else:
-                st.info("📋 Sem compras com este filtro.")
+                st.info("Sem compras com este filtro.")
 
     # ════════════════════════════════════════════════════════════════
     # FORNECEDORES
     # ════════════════════════════════════════════════════════════════
     with tab_forn:
-        st.markdown("#### 🏢 Fornecedores Habituais")
+        st.markdown("#### Fornecedores Habituais")
 
         forn_db = _load("fornecedores_compras.csv", [
             "ID","Nome","NIF","Email","Telefone",
@@ -528,7 +528,7 @@ def render_compras(*_):
         col_fc1, col_fc2 = st.columns([1, 2])
 
         with col_fc1:
-            st.markdown("##### ➕ Novo Fornecedor")
+            st.markdown("##### Novo Fornecedor")
             with st.form("form_forn"):
                 f_nome  = st.text_input("Nome *",      key="f_nome")
                 f_nif   = st.text_input("NIF",         key="f_nif")
@@ -548,12 +548,12 @@ def render_compras(*_):
                 f_notas = st.text_area("Notas", key="f_notas")
 
                 if st.form_submit_button(
-                    "💾 Guardar",
+                    "Guardar",
                     use_container_width=True,
                     type="primary"
                 ):
                     if not f_nome.strip():
-                        st.error("❌ Nome obrigatório.")
+                        st.error("Nome obrigatório.")
                     else:
                         novo_f = pd.DataFrame([{
                             "ID":           str(uuid.uuid4())[:8].upper(),
@@ -571,14 +571,14 @@ def render_compras(*_):
                         ) if not forn_db.empty else novo_f
                         save_db(upd_f, "fornecedores_compras.csv")
                         inv("fornecedores_compras.csv")
-                        st.success(f"✅ {f_nome} adicionado!")
+                        st.success(f"{f_nome} adicionado!")
                         st.rerun()
 
         with col_fc2:
-            st.markdown("##### 📋 Lista de Fornecedores")
+            st.markdown("##### Lista de Fornecedores")
             if forn_db.empty:
                 st.info(
-                    "📋 Sem fornecedores registados. "
+                    "Sem fornecedores registados. "
                     "Adiciona os teus fornecedores habituais."
                 )
             else:
@@ -595,7 +595,7 @@ def render_compras(*_):
                 # Análise por fornecedor
                 if not compras_db.empty and 'Fornecedor' in compras_db.columns:
                     st.markdown("---")
-                    st.markdown("##### 📊 Volume por Fornecedor")
+                    st.markdown("##### Volume por Fornecedor")
                     cc2 = compras_db.copy()
                     cc2['Total_N'] = pd.to_numeric(
                         cc2.get('Total',0), errors='coerce'

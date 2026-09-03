@@ -14,7 +14,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, fh, log_audit
+from core import save_db, inv, load_db, fh, log_audit, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -209,9 +209,9 @@ def _calcular_score_pl(pl: dict, orc: dict) -> tuple[int, dict]:
 
 
 def _rag(score):
-    if score >= 70: return "#10B981", "🟢"
-    if score >= 40: return "#F59E0B", "🟡"
-    return "#EF4444", "🔴"
+    if score >= 70: return THEME['success'], "🟢"
+    if score >= 40: return THEME['warning'], "🟡"
+    return THEME['error'], "🔴"
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -509,7 +509,7 @@ def _grafico_timeline_financeira(faturas_cli, diarias_pag_db,
                     val = float(row.get('Valor_Total',0) or 0)
                     eventos.append({
                         'data':  row['Data_d'],
-                        'tipo':  '💶 Diárias',
+                        'tipo':  'Diárias',
                         'valor': -val,
                         'cor':   '#F59E0B',
                         'desc':  f"Pagamento diárias — €{val:,.2f}"
@@ -835,32 +835,34 @@ def render_fat_obras(obras_db, registos_db,
     user_nome = st.session_state.get('user','Admin')
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .obra-card {
-        background:#1E293B; border-radius:12px;
+    .obra-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:{THEME['radius']};
+        box-shadow:0 1px 3px rgba(16,24,40,0.05);
         padding:16px; margin-bottom:10px;
-        border-left:5px solid #3B82F6;
+        border-left:5px solid {THEME['accent']};
         transition:transform 0.15s;
-    }
-    .obra-card:hover { transform:translateX(3px); }
-    .pl-linha {
+    }}
+    .obra-card:hover {{ transform:translateX(3px); }}
+    .pl-linha {{
         display:flex; justify-content:space-between;
-        padding:5px 0; border-bottom:1px solid #1E293B;
-    }
-    .score-ring {
+        padding:5px 0; border-bottom:1px solid {THEME['border']};
+    }}
+    .score-ring {{
         width:70px; height:70px; border-radius:50%;
         display:flex; align-items:center;
         justify-content:center;
         font-size:1.3rem; font-weight:900;
         border:4px solid;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── Obras ativas ──────────────────────────────────────────────
     if obras_db.empty:
-        st.info("📋 Sem obras para analisar.")
+        st.info("Sem obras para analisar.")
         return
 
     obras_ativas = obras_db[
@@ -868,7 +870,7 @@ def render_fat_obras(obras_db, registos_db,
     ]['Obra'].tolist() if not obras_db.empty else []
 
     if not obras_ativas:
-        st.info("📋 Sem obras ativas.")
+        st.info("Sem obras ativas.")
         return
 
     # Pré-calcular P&L de todas as obras
@@ -896,35 +898,35 @@ def render_fat_obras(obras_db, registos_db,
     score_med  = round(sum(p['score'] for p in todas_pl) /
                        len(todas_pl), 0) if todas_pl else 0
 
-    cor_marg = "#10B981" if marg_pct_g >= 20 \
-               else "#F59E0B" if marg_pct_g >= 10 \
-               else "#EF4444"
+    cor_marg = THEME['success'] if marg_pct_g >= 20 \
+               else THEME['warning'] if marg_pct_g >= 10 \
+               else THEME['error']
 
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("🏭 Obras Ativas",   len(obras_ativas))
-    with c2: st.metric("💰 Receita Total",  f"€{rec_total:,.2f}")
-    with c3: st.metric("💸 Custo Total",    f"€{cust_total:,.2f}")
-    with c4: st.metric("📈 Margem Global",  f"{marg_pct_g:.1f}%")
-    with c5: st.metric("⭐ Score Médio",    f"{score_med:.0f}/100")
+    with c1: st.metric("Obras Ativas",   len(obras_ativas))
+    with c2: st.metric("Receita Total",  f"€{rec_total:,.2f}")
+    with c3: st.metric("Custo Total",    f"€{cust_total:,.2f}")
+    with c4: st.metric("Margem Global",  f"{marg_pct_g:.1f}%")
+    with c5: st.metric("Score Médio",    f"{score_med:.0f}/100")
 
     st.divider()
 
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_visao, t_pl, t_orc,
      t_wip, t_timeline, t_scatter) = st.tabs([
-        "📊 Visão Geral",
-        "💰 P&L por Obra",
-        "📋 Orçamento vs Real",
-        "🔄 WIP",
-        "📅 Timeline",
-        "🎯 Lucratividade",
+        "Visão Geral",
+        "P&L por Obra",
+        "Orçamento vs Real",
+        "WIP",
+        "Timeline",
+        "Lucratividade",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB — VISÃO GERAL (scorecard)
     # ════════════════════════════════════════════════════════════════
     with t_visao:
-        st.markdown("### 📊 Scorecard de Obras")
+        st.markdown("### Scorecard de Obras")
 
         # Gráficos globais
         col_g1, col_g2 = st.columns(2)
@@ -956,9 +958,9 @@ def render_fat_obras(obras_db, registos_db,
             with col_card:
                 # P&L resumido
                 m_pct = pl_data['margem_pct']
-                cor_m = "#10B981" if m_pct>=20 \
-                        else "#F59E0B" if m_pct>=10 \
-                        else "#EF4444"
+                cor_m = THEME['success'] if m_pct>=20 \
+                        else THEME['warning'] if m_pct>=10 \
+                        else THEME['error']
 
                 st.markdown(
                     f"<div class='obra-card' "
@@ -967,9 +969,9 @@ def render_fat_obras(obras_db, registos_db,
                     f"justify-content:space-between;"
                     f"align-items:center;'>"
                     f"<div>"
-                    f"<b style='color:#F1F5F9;"
+                    f"<b style='color:{THEME['text']};"
                     f"font-size:1.05rem;'>{obra}</b><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"Receita: €{pl_data['receita_total']:,.2f} · "
                     f"Custo: €{pl_data['custo_total']:,.2f} · "
                     f"Horas: {fh(pl_data['horas_totais'])}"
@@ -980,7 +982,7 @@ def render_fat_obras(obras_db, registos_db,
                     f"<div>"
                     f"<b style='color:{cor_m};"
                     f"font-size:1.4rem;'>{m_pct:.1f}%</b><br>"
-                    f"<small style='color:#64748B;'>margem</small>"
+                    f"<small style='color:{THEME['text_secondary']};'>margem</small>"
                     f"</div>"
                     f"<div style='width:60px;height:60px;"
                     f"border-radius:50%;display:flex;"
@@ -1004,14 +1006,14 @@ def render_fat_obras(obras_db, registos_db,
                 )
                 for dim, (pts, max_pts) in det_o.items():
                     pct_d = pts/max_pts*100
-                    cor_d = "#10B981" if pct_d>=70 \
-                            else "#F59E0B" if pct_d>=40 \
-                            else "#EF4444"
+                    cor_d = THEME['success'] if pct_d>=70 \
+                            else THEME['warning'] if pct_d>=40 \
+                            else THEME['error']
                     st.markdown(
                         f"<div>"
-                        f"<small style='color:#64748B;"
+                        f"<small style='color:{THEME['text_secondary']};"
                         f"font-size:0.7rem;'>{dim}</small>"
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['background']};"
                         f"border-radius:3px;height:5px;"
                         f"margin-top:2px;'>"
                         f"<div style='background:{cor_d};"
@@ -1029,7 +1031,7 @@ def render_fat_obras(obras_db, registos_db,
 
             with col_rad:
                 if st.button(
-                    "📊 Radar",
+                    "Radar",
                     key=f"radar_ob_{obra}",
                     use_container_width=True
                 ):
@@ -1052,25 +1054,25 @@ def render_fat_obras(obras_db, registos_db,
                     )
                 with col_rar2:
                     st.markdown(
-                        f"### 📋 Análise Detalhada — {obra_r}"
+                        f"### Análise Detalhada — {obra_r}"
                     )
                     for dim, (pts, max_pts) in pl_r['det'].items():
                         pct = pts/max_pts*100
-                        cor = "#10B981" if pct>=70 \
-                              else "#F59E0B" if pct>=40 \
-                              else "#EF4444"
+                        cor = THEME['success'] if pct>=70 \
+                              else THEME['warning'] if pct>=40 \
+                              else THEME['error']
                         st.markdown(
                             f"<div style='margin-bottom:10px;'>"
                             f"<div style='display:flex;"
                             f"justify-content:space-between;"
                             f"margin-bottom:3px;'>"
-                            f"<span style='color:#94A3B8;'>"
+                            f"<span style='color:{THEME['text_secondary']};'>"
                             f"{dim}</span>"
                             f"<span style='color:{cor};"
                             f"font-weight:700;'>"
                             f"{pts}/{max_pts} "
                             f"({pct:.0f}%)</span></div>"
-                            f"<div style='background:#0F172A;"
+                            f"<div style='background:{THEME['background']};"
                             f"border-radius:4px;height:8px;'>"
                             f"<div style='background:{cor};"
                             f"width:{pct:.0f}%;height:8px;"
@@ -1079,7 +1081,7 @@ def render_fat_obras(obras_db, registos_db,
                             unsafe_allow_html=True
                         )
                     if st.button(
-                        "✖ Fechar",
+                        "Fechar",
                         key="fechar_radar_pl"
                     ):
                         st.session_state.pop(
@@ -1091,7 +1093,7 @@ def render_fat_obras(obras_db, registos_db,
     # TAB — P&L POR OBRA
     # ════════════════════════════════════════════════════════════════
     with t_pl:
-        st.markdown("### 💰 P&L Detalhado por Obra")
+        st.markdown("### P&L Detalhado por Obra")
 
         obra_pl = st.selectbox(
             "Selecionar Obra",
@@ -1117,25 +1119,25 @@ def render_fat_obras(obras_db, registos_db,
             c1,c2,c3,c4 = st.columns(4)
             with c1:
                 st.metric(
-                    "💰 Receita",
+                    "Receita",
                     f"€{pl_sel['receita_total']:,.2f}"
                 )
             with c2:
                 st.metric(
-                    "💸 Custo Total",
+                    "Custo Total",
                     f"€{pl_sel['custo_total']:,.2f}"
                 )
             with c3:
                 m_pct = pl_sel['margem_pct']
                 cor_m = "normal" if m_pct >= 20 else "inverse"
                 st.metric(
-                    "📈 Margem",
+                    "Margem",
                     f"{m_pct:.1f}%",
                     delta=f"€{pl_sel['margem_bruta']:,.2f}"
                 )
             with c4:
                 st.metric(
-                    "⭐ Score",
+                    "Score",
                     f"{score_sel}/100",
                     delta=ic_sel
                 )
@@ -1154,11 +1156,11 @@ def render_fat_obras(obras_db, registos_db,
                 )
 
             # Detalhe linhas P&L
-            st.markdown("#### 📋 Detalhe P&L")
+            st.markdown("#### Detalhe P&L")
 
             # RECEITA
             st.markdown(
-                "<p style='color:#10B981;font-weight:700;"
+                f"<p style='color:{THEME['success']};font-weight:700;"
                 "font-size:0.85rem;margin:8px 0 4px;'>"
                 "▶ RECEITA</p>",
                 unsafe_allow_html=True
@@ -1174,12 +1176,12 @@ def render_fat_obras(obras_db, registos_db,
                       if pl_sel['receita_total'] > 0 else 0
                 st.markdown(
                     f"<div class='pl-linha'>"
-                    f"<span style='color:#94A3B8;"
+                    f"<span style='color:{THEME['text_secondary']};"
                     f"font-size:0.85rem;'>{label}</span>"
-                    f"<span style='color:#10B981;"
+                    f"<span style='color:{THEME['success']};"
                     f"font-weight:700;'>"
                     f"€{val:,.2f} "
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"({pct:.1f}%)</small></span>"
                     f"</div>",
                     unsafe_allow_html=True
@@ -1189,9 +1191,9 @@ def render_fat_obras(obras_db, registos_db,
                 f"<div style='display:flex;"
                 f"justify-content:space-between;"
                 f"padding:8px 0;border-top:"
-                f"2px solid #10B981;margin:4px 0 12px;'>"
-                f"<b style='color:#F1F5F9;'>TOTAL RECEITA</b>"
-                f"<b style='color:#10B981;"
+                f"2px solid {THEME['success']};margin:4px 0 12px;'>"
+                f"<b style='color:{THEME['text']};'>TOTAL RECEITA</b>"
+                f"<b style='color:{THEME['success']};"
                 f"font-size:1.05rem;'>"
                 f"€{pl_sel['receita_total']:,.2f}</b>"
                 f"</div>",
@@ -1200,7 +1202,7 @@ def render_fat_obras(obras_db, registos_db,
 
             # CUSTOS
             st.markdown(
-                "<p style='color:#EF4444;font-weight:700;"
+                f"<p style='color:{THEME['error']};font-weight:700;"
                 "font-size:0.85rem;margin:8px 0 4px;'>"
                 "▶ CUSTOS DIRETOS</p>",
                 unsafe_allow_html=True
@@ -1215,34 +1217,34 @@ def render_fat_obras(obras_db, registos_db,
             for label, val in cust_items:
                 pct = val/pl_sel['receita_total']*100 \
                       if pl_sel['receita_total'] > 0 else 0
-                cor_c = "#EF4444" if pct > 30 \
-                        else "#F59E0B" if pct > 20 \
-                        else "#94A3B8"
+                cor_c = THEME['error'] if pct > 30 \
+                        else THEME['warning'] if pct > 20 \
+                        else THEME['text_secondary']
                 st.markdown(
                     f"<div class='pl-linha'>"
-                    f"<span style='color:#94A3B8;"
+                    f"<span style='color:{THEME['text_secondary']};"
                     f"font-size:0.85rem;'>{label}</span>"
                     f"<span style='color:{cor_c};"
                     f"font-weight:700;'>"
                     f"€{val:,.2f} "
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"({pct:.1f}%)</small></span>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
 
-            cor_marg = "#10B981" if pl_sel['margem_pct'] >= 20 \
-                       else "#F59E0B" if pl_sel['margem_pct'] >= 10 \
-                       else "#EF4444"
+            cor_marg = THEME['success'] if pl_sel['margem_pct'] >= 20 \
+                       else THEME['warning'] if pl_sel['margem_pct'] >= 10 \
+                       else THEME['error']
 
             st.markdown(
                 f"<div style='display:flex;"
                 f"justify-content:space-between;"
                 f"padding:10px;border-radius:10px;"
-                f"background:{cor_marg}22;"
+                f"background:{THEME['surface']};"
                 f"border:2px solid {cor_marg};"
                 f"margin-top:12px;'>"
-                f"<b style='color:#F1F5F9;"
+                f"<b style='color:{THEME['text']};"
                 f"font-size:1.05rem;'>MARGEM BRUTA</b>"
                 f"<b style='color:{cor_marg};"
                 f"font-size:1.2rem;'>"
@@ -1257,7 +1259,7 @@ def render_fat_obras(obras_db, registos_db,
             col_pdf1, col_pdf2 = st.columns(2)
             with col_pdf1:
                 if st.button(
-                    "📄 Gerar Relatório P&L PDF",
+                    "Gerar Relatório P&L PDF",
                     key="btn_pl_pdf",
                     type="primary",
                     use_container_width=True
@@ -1277,7 +1279,7 @@ def render_fat_obras(obras_db, registos_db,
             with col_pdf2:
                 if st.session_state.get('pl_pdf_bytes'):
                     st.download_button(
-                        "📥 Descarregar PDF",
+                        "Descarregar PDF",
                         data=st.session_state['pl_pdf_bytes'],
                         file_name=st.session_state.get(
                             'pl_pdf_nome','pl.pdf'
@@ -1292,7 +1294,7 @@ def render_fat_obras(obras_db, registos_db,
     # TAB — ORÇAMENTO vs REAL
     # ════════════════════════════════════════════════════════════════
     with t_orc:
-        st.markdown("### 📋 Orçamento vs Real")
+        st.markdown("### Orçamento vs Real")
 
         obra_orc = st.selectbox(
             "Obra", obras_ativas, key="orc_obra_sel"
@@ -1310,7 +1312,7 @@ def render_fat_obras(obras_db, registos_db,
         col_of, col_og = st.columns([1, 2])
 
         with col_of:
-            st.markdown("#### ✏️ Definir Orçamento")
+            st.markdown("#### Definir Orçamento")
             with st.form("form_orcamento"):
                 orc_rec = st.number_input(
                     "Receita Orçamentada (€)",
@@ -1325,7 +1327,7 @@ def render_fat_obras(obras_db, registos_db,
                     step=500.0, key="orc_cust"
                 )
                 st.markdown(
-                    "<p style='color:#64748B;font-size:0.75rem;"
+                    f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
                     "margin:4px 0;'>Por categoria:</p>",
                     unsafe_allow_html=True
                 )
@@ -1355,7 +1357,7 @@ def render_fat_obras(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Orçamento",
+                    "Guardar Orçamento",
                     use_container_width=True, type="primary"
                 ):
                     novo_orc = {
@@ -1390,7 +1392,7 @@ def render_fat_obras(obras_db, registos_db,
                         ) if not orc_db.empty else novo_df
                         save_db(upd, "obras_orcamento.csv")
                     inv("obras_orcamento.csv")
-                    st.success("✅ Orçamento guardado!")
+                    st.success("Orçamento guardado!")
                     st.rerun()
 
         with col_og:
@@ -1401,7 +1403,7 @@ def render_fat_obras(obras_db, registos_db,
                 )
 
                 # Tabela desvios
-                st.markdown("#### 📊 Análise de Desvios")
+                st.markdown("#### Análise de Desvios")
                 desvios = []
                 pares = [
                     ("Receita",
@@ -1460,7 +1462,7 @@ def render_fat_obras(obras_db, registos_db,
                         )
                         if abs(dp) > 15 and d['Status'] == "🔴":
                             st.error(
-                                f"⚠️ {d['Categoria']}: "
+                                f"{d['Categoria']}: "
                                 f"desvio de {d['Desvio %']} "
                                 f"— ação corretiva recomendada!"
                             )
@@ -1471,7 +1473,7 @@ def render_fat_obras(obras_db, registos_db,
     # TAB — WIP (Trabalhos em Curso)
     # ════════════════════════════════════════════════════════════════
     with t_wip:
-        st.markdown("### 🔄 Trabalhos em Curso (WIP)")
+        st.markdown("### Trabalhos em Curso (WIP)")
         st.info(
             "WIP — Work In Progress. "
             "Trabalho executado mas ainda não faturado ao cliente. "
@@ -1481,7 +1483,7 @@ def render_fat_obras(obras_db, registos_db,
         col_wf1, col_wf2 = st.columns([1, 2])
 
         with col_wf1:
-            st.markdown("#### ➕ Registar WIP")
+            st.markdown("#### Registar WIP")
             with st.form("form_wip"):
                 wip_obra = st.selectbox(
                     "Obra *", obras_ativas, key="wip_obra"
@@ -1503,11 +1505,11 @@ def render_fat_obras(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar WIP",
+                    "Registar WIP",
                     use_container_width=True, type="primary"
                 ):
                     if not wip_desc.strip() or wip_val <= 0:
-                        st.error("❌ Descrição e valor obrigatórios.")
+                        st.error("Descrição e valor obrigatórios.")
                     else:
                         novo_wip = pd.DataFrame([{
                             "ID":           str(uuid.uuid4())[:8].upper(),
@@ -1525,15 +1527,15 @@ def render_fat_obras(obras_db, registos_db,
                         save_db(upd_wip, "obras_wip.csv")
                         inv("obras_wip.csv")
                         st.success(
-                            f"✅ WIP registado! €{wip_val:,.2f}"
+                            f"WIP registado! €{wip_val:,.2f}"
                         )
                         st.rerun()
 
         with col_wf2:
-            st.markdown("#### 📋 WIP por Obra")
+            st.markdown("#### WIP por Obra")
 
             if wip_db.empty:
-                st.info("📋 Sem trabalhos em curso registados.")
+                st.info("Sem trabalhos em curso registados.")
             else:
                 # KPIs WIP
                 wip_ativo = wip_db[
@@ -1554,10 +1556,10 @@ def render_fat_obras(obras_db, registos_db,
 
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.metric("🔄 WIP Total", f"€{total_wip:,.2f}")
+                    st.metric("WIP Total", f"€{total_wip:,.2f}")
                 with c2:
                     st.metric(
-                        "✅ Pronto a Faturar",
+                        "Pronto a Faturar",
                         f"€{pronto_fat:,.2f}"
                     )
 
@@ -1575,40 +1577,40 @@ def render_fat_obras(obras_db, registos_db,
                     ]
 
                 cor_est_wip = {
-                    'Em Curso':            '#3B82F6',
-                    'Pronto para Faturar': '#10B981',
-                    'Faturado':            '#64748B',
-                    'Cancelado':           '#EF4444',
+                    'Em Curso':            THEME['accent'],
+                    'Pronto para Faturar': THEME['success'],
+                    'Faturado':            THEME['text_secondary'],
+                    'Cancelado':           THEME['error'],
                 }
 
                 for _, wip_row in df_wip_show.iterrows():
                     wid     = wip_row.get('ID','')
                     est_wip = wip_row.get('Estado','')
-                    cor_w   = cor_est_wip.get(est_wip,'#6B7280')
+                    cor_w   = cor_est_wip.get(est_wip, THEME['text_secondary'])
                     val_w   = float(wip_row.get('Valor_Est',0) or 0)
 
                     col_wi, col_wa = st.columns([5, 1])
                     with col_wi:
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};"
                             f"border-radius:10px;padding:12px;"
                             f"margin-bottom:6px;"
                             f"border-left:4px solid {cor_w};'>"
                             f"<div style='display:flex;"
                             f"justify-content:space-between;'>"
                             f"<div>"
-                            f"<b style='color:#F1F5F9;"
+                            f"<b style='color:{THEME['text']};"
                             f"font-size:0.88rem;'>"
                             f"{wip_row.get('Obra','')}</b><br>"
-                            f"<small style='color:#94A3B8;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{wip_row.get('Descricao','')[:60]}"
                             f"</small><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{wip_row.get('Data_Registo','')}"
                             f"</small>"
                             f"</div>"
                             f"<div style='text-align:right;'>"
-                            f"<b style='color:#F1F5F9;"
+                            f"<b style='color:{THEME['text']};"
                             f"font-size:1rem;'>"
                             f"€{val_w:,.2f}</b><br>"
                             f"<span style='background:{cor_w}22;"
@@ -1628,7 +1630,7 @@ def render_fat_obras(obras_db, registos_db,
                             label_visibility="collapsed"
                         )
                         if st.button(
-                            "✅", key=f"wip_upd_{wid}",
+                            "", key=f"wip_upd_{wid}",
                             use_container_width=True
                         ):
                             wip_db.loc[
@@ -1641,7 +1643,7 @@ def render_fat_obras(obras_db, registos_db,
     # TAB — TIMELINE FINANCEIRA
     # ════════════════════════════════════════════════════════════════
     with t_timeline:
-        st.markdown("### 📅 Timeline Financeira por Obra")
+        st.markdown("### Timeline Financeira por Obra")
 
         obra_tl = st.selectbox(
             "Obra", obras_ativas, key="tl_obra_sel"
@@ -1654,7 +1656,7 @@ def render_fat_obras(obras_db, registos_db,
             st.plotly_chart(fig_tl, key="timeline_fin" )
         else:
             st.info(
-                f"📋 Sem eventos financeiros registados "
+                f"Sem eventos financeiros registados "
                 f"para {obra_tl}."
             )
 
@@ -1664,7 +1666,7 @@ def render_fat_obras(obras_db, registos_db,
                 faturas_cli['Obra'] == obra_tl
             ].copy()
             if not fc_tl.empty:
-                st.markdown("#### 📋 Faturas desta Obra")
+                st.markdown("#### Faturas desta Obra")
                 fc_tl['Total_Num'] = pd.to_numeric(
                     fc_tl.get('Total',0), errors='coerce'
                 ).fillna(0)
@@ -1687,17 +1689,17 @@ def render_fat_obras(obras_db, registos_db,
 
                 c1, c2, c3 = st.columns(3)
                 with c1:
-                    st.metric("📋 Faturas",    len(fc_tl))
+                    st.metric("Faturas",    len(fc_tl))
                 with c2:
-                    st.metric("💰 Total Fat.", f"€{total_fat_tl:,.2f}")
+                    st.metric("Total Fat.", f"€{total_fat_tl:,.2f}")
                 with c3:
-                    st.metric("✅ Recebido",   f"€{pagas_tl:,.2f}")
+                    st.metric("Recebido",   f"€{pagas_tl:,.2f}")
 
     # ════════════════════════════════════════════════════════════════
     # TAB — SCATTER LUCRATIVIDADE
     # ════════════════════════════════════════════════════════════════
     with t_scatter:
-        st.markdown("### 🎯 Análise de Lucratividade")
+        st.markdown("### Análise de Lucratividade")
 
         fig_scat = _grafico_scatter_obras(todas_pl)
         if fig_scat:
@@ -1706,7 +1708,7 @@ def render_fat_obras(obras_db, registos_db,
             )
 
         # Tabela comparativa todas as obras
-        st.markdown("#### 📊 Comparativo Geral")
+        st.markdown("#### Comparativo Geral")
         rows_comp = []
         for p in sorted(todas_pl,
                         key=lambda x: x['margem_pct'],
@@ -1735,7 +1737,7 @@ def render_fat_obras(obras_db, registos_db,
             index=False, encoding='utf-8-sig'
         )
         st.download_button(
-            "📥 Exportar Comparativo",
+            "Exportar Comparativo",
             data=csv_comp.encode('utf-8-sig'),
             file_name=(
                 f"comparativo_obras_"
@@ -1747,10 +1749,10 @@ def render_fat_obras(obras_db, registos_db,
 
         # Insights IA
         st.markdown("---")
-        st.markdown("#### 🤖 Insights de Lucratividade")
+        st.markdown("#### Insights de Lucratividade")
 
         if st.button(
-            "🤖 Analisar com IA",
+            "Analisar com IA",
             key="btn_insights_obras",
             type="primary",
             use_container_width=True
@@ -1758,7 +1760,7 @@ def render_fat_obras(obras_db, registos_db,
             import anthropic, json
             api_key = os.environ.get("ANTHROPIC_API_KEY","")
             if not api_key:
-                st.error("❌ API key não configurada.")
+                st.error("API key não configurada.")
             else:
                 ctx = {
                     "obras": [
@@ -1788,7 +1790,7 @@ def render_fat_obras(obras_db, registos_db,
                     "Responde em português, conciso e direto, "
                     "com dados concretos."
                 )
-                with st.spinner("🤖 A analisar..."):
+                with st.spinner("A analisar..."):
                     try:
                         client  = anthropic.Anthropic(api_key=api_key)
                         resp    = client.messages.create(
@@ -1800,17 +1802,17 @@ def render_fat_obras(obras_db, registos_db,
                         )
                         insight = resp.content[0].text
                         st.markdown(
-                            f"<div style='background:rgba(59,130,246,0.1);"
-                            f"border:1px solid #3B82F6;"
+                            f"<div style='background:{THEME['surface']};"
+                            f"border:1px solid {THEME['border']};border-left:3px solid {THEME['accent']};"
                             f"border-radius:12px;padding:16px;"
-                            f"color:#E2E8F0;font-size:0.9rem;"
+                            f"color:{THEME['text']};font-size:0.9rem;"
                             f"line-height:1.6;'>"
-                            f"<p style='color:#3B82F6;"
+                            f"<p style='color:{THEME['accent']};"
                             f"font-weight:700;margin:0 0 8px;'>"
-                            f"🤖 ANÁLISE IA — LUCRATIVIDADE</p>"
+                            f"ANÁLISE IA — LUCRATIVIDADE</p>"
                             f"{insight.replace(chr(10),'<br>')}"
                             f"</div>",
                             unsafe_allow_html=True
                         )
                     except Exception as e:
-                        st.error(f"❌ Erro: {e}")
+                        st.error(f"Erro: {e}")

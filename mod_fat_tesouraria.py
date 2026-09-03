@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit
+from core import save_db, inv, load_db, log_audit, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -96,7 +96,7 @@ def _calcular_cashflow_90d(faturas_cli, faturas_forn,
                     dias[d_real]["entradas"] += row['Total_Num']
                     dias[d_real]["items"].append({
                         "tipo":  "entrada",
-                        "desc":  f"🧾 {row.get('Numero','')} — "
+                        "desc":  f"{row.get('Numero','')} — "
                                  f"{row.get('Cliente','')}",
                         "valor": row['Total_Num']
                     })
@@ -120,7 +120,7 @@ def _calcular_cashflow_90d(faturas_cli, faturas_forn,
                 dias[d_sal]["saidas"] += custo_sal_total
                 dias[d_sal]["items"].append({
                     "tipo":  "saida",
-                    "desc":  f"👥 Salários {mes_sal:02d}/{ano_sal}",
+                    "desc":  f"Salários {mes_sal:02d}/{ano_sal}",
                     "valor": custo_sal_total
                 })
 
@@ -145,7 +145,7 @@ def _calcular_cashflow_90d(faturas_cli, faturas_forn,
                     dias[d_rent]["saidas"] += renda_total
                     dias[d_rent]["items"].append({
                         "tipo":  "saida",
-                        "desc":  f"🚗 Rendas Renting {mes_r:02d}/{ano_r}",
+                        "desc":  f"Rendas Renting {mes_r:02d}/{ano_r}",
                         "valor": renda_total
                     })
 
@@ -174,7 +174,7 @@ def _calcular_cashflow_90d(faturas_cli, faturas_forn,
                         dias[d_vf]["saidas"] += row['Total_Num']
                         dias[d_vf]["items"].append({
                             "tipo":  "saida",
-                            "desc":  f"📥 {row.get('Fornecedor','')}",
+                            "desc":  f"{row.get('Fornecedor','')}",
                             "valor": row['Total_Num']
                         })
 
@@ -542,7 +542,7 @@ def _previsao_cashflow_ia(cf_data: list,
         import anthropic, json
         api_key = os.environ.get("ANTHROPIC_API_KEY","")
         if not api_key:
-            return "❌ API key não configurada."
+            return "API key não configurada."
 
         client = anthropic.Anthropic(api_key=api_key)
 
@@ -604,7 +604,7 @@ Responde em português, tom profissional de CFO sénior, máximo 5 parágrafos."
         return resp.content[0].text
 
     except Exception as e:
-        return f"❌ Erro: {e}"
+        return f"Erro: {e}"
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -696,68 +696,69 @@ def render_fat_tesouraria(obras_db, registos_db,
     )
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .conta-card {
-        background:#1E293B; border-radius:12px;
+    .conta-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:16px; margin-bottom:10px;
-        border-left:4px solid #3B82F6;
-    }
-    .mv-linha {
+        border-left:4px solid {THEME['accent']};
+    }}
+    .mv-linha {{
         display:flex; justify-content:space-between;
-        padding:6px 0; border-bottom:1px solid #0F172A;
-    }
-    .alerta-cf {
+        padding:6px 0; border-bottom:1px solid {THEME['border']};
+    }}
+    .alerta-cf {{
         border-radius:10px; padding:12px 16px;
         margin-bottom:8px; border-left:4px solid;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── KPIs ──────────────────────────────────────────────────────
-    cor_aut = "#10B981" if autonomia_meses >= 3 \
-              else "#F59E0B" if autonomia_meses >= 1 \
-              else "#EF4444"
-    cor_cf  = "#10B981" if sal_30 >= 0 else "#EF4444"
-    cor_neg = "#10B981" if dias_neg == 0 else "#EF4444"
+    cor_aut = THEME['success'] if autonomia_meses >= 3 \
+              else THEME['warning'] if autonomia_meses >= 1 \
+              else THEME['error']
+    cor_cf  = THEME['success'] if sal_30 >= 0 else THEME['error']
+    cor_neg = THEME['success'] if dias_neg == 0 else THEME['error']
 
     c1,c2,c3,c4,c5 = st.columns(5)
     with c1:
-        st.metric("🏦 Saldo Atual",
+        st.metric("Saldo Atual",
                    f"€{saldo_atual:,.2f}")
     with c2:
-        st.metric("📥 A Receber 30d",
+        st.metric("A Receber 30d",
                    f"€{ent_30:,.2f}")
     with c3:
-        st.metric("📤 A Pagar 30d",
+        st.metric("A Pagar 30d",
                    f"€{sai_30:,.2f}")
     with c4:
-        st.metric("💵 Saldo Prev. 30d",
+        st.metric("Saldo Prev. 30d",
                    f"€{sal_30:,.2f}")
     with c5:
-        st.metric("📅 Autonomia",
+        st.metric("Autonomia",
                    f"{autonomia_meses:.1f} meses")
 
     # Alerta saldo negativo
     if dias_neg > 0:
         st.error(
-            f"🆘 **ALERTA:** Saldo previsto negativo em "
+            f"**ALERTA:** Saldo previsto negativo em "
             f"**{dias_neg} dia(s)** nos próximos 90 dias. "
             f"Primeiro evento crítico: **{data_primeiro_neg}**"
         )
     elif autonomia_meses < 1:
         st.error(
-            "🔴 Autonomia inferior a 1 mês — "
+            "Autonomia inferior a 1 mês — "
             "ativar plano de contingência!"
         )
     elif autonomia_meses < 3:
         st.warning(
-            f"⚠️ Autonomia de {autonomia_meses:.1f} meses — "
+            f"Autonomia de {autonomia_meses:.1f} meses — "
             "monitorizar de perto."
         )
     else:
         st.success(
-            f"✅ Tesouraria saudável — "
+            f"Tesouraria saudável — "
             f"{autonomia_meses:.1f} meses de autonomia."
         )
 
@@ -766,18 +767,18 @@ def render_fat_tesouraria(obras_db, registos_db,
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_cf, t_contas, t_rec,
      t_fm, t_ia) = st.tabs([
-        "💵 Cash Flow 90 Dias",
-        "🏦 Contas Bancárias",
-        "🔄 Reconciliação Bancária",
-        "💼 Fundo de Maneio",
-        "🤖 Previsão IA",
+        "Cash Flow 90 Dias",
+        "Contas Bancárias",
+        "Reconciliação Bancária",
+        "Fundo de Maneio",
+        "Previsão IA",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB — CASH FLOW 90 DIAS
     # ════════════════════════════════════════════════════════════════
     with t_cf:
-        st.markdown("### 💵 Cash Flow Previsional — 90 Dias")
+        st.markdown("### Cash Flow Previsional — 90 Dias")
 
         # Gráfico principal
         st.plotly_chart(
@@ -792,7 +793,7 @@ def render_fat_tesouraria(obras_db, registos_db,
         )
 
         # Resumo por período
-        st.markdown("#### 📊 Resumo por Período")
+        st.markdown("#### Resumo por Período")
         col_30, col_60, col_90 = st.columns(3)
 
         for col, dias_n, label in [
@@ -804,30 +805,31 @@ def render_fat_tesouraria(obras_db, registos_db,
             e_p   = sum(d['entradas'] for d in cf_p)
             s_p   = sum(d['saidas']   for d in cf_p)
             sal_p = cf_p[-1]['saldo'] if cf_p else saldo_atual
-            cor_p = "#10B981" if sal_p >= 0 else "#EF4444"
+            cor_p = THEME['success'] if sal_p >= 0 else THEME['error']
 
             with col:
                 st.markdown(
-                    f"<div style='background:#1E293B;"
+                    f"<div style='background:{THEME['surface']};"
+                    f"border:1px solid {THEME['border']};"
                     f"border-radius:10px;padding:14px;"
                     f"border-top:3px solid {cor_p};'>"
-                    f"<p style='color:#94A3B8;"
+                    f"<p style='color:{THEME['text_secondary']};"
                     f"font-size:0.75rem;font-weight:700;"
                     f"text-transform:uppercase;margin:0 0 8px;'>"
                     f"Próximos {label}</p>"
                     f"<div class='mv-linha'>"
-                    f"<small style='color:#64748B;'>Entradas</small>"
-                    f"<b style='color:#10B981;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>Entradas</small>"
+                    f"<b style='color:{THEME['success']};'>"
                     f"€{e_p:,.2f}</b></div>"
                     f"<div class='mv-linha'>"
-                    f"<small style='color:#64748B;'>Saídas</small>"
-                    f"<b style='color:#EF4444;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>Saídas</small>"
+                    f"<b style='color:{THEME['error']};'>"
                     f"€{s_p:,.2f}</b></div>"
                     f"<div style='display:flex;"
                     f"justify-content:space-between;"
                     f"padding-top:8px;border-top:"
-                    f"1px solid #334155;margin-top:4px;'>"
-                    f"<b style='color:#F1F5F9;'>Saldo</b>"
+                    f"1px solid {THEME['border']};margin-top:4px;'>"
+                    f"<b style='color:{THEME['text']};'>Saldo</b>"
                     f"<b style='color:{cor_p};"
                     f"font-size:1.05rem;'>€{sal_p:,.2f}</b>"
                     f"</div></div>",
@@ -836,7 +838,7 @@ def render_fat_tesouraria(obras_db, registos_db,
 
         # Eventos críticos
         st.markdown("---")
-        st.markdown("#### ⚡ Eventos Críticos Previstos")
+        st.markdown("#### Eventos Críticos Previstos")
 
         eventos_crit = [
             d for d in cf_data
@@ -844,14 +846,14 @@ def render_fat_tesouraria(obras_db, registos_db,
         ][:20]  # top 20 eventos
 
         if not eventos_crit:
-            st.info("📋 Sem eventos financeiros previstos.")
+            st.info("Sem eventos financeiros previstos.")
         else:
             for ev in eventos_crit:
                 for item in ev['items']:
-                    cor_it = "#10B981" if item['tipo'] == 'entrada' \
-                             else "#EF4444"
-                    ic_it  = "📥" if item['tipo'] == 'entrada' \
-                             else "📤"
+                    cor_it = THEME['success'] if item['tipo'] == 'entrada' \
+                             else THEME['error']
+                    ic_it  = "Entrada" if item['tipo'] == 'entrada' \
+                             else "Saída"
                     d_str  = ev['data'].strftime("%d/%m/%Y")
                     dias_r = (ev['data'] - hoje).days
 
@@ -863,8 +865,8 @@ def render_fat_tesouraria(obras_db, registos_db,
                         f"justify-content:space-between;'>"
                         f"<span style='color:{cor_it};"
                         f"font-size:0.85rem;'>"
-                        f"{ic_it} {item['desc']}</span>"
-                        f"<span style='color:#64748B;"
+                        f"{ic_it}: {item['desc']}</span>"
+                        f"<span style='color:{THEME['text_secondary']};"
                         f"font-size:0.8rem;'>"
                         f"{d_str} "
                         f"({'hoje' if dias_r==0 else f'em {dias_r}d'})"
@@ -891,7 +893,7 @@ def render_fat_tesouraria(obras_db, registos_db,
             index=False, encoding='utf-8-sig'
         )
         st.download_button(
-            "📥 Exportar Cash Flow CSV",
+            "Exportar Cash Flow CSV",
             data=csv_cf.encode('utf-8-sig'),
             file_name=(
                 f"cashflow_90d_"
@@ -905,12 +907,12 @@ def render_fat_tesouraria(obras_db, registos_db,
     # TAB — CONTAS BANCÁRIAS
     # ════════════════════════════════════════════════════════════════
     with t_contas:
-        st.markdown("### 🏦 Contas Bancárias")
+        st.markdown("### Contas Bancárias")
 
         col_cform, col_clista = st.columns([1, 2])
 
         with col_cform:
-            st.markdown("#### ➕ Registar Conta")
+            st.markdown("#### Registar Conta")
             with st.form("form_conta"):
                 c_nome  = st.text_input(
                     "Nome da Conta *",
@@ -945,11 +947,11 @@ def render_fat_tesouraria(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Conta",
+                    "Guardar Conta",
                     use_container_width=True, type="primary"
                 ):
                     if not c_nome.strip():
-                        st.error("❌ Nome obrigatório.")
+                        st.error("Nome obrigatório.")
                     else:
                         nova_c = pd.DataFrame([{
                             "ID":         str(uuid.uuid4())[:8].upper(),
@@ -976,11 +978,11 @@ def render_fat_tesouraria(obras_db, registos_db,
                             ip=""
                         )
                         inv("contas_bancarias.csv")
-                        st.success(f"✅ Conta {c_nome} guardada!")
+                        st.success(f"Conta {c_nome} guardada!")
                         st.rerun()
 
         with col_clista:
-            st.markdown("#### 📊 Posição Bancária")
+            st.markdown("#### Posição Bancária")
 
             # Gráfico saldo
             fig_sal = _grafico_saldo_contas(contas_db)
@@ -990,36 +992,36 @@ def render_fat_tesouraria(obras_db, registos_db,
                 )
 
             if contas_db.empty:
-                st.info("📋 Sem contas registadas.")
+                st.info("Sem contas registadas.")
             else:
                 total_bancos = pd.to_numeric(
                     contas_db.get('Saldo', pd.Series()),
                     errors='coerce'
                 ).fillna(0).sum()
                 st.metric(
-                    "💰 Posição Total",
+                    "Posição Total",
                     f"€{total_bancos:,.2f}"
                 )
 
                 for _, conta in contas_db.iterrows():
                     ct_id   = conta.get('ID','')
                     saldo_c = float(conta.get('Saldo',0) or 0)
-                    cor_s   = "#10B981" if saldo_c >= 0 \
-                              else "#EF4444"
+                    cor_s   = THEME['success'] if saldo_c >= 0 \
+                              else THEME['error']
 
                     st.markdown(
                         f"<div class='conta-card'>"
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;'>"
-                        f"🏦 {conta.get('Nome','')}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<b style='color:{THEME['text']};'>"
+                        f"{conta.get('Nome','')}</b><br>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{conta.get('Banco','')} · "
                         f"{conta.get('Tipo','')} · "
                         f"IBAN: {conta.get('IBAN','N/D')[:20]}"
                         f"</small><br>"
-                        f"<small style='color:#475569;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Atualizado: "
                         f"{conta.get('Data_Saldo','')}</small>"
                         f"</div>"
@@ -1042,7 +1044,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                         )
                     with col_sb:
                         if st.button(
-                            "💾",
+                            "",
                             key=f"sal_btn_{ct_id}",
                             use_container_width=True,
                             help="Atualizar saldo"
@@ -1059,7 +1061,7 @@ def render_fat_tesouraria(obras_db, registos_db,
     # TAB — RECONCILIAÇÃO BANCÁRIA
     # ════════════════════════════════════════════════════════════════
     with t_rec:
-        st.markdown("### 🔄 Reconciliação Bancária")
+        st.markdown("### Reconciliação Bancária")
         st.info(
             "Faz upload do extrato bancário (CSV/OFX) ou "
             "regista movimentos manualmente. "
@@ -1069,7 +1071,7 @@ def render_fat_tesouraria(obras_db, registos_db,
         col_rec1, col_rec2 = st.columns([1, 2])
 
         with col_rec1:
-            st.markdown("#### 📤 Upload Extrato")
+            st.markdown("#### Upload Extrato")
 
             upload_ext = st.file_uploader(
                 "Extrato bancário (CSV)",
@@ -1088,7 +1090,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                             on_bad_lines='skip'
                         )
                         st.success(
-                            f"✅ {len(df_ext)} movimentos carregados!"
+                            f"{len(df_ext)} movimentos carregados!"
                         )
                         st.dataframe(
                             df_ext.head(10),
@@ -1111,7 +1113,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                         )
 
                         if st.button(
-                            "🔄 Importar Movimentos",
+                            "Importar Movimentos",
                             key="btn_import_ext",
                             type="primary",
                             use_container_width=True
@@ -1153,14 +1155,14 @@ def render_fat_tesouraria(obras_db, registos_db,
                             save_db(upd_mv, "movimentos_bancarios.csv")
                             inv("movimentos_bancarios.csv")
                             st.success(
-                                f"✅ {len(novos_mv)} movimentos importados!"
+                                f"{len(novos_mv)} movimentos importados!"
                             )
                             st.rerun()
                     except Exception as e:
-                        st.error(f"❌ Erro ao ler extrato: {e}")
+                        st.error(f"Erro ao ler extrato: {e}")
 
             st.markdown("---")
-            st.markdown("#### ➕ Registo Manual")
+            st.markdown("#### Registo Manual")
 
             with st.form("form_movimento"):
                 if not contas_db.empty:
@@ -1193,11 +1195,11 @@ def render_fat_tesouraria(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar",
+                    "Registar",
                     use_container_width=True, type="primary"
                 ):
                     if not mv_desc.strip():
-                        st.error("❌ Descrição obrigatória.")
+                        st.error("Descrição obrigatória.")
                     else:
                         novo_mv = pd.DataFrame([{
                             "ID":       str(uuid.uuid4())[:8].upper(),
@@ -1217,11 +1219,11 @@ def render_fat_tesouraria(obras_db, registos_db,
                         ) if not movimentos_db.empty else novo_mv
                         save_db(upd_mv2, "movimentos_bancarios.csv")
                         inv("movimentos_bancarios.csv")
-                        st.success("✅ Movimento registado!")
+                        st.success("Movimento registado!")
                         st.rerun()
 
         with col_rec2:
-            st.markdown("#### 📊 Movimentos por Conciliar")
+            st.markdown("#### Movimentos por Conciliar")
 
             # Gráfico reconciliação
             fig_rec = _grafico_reconciliacao(movimentos_db)
@@ -1231,7 +1233,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                 )
 
             if movimentos_db.empty:
-                st.info("📋 Sem movimentos registados.")
+                st.info("Sem movimentos registados.")
             else:
                 # KPIs reconciliação
                 total_mv  = len(movimentos_db)
@@ -1242,11 +1244,11 @@ def render_fat_tesouraria(obras_db, registos_db,
 
                 c1, c2, c3 = st.columns(3)
                 with c1:
-                    st.metric("📋 Total",        total_mv)
+                    st.metric("Total",        total_mv)
                 with c2:
-                    st.metric("✅ Conciliados",   concil_mv)
+                    st.metric("Conciliados",   concil_mv)
                 with c3:
-                    st.metric("🟡 Pendentes",     pend_mv)
+                    st.metric("Pendentes",     pend_mv)
 
                 # Lista movimentos por conciliar
                 mv_pend = movimentos_db[
@@ -1260,26 +1262,27 @@ def render_fat_tesouraria(obras_db, registos_db,
                     ).head(20).iterrows():
                         mv_id  = mv.get('ID','')
                         val_mv = float(mv.get('Valor',0) or 0)
-                        cor_mv = "#10B981" if val_mv >= 0 \
-                                 else "#EF4444"
-                        ic_mv  = "📥" if val_mv >= 0 else "📤"
+                        cor_mv = THEME['success'] if val_mv >= 0 \
+                                 else THEME['error']
+                        ic_mv  = "Entrada" if val_mv >= 0 else "Saída"
 
                         col_mi, col_mc = st.columns([5,1])
                         with col_mi:
                             st.markdown(
-                                f"<div style='background:#1E293B;"
+                                f"<div style='background:{THEME['surface']};"
+                                f"border:1px solid {THEME['border']};"
                                 f"border-radius:8px;padding:10px;"
                                 f"margin-bottom:4px;"
                                 f"border-left:3px solid {cor_mv};'>"
-                                f"{ic_mv} "
-                                f"<b style='color:#F1F5F9;"
+                                f"{ic_mv}: "
+                                f"<b style='color:{THEME['text']};"
                                 f"font-size:0.85rem;'>"
                                 f"{mv.get('Descricao','')[:40]}</b>"
                                 f"<span style='float:right;"
                                 f"color:{cor_mv};font-weight:700;'>"
                                 f"{'+ ' if val_mv>=0 else '- '}"
                                 f"€{abs(val_mv):,.2f}</span><br>"
-                                f"<small style='color:#64748B;'>"
+                                f"<small style='color:{THEME['text_secondary']};'>"
                                 f"{mv.get('Data','')} · "
                                 f"{mv.get('Conta','')} · "
                                 f"{mv.get('Categoria','')}"
@@ -1288,7 +1291,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                             )
                         with col_mc:
                             if st.button(
-                                "✅",
+                                "",
                                 key=f"concil_{mv_id}",
                                 use_container_width=True,
                                 help="Marcar como conciliado"
@@ -1308,7 +1311,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                     columns=['Fatura_ID'], errors='ignore'
                 ).to_csv(index=False, encoding='utf-8-sig')
                 st.download_button(
-                    "📥 Exportar Movimentos",
+                    "Exportar Movimentos",
                     data=csv_mv.encode('utf-8-sig'),
                     file_name="movimentos_bancarios.csv",
                     mime="text/csv",
@@ -1319,7 +1322,7 @@ def render_fat_tesouraria(obras_db, registos_db,
     # TAB — FUNDO DE MANEIO
     # ════════════════════════════════════════════════════════════════
     with t_fm:
-        st.markdown("### 💼 Fundo de Maneio por Obra")
+        st.markdown("### Fundo de Maneio por Obra")
         st.info(
             "Dinheiro adiantado ao chefe de equipa para "
             "despesas em obra. "
@@ -1341,7 +1344,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                     obras_db['Ativa'] == 'Ativa'
                 ]['Obra'].tolist()
 
-            st.markdown("#### ➕ Adiantamento")
+            st.markdown("#### Adiantamento")
             with st.form("form_fm_adiant"):
                 fm_obra  = st.selectbox(
                     "Obra *",
@@ -1364,11 +1367,11 @@ def render_fat_tesouraria(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "💰 Registar Adiantamento",
+                    "Registar Adiantamento",
                     use_container_width=True, type="primary"
                 ):
                     if not fm_resp.strip() or fm_adiant <= 0:
-                        st.error("❌ Responsável e valor obrigatórios.")
+                        st.error("Responsável e valor obrigatórios.")
                     else:
                         novo_fm = pd.DataFrame([{
                             "ID":           str(uuid.uuid4())[:8].upper(),
@@ -1387,13 +1390,13 @@ def render_fat_tesouraria(obras_db, registos_db,
                         save_db(upd_fm, "fundo_maneio.csv")
                         inv("fundo_maneio.csv")
                         st.success(
-                            f"✅ Adiantamento €{fm_adiant:.2f} "
+                            f"Adiantamento €{fm_adiant:.2f} "
                             f"para {fm_resp}!"
                         )
                         st.rerun()
 
             st.markdown("---")
-            st.markdown("#### 🧾 Registar Gasto")
+            st.markdown("#### Registar Gasto")
             with st.form("form_fm_gasto"):
                 fm_id_sel = ""
                 if not fm_db.empty:
@@ -1430,14 +1433,14 @@ def render_fat_tesouraria(obras_db, registos_db,
                 )
 
                 if st.form_submit_button(
-                    "🧾 Registar Gasto",
+                    "Registar Gasto",
                     use_container_width=True, type="primary"
                 ):
                     if fm_gasto_val <= 0 or not fm_gasto_desc.strip():
-                        st.error("❌ Valor e descrição obrigatórios.")
+                        st.error("Valor e descrição obrigatórios.")
                     elif not fm_comp:
                         st.error(
-                            "❌ Comprovativo obrigatório "
+                            "Comprovativo obrigatório "
                             "para registar gasto."
                         )
                     else:
@@ -1459,23 +1462,23 @@ def render_fat_tesouraria(obras_db, registos_db,
                             save_db(fm_db, "fundo_maneio.csv")
                             inv("fundo_maneio.csv")
                             st.success(
-                                f"✅ Gasto €{fm_gasto_val:.2f} "
+                                f"Gasto €{fm_gasto_val:.2f} "
                                 f"registado com comprovativo!"
                             )
                             st.rerun()
 
         with col_fm2:
-            st.markdown("#### 📋 Fundos em Aberto")
+            st.markdown("#### Fundos em Aberto")
 
             if fm_db.empty:
-                st.info("📋 Sem fundos de maneio registados.")
+                st.info("Sem fundos de maneio registados.")
             else:
                 em_aberto_show = fm_db[
                     fm_db.get('Estado','') == 'Em Aberto'
                 ] if 'Estado' in fm_db.columns else fm_db
 
                 if em_aberto_show.empty:
-                    st.success("✅ Todos os fundos acertados!")
+                    st.success("Todos os fundos acertados!")
                 else:
                     for _, fm_row in em_aberto_show.iterrows():
                         fm_rid   = fm_row.get('ID','')
@@ -1484,33 +1487,34 @@ def render_fat_tesouraria(obras_db, registos_db,
                         saldo_fm = round(adiant - gasto, 2)
                         pct_gst  = round(gasto/adiant*100,0) \
                                    if adiant > 0 else 0
-                        cor_fm   = "#10B981" if saldo_fm >= 0 \
-                                   else "#EF4444"
+                        cor_fm   = THEME['success'] if saldo_fm >= 0 \
+                                   else THEME['error']
 
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};"
+                            f"border:1px solid {THEME['border']};"
                             f"border-radius:12px;padding:14px;"
                             f"margin-bottom:10px;"
                             f"border-left:4px solid {cor_fm};'>"
-                            f"<b style='color:#F1F5F9;'>"
-                            f"💼 {fm_row.get('Obra','')} — "
+                            f"<b style='color:{THEME['text']};'>"
+                            f"{fm_row.get('Obra','')} — "
                             f"{fm_row.get('Responsavel','')}</b>"
                             f"<span style='float:right;"
                             f"color:{cor_fm};font-weight:700;'>"
                             f"Saldo: €{saldo_fm:,.2f}</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"Adiantado: €{adiant:,.2f} · "
                             f"Gasto: €{gasto:,.2f} · "
                             f"{fm_row.get('Data','')}"
                             f"</small>"
-                            f"<div style='background:#0F172A;"
+                            f"<div style='background:{THEME['background']};"
                             f"border-radius:3px;height:6px;"
                             f"margin:8px 0 4px;'>"
                             f"<div style='background:{cor_fm};"
                             f"width:{min(pct_gst,100):.0f}%;"
                             f"height:6px;border-radius:3px;'>"
                             f"</div></div>"
-                            f"<small style='color:#475569;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{pct_gst:.0f}% utilizado"
                             f"</small></div>",
                             unsafe_allow_html=True
@@ -1519,7 +1523,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                         col_fma, col_fmb = st.columns(2)
                         with col_fma:
                             if st.button(
-                                "✅ Acertar / Fechar",
+                                "Acertar / Fechar",
                                 key=f"fm_fechar_{fm_rid}",
                                 use_container_width=True
                             ):
@@ -1529,12 +1533,12 @@ def render_fat_tesouraria(obras_db, registos_db,
                                 ] = 'Acertado'
                                 save_db(fm_db, "fundo_maneio.csv")
                                 inv("fundo_maneio.csv")
-                                st.success("✅ Fundo acertado!")
+                                st.success("Fundo acertado!")
                                 st.rerun()
                         with col_fmb:
                             st.markdown(
                                 f"<small style='color:"
-                                f"{'#10B981' if saldo_fm >= 0 else '#EF4444'};'>"
+                                f"{THEME['success'] if saldo_fm >= 0 else THEME['error']};'>"
                                 f"{'Troco a devolver' if saldo_fm > 0 else 'Em dívida'}: "
                                 f"€{abs(saldo_fm):,.2f}</small>",
                                 unsafe_allow_html=True
@@ -1544,33 +1548,33 @@ def render_fat_tesouraria(obras_db, registos_db,
     # TAB — PREVISÃO IA
     # ════════════════════════════════════════════════════════════════
     with t_ia:
-        st.markdown("### 🤖 Previsão Inteligente de Tesouraria")
+        st.markdown("### Previsão Inteligente de Tesouraria")
         st.info(
             "A IA analisa o cash flow previsto, os padrões "
             "históricos e sugere ações preventivas."
         )
 
         # Indicadores de saúde
-        st.markdown("#### 🩺 Diagnóstico Atual")
+        st.markdown("#### Diagnóstico Atual")
 
         indicadores = [
-            ("🏦 Saldo Atual",
+            ("Saldo Atual",
              f"€{saldo_atual:,.2f}",
-             "#10B981" if saldo_atual > 0 else "#EF4444"),
-            ("📅 Autonomia Financeira",
+             THEME['success'] if saldo_atual > 0 else THEME['error']),
+            ("Autonomia Financeira",
              f"{autonomia_meses:.1f} meses",
-             "#10B981" if autonomia_meses >= 3
-             else "#F59E0B" if autonomia_meses >= 1
-             else "#EF4444"),
-            ("📉 Dias Saldo Negativo (90d)",
+             THEME['success'] if autonomia_meses >= 3
+             else THEME['warning'] if autonomia_meses >= 1
+             else THEME['error']),
+            ("Dias Saldo Negativo (90d)",
              str(dias_neg),
-             "#10B981" if dias_neg == 0 else "#EF4444"),
-            ("⚠️ Primeira Data Crítica",
+             THEME['success'] if dias_neg == 0 else THEME['error']),
+            ("Primeira Data Crítica",
              data_primeiro_neg or "Nenhuma",
-             "#10B981" if not data_primeiro_neg else "#EF4444"),
-            ("💸 Custos Fixos/Mês",
+             THEME['success'] if not data_primeiro_neg else THEME['error']),
+            ("Custos Fixos/Mês",
              f"€{custos_fixos_mes:,.2f}",
-             "#94A3B8"),
+             THEME['text_secondary']),
         ]
 
         cols_ind = st.columns(len(indicadores))
@@ -1579,11 +1583,12 @@ def render_fat_tesouraria(obras_db, registos_db,
         ):
             with col_i:
                 st.markdown(
-                    f"<div style='background:#1E293B;"
+                    f"<div style='background:{THEME['surface']};"
+                    f"border:1px solid {THEME['border']};"
                     f"border-radius:10px;padding:12px;"
                     f"text-align:center;"
                     f"border-top:3px solid {cor_i};'>"
-                    f"<small style='color:#64748B;"
+                    f"<small style='color:{THEME['text_secondary']};"
                     f"font-size:0.7rem;font-weight:700;"
                     f"text-transform:uppercase;'>"
                     f"{label}</small><br>"
@@ -1604,8 +1609,8 @@ def render_fat_tesouraria(obras_db, registos_db,
             "Devo pedir uma linha de crédito agora?",
         ]
         st.markdown(
-            "<p style='color:#475569;font-size:0.75rem;"
-            "margin:0 0 6px;'>💡 Sugestões:</p>",
+            f"<p style='color:{THEME['text_secondary']};font-size:0.75rem;"
+            f"margin:0 0 6px;'>Sugestões:</p>",
             unsafe_allow_html=True
         )
         cols_sug = st.columns(len(sugestoes_ia))
@@ -1621,7 +1626,7 @@ def render_fat_tesouraria(obras_db, registos_db,
                     st.session_state['cf_ia_input'] = sug
 
         pergunta_cf = st.text_input(
-            "💬 Pergunta à IA sobre Tesouraria",
+            "Pergunta à IA sobre Tesouraria",
             value=st.session_state.get('cf_ia_input',''),
             placeholder="Ex: Se o cliente BASF atrasar 30 dias, "
                         "quando fico sem dinheiro?",
@@ -1632,7 +1637,7 @@ def render_fat_tesouraria(obras_db, registos_db,
         col_ia1, col_ia2 = st.columns([4,1])
         with col_ia2:
             analisar = st.button(
-                "🤖 Analisar",
+                "Analisar",
                 type="primary",
                 use_container_width=True,
                 key="btn_cf_ia"
@@ -1640,16 +1645,16 @@ def render_fat_tesouraria(obras_db, registos_db,
 
         # Análise automática sempre visível
         with st.expander(
-            "📊 Análise Automática de Tesouraria",
+            "Análise Automática de Tesouraria",
             expanded=True
         ):
             if st.button(
-                "🔄 Gerar Análise Completa",
+                "Gerar Análise Completa",
                 key="btn_analise_auto",
                 use_container_width=True
             ):
                 with st.spinner(
-                    "🤖 A analisar cash flow..."
+                    "A analisar cash flow..."
                 ):
                     analise = _previsao_cashflow_ia(
                         cf_data, saldo_atual, custos_fixos_mes
@@ -1658,13 +1663,13 @@ def render_fat_tesouraria(obras_db, registos_db,
 
             if st.session_state.get('cf_analise'):
                 st.markdown(
-                    f"<div style='background:rgba(59,130,246,0.1);"
-                    f"border:1px solid #3B82F6;"
+                    f"<div style='background:rgba(14,124,134,0.08);"
+                    f"border:1px solid {THEME['accent']};"
                     f"border-radius:12px;padding:16px;"
-                    f"color:#E2E8F0;font-size:0.9rem;"
+                    f"color:{THEME['text']};font-size:0.9rem;"
                     f"line-height:1.6;'>"
-                    f"<p style='color:#3B82F6;font-weight:700;"
-                    f"margin:0 0 8px;'>🤖 ANÁLISE CFO</p>"
+                    f"<p style='color:{THEME['accent']};font-weight:700;"
+                    f"margin:0 0 8px;'>ANÁLISE CFO</p>"
                     f"{st.session_state['cf_analise'].replace(chr(10),'<br>')}"
                     f"</div>",
                     unsafe_allow_html=True
@@ -1682,17 +1687,17 @@ def render_fat_tesouraria(obras_db, registos_db,
                 "saidas_30d":          round(sai_30, 2),
                 "saldo_prev_30d":      round(sal_30, 2),
             }
-            with st.spinner("🤖 A pensar..."):
+            with st.spinner("A pensar..."):
                 resposta = _previsao_cashflow_ia(
                     cf_data, saldo_atual, custos_fixos_mes
                 )
             st.markdown(
-                f"<div style='background:rgba(16,185,129,0.08);"
-                f"border:1px solid #10B981;"
+                f"<div style='background:rgba(21,128,61,0.06);"
+                f"border:1px solid {THEME['success']};"
                 f"border-radius:12px;padding:16px;margin-top:12px;"
-                f"color:#E2E8F0;font-size:0.9rem;line-height:1.6;'>"
-                f"<p style='color:#10B981;font-weight:700;"
-                f"margin:0 0 8px;'>💬 {pergunta_cf}</p>"
+                f"color:{THEME['text']};font-size:0.9rem;line-height:1.6;'>"
+                f"<p style='color:{THEME['success']};font-weight:700;"
+                f"margin:0 0 8px;'>{pergunta_cf}</p>"
                 f"{resposta.replace(chr(10),'<br>')}"
                 f"</div>",
                 unsafe_allow_html=True

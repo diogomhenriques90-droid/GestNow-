@@ -5,14 +5,30 @@ address = "0.0.0.0"
 enableCORS = false
 enableXsrfProtection = false
 maxUploadSize = 100
+enableStaticServing = true
 
 [browser]
 gatherUsageStats = false
 
+# Fonte única de verdade do tema (Fase 1 — Identidade Visual). Os valores
+# abaixo têm de bater certo com core.THEME (core.py) — há um teste
+# (test_core.py: TestTemaCentral) que confirma isto automaticamente.
 [theme]
 base = "light"
-primaryColor = "#0A2463"
-backgroundColor = "#F4F7FB"
+primaryColor = "#0E7C86"
+backgroundColor = "#F7F9FB"
 secondaryBackgroundColor = "#FFFFFF"
-textColor = "#1F2A44"
+textColor = "#1E293B"
 font = "sans serif"
+borderColor = "#E6E9EF"
+baseRadius = "12px"
+buttonRadius = "12px"
+greenColor = "#15803D"
+orangeColor = "#B45309"
+redColor = "#B91C1C"
+showSidebarBorder = true
+
+[theme.sidebar]
+backgroundColor = "#FFFFFF"
+textColor = "#1E293B"
+borderColor = "#E6E9EF"

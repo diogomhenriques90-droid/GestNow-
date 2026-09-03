@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit
+from core import save_db, inv, load_db, log_audit, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -157,16 +157,24 @@ def _grafico_amort_timeline(mapa_anual: list,
         hovertemplate='%{x}<br>Val: €%{y:,.2f}<extra></extra>',
         yaxis='y2'
     ))
-    # Hoje
+    # Hoje — add_vline com annotation_text sobre eixo categórico
+    # (anos como strings) rebenta no Plotly instalado (TypeError em
+    # shapeannotation._mean, que soma as coordenadas x assumindo
+    # valores numéricos). Linha e rótulo têm de ser adicionados em
+    # separado para evitar esse caminho de código.
     hoje_ano = str(date.today().year)
     if hoje_ano in anos:
         fig.add_vline(
             x=hoje_ano,
             line_dash="dash",
             line_color="#F59E0B",
-            line_width=2,
-            annotation_text="Hoje",
-            annotation_font_color="#F59E0B"
+            line_width=2
+        )
+        fig.add_annotation(
+            x=hoje_ano, y=1, yref="paper",
+            text="Hoje", showarrow=False,
+            font={'color': "#F59E0B"},
+            yanchor="bottom"
         )
 
     fig.update_layout(
@@ -339,7 +347,7 @@ def _grafico_seguros_timeline(seguros_db):
                 f"Prémio: €{float(row.get('Valor_Anual',0) or 0):,.2f}/ano<br>"
                 f"{ini.strftime('%d/%m/%Y')} → "
                 f"{fim.strftime('%d/%m/%Y')}<br>"
-                f"{'⚠️ ' + str(dias_r) + ' dias restantes' if dias_r <= 60 else ''}"
+                f"{'' + str(dias_r) + ' dias restantes' if dias_r <= 60 else ''}"
                 f"<extra></extra>"
             ),
             showlegend=False
@@ -613,15 +621,15 @@ def render_fat_imobilizado(*_):
         ])
 
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("🏭 Valor Bruto",    f"€{val_bruto:,.2f}")
-    with c2: st.metric("📊 Val. Contabilístico",f"€{val_cont:,.2f}")
-    with c3: st.metric("📉 Amort./Mês",     f"€{amort_mes:,.2f}")
-    with c4: st.metric("🔒 Cauções",         f"€{caucoes_tot:,.2f}")
+    with c1: st.metric("Valor Bruto",    f"€{val_bruto:,.2f}")
+    with c2: st.metric("Val. Contabilístico",f"€{val_cont:,.2f}")
+    with c3: st.metric("Amort./Mês",     f"€{amort_mes:,.2f}")
+    with c4: st.metric("Cauções",         f"€{caucoes_tot:,.2f}")
     with c5:
         n_alertas = n_seg_exp + n_alv_exp
-        cor_alerta = "#EF4444" if n_alertas > 0 else "#10B981"
+        cor_alerta = THEME['error'] if n_alertas > 0 else THEME['success']
         st.metric(
-            "⚠️ Alertas",
+            "Alertas",
             n_alertas,
             delta="seguros/alvarás a expirar" if n_alertas > 0 else "OK"
         )
@@ -631,22 +639,22 @@ def render_fat_imobilizado(*_):
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_imob, t_seg,
      t_caucoes, t_alvaras) = st.tabs([
-        "🏭 Imobilizado & Amortizações",
-        "🛡️ Seguros",
-        "🔒 Cauções Bancárias",
-        "📋 Alvarás & Licenças",
+        "Imobilizado & Amortizações",
+        "Seguros",
+        "Cauções Bancárias",
+        "Alvarás & Licenças",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB — IMOBILIZADO & AMORTIZAÇÕES
     # ════════════════════════════════════════════════════════════════
     with t_imob:
-        st.markdown("### 🏭 Imobilizado & Amortizações")
+        st.markdown("### Imobilizado & Amortizações")
 
         col_form_i, col_lista_i = st.columns([1, 2])
 
         with col_form_i:
-            st.markdown("#### ➕ Novo Ativo")
+            st.markdown("#### Novo Ativo")
             with st.form("form_imob"):
                 i_desc   = st.text_input(
                     "Descrição *", key="imob_desc",
@@ -710,28 +718,28 @@ def render_fat_imobilizado(*_):
                         i_valor, i_taxa, i_data, i_metodo
                     )
                     st.markdown(
-                        f"<div style='background:rgba(59,130,246,0.1);"
-                        f"border:1px solid #3B82F6;"
+                        f"<div style='background:rgba(14,124,134,0.08);"
+                        f"border:1px solid {THEME['accent']};"
                         f"border-radius:8px;padding:10px;"
                         f"margin:8px 0;'>"
-                        f"<small style='color:#94A3B8;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Amort. anual: "
-                        f"<b style='color:#3B82F6;'>"
+                        f"<b style='color:{THEME['accent']};'>"
                         f"€{amort_calc['amort_anual']:,.2f}</b> · "
                         f"Vida útil: {amort_calc['vida_util']} anos · "
                         f"Val. atual: "
-                        f"<b style='color:#10B981;'>"
+                        f"<b style='color:{THEME['success']};'>"
                         f"€{amort_calc['val_contabil']:,.2f}</b>"
                         f"</small></div>",
                         unsafe_allow_html=True
                     )
 
                 if st.form_submit_button(
-                    "💾 Registar Ativo",
+                    "Registar Ativo",
                     use_container_width=True, type="primary"
                 ):
                     if not i_desc.strip() or i_valor <= 0:
-                        st.error("❌ Descrição e valor obrigatórios.")
+                        st.error("Descrição e valor obrigatórios.")
                     else:
                         amort_f = _calcular_amortizacao(
                             i_valor, i_taxa, i_data, i_metodo
@@ -769,14 +777,14 @@ def render_fat_imobilizado(*_):
                         )
                         inv("imobilizado_db.csv")
                         st.success(
-                            f"✅ {i_desc} registado! "
+                            f"{i_desc} registado! "
                             f"Amort. anual: "
                             f"€{amort_f['amort_anual']:,.2f}"
                         )
                         st.rerun()
 
         with col_lista_i:
-            st.markdown("#### 📊 Inventário de Imobilizado")
+            st.markdown("#### Inventário de Imobilizado")
 
             # Gráficos
             col_dg1, col_dg2 = st.columns(2)
@@ -794,7 +802,7 @@ def render_fat_imobilizado(*_):
                     )
 
             if imob_db.empty:
-                st.info("📋 Sem ativos registados.")
+                st.info("Sem ativos registados.")
             else:
                 # Filtro estado
                 estados_f = ["Todos"] + \
@@ -819,43 +827,44 @@ def render_fat_imobilizado(*_):
                     ) if vc_a > 0 else 0
                     est_a  = ativo.get('Estado','')
                     cor_a  = {
-                        'Ativo':         '#10B981',
-                        'Em Manutenção': '#F59E0B',
-                        'Abatido':       '#64748B',
-                        'Cedido':        '#3B82F6',
-                    }.get(est_a,'#6B7280')
+                        'Ativo':         THEME['success'],
+                        'Em Manutenção': THEME['warning'],
+                        'Abatido':       THEME['text_secondary'],
+                        'Cedido':        THEME['accent'],
+                    }.get(est_a, THEME['text_secondary'])
 
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:12px;"
                         f"margin-bottom:8px;"
                         f"border-left:4px solid {cor_a};'>"
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.9rem;'>"
                         f"{ativo.get('Descricao','')[:35]}</b><br>"
-                        f"<small style='color:#64748B;'>"
-                        f"📦 {ativo.get('Categoria','')} · "
+                        f"<small style='color:{THEME['text_secondary']};'>"
+                        f"{ativo.get('Categoria','')} · "
                         f"#{ativo.get('Numero_Serie','')} · "
-                        f"🏭 {ativo.get('Obra_Afeta','')} · "
+                        f"{ativo.get('Obra_Afeta','')} · "
                         f"Compra: {ativo.get('Data_Compra','')}"
                         f"</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"€{vco_a:,.2f}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"/{vc_a:,.2f} bruto</small>"
                         f"</div></div>"
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['background']};"
                         f"border-radius:3px;height:5px;"
                         f"margin:8px 0 4px;'>"
-                        f"<div style='background:#EF4444;"
+                        f"<div style='background:{THEME['error']};"
                         f"width:{pct_a:.0f}%;height:5px;"
                         f"border-radius:3px;'></div></div>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Amortizado: {pct_a:.0f}% · "
                         f"Taxa: {float(ativo.get('Taxa_Amort',0) or 0):.1f}%/ano · "
                         f"€{float(ativo.get('Amort_Anual',0) or 0):,.2f}/ano"
@@ -867,7 +876,7 @@ def render_fat_imobilizado(*_):
                     col_ad1, col_ad2 = st.columns([3,1])
                     with col_ad2:
                         if st.button(
-                            "📊",
+                            "",
                             key=f"imob_det_{aid}",
                             use_container_width=True,
                             help="Ver timeline amortização"
@@ -898,7 +907,7 @@ def render_fat_imobilizado(*_):
                             hide_index=True
                         )
                         if st.button(
-                            "✖ Fechar",
+                            "Fechar",
                             key=f"fechar_imob_{aid}"
                         ):
                             st.session_state.pop(
@@ -908,7 +917,7 @@ def render_fat_imobilizado(*_):
 
         # Quadro anual + export PDF
         st.markdown("---")
-        st.markdown("#### 📋 Quadro de Amortizações Anual")
+        st.markdown("#### Quadro de Amortizações Anual")
 
         ano_qa = st.number_input(
             "Ano",
@@ -925,12 +934,12 @@ def render_fat_imobilizado(*_):
 
             with col_qa1:
                 st.metric(
-                    "📉 Total Amortizações Anuais",
+                    "Total Amortizações Anuais",
                     f"€{total_amort_anual:,.2f}"
                 )
             with col_qa2:
                 st.metric(
-                    "📊 Val. Líquido Contabilístico",
+                    "Val. Líquido Contabilístico",
                     f"€{total_contabil:,.2f}",
                     delta=f"de €{total_bruto:,.2f} bruto"
                 )
@@ -938,7 +947,7 @@ def render_fat_imobilizado(*_):
             col_exp1, col_exp2 = st.columns(2)
             with col_exp1:
                 if st.button(
-                    "📄 Gerar Quadro PDF",
+                    "Gerar Quadro PDF",
                     key="btn_pdf_amort",
                     type="primary",
                     use_container_width=True
@@ -953,7 +962,7 @@ def render_fat_imobilizado(*_):
             with col_exp2:
                 if st.session_state.get('amort_pdf'):
                     st.download_button(
-                        "📥 Descarregar PDF",
+                        "Descarregar PDF",
                         data=st.session_state['amort_pdf'],
                         file_name=(
                             f"quadro_amortizacoes_{ano_qa}.pdf"
@@ -973,7 +982,7 @@ def render_fat_imobilizado(*_):
                 ] if c in imob_db.columns
             ]].to_csv(index=False, encoding='utf-8-sig')
             st.download_button(
-                "📥 Exportar CSV",
+                "Exportar CSV",
                 data=csv_imob.encode('utf-8-sig'),
                 file_name=f"imobilizado_{ano_qa}.csv",
                 mime="text/csv",
@@ -984,12 +993,12 @@ def render_fat_imobilizado(*_):
     # TAB — SEGUROS
     # ════════════════════════════════════════════════════════════════
     with t_seg:
-        st.markdown("### 🛡️ Gestão de Seguros")
+        st.markdown("### Gestão de Seguros")
 
         col_sf, col_sl = st.columns([1, 2])
 
         with col_sf:
-            st.markdown("#### ➕ Novo Seguro")
+            st.markdown("#### Novo Seguro")
             with st.form("form_seg_imob"):
                 s_tipo  = st.selectbox(
                     "Tipo *",
@@ -1043,11 +1052,11 @@ def render_fat_imobilizado(*_):
                     )
 
                 if st.form_submit_button(
-                    "💾 Guardar Seguro",
+                    "Guardar Seguro",
                     use_container_width=True, type="primary"
                 ):
                     if not s_ent.strip():
-                        st.error("❌ Seguradora obrigatória.")
+                        st.error("Seguradora obrigatória.")
                     else:
                         novo_s = pd.DataFrame([{
                             "ID":          str(uuid.uuid4())[:8].upper(),
@@ -1066,11 +1075,11 @@ def render_fat_imobilizado(*_):
                         ) if not seguros_db.empty else novo_s
                         save_db(upd_s, "seguros_db.csv")
                         inv("seguros_db.csv")
-                        st.success("✅ Seguro registado!")
+                        st.success("Seguro registado!")
                         st.rerun()
 
         with col_sl:
-            st.markdown("#### 📋 Seguros Ativos")
+            st.markdown("#### Seguros Ativos")
 
             # Timeline
             fig_seg_tl = _grafico_seguros_timeline(seguros_db)
@@ -1080,11 +1089,11 @@ def render_fat_imobilizado(*_):
                 )
 
             if seguros_db.empty:
-                st.info("📋 Sem seguros registados.")
+                st.info("Sem seguros registados.")
             else:
                 total_premios = _num(seguros_db, 'Valor_Anual')
                 st.metric(
-                    "💰 Total Prémios Anuais",
+                    "Total Prémios Anuais",
                     f"€{total_premios:,.2f}",
                     delta=f"€{total_premios/12:,.2f}/mês"
                 )
@@ -1097,43 +1106,44 @@ def render_fat_imobilizado(*_):
                     val_s  = float(seg.get('Valor_Anual',0) or 0)
 
                     if dias_s <= 0:
-                        cor_s   = "#EF4444"
-                        alert_s = "🔴 EXPIRADO"
+                        cor_s   = THEME['error']
+                        alert_s = "EXPIRADO"
                     elif dias_s <= 30:
-                        cor_s   = "#EF4444"
-                        alert_s = f"🔴 Expira em {dias_s}d!"
+                        cor_s   = THEME['error']
+                        alert_s = f"Expira em {dias_s}d!"
                     elif dias_s <= 60:
-                        cor_s   = "#F59E0B"
-                        alert_s = f"⚠️ {dias_s} dias"
+                        cor_s   = THEME['warning']
+                        alert_s = f"{dias_s} dias"
                     else:
-                        cor_s   = "#10B981"
-                        alert_s = f"✅ {dias_s}d"
+                        cor_s   = THEME['success']
+                        alert_s = f"{dias_s}d"
 
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:12px;"
                         f"margin-bottom:8px;"
                         f"border-left:4px solid {cor_s};'>"
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.9rem;'>"
                         f"{seg.get('Tipo','')[:40]}</b><br>"
-                        f"<small style='color:#64748B;'>"
-                        f"🏢 {seg.get('Entidade','')} · "
-                        f"📋 {seg.get('Apolice','')} · "
-                        f"🏭 {seg.get('Obra','')}"
+                        f"<small style='color:{THEME['text_secondary']};'>"
+                        f"{seg.get('Entidade','')} · "
+                        f"{seg.get('Apolice','')} · "
+                        f"{seg.get('Obra','')}"
                         f"</small><br>"
-                        f"<small style='color:#94A3B8;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{seg.get('Cobertura','')[:60]}</small><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{seg.get('Data_Inicio','')} → "
                         f"{seg.get('Data_Fim','')}"
                         f"</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"€{val_s:,.2f}/ano</b><br>"
                         f"<span style='color:{cor_s};"
                         f"font-size:0.8rem;font-weight:700;'>"
@@ -1146,7 +1156,7 @@ def render_fat_imobilizado(*_):
     # TAB — CAUÇÕES BANCÁRIAS
     # ════════════════════════════════════════════════════════════════
     with t_caucoes:
-        st.markdown("### 🔒 Cauções Bancárias")
+        st.markdown("### Cauções Bancárias")
         st.info(
             "As cauções são garantias financeiras exigidas "
             "em contratos de obra (normalmente 5-10% do valor). "
@@ -1157,7 +1167,7 @@ def render_fat_imobilizado(*_):
         col_cf1, col_cf2 = st.columns([1, 2])
 
         with col_cf1:
-            st.markdown("#### ➕ Nova Caução")
+            st.markdown("#### Nova Caução")
             with st.form("form_caucao"):
                 ca_obra  = st.text_input(
                     "Obra *", key="ca_obra"
@@ -1199,11 +1209,11 @@ def render_fat_imobilizado(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar Caução",
+                    "Registar Caução",
                     use_container_width=True, type="primary"
                 ):
                     if not ca_obra.strip() or ca_val <= 0:
-                        st.error("❌ Obra e valor obrigatórios.")
+                        st.error("Obra e valor obrigatórios.")
                     else:
                         nova_ca = pd.DataFrame([{
                             "ID":               str(uuid.uuid4())[:8].upper(),
@@ -1222,13 +1232,13 @@ def render_fat_imobilizado(*_):
                         save_db(upd_ca, "caucoes_db.csv")
                         inv("caucoes_db.csv")
                         st.success(
-                            f"✅ Caução €{ca_val:,.2f} "
+                            f"Caução €{ca_val:,.2f} "
                             f"registada para {ca_obra}!"
                         )
                         st.rerun()
 
         with col_cf2:
-            st.markdown("#### 📊 Cauções Ativas")
+            st.markdown("#### Cauções Ativas")
 
             # Gráfico
             fig_cau = _grafico_caucoes_timeline(caucoes_db)
@@ -1238,7 +1248,7 @@ def render_fat_imobilizado(*_):
                 )
 
             if caucoes_db.empty:
-                st.info("📋 Sem cauções registadas.")
+                st.info("Sem cauções registadas.")
             else:
                 # KPIs
                 cau_ativas = caucoes_db[
@@ -1249,10 +1259,10 @@ def render_fat_imobilizado(*_):
 
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.metric("🔒 Cauções Ativas", n_cau)
+                    st.metric("Cauções Ativas", n_cau)
                 with c2:
                     st.metric(
-                        "💰 Capital Imobilizado",
+                        "Capital Imobilizado",
                         f"€{total_cau:,.2f}"
                     )
 
@@ -1267,46 +1277,47 @@ def render_fat_imobilizado(*_):
                     est_c   = cau.get('Estado','Ativa')
 
                     if est_c == 'Libertada':
-                        cor_c   = "#64748B"
-                        alert_c = "✅ Libertada"
+                        cor_c   = THEME['text_secondary']
+                        alert_c = "Libertada"
                     elif dias_c <= 0:
-                        cor_c   = "#10B981"
-                        alert_c = "🔓 Pronta a libertar!"
+                        cor_c   = THEME['success']
+                        alert_c = "Pronta a libertar!"
                     elif dias_c <= 30:
-                        cor_c   = "#10B981"
-                        alert_c = f"🔓 Liberta em {dias_c}d"
+                        cor_c   = THEME['success']
+                        alert_c = f"Liberta em {dias_c}d"
                     elif dias_c <= 90:
-                        cor_c   = "#3B82F6"
-                        alert_c = f"📅 {dias_c} dias"
+                        cor_c   = THEME['accent']
+                        alert_c = f"{dias_c} dias"
                     else:
-                        cor_c   = "#F59E0B"
-                        alert_c = f"🔒 {dias_c} dias"
+                        cor_c   = THEME['warning']
+                        alert_c = f"{dias_c} dias"
 
                     col_ci, col_cb = st.columns([5,1])
                     with col_ci:
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};"
+                            f"border:1px solid {THEME['border']};"
                             f"border-radius:10px;padding:12px;"
                             f"margin-bottom:6px;"
                             f"border-left:4px solid {cor_c};'>"
                             f"<div style='display:flex;"
                             f"justify-content:space-between;'>"
                             f"<div>"
-                            f"<b style='color:#F1F5F9;'>"
-                            f"🔒 {cau.get('Obra','')[:30]}</b><br>"
-                            f"<small style='color:#64748B;'>"
-                            f"🏦 {cau.get('Banco','')} · "
+                            f"<b style='color:{THEME['text']};'>"
+                            f"{cau.get('Obra','')[:30]}</b><br>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
+                            f"{cau.get('Banco','')} · "
                             f"{cau.get('Tipo_Cauco','')} · "
                             f"Constitução: "
                             f"{cau.get('Data_Constituicao','')}"
                             f"</small><br>"
-                            f"<small style='color:#94A3B8;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"Libertação: "
                             f"{cau.get('Data_Libertacao','')}"
                             f"</small>"
                             f"</div>"
                             f"<div style='text-align:right;'>"
-                            f"<b style='color:#F1F5F9;"
+                            f"<b style='color:{THEME['text']};"
                             f"font-size:1.05rem;'>"
                             f"€{val_c:,.2f}</b><br>"
                             f"<span style='color:{cor_c};"
@@ -1319,7 +1330,7 @@ def render_fat_imobilizado(*_):
                     with col_cb:
                         if est_c != 'Libertada':
                             if st.button(
-                                "🔓",
+                                "",
                                 key=f"libertar_{cau_id}",
                                 use_container_width=True,
                                 help="Marcar como libertada"
@@ -1333,7 +1344,7 @@ def render_fat_imobilizado(*_):
                                 )
                                 inv("caucoes_db.csv")
                                 st.success(
-                                    f"✅ Caução €{val_c:,.2f} "
+                                    f"Caução €{val_c:,.2f} "
                                     f"libertada!"
                                 )
                                 st.rerun()
@@ -1342,7 +1353,7 @@ def render_fat_imobilizado(*_):
     # TAB — ALVARÁS & LICENÇAS
     # ════════════════════════════════════════════════════════════════
     with t_alvaras:
-        st.markdown("### 📋 Alvarás & Licenças")
+        st.markdown("### Alvarás & Licenças")
         st.info(
             "Controlo de todas as licenças e alvarás obrigatórios. "
             "A empresa fica sem poder operar se um alvará expirar. "
@@ -1352,7 +1363,7 @@ def render_fat_imobilizado(*_):
         col_af, col_al = st.columns([1, 2])
 
         with col_af:
-            st.markdown("#### ➕ Novo Alvará / Licença")
+            st.markdown("#### Novo Alvará / Licença")
             with st.form("form_alvara"):
                 al_tipo = st.selectbox(
                     "Tipo *",
@@ -1403,11 +1414,11 @@ def render_fat_imobilizado(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar Alvará",
+                    "Registar Alvará",
                     use_container_width=True, type="primary"
                 ):
                     if not al_num.strip():
-                        st.error("❌ Número obrigatório.")
+                        st.error("Número obrigatório.")
                     else:
                         novo_al = pd.DataFrame([{
                             "ID":             str(uuid.uuid4())[:8].upper(),
@@ -1436,14 +1447,14 @@ def render_fat_imobilizado(*_):
                             ip=""
                         )
                         inv("alvaras_db.csv")
-                        st.success("✅ Alvará registado!")
+                        st.success("Alvará registado!")
                         st.rerun()
 
         with col_al:
-            st.markdown("#### 📊 Alvarás & Licenças")
+            st.markdown("#### Alvarás & Licenças")
 
             if alvaras_db.empty:
-                st.info("📋 Sem alvarás registados.")
+                st.info("Sem alvarás registados.")
             else:
                 # KPIs
                 tot_al   = len(alvaras_db)
@@ -1456,12 +1467,12 @@ def render_fat_imobilizado(*_):
 
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.metric("📋 Total Alvarás", tot_al)
+                    st.metric("Total Alvarás", tot_al)
                 with c2:
                     st.metric(
-                        "⚠️ A Expirar (90d)",
+                        "A Expirar (90d)",
                         a_expirar,
-                        delta="🔴 Urgente!" if a_expirar > 0 else "✅"
+                        delta="Urgente!" if a_expirar > 0 else ""
                     )
 
                 # Ordenar por validade
@@ -1479,23 +1490,28 @@ def render_fat_imobilizado(*_):
                     custo_r = float(al.get('Custo_Renovacao',0) or 0)
 
                     if dias_al <= 0:
-                        cor_al  = "#EF4444"
-                        alert_al= "🔴 EXPIRADO — RENOVAR URGENTE!"
+                        cor_al  = THEME['error']
+                        alert_al= "EXPIRADO — RENOVAR URGENTE!"
                     elif dias_al <= 30:
-                        cor_al  = "#EF4444"
-                        alert_al= f"🔴 Expira em {dias_al} dias!"
+                        cor_al  = THEME['error']
+                        alert_al= f"Expira em {dias_al} dias!"
                     elif dias_al <= 60:
-                        cor_al  = "#F59E0B"
-                        alert_al= f"⚠️ Expira em {dias_al} dias"
+                        cor_al  = THEME['warning']
+                        alert_al= f"Expira em {dias_al} dias"
                     elif dias_al <= 90:
-                        cor_al  = "#F59E0B"
-                        alert_al= f"📋 {dias_al} dias"
+                        cor_al  = THEME['warning']
+                        alert_al= f"{dias_al} dias"
                     else:
-                        cor_al  = "#10B981"
-                        alert_al= f"✅ {dias_al} dias"
+                        cor_al  = THEME['success']
+                        alert_al= f"{dias_al} dias"
 
+                    notas_html = (
+                        f"<br><small style='color:{THEME['text_secondary']};'>"
+                        + str(al.get('Notas',''))[:80] + "</small>"
+                    ) if al.get('Notas') else ""
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:12px;"
                         f"margin-bottom:8px;"
                         f"border-left:4px solid {cor_al};'>"
@@ -1503,10 +1519,10 @@ def render_fat_imobilizado(*_):
                         f"justify-content:space-between;"
                         f"align-items:flex-start;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.9rem;'>"
                         f"{al.get('Tipo','')[:40]}</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Nº {al.get('Numero','')} · "
                         f"{al.get('Entidade','')} · "
                         f"Emissão: {al.get('Data_Emissao','')} · "
@@ -1519,11 +1535,11 @@ def render_fat_imobilizado(*_):
                         f"font-weight:700;"
                         f"font-size:0.8rem;'>"
                         f"{alert_al}</span><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Renovação: €{custo_r:,.2f}"
                         f"</small>"
                         f"</div></div>"
-                        f"{'<br><small style=color:#94A3B8;>' + str(al.get('Notas',''))[:80] + '</small>' if al.get('Notas') else ''}"
+                        f"{notas_html}"
                         f"</div>",
                         unsafe_allow_html=True
                     )
@@ -1538,7 +1554,7 @@ def render_fat_imobilizado(*_):
                             label_visibility="collapsed"
                         )
                         if st.button(
-                            "✅",
+                            "",
                             key=f"al_upd_{al_id}",
                             use_container_width=True,
                             help="Atualizar estado"
@@ -1559,7 +1575,7 @@ def render_fat_imobilizado(*_):
                     ] if c in alvaras_db.columns
                 ]].to_csv(index=False, encoding='utf-8-sig')
                 st.download_button(
-                    "📥 Exportar Alvarás",
+                    "Exportar Alvarás",
                     data=csv_al.encode('utf-8-sig'),
                     file_name="alvaras_licencas.csv",
                     mime="text/csv",
@@ -1584,12 +1600,12 @@ def render_fat_imobilizado(*_):
                             errors='coerce'
                         ).fillna(0).sum()
                         st.markdown(
-                            f"<div style='background:rgba(239,68,68,0.1);"
-                            f"border:1px solid #EF4444;"
+                            f"<div style='background:rgba(185,28,28,0.08);"
+                            f"border:1px solid {THEME['error']};"
                             f"border-radius:8px;padding:12px;"
                             f"margin-top:8px;'>"
-                            f"<b style='color:#EF4444;'>"
-                            f"⚠️ Custo total renovações urgentes "
+                            f"<b style='color:{THEME['error']};'>"
+                            f"Custo total renovações urgentes "
                             f"(90 dias): "
                             f"€{custo_renov:,.2f}</b>"
                             f"</div>",

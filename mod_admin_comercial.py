@@ -13,7 +13,8 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit
+from core import (save_db, inv, load_db, log_audit, cliente_select,
+                  registar_novo_cliente, registar_cliente_do_select, THEME)
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -45,14 +46,20 @@ def _hoje_str():
 # PIPELINE STAGES
 # ─────────────────────────────────────────────────────────────────
 
+# Cores dos stages: prospeto/contactado partilham text_secondary/
+# accent (fases iniciais activas); proposta/negociação partilham
+# warning (ambas "a aguardar decisão do cliente", mesmo critério do
+# âmbar único usado nos outros módulos); ganho/perdido são success/
+# error. 7 estados, 4 tons semânticos disponíveis — reutilização
+# deliberada, não perda de informação (o texto do stage diferencia).
 PIPELINE_STAGES = [
-    {"id": "prospeto",    "nome": "🔍 Prospeto",       "cor": "#64748B", "prob": 10},
-    {"id": "contactado",  "nome": "📞 Contactado",      "cor": "#3B82F6", "prob": 25},
-    {"id": "reuniao",     "nome": "🤝 Reunião Marcada", "cor": "#8B5CF6", "prob": 40},
-    {"id": "proposta",    "nome": "📄 Proposta Enviada","cor": "#F59E0B", "prob": 60},
-    {"id": "negociacao",  "nome": "💬 Negociação",      "cor": "#F97316", "prob": 75},
-    {"id": "ganho",       "nome": "✅ Ganho",            "cor": "#10B981", "prob": 100},
-    {"id": "perdido",     "nome": "❌ Perdido",          "cor": "#EF4444", "prob": 0},
+    {"id": "prospeto",    "nome": "Prospeto",       "cor": THEME['text_secondary'], "prob": 10},
+    {"id": "contactado",  "nome": "Contactado",      "cor": THEME['accent'], "prob": 25},
+    {"id": "reuniao",     "nome": "Reunião Marcada", "cor": THEME['accent'], "prob": 40},
+    {"id": "proposta",    "nome": "Proposta Enviada","cor": THEME['warning'], "prob": 60},
+    {"id": "negociacao",  "nome": "Negociação",      "cor": THEME['warning'], "prob": 75},
+    {"id": "ganho",       "nome": "Ganho",            "cor": THEME['success'], "prob": 100},
+    {"id": "perdido",     "nome": "Perdido",          "cor": THEME['error'], "prob": 0},
 ]
 
 STAGE_NOMES = [s["nome"] for s in PIPELINE_STAGES]
@@ -421,8 +428,16 @@ def render_comercial(*_):
     oport_db   = _load("comercial_oportunidades.csv", [
         "ID", "Nome", "Cliente", "Setor", "Comercial",
         "Stage", "Valor_Est", "Prob_Fecho", "Data_Criacao",
-        "Data_Fecho_Est", "Origem", "Notas", "Obra_Associada"
+        "Data_Fecho_Est", "Origem", "Notas", "Obra_Associada",
+        "Contacto_Origem",
     ])
+    _ct_db     = _load("com_contactos.csv", [
+        "ID", "Data", "Canal", "Cliente_Nome",
+        "Contacto_Nome", "Oportunidade_ID",
+    ])
+    ct_sem_op  = _ct_db[
+        _ct_db["Oportunidade_ID"].isna() | (_ct_db["Oportunidade_ID"] == "")
+    ].copy() if not _ct_db.empty else pd.DataFrame()
     visitas_db = _load("comercial_visitas.csv", [
         "ID", "Cliente", "Contacto", "Comercial", "Data",
         "Hora", "Tipo", "Local", "Oportunidade_ID",
@@ -460,32 +475,33 @@ def render_comercial(*_):
                 })
 
     # ── CSS ───────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .com-card {
-        background:#1E293B; border-radius:12px;
+    .com-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:12px;
         padding:14px 16px; margin-bottom:8px;
-        border-left:4px solid #3B82F6;
+        border-left:4px solid {THEME['accent']};
         transition:transform 0.15s;
-    }
-    .com-card:hover { transform:translateX(3px); }
-    .stage-badge {
+    }}
+    .com-card:hover {{ transform:translateX(3px); }}
+    .stage-badge {{
         display:inline-block; padding:3px 10px;
         border-radius:20px; font-size:0.72rem; font-weight:700;
-    }
-    .alerta-visita {
+    }}
+    .alerta-visita {{
         border-radius:8px; padding:10px 14px;
         margin-bottom:6px; border-left:4px solid;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── Alertas topo ──────────────────────────────────────────────
     if alertas_visitas:
         for av in alertas_visitas:
-            cor_av = "#EF4444" if av['dias'] <= 0 \
-                     else "#F59E0B" if av['dias'] == 1 \
-                     else "#3B82F6"
+            cor_av = THEME['error'] if av['dias'] <= 0 \
+                     else THEME['warning'] if av['dias'] == 1 \
+                     else THEME['accent']
             txt_av = "HOJE" if av['dias'] == 0 \
                      else "AMANHÃ" if av['dias'] == 1 \
                      else f"em {av['dias']} dias" if av['dias'] > 0 \
@@ -494,7 +510,7 @@ def render_comercial(*_):
                 f"<div class='alerta-visita' "
                 f"style='background:{cor_av}12;"
                 f"border-left-color:{cor_av};'>"
-                f"<b style='color:{cor_av};'>🗓️ Visita {txt_av}:</b> "
+                f"<b style='color:{cor_av};'>Visita {txt_av}:</b> "
                 f"{av['cliente']} — {av['data']} {av['hora']} "
                 f"({av['tipo']})"
                 f"</div>",
@@ -524,30 +540,30 @@ def render_comercial(*_):
     n_clientes = len(clientes_db) if not clientes_db.empty else 0
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
-    with c1: st.metric("📋 Oportunidades",  oport_ativas)
-    with c2: st.metric("💰 Pipeline",        f"\u20AC{val_pipeline:,.0f}")
-    with c3: st.metric("✅ Ganhos",           ganhos_n)
-    with c4: st.metric("🎯 Conversão",        f"{taxa_conv:.1f}%")
-    with c5: st.metric("🗓️ Visitas/Mês",     n_visitas_mes)
-    with c6: st.metric("👥 Clientes",         n_clientes)
+    with c1: st.metric("Oportunidades",  oport_ativas)
+    with c2: st.metric("Pipeline",        f"\u20AC{val_pipeline:,.0f}")
+    with c3: st.metric("Ganhos",           ganhos_n)
+    with c4: st.metric("Conversão",        f"{taxa_conv:.1f}%")
+    with c5: st.metric("Visitas/Mês",     n_visitas_mes)
+    with c6: st.metric("Clientes",         n_clientes)
 
     st.divider()
 
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_pipeline, t_visitas, t_clientes,
      t_ranking, t_relatorio) = st.tabs([
-        "📊 Pipeline",
-        "🗓️ Visitas",
-        "👥 Clientes & Angariações",
-        "🏆 Ranking",
-        "📤 Relatório",
+        "Pipeline",
+        "Visitas",
+        "Clientes & Angariações",
+        "Ranking",
+        "Relatório",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB — PIPELINE
     # ════════════════════════════════════════════════════════════════
     with t_pipeline:
-        st.markdown("### 📊 Pipeline Comercial")
+        st.markdown("### Pipeline Comercial")
 
         col_p1, col_p2 = st.columns(2)
         with col_p1:
@@ -567,10 +583,10 @@ def render_comercial(*_):
         col_form_p, col_lista_p = st.columns([1, 2])
 
         with col_form_p:
-            st.markdown("#### ➕ Nova Oportunidade")
+            st.markdown("#### Nova Oportunidade")
             with st.form("form_oportunidade"):
                 op_nome    = st.text_input("Nome da Oportunidade *", key="op_nome")
-                op_cliente = st.text_input("Cliente *", key="op_cliente")
+                op_cliente, op_cliente_novo = cliente_select("Cliente *", "op_cliente")
                 op_setor   = st.selectbox("Setor",
                     ["Construção", "Indústria", "Petroquímica",
                      "Energia", "Farmacêutica", "Alimentar",
@@ -603,44 +619,75 @@ def render_comercial(*_):
                 )
                 op_notas = st.text_area("Notas", key="op_notas")
 
+                ct_opts = ["— Nenhum —"] + [
+                    f"{r['ID']} — {r['Cliente_Nome']} | "
+                    f"{r['Contacto_Nome']} ({r['Canal']}, {r['Data']})"
+                    for _, r in ct_sem_op.iterrows()
+                ] if not ct_sem_op.empty else ["— Nenhum —"]
+                op_contacto = st.selectbox(
+                    "Contacto de Origem (ISO)",
+                    ct_opts, key="op_contacto_orig",
+                    help="Contactos ainda sem oportunidade ligada"
+                )
+
                 if st.form_submit_button(
-                    "💾 Guardar Oportunidade",
+                    "Guardar Oportunidade",
                     use_container_width=True, type="primary"
                 ):
                     if not op_nome.strip() or not op_cliente.strip():
-                        st.error("❌ Nome e cliente obrigatórios.")
+                        st.error("Nome e cliente obrigatórios.")
                     else:
-                        stage_id = STAGE_IDS[STAGE_NOMES.index(op_stage)]
+                        if op_cliente_novo:
+                            registar_cliente_do_select(
+                                op_cliente, "op_cliente", origem="Oportunidade")
+                        stage_id   = STAGE_IDS[STAGE_NOMES.index(op_stage)]
                         stage_info = _get_stage(stage_id)
+                        op_id_novo = str(uuid.uuid4())[:8].upper()
+                        ct_orig_id = (
+                            op_contacto.split(" — ")[0].strip()
+                            if op_contacto != "— Nenhum —" else ""
+                        )
                         nova_op = pd.DataFrame([{
-                            "ID":             str(uuid.uuid4())[:8].upper(),
-                            "Nome":           op_nome.strip(),
-                            "Cliente":        op_cliente.strip(),
-                            "Setor":          op_setor,
-                            "Comercial":      op_comercial.strip(),
-                            "Stage":          stage_id,
-                            "Valor_Est":      op_valor,
-                            "Prob_Fecho":     stage_info['prob'],
-                            "Data_Criacao":   _hoje_str(),
-                            "Data_Fecho_Est": op_fecho.strip(),
-                            "Origem":         op_origem,
-                            "Notas":          op_notas.strip(),
-                            "Obra_Associada": ""
+                            "ID":               op_id_novo,
+                            "Nome":             op_nome.strip(),
+                            "Cliente":          op_cliente.strip(),
+                            "Setor":            op_setor,
+                            "Comercial":        op_comercial.strip(),
+                            "Stage":            stage_id,
+                            "Valor_Est":        op_valor,
+                            "Prob_Fecho":       stage_info['prob'],
+                            "Data_Criacao":     _hoje_str(),
+                            "Data_Fecho_Est":   op_fecho.strip(),
+                            "Origem":           op_origem,
+                            "Notas":            op_notas.strip(),
+                            "Obra_Associada":   "",
+                            "Contacto_Origem":  ct_orig_id,
                         }])
                         upd_op = pd.concat(
                             [oport_db, nova_op], ignore_index=True
                         ) if not oport_db.empty else nova_op
                         save_db(upd_op, "comercial_oportunidades.csv")
+                        inv("comercial_oportunidades.csv")
+
+                        # Ligação bidirecional: marcar Oportunidade_ID no contacto
+                        if ct_orig_id and not _ct_db.empty:
+                            _ct_db.loc[
+                                _ct_db["ID"] == ct_orig_id, "Oportunidade_ID"
+                            ] = op_id_novo
+                            save_db(_ct_db, "com_contactos.csv")
+                            inv("com_contactos.csv")
+
                         log_audit(user_nome, "CRIAR_OPORTUNIDADE",
                                   "comercial_oportunidades.csv",
-                                  nova_op['ID'].iloc[0],
-                                  f"{op_nome} | {op_cliente} | \u20AC{op_valor:,.0f}", "")
-                        inv("comercial_oportunidades.csv")
-                        st.success(f"✅ Oportunidade criada!")
+                                  op_id_novo,
+                                  f"{op_nome} | {op_cliente} | €{op_valor:,.0f}"
+                                  + (f" | Contacto: {ct_orig_id}" if ct_orig_id else ""),
+                                  "")
+                        st.success(f"Oportunidade criada!")
                         st.rerun()
 
         with col_lista_p:
-            st.markdown("#### 📋 Oportunidades Ativas")
+            st.markdown("#### Oportunidades Ativas")
 
             # Filtros
             col_pf1, col_pf2 = st.columns(2)
@@ -667,7 +714,7 @@ def render_comercial(*_):
                 df_pipe = df_pipe[df_pipe['Comercial'] == com_filt]
 
             if df_pipe.empty:
-                st.info("📋 Sem oportunidades. Cria a primeira no formulário.")
+                st.info("Sem oportunidades. Cria a primeira no formulário.")
             else:
                 for _, op in df_pipe.sort_values(
                     'Data_Criacao', ascending=False
@@ -681,9 +728,9 @@ def render_comercial(*_):
                     alerta_f = ""
                     if op.get('Stage') not in ['ganho', 'perdido']:
                         if dias_fecho < 0:
-                            alerta_f = "<span style='color:#EF4444;font-size:0.72rem;'>⚠️ Data fecho ultrapassada</span>"
+                            alerta_f = f"<span style='color:{THEME['error']};font-size:0.72rem;'>Data fecho ultrapassada</span>"
                         elif dias_fecho <= 14:
-                            alerta_f = f"<span style='color:#F59E0B;font-size:0.72rem;'>⏰ Fecho em {dias_fecho} dias</span>"
+                            alerta_f = f"<span style='color:{THEME['warning']};font-size:0.72rem;'>Fecho em {dias_fecho} dias</span>"
 
                     col_oi, col_oa = st.columns([5, 1])
                     with col_oi:
@@ -693,16 +740,16 @@ def render_comercial(*_):
                             f"<div style='display:flex;justify-content:space-between;"
                             f"align-items:flex-start;'>"
                             f"<div>"
-                            f"<b style='color:#F1F5F9;font-size:0.9rem;'>"
+                            f"<b style='color:{THEME['text']};font-size:0.9rem;'>"
                             f"{op.get('Nome', '')}</b><br>"
-                            f"<small style='color:#64748B;'>"
-                            f"🏢 {op.get('Cliente', '')} · "
-                            f"👤 {op.get('Comercial', '')} · "
-                            f"📅 {op.get('Data_Fecho_Est', '')}"
+                            f"<small style='color:{THEME['text_secondary']};'>"
+                            f"{op.get('Cliente', '')} · "
+                            f"{op.get('Comercial', '')} · "
+                            f"{op.get('Data_Fecho_Est', '')}"
                             f"</small><br>{alerta_f}"
                             f"</div>"
                             f"<div style='text-align:right;'>"
-                            f"<b style='color:#F1F5F9;font-size:1rem;'>"
+                            f"<b style='color:{THEME['text']};font-size:1rem;'>"
                             f"\u20AC{val_op:,.0f}</b><br>"
                             f"<span class='stage-badge' "
                             f"style='background:{stage_inf['cor']}22;"
@@ -718,7 +765,7 @@ def render_comercial(*_):
                             key=f"op_st_{op_id}",
                             label_visibility="collapsed"
                         )
-                        if st.button("✅", key=f"op_upd_{op_id}",
+                        if st.button("OK", key=f"op_upd_{op_id}",
                                      use_container_width=True):
                             new_sid = STAGE_IDS[STAGE_NOMES.index(novo_stage)]
                             oport_db.loc[oport_db['ID'] == op_id, 'Stage'] = new_sid
@@ -729,19 +776,19 @@ def render_comercial(*_):
     # TAB — VISITAS
     # ════════════════════════════════════════════════════════════════
     with t_visitas:
-        st.markdown("### 🗓️ Gestão de Visitas Comerciais")
+        st.markdown("### Gestão de Visitas Comerciais")
 
         # Alertas visitas próximas
         if alertas_visitas:
-            st.markdown("#### ⚡ Visitas nas Próximas 48h")
+            st.markdown("#### Visitas nas Próximas 48h")
             for av in alertas_visitas:
-                cor_av = "#EF4444" if av['dias'] <= 0 else "#F59E0B"
+                cor_av = THEME['error'] if av['dias'] <= 0 else THEME['warning']
                 st.markdown(
                     f"<div class='alerta-visita' "
                     f"style='background:{cor_av}12;"
                     f"border-left-color:{cor_av};'>"
                     f"<b style='color:{cor_av};'>"
-                    f"🗓️ {av['cliente']}</b> — "
+                    f"{av['cliente']}</b> — "
                     f"{av['data']} às {av['hora']} · {av['tipo']}"
                     f"</div>",
                     unsafe_allow_html=True
@@ -751,9 +798,9 @@ def render_comercial(*_):
         col_vf, col_vl = st.columns([1, 2])
 
         with col_vf:
-            st.markdown("#### ➕ Agendar Visita")
+            st.markdown("#### Agendar Visita")
             with st.form("form_visita"):
-                v_cliente  = st.text_input("Cliente *", key="v_cliente")
+                v_cliente, v_cliente_novo = cliente_select("Cliente *", "v_cliente")
                 v_contacto = st.text_input("Contacto", key="v_contacto")
                 v_comercial = st.text_input(
                     "Comercial", value=user_nome, key="v_comercial"
@@ -792,12 +839,15 @@ def render_comercial(*_):
                 v_notas = st.text_area("Notas / Agenda", key="v_notas")
 
                 if st.form_submit_button(
-                    "📅 Agendar Visita",
+                    "Agendar Visita",
                     use_container_width=True, type="primary"
                 ):
                     if not v_cliente.strip():
-                        st.error("❌ Cliente obrigatório.")
+                        st.error("Cliente obrigatório.")
                     else:
+                        if v_cliente_novo:
+                            registar_cliente_do_select(
+                                v_cliente, "v_cliente", origem="Oportunidade")
                         # Encontrar ID da oportunidade
                         oport_id = ""
                         if v_oport != "—" and not oport_db.empty:
@@ -826,14 +876,14 @@ def render_comercial(*_):
                         save_db(upd_v, "comercial_visitas.csv")
                         inv("comercial_visitas.csv")
                         st.success(
-                            f"✅ Visita agendada para "
+                            f"Visita agendada para "
                             f"{v_data.strftime('%d/%m/%Y')} "
                             f"às {v_hora.strftime('%H:%M')}!"
                         )
                         st.rerun()
 
         with col_vl:
-            st.markdown("#### 📋 Visitas Agendadas & Histórico")
+            st.markdown("#### Visitas Agendadas & Histórico")
 
             # Gráfico distribuição semanal
             fig_vsem = _grafico_visitas_semana(visitas_db)
@@ -844,7 +894,7 @@ def render_comercial(*_):
                 )
 
             if visitas_db.empty:
-                st.info("📋 Sem visitas agendadas.")
+                st.info("Sem visitas agendadas.")
             else:
                 # Filtro estado
                 est_v_filt = st.selectbox(
@@ -870,29 +920,33 @@ def render_comercial(*_):
                     est_v     = vis.get('Estado', 'Agendada')
                     dias_v    = _dias_para(vis.get('Data', ''))
                     cor_v     = {
-                        'Agendada':  '#3B82F6',
-                        'Realizada': '#10B981',
-                        'Cancelada': '#64748B',
-                    }.get(est_v, '#6B7280')
+                        'Agendada':  THEME['accent'],
+                        'Realizada': THEME['success'],
+                        'Cancelada': THEME['text_secondary'],
+                    }.get(est_v, THEME['text_secondary'])
 
                     # Badge data
                     if est_v == 'Agendada':
                         if dias_v < 0:
-                            badge_v = "⚠️ EM ATRASO"
-                            cor_badge = "#EF4444"
+                            badge_v = "EM ATRASO"
+                            cor_badge = THEME['error']
                         elif dias_v == 0:
-                            badge_v = "🔴 HOJE"
-                            cor_badge = "#EF4444"
+                            badge_v = "HOJE"
+                            cor_badge = THEME['error']
                         elif dias_v == 1:
-                            badge_v = "🟡 AMANHÃ"
-                            cor_badge = "#F59E0B"
+                            badge_v = "AMANHÃ"
+                            cor_badge = THEME['warning']
                         else:
-                            badge_v = f"📅 em {dias_v}d"
-                            cor_badge = "#3B82F6"
+                            badge_v = f"em {dias_v}d"
+                            cor_badge = THEME['accent']
                     else:
                         badge_v   = est_v
                         cor_badge = cor_v
 
+                    local_html = (
+                        f"<br><small style='color:{THEME['text_secondary']};'>"
+                        + vis.get('Local', '') + "</small>"
+                    ) if vis.get('Local') else ""
                     col_vi, col_va = st.columns([5, 1])
                     with col_vi:
                         st.markdown(
@@ -901,16 +955,16 @@ def render_comercial(*_):
                             f"<div style='display:flex;"
                             f"justify-content:space-between;'>"
                             f"<div>"
-                            f"<b style='color:#F1F5F9;"
+                            f"<b style='color:{THEME['text']};"
                             f"font-size:0.9rem;'>"
                             f"{vis.get('Cliente', '')}</b><br>"
-                            f"<small style='color:#64748B;'>"
-                            f"📅 {vis.get('Data', '')} "
+                            f"<small style='color:{THEME['text_secondary']};'>"
+                            f"{vis.get('Data', '')} "
                             f"às {vis.get('Hora', '')} · "
                             f"{vis.get('Tipo', '')} · "
-                            f"👤 {vis.get('Comercial', '')}"
+                            f"{vis.get('Comercial', '')}"
                             f"</small>"
-                            f"{'<br><small style=color:#94A3B8;>' + vis.get('Local','') + '</small>' if vis.get('Local') else ''}"
+                            f"{local_html}"
                             f"</div>"
                             f"<span style='color:{cor_badge};"
                             f"font-weight:700;font-size:0.8rem;'>"
@@ -925,7 +979,7 @@ def render_comercial(*_):
                             key=f"v_est_{vid}",
                             label_visibility="collapsed"
                         )
-                        if st.button("✅", key=f"v_upd_{vid}",
+                        if st.button("OK", key=f"v_upd_{vid}",
                                      use_container_width=True):
                             visitas_db.loc[
                                 visitas_db['ID'] == vid, 'Estado'
@@ -936,7 +990,7 @@ def render_comercial(*_):
                     # Resultado da visita (se realizada)
                     if est_v == 'Realizada':
                         with st.expander(
-                            f"📝 Resultado — {vis.get('Cliente', '')}",
+                            f"Resultado — {vis.get('Cliente', '')}",
                             expanded=False
                         ):
                             col_res1, col_res2 = st.columns(2)
@@ -953,7 +1007,7 @@ def render_comercial(*_):
                                     key=f"v_prox_{vid}"
                                 )
                             if st.button(
-                                "💾 Guardar Resultado",
+                                "Guardar Resultado",
                                 key=f"v_res_save_{vid}",
                                 use_container_width=True
                             ):
@@ -965,14 +1019,14 @@ def render_comercial(*_):
                                 ] = prox_acao
                                 save_db(visitas_db, "comercial_visitas.csv")
                                 inv("comercial_visitas.csv")
-                                st.success("✅ Resultado guardado!")
+                                st.success("Resultado guardado!")
                                 st.rerun()
 
     # ════════════════════════════════════════════════════════════════
     # TAB — CLIENTES & ANGARIAÇÕES
     # ════════════════════════════════════════════════════════════════
     with t_clientes:
-        st.markdown("### 👥 Clientes & Angariações")
+        st.markdown("### Clientes & Angariações")
 
         # Gráfico novos clientes
         fig_nc = _grafico_novos_clientes_mes(clientes_db)
@@ -985,7 +1039,7 @@ def render_comercial(*_):
         col_cf, col_cl = st.columns([1, 2])
 
         with col_cf:
-            st.markdown("#### ➕ Registar Cliente Angariado")
+            st.markdown("#### Registar Cliente Angariado")
             with st.form("form_cliente_com"):
                 cc_nome    = st.text_input("Nome da Empresa *", key="cc_nome")
                 cc_nif     = st.text_input("NIF", key="cc_nif",
@@ -1023,11 +1077,11 @@ def render_comercial(*_):
                 cc_notas = st.text_area("Notas", key="cc_notas")
 
                 if st.form_submit_button(
-                    "💾 Registar Cliente",
+                    "Registar Cliente",
                     use_container_width=True, type="primary"
                 ):
                     if not cc_nome.strip():
-                        st.error("❌ Nome obrigatório.")
+                        st.error("Nome obrigatório.")
                     else:
                         novo_c = pd.DataFrame([{
                             "ID":              str(uuid.uuid4())[:8].upper(),
@@ -1053,14 +1107,20 @@ def render_comercial(*_):
                                   novo_c['ID'].iloc[0],
                                   f"{cc_nome} | {cc_origem}", "")
                         inv("comercial_clientes.csv")
-                        st.success(f"✅ Cliente {cc_nome} angariado!")
+                        # Fonte canónica única — disponível em todos os selectbox
+                        registar_novo_cliente(
+                            cc_nome, nif=cc_nif, email=cc_email,
+                            telefone=cc_tel, morada=cc_morada,
+                            sector=cc_setor, origem="Manual",
+                            criado_por=cc_comercial.strip() or user_nome)
+                        st.success(f"Cliente {cc_nome} angariado!")
                         st.rerun()
 
         with col_cl:
-            st.markdown("#### 📋 Clientes Angariados")
+            st.markdown("#### Clientes Angariados")
 
             if clientes_db.empty:
-                st.info("📋 Sem clientes registados.")
+                st.info("Sem clientes registados.")
             else:
                 # Filtro potencial
                 pot_filt = st.selectbox(
@@ -1077,10 +1137,10 @@ def render_comercial(*_):
                 ).iterrows():
                     pot   = cli.get('Potencial', 'Médio')
                     cor_p = {
-                        'Alto':  '#10B981',
-                        'Médio': '#F59E0B',
-                        'Baixo': '#64748B',
-                    }.get(pot, '#6B7280')
+                        'Alto':  THEME['success'],
+                        'Médio': THEME['warning'],
+                        'Baixo': THEME['text_secondary'],
+                    }.get(pot, THEME['text_secondary'])
 
                     st.markdown(
                         f"<div class='com-card' "
@@ -1088,23 +1148,23 @@ def render_comercial(*_):
                         f"<div style='display:flex;"
                         f"justify-content:space-between;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;"
+                        f"<b style='color:{THEME['text']};"
                         f"font-size:0.9rem;'>"
                         f"{cli.get('Nome', '')}</b><br>"
-                        f"<small style='color:#64748B;'>"
-                        f"🏭 {cli.get('Setor', '')} · "
-                        f"👤 {cli.get('Contacto', '')} · "
-                        f"📅 {cli.get('Data_Angariacao', '')} · "
-                        f"🎯 {cli.get('Origem', '')}"
+                        f"<small style='color:{THEME['text_secondary']};'>"
+                        f"{cli.get('Setor', '')} · "
+                        f"{cli.get('Contacto', '')} · "
+                        f"{cli.get('Data_Angariacao', '')} · "
+                        f"{cli.get('Origem', '')}"
                         f"</small><br>"
-                        f"<small style='color:#475569;'>"
-                        f"📧 {cli.get('Email', '')} · "
-                        f"📞 {cli.get('Telefone', '')}"
+                        f"<small style='color:{THEME['text_secondary']};'>"
+                        f"{cli.get('Email', '')} · "
+                        f"{cli.get('Telefone', '')}"
                         f"</small>"
                         f"</div>"
                         f"<span style='color:{cor_p};"
                         f"font-weight:700;font-size:0.85rem;'>"
-                        f"⭐ {pot}</span>"
+                        f"{pot}</span>"
                         f"</div></div>",
                         unsafe_allow_html=True
                     )
@@ -1113,7 +1173,7 @@ def render_comercial(*_):
     # TAB — RANKING
     # ════════════════════════════════════════════════════════════════
     with t_ranking:
-        st.markdown("### 🏆 Ranking Comercial")
+        st.markdown("### Ranking Comercial")
 
         col_rk1, col_rk2 = st.columns(2)
         with col_rk1:
@@ -1131,11 +1191,11 @@ def render_comercial(*_):
                     key="ranking_comerciais"
                 )
             else:
-                st.info("📋 Sem dados suficientes para ranking.")
+                st.info("Sem dados suficientes para ranking.")
 
         # Tabela de ranking detalhado
         st.markdown("---")
-        st.markdown("#### 📊 Tabela de Performance")
+        st.markdown("#### Tabela de Performance")
 
         if not oport_db.empty and 'Comercial' in oport_db.columns:
             comerciais = oport_db['Comercial'].dropna().unique().tolist()
@@ -1190,14 +1250,20 @@ def render_comercial(*_):
 
                 # Medalhas top 3
                 if len(rows_rank) >= 1:
-                    st.markdown("#### 🥇 Top Comerciais")
-                    medalhas = ["🥇", "🥈", "🥉"]
+                    st.markdown("#### Top Comerciais")
+                    posicoes = ["1º", "2º", "3º"]
                     for i, row in enumerate(rows_rank[:3]):
-                        med = medalhas[i] if i < 3 else "🏅"
+                        med = posicoes[i] if i < 3 else f"{i+1}º"
+                        # Ouro/Prata/Bronze são uma convenção universal
+                        # de pódio, não cores semânticas da app —
+                        # mantidas literais de propósito (fora do
+                        # THEME), tal como as cores dos gráficos
+                        # Plotly.
                         cor_m = ["#F59E0B", "#94A3B8", "#CD7F32"][i] \
-                                if i < 3 else "#64748B"
+                                if i < 3 else THEME['text_secondary']
                         st.markdown(
-                            f"<div style='background:#1E293B;"
+                            f"<div style='background:{THEME['surface']};"
+                            f"border:1px solid {THEME['border']};"
                             f"border-radius:10px;padding:14px;"
                             f"margin-bottom:6px;"
                             f"border-left:4px solid {cor_m};'>"
@@ -1205,9 +1271,9 @@ def render_comercial(*_):
                             f"font-size:1.1rem;'>"
                             f"{med} {row['Comercial']}</b>"
                             f"<span style='float:right;"
-                            f"color:#10B981;font-weight:700;'>"
+                            f"color:{THEME['success']};font-weight:700;'>"
                             f"{row['Val. Ganho']} ganho</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"Ganhos: {row['Ganhos']} · "
                             f"Conversão: {row['Conversão']} · "
                             f"Visitas: {row['Visitas']} · "
@@ -1216,11 +1282,11 @@ def render_comercial(*_):
                             unsafe_allow_html=True
                         )
         else:
-            st.info("📋 Sem dados de comerciais para ranking.")
+            st.info("Sem dados de comerciais para ranking.")
 
         # Ranking angariações de novos clientes
         st.markdown("---")
-        st.markdown("#### 🌟 Ranking de Angariações")
+        st.markdown("#### Ranking de Angariações")
 
         if not clientes_db.empty and 'Comercial_Resp' in clientes_db.columns:
             grp_ang = clientes_db.groupby('Comercial_Resp').size()\
@@ -1229,10 +1295,11 @@ def render_comercial(*_):
 
             for i, (_, row_a) in enumerate(grp_ang.iterrows()):
                 pos   = i + 1
-                med_a = "🥇" if pos == 1 else "🥈" if pos == 2 \
-                        else "🥉" if pos == 3 else f"#{pos}"
+                med_a = f"#{pos}"
+                # Ouro/Prata/Bronze mantidas literais — mesmo critério
+                # do ranking de comerciais acima.
                 cor_a = "#F59E0B" if pos == 1 else "#94A3B8" if pos == 2 \
-                        else "#CD7F32" if pos == 3 else "#334155"
+                        else "#CD7F32" if pos == 3 else THEME['border']
 
                 # Calcular alto potencial
                 df_ang_com = clientes_db[
@@ -1243,28 +1310,29 @@ def render_comercial(*_):
                 ]) if 'Potencial' in df_ang_com.columns else 0
 
                 st.markdown(
-                    f"<div style='background:#1E293B;"
+                    f"<div style='background:{THEME['surface']};"
+                    f"border:1px solid {THEME['border']};"
                     f"border-radius:8px;padding:10px 14px;"
                     f"margin-bottom:6px;"
                     f"border-left:3px solid {cor_a};'>"
                     f"<b style='color:{cor_a};'>"
                     f"{med_a} {row_a['Comercial_Resp']}</b>"
                     f"<span style='float:right;"
-                    f"color:#10B981;font-weight:700;'>"
+                    f"color:{THEME['success']};font-weight:700;'>"
                     f"{row_a['N_Clientes']} cliente(s)</span><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"Alto potencial: {n_alto}"
                     f"</small></div>",
                     unsafe_allow_html=True
                 )
         else:
-            st.info("📋 Sem angariações registadas.")
+            st.info("Sem angariações registadas.")
 
     # ════════════════════════════════════════════════════════════════
     # TAB — RELATÓRIO
     # ════════════════════════════════════════════════════════════════
     with t_relatorio:
-        st.markdown("### 📤 Relatório Comercial")
+        st.markdown("### Relatório Comercial")
         st.info(
             "Gera relatório completo do pipeline, visitas "
             "e ranking para apresentar à direção."
@@ -1272,7 +1340,7 @@ def render_comercial(*_):
 
         col_re1, col_re2 = st.columns(2)
         with col_re1:
-            st.markdown("#### 📊 Resumo")
+            st.markdown("#### Resumo")
 
             # Valor ponderado pelo pipeline
             val_ponderado = 0.0
@@ -1295,20 +1363,20 @@ def render_comercial(*_):
                 st.markdown(
                     f"<div style='display:flex;"
                     f"justify-content:space-between;"
-                    f"padding:6px 0;border-bottom:1px solid #1E293B;'>"
-                    f"<small style='color:#94A3B8;'>{label}</small>"
-                    f"<b style='color:#F1F5F9;'>{val}</b>"
+                    f"padding:6px 0;border-bottom:1px solid {THEME['border']};'>"
+                    f"<small style='color:{THEME['text_secondary']};'>{label}</small>"
+                    f"<b style='color:{THEME['text']};'>{val}</b>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
 
         with col_re2:
-            st.markdown("#### 📥 Exportar")
+            st.markdown("#### Exportar")
 
             col_re_b1, col_re_b2 = st.columns(2)
             with col_re_b1:
                 if st.button(
-                    "📄 Gerar PDF",
+                    "Gerar PDF",
                     key="btn_pdf_comercial",
                     type="primary",
                     use_container_width=True
@@ -1323,13 +1391,13 @@ def render_comercial(*_):
                         f"relatorio_comercial_"
                         f"{hoje.strftime('%Y%m%d')}.pdf"
                     )
-                    st.success("✅ PDF gerado!")
+                    st.success("PDF gerado!")
                     st.rerun()
 
             with col_re_b2:
                 if st.session_state.get('com_pdf'):
                     st.download_button(
-                        "📥 Descarregar PDF",
+                        "Descarregar PDF",
                         data=st.session_state['com_pdf'],
                         file_name=st.session_state.get(
                             'com_pdf_nome', 'relatorio_comercial.pdf'
@@ -1351,7 +1419,7 @@ def render_comercial(*_):
                     index=False, encoding='utf-8-sig'
                 )
                 st.download_button(
-                    "📥 Exportar Pipeline CSV",
+                    "Exportar Pipeline CSV",
                     data=csv_op.encode('utf-8-sig'),
                     file_name=f"pipeline_{hoje.strftime('%Y%m%d')}.csv",
                     mime="text/csv",

@@ -13,7 +13,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from core import save_db, inv, load_db, log_audit
+from core import save_db, inv, load_db, log_audit, THEME
 
 # ─────────────────────────────────────────────────────────────────
 # HELPERS
@@ -498,34 +498,34 @@ def render_fat_frota(*_):
                 n_alertas_rent += 1
 
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.metric("🚗 Viaturas",        n_viat)
-    with c2: st.metric("🏦 Em Renting",       n_renting)
-    with c3: st.metric("💰 Rendas/Mês",       f"€{renda_total:,.2f}")
-    with c4: st.metric("⛽ Comb. Mês",        f"€{custo_comb_mes:,.2f}")
-    with c5: st.metric("💸 Custo Total Mês",  f"€{custo_total_mes:,.2f}")
+    with c1: st.metric("Viaturas",        n_viat)
+    with c2: st.metric("Em Renting",       n_renting)
+    with c3: st.metric("Rendas/Mês",       f"€{renda_total:,.2f}")
+    with c4: st.metric("Comb. Mês",        f"€{custo_comb_mes:,.2f}")
+    with c5: st.metric("Custo Total Mês",  f"€{custo_total_mes:,.2f}")
 
     st.divider()
 
     # ── Sub-tabs ──────────────────────────────────────────────────
     (t_rent, t_comb, t_tco,
      t_seguros, t_relatorio) = st.tabs([
-        "🏦 Contratos Renting",
-        "⛽ Combustível & KM",
-        "📊 Comparador TCO",
-        "🛡️ Seguros Frota",
-        "📋 Relatório Financeiro",
+        "Contratos Renting",
+        "Combustível & KM",
+        "Comparador TCO",
+        "Seguros Frota",
+        "Relatório Financeiro",
     ])
 
     # ════════════════════════════════════════════════════════════════
     # TAB — CONTRATOS RENTING
     # ════════════════════════════════════════════════════════════════
     with t_rent:
-        st.markdown("### 🏦 Contratos de Renting")
+        st.markdown("### Contratos de Renting")
 
         col_form_r, col_lista_r = st.columns([1, 2])
 
         with col_form_r:
-            st.markdown("#### ➕ Novo Contrato")
+            st.markdown("#### Novo Contrato")
             with st.form("form_renting"):
                 r_mat   = st.text_input(
                     "Matrícula *", key="rent_mat",
@@ -589,11 +589,11 @@ def render_fat_frota(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Guardar Contrato",
+                    "Guardar Contrato",
                     use_container_width=True, type="primary"
                 ):
                     if not r_mat.strip() or r_renda <= 0:
-                        st.error("❌ Matrícula e renda obrigatórios.")
+                        st.error("Matrícula e renda obrigatórios.")
                     else:
                         meses_cont = max(
                             1,
@@ -633,12 +633,12 @@ def render_fat_frota(*_):
                         )
                         inv("renting_contratos.csv")
                         st.success(
-                            f"✅ Contrato {r_mat.upper()} guardado!"
+                            f"Contrato {r_mat.upper()} guardado!"
                         )
                         st.rerun()
 
         with col_lista_r:
-            st.markdown("#### 📋 Contratos Ativos")
+            st.markdown("#### Contratos Ativos")
 
             # Timeline
             fig_tl = _grafico_timeline_renting(renting_db)
@@ -648,7 +648,7 @@ def render_fat_frota(*_):
                 )
 
             if renting_db.empty:
-                st.info("📋 Sem contratos de renting.")
+                st.info("Sem contratos de renting.")
             else:
                 for _, row in renting_db.iterrows():
                     rent_id  = row.get('ID','')
@@ -661,17 +661,17 @@ def render_fat_frota(*_):
 
                     # Cor e alerta
                     if dias_fim <= 0:
-                        cor_r = "#EF4444"
-                        alerta_r = "🔴 EXPIRADO"
+                        cor_r = THEME['error']
+                        alerta_r = "EXPIRADO"
                     elif dias_fim <= 30:
-                        cor_r = "#EF4444"
-                        alerta_r = f"🔴 Expira em {dias_fim} dias!"
+                        cor_r = THEME['error']
+                        alerta_r = f"Expira em {dias_fim} dias!"
                     elif dias_fim <= 60:
-                        cor_r = "#F59E0B"
-                        alerta_r = f"⚠️ Expira em {dias_fim} dias"
+                        cor_r = THEME['warning']
+                        alerta_r = f"Expira em {dias_fim} dias"
                     else:
-                        cor_r = "#10B981"
-                        alerta_r = f"✅ {dias_fim} dias restantes"
+                        cor_r = THEME['success']
+                        alerta_r = f"{dias_fim} dias restantes"
 
                     # Progresso do contrato
                     try:
@@ -691,7 +691,8 @@ def render_fat_frota(*_):
                         pct_prog = 0
 
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:12px;padding:14px 16px;"
                         f"margin-bottom:10px;"
                         f"border-left:4px solid {cor_r};'>"
@@ -699,12 +700,12 @@ def render_fat_frota(*_):
                         f"justify-content:space-between;"
                         f"align-items:flex-start;'>"
                         f"<div>"
-                        f"<b style='color:#F1F5F9;font-size:0.95rem;'>"
-                        f"🚗 {row.get('Matricula','')} — "
+                        f"<b style='color:{THEME['text']};font-size:0.95rem;'>"
+                        f"{row.get('Matricula','')} — "
                         f"{row.get('Marca','')} "
                         f"{row.get('Modelo','')}</b><br>"
-                        f"<small style='color:#64748B;'>"
-                        f"🏦 {row.get('Banco','')} · "
+                        f"<small style='color:{THEME['text_secondary']};'>"
+                        f"{row.get('Banco','')} · "
                         f"{row.get('Data_Inicio','')} → "
                         f"{row.get('Data_Fim','')} · "
                         f"{km_c:,} km/ano</small><br>"
@@ -712,19 +713,19 @@ def render_fat_frota(*_):
                         f"{alerta_r}</small>"
                         f"</div>"
                         f"<div style='text-align:right;'>"
-                        f"<b style='color:#3B82F6;"
+                        f"<b style='color:{THEME['accent']};"
                         f"font-size:1.1rem;'>"
                         f"€{renda:,.2f}/mês</b><br>"
-                        f"<small style='color:#64748B;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"Resto: €{total_rest:,.0f}</small>"
                         f"</div></div>"
-                        f"<div style='background:#0F172A;"
+                        f"<div style='background:{THEME['background']};"
                         f"border-radius:4px;height:6px;"
                         f"margin:8px 0 4px;'>"
                         f"<div style='background:{cor_r};"
                         f"width:{pct_prog:.0f}%;height:6px;"
                         f"border-radius:4px;'></div></div>"
-                        f"<small style='color:#475569;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>"
                         f"{pct_prog:.0f}% do contrato decorrido · "
                         f"Obra: {row.get('Obra_Alocada','N/A')}"
                         f"</small></div>",
@@ -742,7 +743,7 @@ def render_fat_frota(*_):
                         )
                     with col_ra2:
                         if st.button(
-                            "✅ Atualizar",
+                            "Atualizar",
                             key=f"rupd_{rent_id}",
                             use_container_width=True
                         ):
@@ -755,8 +756,8 @@ def render_fat_frota(*_):
                     with col_ra3:
                         if row.get('Obra_Alocada',''):
                             st.markdown(
-                                f"<small style='color:#3B82F6;'>"
-                                f"📍 {row.get('Obra_Alocada','')}"
+                                f"<small style='color:{THEME['accent']};'>"
+                                f"{row.get('Obra_Alocada','')}"
                                 f"</small>",
                                 unsafe_allow_html=True
                             )
@@ -765,7 +766,7 @@ def render_fat_frota(*_):
     # TAB — COMBUSTÍVEL & KM
     # ════════════════════════════════════════════════════════════════
     with t_comb:
-        st.markdown("### ⛽ Combustível & Quilómetros")
+        st.markdown("### Combustível & Quilómetros")
 
         # Gráficos topo
         col_gc1, col_gc2 = st.columns(2)
@@ -781,7 +782,7 @@ def render_fat_frota(*_):
                     fig_km, use_container_width=True
                 )
             else:
-                st.info("📋 Regista abastecimentos para ver análise de KM.")
+                st.info("Regista abastecimentos para ver análise de KM.")
 
         st.markdown("---")
 
@@ -789,7 +790,7 @@ def render_fat_frota(*_):
         col_reg_c, col_hist_c = st.columns([1, 2])
 
         with col_reg_c:
-            st.markdown("#### ➕ Registo de Abastecimento")
+            st.markdown("#### Registo de Abastecimento")
 
             # Lista de viaturas (renting + frota)
             mats_rent = renting_db['Matricula'].tolist() \
@@ -834,8 +835,8 @@ def render_fat_frota(*_):
                 # Preview €/L
                 if cb_lit > 0 and cb_val > 0:
                     st.markdown(
-                        f"<small style='color:#3B82F6;'>"
-                        f"💧 €{cb_val/cb_lit:.3f}/litro</small>",
+                        f"<small style='color:{THEME['accent']};'>"
+                        f"€{cb_val/cb_lit:.3f}/litro</small>",
                         unsafe_allow_html=True
                     )
 
@@ -846,11 +847,11 @@ def render_fat_frota(*_):
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar Abastecimento",
+                    "Registar Abastecimento",
                     use_container_width=True, type="primary"
                 ):
                     if cb_lit <= 0 or cb_val <= 0:
-                        st.error("❌ Litros e valor obrigatórios.")
+                        st.error("Litros e valor obrigatórios.")
                     else:
                         rec_b64 = ""
                         if cb_recibo:
@@ -874,16 +875,16 @@ def render_fat_frota(*_):
                         save_db(upd_cb, "frota_combustivel.csv")
                         inv("frota_combustivel.csv")
                         st.success(
-                            f"✅ {cb_lit}L em {cb_mat} — "
+                            f"{cb_lit}L em {cb_mat} — "
                             f"€{cb_val:.2f}"
                         )
                         st.rerun()
 
         with col_hist_c:
-            st.markdown("#### 📊 Análise por Viatura")
+            st.markdown("#### Análise por Viatura")
 
             if comb_db.empty:
-                st.info("📋 Sem abastecimentos registados.")
+                st.info("Sem abastecimentos registados.")
             else:
                 # Selector viatura
                 mats_comb = comb_db['Matricula'].unique().tolist() \
@@ -929,22 +930,22 @@ def render_fat_frota(*_):
 
                     c1,c2,c3 = st.columns(3)
                     with c1:
-                        st.metric("⛽ Total Litros",
+                        st.metric("Total Litros",
                                    f"{tot_l:.0f}L")
                     with c2:
-                        st.metric("💰 Total Gasto",
+                        st.metric("Total Gasto",
                                    f"€{tot_v:.2f}")
                     with c3:
-                        st.metric("🚗 KM Registados",
+                        st.metric("KM Registados",
                                    f"{km_total:.0f}")
 
                     if consumo_100 > 0:
                         st.markdown(
-                            f"<div style='background:rgba(59,130,246,0.1);"
-                            f"border:1px solid #3B82F6;"
+                            f"<div style='background:rgba(14,124,134,0.08);"
+                            f"border:1px solid {THEME['accent']};"
                             f"border-radius:8px;padding:10px;'>"
-                            f"<b style='color:#3B82F6;'>"
-                            f"📊 Consumo médio: "
+                            f"<b style='color:{THEME['accent']};'>"
+                            f"Consumo médio: "
                             f"{consumo_100:.1f}L/100km · "
                             f"€{media_l_eur:.3f}/L</b>"
                             f"</div>",
@@ -970,7 +971,7 @@ def render_fat_frota(*_):
                                 exc = km_total - km_ano_c
                                 custo_exc = round(exc * preco_exc, 2)
                                 st.error(
-                                    f"⚠️ KM EXCEDIDOS! "
+                                    f"KM EXCEDIDOS! "
                                     f"+{exc:.0f} km × "
                                     f"€{preco_exc}/km = "
                                     f"**€{custo_exc:.2f} extra**"
@@ -980,7 +981,7 @@ def render_fat_frota(*_):
     # TAB — COMPARADOR TCO
     # ════════════════════════════════════════════════════════════════
     with t_tco:
-        st.markdown("### 📊 Comparador Renting vs Compra (TCO)")
+        st.markdown("### Comparador Renting vs Compra (TCO)")
         st.info(
             "TCO — Total Cost of Ownership. "
             "Compara o custo total de posse ao longo do contrato, "
@@ -995,7 +996,7 @@ def render_fat_frota(*_):
                 "<div style='background:rgba(59,130,246,0.1);"
                 "border:1px solid #3B82F6;border-radius:10px;"
                 "padding:14px;margin-bottom:12px;'>"
-                "<b style='color:#3B82F6;'>🏦 RENTING</b>"
+                "<b style='color:#3B82F6;'>RENTING</b>"
                 "</div>",
                 unsafe_allow_html=True
             )
@@ -1024,7 +1025,7 @@ def render_fat_frota(*_):
                 "<div style='background:rgba(139,92,246,0.1);"
                 "border:1px solid #8B5CF6;border-radius:10px;"
                 "padding:14px;margin-bottom:12px;'>"
-                "<b style='color:#8B5CF6;'>🛒 COMPRA FINANCIADA</b>"
+                "<b style='color:#8B5CF6;'>COMPRA FINANCIADA</b>"
                 "</div>",
                 unsafe_allow_html=True
             )
@@ -1047,7 +1048,7 @@ def render_fat_frota(*_):
             )
 
         if st.button(
-            "📊 Calcular TCO",
+            "Calcular TCO",
             key="btn_tco",
             type="primary",
             use_container_width=True
@@ -1080,15 +1081,24 @@ def render_fat_frota(*_):
             col_tr, col_tc = st.columns(2)
             with col_tr:
                 diff = tco_r['total'] - tco_c['total']
-                cor_r = "#10B981" if tco_r['total'] <= tco_c['total'] \
-                        else "#EF4444"
+                cor_r = THEME['success'] if tco_r['total'] <= tco_c['total'] \
+                        else THEME['error']
+                # Fundo/rótulo "RENTING" mantêm #3B82F6, a par do
+                # gráfico Plotly de comparação TCO logo abaixo, que
+                # usa a mesma cor para a mesma categoria (idem para
+                # #8B5CF6/"COMPRA" no bloco irmão) — fora de âmbito,
+                # Fase 4.
+                mais_barato_r = (
+                    f"<span style='float:right;color:{THEME['success']};'>"
+                    f"MAIS BARATO</span>"
+                ) if tco_r['total'] <= tco_c['total'] else ''
                 st.markdown(
                     f"<div style='background:rgba(59,130,246,0.1);"
                     f"border:2px solid {cor_r};"
                     f"border-radius:12px;padding:16px;'>"
                     f"<b style='color:#3B82F6;"
-                    f"font-size:1rem;'>🏦 RENTING</b>"
-                    f"{'<span style=float:right;color:#10B981;>✅ MAIS BARATO</span>' if tco_r['total'] <= tco_c['total'] else ''}"
+                    f"font-size:1rem;'>RENTING</b>"
+                    f"{mais_barato_r}"
                     f"<br><br>",
                     unsafe_allow_html=True
                 )
@@ -1101,20 +1111,20 @@ def render_fat_frota(*_):
                     st.markdown(
                         f"<div style='display:flex;"
                         f"justify-content:space-between;margin:4px 0;'>"
-                        f"<small style='color:#94A3B8;'>{label}</small>"
-                        f"<small style='color:#F1F5F9;'>"
+                        f"<small style='color:{THEME['text_secondary']};'>{label}</small>"
+                        f"<small style='color:{THEME['text']};'>"
                         f"€{val:,.2f}</small></div>",
                         unsafe_allow_html=True
                     )
                 st.markdown(
-                    f"<div style='border-top:1px solid #334155;"
+                    f"<div style='border-top:1px solid {THEME['border']};"
                     f"padding-top:8px;margin-top:8px;"
                     f"display:flex;justify-content:space-between;'>"
-                    f"<b style='color:#F1F5F9;'>TOTAL</b>"
+                    f"<b style='color:{THEME['text']};'>TOTAL</b>"
                     f"<b style='color:{cor_r};"
                     f"font-size:1.1rem;'>"
                     f"€{tco_r['total']:,.2f}</b></div>"
-                    f"<br><small style='color:#64748B;'>"
+                    f"<br><small style='color:{THEME['text_secondary']};'>"
                     f"€{tco_r['custo_mes']:,.2f}/mês · "
                     f"€{tco_r['custo_km']:.4f}/km</small>"
                     f"</div>",
@@ -1122,15 +1132,19 @@ def render_fat_frota(*_):
                 )
 
             with col_tc:
-                cor_c = "#10B981" if tco_c['total'] < tco_r['total'] \
-                        else "#EF4444"
+                cor_c = THEME['success'] if tco_c['total'] < tco_r['total'] \
+                        else THEME['error']
+                mais_barato_c = (
+                    f"<span style='float:right;color:{THEME['success']};'>"
+                    f"MAIS BARATO</span>"
+                ) if tco_c['total'] < tco_r['total'] else ''
                 st.markdown(
                     f"<div style='background:rgba(139,92,246,0.1);"
                     f"border:2px solid {cor_c};"
                     f"border-radius:12px;padding:16px;'>"
                     f"<b style='color:#8B5CF6;"
-                    f"font-size:1rem;'>🛒 COMPRA</b>"
-                    f"{'<span style=float:right;color:#10B981;>✅ MAIS BARATO</span>' if tco_c['total'] < tco_r['total'] else ''}"
+                    f"font-size:1rem;'>COMPRA</b>"
+                    f"{mais_barato_c}"
                     f"<br><br>",
                     unsafe_allow_html=True
                 )
@@ -1143,25 +1157,25 @@ def render_fat_frota(*_):
                      -tco_c['valor_residual']),
                 ]
                 for label, val in items_c:
-                    cor_item = "#EF4444" if val < 0 else "#F1F5F9"
+                    cor_item = THEME['error'] if val < 0 else THEME['text']
                     st.markdown(
                         f"<div style='display:flex;"
                         f"justify-content:space-between;margin:4px 0;'>"
-                        f"<small style='color:#94A3B8;'>{label}</small>"
+                        f"<small style='color:{THEME['text_secondary']};'>{label}</small>"
                         f"<small style='color:{cor_item};'>"
                         f"{'€' if val>=0 else '-€'}"
                         f"{abs(val):,.2f}</small></div>",
                         unsafe_allow_html=True
                     )
                 st.markdown(
-                    f"<div style='border-top:1px solid #334155;"
+                    f"<div style='border-top:1px solid {THEME['border']};"
                     f"padding-top:8px;margin-top:8px;"
                     f"display:flex;justify-content:space-between;'>"
-                    f"<b style='color:#F1F5F9;'>TOTAL</b>"
+                    f"<b style='color:{THEME['text']};'>TOTAL</b>"
                     f"<b style='color:{cor_c};"
                     f"font-size:1.1rem;'>"
                     f"€{tco_c['total']:,.2f}</b></div>"
-                    f"<br><small style='color:#64748B;'>"
+                    f"<br><small style='color:{THEME['text_secondary']};'>"
                     f"€{tco_c['custo_mes']:,.2f}/mês · "
                     f"€{tco_c['custo_km']:.4f}/km</small>"
                     f"</div>",
@@ -1172,17 +1186,17 @@ def render_fat_frota(*_):
             poupanca = abs(tco_r['total'] - tco_c['total'])
             vencedor = "Renting" if tco_r['total'] <= tco_c['total'] \
                        else "Compra"
-            cor_v = "#10B981"
+            cor_v = THEME['success']
 
             st.markdown(
-                f"<div style='background:rgba(16,185,129,0.1);"
-                f"border:2px solid #10B981;border-radius:12px;"
+                f"<div style='background:rgba(21,128,61,0.08);"
+                f"border:2px solid {THEME['success']};border-radius:12px;"
                 f"padding:16px;margin-top:12px;text-align:center;'>"
-                f"<b style='color:#10B981;font-size:1.1rem;'>"
-                f"✅ {vencedor} é mais económico</b><br>"
-                f"<b style='color:#F1F5F9;font-size:1.5rem;'>"
+                f"<b style='color:{THEME['success']};font-size:1.1rem;'>"
+                f"{vencedor} é mais económico</b><br>"
+                f"<b style='color:{THEME['text']};font-size:1.5rem;'>"
                 f"Poupança: €{poupanca:,.2f} em {anos_c} anos</b><br>"
-                f"<small style='color:#94A3B8;'>"
+                f"<small style='color:{THEME['text_secondary']};'>"
                 f"(€{poupanca/(anos_c*12):,.2f}/mês)</small>"
                 f"</div>",
                 unsafe_allow_html=True
@@ -1190,14 +1204,14 @@ def render_fat_frota(*_):
 
             # Nota fiscal
             st.markdown(
-                "<div style='background:rgba(59,130,246,0.08);"
-                "border-radius:8px;padding:12px;margin-top:8px;'>"
-                "<small style='color:#93C5FD;'>"
-                "📋 <b>Nota fiscal:</b> No renting, a renda é "
-                "dedutível como custo (reduz IRC). Na compra, "
-                "só a amortização e juros são dedutíveis. "
-                "Consulta o teu contabilista para o impacto "
-                "fiscal específico.</small></div>",
+                f"<div style='background:rgba(14,124,134,0.06);"
+                f"border-radius:8px;padding:12px;margin-top:8px;'>"
+                f"<small style='color:{THEME['accent']};'>"
+                f"<b>Nota fiscal:</b> No renting, a renda é "
+                f"dedutível como custo (reduz IRC). Na compra, "
+                f"só a amortização e juros são dedutíveis. "
+                f"Consulta o teu contabilista para o impacto "
+                f"fiscal específico.</small></div>",
                 unsafe_allow_html=True
             )
 
@@ -1205,12 +1219,12 @@ def render_fat_frota(*_):
     # TAB — SEGUROS FROTA
     # ════════════════════════════════════════════════════════════════
     with t_seguros:
-        st.markdown("### 🛡️ Seguros de Frota")
+        st.markdown("### Seguros de Frota")
 
         col_sf1, col_sf2 = st.columns([1, 2])
 
         with col_sf1:
-            st.markdown("#### ➕ Registar Seguro")
+            st.markdown("#### Registar Seguro")
             with st.form("form_seg_frota"):
                 s_tipo = st.selectbox(
                     "Tipo *",
@@ -1260,11 +1274,11 @@ def render_fat_frota(*_):
                     )
 
                 if st.form_submit_button(
-                    "💾 Guardar Seguro",
+                    "Guardar Seguro",
                     use_container_width=True, type="primary"
                 ):
                     if not s_seg.strip():
-                        st.error("❌ Seguradora obrigatória.")
+                        st.error("Seguradora obrigatória.")
                     else:
                         novo_s = pd.DataFrame([{
                             "ID":          str(uuid.uuid4())[:8].upper(),
@@ -1281,51 +1295,52 @@ def render_fat_frota(*_):
                         ) if not seguros_db.empty else novo_s
                         save_db(upd_s, "seguros_db.csv")
                         inv("seguros_db.csv")
-                        st.success("✅ Seguro registado!")
+                        st.success("Seguro registado!")
                         st.rerun()
 
         with col_sf2:
-            st.markdown("#### 📋 Seguros Ativos")
+            st.markdown("#### Seguros Ativos")
             if seguros_db.empty:
-                st.info("📋 Sem seguros registados.")
+                st.info("Sem seguros registados.")
             else:
                 total_premios = pd.to_numeric(
                     seguros_db.get('Valor_Anual',0),
                     errors='coerce'
                 ).fillna(0).sum()
                 st.metric(
-                    "💰 Total Prémios Anuais",
+                    "Total Prémios Anuais",
                     f"€{total_premios:,.2f}"
                 )
 
                 for _, seg in seguros_db.iterrows():
                     dias_s  = _dias_para(seg.get('Data_Fim',''))
                     if dias_s <= 0:
-                        cor_s   = "#EF4444"
-                        alerta_s = "🔴 EXPIRADO"
+                        cor_s   = THEME['error']
+                        alerta_s = "EXPIRADO"
                     elif dias_s <= 30:
-                        cor_s   = "#EF4444"
-                        alerta_s = f"🔴 Expira em {dias_s} dias!"
+                        cor_s   = THEME['error']
+                        alerta_s = f"Expira em {dias_s} dias!"
                     elif dias_s <= 60:
-                        cor_s   = "#F59E0B"
-                        alerta_s = f"⚠️ Expira em {dias_s} dias"
+                        cor_s   = THEME['warning']
+                        alerta_s = f"Expira em {dias_s} dias"
                     else:
-                        cor_s   = "#10B981"
-                        alerta_s = f"✅ Válido ({dias_s}d)"
+                        cor_s   = THEME['success']
+                        alerta_s = f"Válido ({dias_s}d)"
 
                     val_s = float(seg.get('Valor_Anual',0) or 0)
                     st.markdown(
-                        f"<div style='background:#1E293B;"
+                        f"<div style='background:{THEME['surface']};"
+                        f"border:1px solid {THEME['border']};"
                         f"border-radius:10px;padding:12px;"
                         f"margin-bottom:8px;"
                         f"border-left:4px solid {cor_s};'>"
-                        f"<b style='color:#F1F5F9;'>"
+                        f"<b style='color:{THEME['text']};'>"
                         f"{seg.get('Tipo','')[:40]}</b>"
                         f"<span style='float:right;color:{cor_s};'>"
                         f"{alerta_s}</span><br>"
-                        f"<small style='color:#64748B;'>"
-                        f"🏢 {seg.get('Entidade','')} · "
-                        f"🚗 {seg.get('Viatura','')} · "
+                        f"<small style='color:{THEME['text_secondary']};'>"
+                        f"{seg.get('Entidade','')} · "
+                        f"{seg.get('Viatura','')} · "
                         f"Apólice: {seg.get('Apolice','')} · "
                         f"{seg.get('Data_Inicio','')} → "
                         f"{seg.get('Data_Fim','')} · "
@@ -1338,7 +1353,7 @@ def render_fat_frota(*_):
     # TAB — RELATÓRIO FINANCEIRO FROTA
     # ════════════════════════════════════════════════════════════════
     with t_relatorio:
-        st.markdown("### 📋 Relatório Financeiro da Frota")
+        st.markdown("### Relatório Financeiro da Frota")
 
         col_rel1, col_rel2 = st.columns(2)
         with col_rel1:
@@ -1394,14 +1409,14 @@ def render_fat_frota(*_):
 
         # KPIs
         c1,c2,c3,c4 = st.columns(4)
-        with c1: st.metric("🏦 Rendas",     f"€{renda_mes:,.2f}")
-        with c2: st.metric("⛽ Combustível", f"€{comb_mes_val:,.2f}")
-        with c3: st.metric("🛡️ Seguros",    f"€{seg_mensal:,.2f}")
-        with c4: st.metric("💸 TOTAL",      f"€{total_frota_mes:,.2f}")
+        with c1: st.metric("Rendas",     f"€{renda_mes:,.2f}")
+        with c2: st.metric("Combustível", f"€{comb_mes_val:,.2f}")
+        with c3: st.metric("Seguros",    f"€{seg_mensal:,.2f}")
+        with c4: st.metric("TOTAL",      f"€{total_frota_mes:,.2f}")
 
         # Detalhe por viatura
         st.markdown("---")
-        st.markdown("#### 🚗 Custo por Viatura")
+        st.markdown("#### Custo por Viatura")
 
         viaturas_all = list(set(
             (renting_db['Matricula'].tolist()
@@ -1466,7 +1481,7 @@ def render_fat_frota(*_):
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                f"📥 Exportar Relatório Frota {mes_rel} {ano_rel}",
+                f"Exportar Relatório Frota {mes_rel} {ano_rel}",
                 data=csv_rel.encode('utf-8-sig'),
                 file_name=(
                     f"relatorio_frota_"

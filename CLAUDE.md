@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## AVISO CRÍTICO — Repositórios Separados
+
+**Este repositório é o GestNow (app de ADMINISTRAÇÃO).**
+**O repositório `cps-ponto` (app de REGISTO DE PONTO dos técnicos) é completamente separado.**
+
+Ambos têm ficheiros com o mesmo nome (`mod_chefe.py`, `mod_secretariado.py`, `mod_tecnico.py`, etc.) mas com implementações DIFERENTES e lógicas de negócio DIFERENTES.
+
+**Antes de qualquer PR ou alteração de lógica de negócio, verificar sempre:**
+1. Estou no repositório correcto? (`git remote -v` ou verificar o nome do directório)
+2. A alteração que estou a fazer é para o GestNow ou para o cps-ponto?
+3. Uma alteração de lógica de negócio num repo NÃO se aplica automaticamente ao outro.
+
+Incidente de referência (2026-05-29): PRs #9 e #10 foram aplicados ao GestNow por engano — eram destinados ao cps-ponto. Resultou em lógica de validação incorrecta e mudanças de schema desnecessárias que tiveram de ser revertidas.
+
 ## Running the App
 
 ```powershell
@@ -48,7 +62,7 @@ All source files are flat in the repository root: `app.py`, `core.py`, `mod_admi
 All persistent data lives in Google Cloud Storage as CSV files under `gs://gestnow-dados/data/*.csv` — 19 CSVs loaded by `load_all()` plus additional module-specific CSVs loaded on demand. There is no database.
 
 Key functions:
-- `_cached_load_db(fn, cols_tuple, silent, _v)` — `@st.cache_data(ttl=300)` cached reader. Do **not** call directly.
+- `_cached_load_db(fn, cols_tuple, silent, _v)` — `@st.cache_data(ttl=3600)` cached reader. Do **not** call directly.
 - `load_db(fn, cols, silent)` — public wrapper; reads `st.session_state._fv[fn]` as a version key to support selective invalidation.
 - `save_db(df, fn)` — writes CSV to GCS. For `registos.csv`, `usuarios.csv`, `folhas_ponto.csv`, it blocks if the new DataFrame loses >10% of rows and auto-creates a daily backup.
 - `inv(ficheiro=None)` — cache invalidation. **Always call with the filename** (`inv("obras_lista.csv")`) after every `save_db`. Only call bare `inv()` (nuclear, clears all cache) for global reset operations (backup restore, IT admin, full-app refresh).

@@ -5,7 +5,7 @@ from datetime import datetime, date
 from core import save_db, inv, load_db
 
 def render_dormidas():
-    st.markdown("### 🏨 Gestão de Dormidas")
+    st.markdown("### Gestão de Dormidas")
 
     try:
         dormidas_db = load_db("dormidas.csv", [
@@ -35,7 +35,7 @@ def render_dormidas():
     user_nome = st.session_state.get('user', 'Admin')
 
     tab_registar, tab_pesquisar, tab_historico = st.tabs([
-        "📝 Registar", "🤖 IA Pesquisa Hotéis", "📋 Histórico"
+        "Registar", "IA Pesquisa Hotéis", "Histórico"
     ])
 
     # ════════════════════════════════════════════════════════════════
@@ -45,7 +45,7 @@ def render_dormidas():
         col1, col2 = st.columns([1, 2])
 
         with col1:
-            st.markdown("#### ➕ Nova Dormida")
+            st.markdown("#### Nova Dormida")
 
             users_lista = users_db['Nome'].tolist() \
                           if not users_db.empty else []
@@ -92,11 +92,11 @@ def render_dormidas():
                 )
 
                 if st.form_submit_button(
-                    "💾 Registar Dormida",
+                    "Registar Dormida",
                     use_container_width=True, type="primary"
                 ):
                     if not hotel.strip():
-                        st.error("❌ Hotel obrigatório.")
+                        st.error("Hotel obrigatório.")
                     else:
                         noites = max((data_sai - data_ent).days, 1)
                         total  = round(noites * custo_noite, 2)
@@ -126,22 +126,22 @@ def render_dormidas():
                         save_db(updated_d, "dormidas.csv")
                         inv("dormidas.csv")
                         st.success(
-                            f"✅ Dormida registada! "
+                            f"Dormida registada! "
                             f"{noites} noite(s) em {hotel} — € {total:.2f}"
                         )
                         st.rerun()
 
         with col2:
-            st.markdown("#### 📋 Dormidas Registadas")
+            st.markdown("#### Dormidas Registadas")
             if dormidas_db.empty:
-                st.info("📋 Sem dormidas registadas.")
+                st.info("Sem dormidas registadas.")
             else:
                 total_geral = pd.to_numeric(
                     dormidas_db['Total'], errors='coerce'
                 ).fillna(0).sum()
                 c1, c2 = st.columns(2)
-                with c1: st.metric("📋 Registos",   len(dormidas_db))
-                with c2: st.metric("💰 Total Gasto", f"€ {total_geral:.2f}")
+                with c1: st.metric("Registos",   len(dormidas_db))
+                with c2: st.metric("Total Gasto", f"€ {total_geral:.2f}")
 
                 # Filtro por obra
                 obras_filt = ["Todas"] + dormidas_db['Obra'].unique().tolist()
@@ -167,7 +167,7 @@ def render_dormidas():
     # TAB IA PESQUISA HOTÉIS
     # ════════════════════════════════════════════════════════════════
     with tab_pesquisar:
-        st.markdown("#### 🤖 Pesquisa de Hotéis com IA")
+        st.markdown("#### Pesquisa de Hotéis com IA")
         st.info(
             "A IA pesquisa e sugere hotéis próximos da obra, "
             "com estimativas de preço e distância."
@@ -198,20 +198,20 @@ def render_dormidas():
         )
 
         if st.button(
-            "🔍 Pesquisar Hotéis com IA",
+            "Pesquisar Hotéis com IA",
             key="btn_pesq_hotel", type="primary",
             use_container_width=True
         ):
             if not local_pesq.strip():
-                st.error("❌ Indica a localização.")
+                st.error("Indica a localização.")
             else:
                 import os, anthropic, json
                 api_key = os.environ.get("ANTHROPIC_API_KEY", "")
                 if not api_key:
-                    st.error("❌ API key não configurada.")
+                    st.error("API key não configurada.")
                 else:
                     with st.spinner(
-                        f"🤖 A pesquisar hotéis perto de {local_pesq}..."
+                        f"A pesquisar hotéis perto de {local_pesq}..."
                     ):
                         try:
                             client = anthropic.Anthropic(api_key=api_key)
@@ -256,7 +256,7 @@ Responde APENAS em JSON:
                             hoteis = dados.get("hoteis", [])
 
                             st.success(
-                                f"✅ {len(hoteis)} opção(ões) encontrada(s) "
+                                f"{len(hoteis)} opção(ões) encontrada(s) "
                                 f"perto de {local_pesq}!"
                             )
 
@@ -273,20 +273,20 @@ Responde APENAS em JSON:
                                     f"margin-bottom:10px;"
                                     f"border-left:4px solid {cor_h};'>"
                                     f"<b style='color:#F1F5F9;font-size:1rem;'>"
-                                    f"{'✅' if adequado else '⚠️'} "
+                                    f"{'Adequado' if adequado else 'Não adequado'} — "
                                     f"{h.get('nome','')}</b>"
                                     f"<span style='float:right;"
                                     f"color:{'#10B981' if dentro_orcamento else '#EF4444'};"
                                     f"font-weight:700;font-size:1.1rem;'>"
                                     f"€ {preco:.2f}/noite</span><br>"
                                     f"<small style='color:#64748B;'>"
-                                    f"📍 {h.get('cidade','')} · "
-                                    f"🚗 {h.get('distancia_km','')}km · "
-                                    f"🏨 {h.get('tipo','')}</small><br>"
+                                    f"{h.get('cidade','')} · "
+                                    f"{h.get('distancia_km','')}km · "
+                                    f"{h.get('tipo','')}</small><br>"
                                     f"<small style='color:#94A3B8;'>"
                                     f"{h.get('motivo','')}</small><br>"
                                     f"<small style='color:#3B82F6;'>"
-                                    f"💰 Total estimado "
+                                    f"Total estimado "
                                     f"({noites_pesq}n × {n_pessoas}p): "
                                     f"<b>€ {total_h:.2f}</b></small>"
                                     f"</div>",
@@ -295,30 +295,30 @@ Responde APENAS em JSON:
 
                                 # Botão registar diretamente
                                 if st.button(
-                                    f"📝 Registar {h.get('nome','')}",
+                                    f"Registar {h.get('nome','')}",
                                     key=f"reg_hotel_{h.get('nome','').replace(' ','_')[:20]}",
                                     use_container_width=True
                                 ):
                                     st.session_state['hotel_pre_fill'] = h
                                     st.session_state['hotel_pre_noites'] = noites_pesq
                                     st.info(
-                                        "✅ Dados pré-preenchidos! "
-                                        "Vai ao tab 📝 Registar para confirmar."
+                                        "Dados pré-preenchidos! "
+                                        "Vai ao tab Registar para confirmar."
                                     )
 
                         except json.JSONDecodeError:
-                            st.error("❌ Erro ao interpretar resposta da IA.")
+                            st.error("Erro ao interpretar resposta da IA.")
                         except Exception as e:
-                            st.error(f"❌ Erro: {e}")
+                            st.error(f"Erro: {e}")
 
     # ════════════════════════════════════════════════════════════════
     # TAB HISTÓRICO
     # ════════════════════════════════════════════════════════════════
     with tab_historico:
-        st.markdown("#### 📋 Histórico de Dormidas")
+        st.markdown("#### Histórico de Dormidas")
 
         if dormidas_db.empty:
-            st.info("📋 Sem histórico.")
+            st.info("Sem histórico.")
         else:
             # Filtros
             col_h1, col_h2, col_h3 = st.columns(3)
@@ -350,9 +350,9 @@ Responde APENAS em JSON:
             ).fillna(0).sum()
 
             c1, c2, c3 = st.columns(3)
-            with c1: st.metric("📋 Registos",    len(df_hist))
-            with c2: st.metric("🌙 Noites",       int(total_noites))
-            with c3: st.metric("💰 Total",        f"€ {total_hist:.2f}")
+            with c1: st.metric("Registos",    len(df_hist))
+            with c2: st.metric("Noites",       int(total_noites))
+            with c3: st.metric("Total",        f"€ {total_hist:.2f}")
 
             cols_h = [c for c in [
                 'Data_Entrada','Data_Saida','Trabalhador',
@@ -370,7 +370,7 @@ Responde APENAS em JSON:
                 index=False, encoding='utf-8-sig'
             )
             st.download_button(
-                "📥 Exportar CSV",
+                "Exportar CSV",
                 data=csv_dorm.encode('utf-8-sig'),
                 file_name="dormidas_historico.csv",
                 mime="text/csv",

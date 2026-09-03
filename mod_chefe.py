@@ -10,33 +10,30 @@ from datetime import datetime, timedelta, date
 import time
 
 from core import (
-    save_db, inv, fh, sl, load_db,
-    ICONS, COLORS, TIPOS_FRENTE, REGRAS_OURO,
+    save_db, inv, fh, load_db,
+    THEME, TIPOS_FRENTE, REGRAS_OURO,
     log_audit, criar_notificacao, process_and_compress_image,
-    hp, _load_users_cached
+    hp, _load_users_cached, render_card, render_badge, escape_html
 )
 from translations import t
 
 # ── Constantes visuais ────────────────────────────────────────────────────────
+# Cores vêm de THEME (core.py) — fonte única da paleta; nunca hexadecimais
+# soltos aqui. "Faturação"/"Pago" não são estados de sucesso/aviso/erro, por
+# isso usam o acento e o cinzento secundário, respetivamente.
 _DOT_COLOR = {
-    "0":  "#F97316", "1":  "#10B981", "2":  "#3B82F6",
-    "3":  "#6B7280", "4":  "#6B7280", "-1": "#EF4444",
+    "0":  THEME["warning"], "1": THEME["success"], "2": THEME["accent"],
+    "3":  THEME["text_secondary"], "4": THEME["text_secondary"], "-1": THEME["error"],
 }
 _DOT_LABEL = {
     "0": "Pendente", "1": "Validado", "2": "Faturação",
     "3": "Pago", "4": "Pago", "-1": "Rejeitado",
-}
-_STATUS_ICON = {
-    "0": "🟠", "1": "🟢", "2": "🔵", "3": "⚫", "4": "⚫", "-1": "🔴",
 }
 _MESES_PT   = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 _DIAS_LETRA = ['D','S','T','Q','Q','S','S']
 _HORAS_30   = [f"{h:02d}:{m:02d}" for h in range(0, 24) for m in (0, 30)]
 
-
-def _load_users_fresh():
-    return _load_users_cached()
 
 
 # =============================================================================
@@ -54,19 +51,23 @@ def _gerar_html_folha(obra, periodo_str, regs_df, responsavel,
     total_h = 0.0
     tec_map: dict = {}   # tec → list de rows
     if not regs_df.empty:
-        for _, r in regs_df.iterrows():
-            h = pd.to_numeric(r.get('Horas_Total', 0), errors='coerce') or 0
-            total_h += h
-            tec = str(r.get('Técnico', '—'))
-            if tec not in tec_map:
-                tec_map[tec] = []
-            tec_map[tec].append({
-                'data':   str(r.get('Data',   '—')),
-                'frente': str(r.get('Frente', '—')),
-                'turno':  str(r.get('Turnos', '—')),
-                'horas':  h,
-                'relat':  str(r.get('Relatorio', ''))[:80],
-            })
+        df_h = regs_df.copy()
+        for col in ['Data', 'Frente', 'Turnos', 'Relatorio', 'Técnico']:
+            if col not in df_h.columns:
+                df_h[col] = '—'
+        df_h['Horas_Total'] = pd.to_numeric(df_h['Horas_Total'], errors='coerce').fillna(0)
+        total_h = float(df_h['Horas_Total'].sum())
+        for tec, grp in df_h.groupby('Técnico', sort=False):
+            tec_map[str(tec)] = [
+                {
+                    'data':   str(r.get('Data',      '—') or '—'),
+                    'frente': str(r.get('Frente',    '—') or '—'),
+                    'turno':  str(r.get('Turnos',    '—') or '—'),
+                    'horas':  r.get('Horas_Total',   0),
+                    'relat':  str(r.get('Relatorio', '') or '')[:80],
+                }
+                for r in grp.to_dict('records')
+            ]
 
     # ── Linhas da tabela agrupadas por técnico ─────────────────────────────
     rows_html = ""
@@ -244,8 +245,8 @@ def _gerar_html_folha(obra, periodo_str, regs_df, responsavel,
 <!-- FAIXA OBRA -->
 <div class="obra-banner">
   <div>
-    <div class="obra-name">🏭 {obra}</div>
-    <div class="obra-periodo">📅 {periodo_str}</div>
+    <div class="obra-name">{obra}</div>
+    <div class="obra-periodo">{periodo_str}</div>
   </div>
   <div class="obra-badge">
     <div class="obra-badge-h">{fh(total_h)}</div>
@@ -276,7 +277,7 @@ def _gerar_html_folha(obra, periodo_str, regs_df, responsavel,
 </div>
 
 <!-- TABELA -->
-<div class="section-title">📋 Registos de Trabalho</div>
+<div class="section-title">Registos de Trabalho</div>
 <table>
   <thead>
     <tr>
@@ -338,6 +339,7 @@ def _gerar_html_folha(obra, periodo_str, regs_df, responsavel,
 # =============================================================================
 # RENDER PRINCIPAL
 # =============================================================================
+@st.fragment
 def render_chefe(*args):
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
@@ -350,158 +352,158 @@ def render_chefe(*args):
     hoje       = date.today()
 
     # ── CSS ───────────────────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .stApp { background:#0F172A !important; }
-    .main .block-container { padding-top:0.5rem !important; }
-    h1,h2,h3,h4,h5,h6 { color:#F1F5F9 !important; }
-    p,div,span { color:#CBD5E1; }
+    .main .block-container {{ padding-top:0.5rem !important; }}
+    h1,h2,h3,h4,h5,h6 {{ color:{THEME['text']} !important; }}
+    p,div,span {{ color:{THEME['text_secondary']}; }}
 
     /* ── Tabs ── */
-    .stTabs [data-baseweb="tab-list"] {
-        background:#1E293B !important;
-        border-bottom:2px solid #334155 !important; gap:0 !important;
-    }
-    .stTabs [data-baseweb="tab"] {
-        color:#64748B !important; font-size:0.76rem !important;
+    .stTabs [data-baseweb="tab-list"] {{
+        background:{THEME['surface']} !important;
+        border-bottom:2px solid {THEME['border']} !important; gap:0 !important;
+    }}
+    .stTabs [data-baseweb="tab"] {{
+        color:{THEME['text_secondary']} !important; font-size:0.76rem !important;
         padding:10px 6px !important; background:transparent !important;
-    }
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        color:#DC2626 !important; font-weight:700 !important;
-        border-bottom:3px solid #DC2626 !important;
-    }
+    }}
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {{
+        color:{THEME['accent']} !important; font-weight:700 !important;
+        border-bottom:3px solid {THEME['accent']} !important;
+    }}
 
     /* ── Botões gerais ── */
-    .stButton>button {
-        border-radius:10px !important; font-weight:600 !important;
+    .stButton>button {{
+        border-radius:{THEME['radius']} !important; font-weight:600 !important;
         height:40px !important; font-size:0.85rem !important;
-    }
-    .stButton>button[kind="primary"] {
-        background:#DC2626 !important; color:white !important; border:none !important;
-    }
-    .stButton>button[kind="secondary"] {
-        background:#1E293B !important; color:#CBD5E1 !important;
-        border:1px solid #334155 !important;
-    }
+    }}
+    .stButton>button[kind="primary"] {{
+        background:{THEME['accent']} !important; color:white !important; border:none !important;
+    }}
+    .stButton>button[kind="secondary"] {{
+        background:{THEME['surface']} !important; color:{THEME['text_secondary']} !important;
+        border:1px solid {THEME['border']} !important;
+    }}
 
     /* ── Botões calendário (pequenos, circulares) ── */
-    .cal-week [data-testid="stHorizontalBlock"] .stButton>button {
+    .cal-week [data-testid="stHorizontalBlock"] .stButton>button {{
         border-radius:50% !important; padding:0 !important;
         height:36px !important; min-height:36px !important;
         width:36px !important; font-size:0.82rem !important;
-    }
+    }}
 
-    /* ── INPUTS — FUNDO BRANCO ── */
+    /* ── Inputs ── */
     .stTextInput label, .stSelectbox label, .stNumberInput label,
-    .stTextArea label, .stDateInput label, .stRadio label, .stCheckbox label {
-        color:#CBD5E1 !important; font-size:0.82rem !important;
+    .stTextArea label, .stDateInput label, .stRadio label, .stCheckbox label {{
+        color:{THEME['text_secondary']} !important; font-size:0.82rem !important;
         font-weight:500 !important;
-    }
+    }}
     .stTextInput>div>div>input,
     .stNumberInput>div>div>input,
-    .stTextArea>div>div>textarea {
-        background:#FFFFFF !important; color:#1E293B !important;
-        border:1px solid #CBD5E1 !important; border-radius:10px !important;
-    }
-    .stSelectbox>div>div>div {
-        background:#FFFFFF !important; color:#1E293B !important;
-        border:1px solid #CBD5E1 !important;
-    }
+    .stTextArea>div>div>textarea {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important; border-radius:{THEME['radius']} !important;
+    }}
+    .stSelectbox>div>div>div {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important;
+    }}
     /* Dropdown list options */
-    [data-baseweb="popover"] li {
-        background:#FFFFFF !important; color:#1E293B !important;
-    }
-    [data-baseweb="popover"] li:hover {
-        background:#F1F5F9 !important;
-    }
-    .stDateInput>div>div>input {
-        background:#FFFFFF !important; color:#1E293B !important;
-        border:1px solid #CBD5E1 !important; border-radius:10px !important;
-    }
+    [data-baseweb="popover"] li {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+    }}
+    [data-baseweb="popover"] li:hover {{
+        background:{THEME['background']} !important;
+    }}
+    .stDateInput>div>div>input {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important; border-radius:{THEME['radius']} !important;
+    }}
 
     /* ── Expander ── */
-    .streamlit-expanderHeader {
-        background:#1E293B !important; color:#F1F5F9 !important;
-        border-radius:10px !important;
-    }
+    .streamlit-expanderHeader {{
+        background:{THEME['surface']} !important; color:{THEME['text']} !important;
+        border:1px solid {THEME['border']} !important; border-radius:{THEME['radius']} !important;
+    }}
 
     /* ── Ponto cards ── */
-    .ponto-card {
-        background:#1E3A4A; border-radius:14px;
+    .ponto-card {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:{THEME['radius']};
         padding:16px 18px; margin-bottom:10px;
-        box-shadow:0 2px 8px rgba(0,0,0,0.3);
-    }
-    .ponto-card-header {
+        box-shadow:0 1px 3px rgba(16,24,40,0.05);
+    }}
+    .ponto-card-header {{
         display:flex; justify-content:space-between;
         align-items:flex-start; margin-bottom:10px;
-    }
-    .ponto-card-title { font-weight:700; color:#F1F5F9; font-size:0.95rem; margin:0; }
-    .ponto-card-horas { font-weight:900; color:#F1F5F9; font-size:1.2rem; }
-    .ponto-card-status {
+    }}
+    .ponto-card-title {{ font-weight:700; color:{THEME['text']}; font-size:0.95rem; margin:0; }}
+    .ponto-card-horas {{ font-weight:900; color:{THEME['text']}; font-size:1.2rem; }}
+    .ponto-card-status {{
         font-size:0.72rem; font-weight:600; padding:2px 8px;
         border-radius:10px; display:inline-block; margin-top:2px;
-    }
-    .ponto-card-grid {
+    }}
+    .ponto-card-grid {{
         display:grid; grid-template-columns:1fr 1fr; gap:6px 16px;
-        border-top:1px solid rgba(255,255,255,0.08);
+        border-top:1px solid {THEME['background']};
         padding-top:10px; margin-top:4px;
-    }
-    .ponto-card-label {
-        color:#64748B; font-size:0.72rem; font-weight:600;
+    }}
+    .ponto-card-label {{
+        color:{THEME['text_secondary']}; font-size:0.72rem; font-weight:600;
         text-transform:uppercase; letter-spacing:0.05em;
-    }
-    .ponto-card-value { color:#CBD5E1; font-size:0.85rem; font-weight:500; }
-    .total-horas-bar {
+    }}
+    .ponto-card-value {{ color:{THEME['text_secondary']}; font-size:0.85rem; font-weight:500; }}
+    .total-horas-bar {{
         display:flex; justify-content:space-between; align-items:center;
-        padding:12px 4px 8px; border-bottom:1px solid #1E293B; margin-bottom:12px;
-    }
-    .total-horas-label { color:#64748B; font-size:0.82rem; font-weight:600; }
-    .total-horas-value { color:#DC2626; font-size:1.05rem; font-weight:900; }
+        padding:12px 4px 8px; border-bottom:1px solid {THEME['border']}; margin-bottom:12px;
+    }}
+    .total-horas-label {{ color:{THEME['text_secondary']}; font-size:0.82rem; font-weight:600; }}
+    .total-horas-value {{ color:{THEME['accent']}; font-size:1.05rem; font-weight:900; }}
 
     /* ── Validação card ── */
-    .val-card {
-        background:#1E293B; border-radius:14px;
+    .val-card {{
+        background:{THEME['surface']}; border-radius:{THEME['radius']};
         padding:0; margin-bottom:16px;
-        border:1px solid #334155; overflow:hidden;
-    }
-    .val-card-header {
-        background:#162032; padding:14px 18px;
+        border:1px solid {THEME['border']}; overflow:hidden;
+    }}
+    .val-card-header {{
+        background:{THEME['background']}; padding:14px 18px;
         display:flex; justify-content:space-between; align-items:center;
-        border-bottom:1px solid #334155;
-    }
-    .val-reg-row {
+        border-bottom:1px solid {THEME['border']};
+    }}
+    .val-reg-row {{
         display:flex; justify-content:space-between; align-items:center;
-        padding:10px 18px; border-bottom:1px solid rgba(255,255,255,0.04);
-    }
-    .val-reg-row:last-child { border-bottom:none; }
-    .val-reg-info { flex:1; }
-    .val-reg-data { color:#64748B; font-size:0.72rem; font-weight:600;
-                    text-transform:uppercase; }
-    .val-reg-desc { color:#F1F5F9; font-size:0.88rem; font-weight:500;
-                    margin:2px 0; }
-    .val-reg-meta { color:#64748B; font-size:0.75rem; }
-    .val-reg-horas { color:#F59E0B; font-weight:900; font-size:1rem;
-                     white-space:nowrap; margin:0 16px; }
+        padding:10px 18px; border-bottom:1px solid {THEME['background']};
+    }}
+    .val-reg-row:last-child {{ border-bottom:none; }}
+    .val-reg-info {{ flex:1; }}
+    .val-reg-data {{ color:{THEME['text_secondary']}; font-size:0.72rem; font-weight:600;
+                    text-transform:uppercase; }}
+    .val-reg-desc {{ color:{THEME['text']}; font-size:0.88rem; font-weight:500;
+                    margin:2px 0; }}
+    .val-reg-meta {{ color:{THEME['text_secondary']}; font-size:0.75rem; }}
+    .val-reg-horas {{ color:{THEME['warning']}; font-weight:900; font-size:1rem;
+                     white-space:nowrap; margin:0 16px; }}
 
     /* ── Histórico mensal ── */
-    .hist-day-cell {
-        background:#1E293B; border-radius:8px; padding:8px 6px;
+    .hist-day-cell {{
+        background:{THEME['surface']}; border:1px solid {THEME['border']};
+        border-radius:8px; padding:8px 6px;
         text-align:center; margin:3px;
-    }
-    .hist-day-num { font-size:0.75rem; color:#64748B; font-weight:600; }
-    .hist-day-h { font-size:0.85rem; font-weight:900; }
+    }}
+    .hist-day-num {{ font-size:0.75rem; color:{THEME['text_secondary']}; font-weight:600; }}
+    .hist-day-h {{ font-size:0.85rem; font-weight:900; }}
     </style>
     """, unsafe_allow_html=True)
 
     # ── Cabeçalho ─────────────────────────────────────────────────────────────
     st.markdown(f"""
     <div style="text-align:center;padding:20px;
-        background:linear-gradient(135deg,#1E293B,#0F172A);
-        border-radius:16px;margin-bottom:20px;
-        border:1px solid rgba(255,255,255,0.1);">
-        <div style="font-size:2rem;margin-bottom:6px;">👷</div>
-        <div style="font-size:1.3rem;font-weight:800;color:#F8FAFC;">{user_nome}</div>
-        <div style="font-size:0.85rem;color:#94A3B8;">{cargo_user} | {user_tipo}</div>
+        background:{THEME['surface']};
+        border-radius:{THEME['radius']};margin-bottom:20px;
+        border:1px solid {THEME['border']};box-shadow:0 1px 3px rgba(16,24,40,0.05);">
+        <div style="font-size:1.3rem;font-weight:800;color:{THEME['text']};">{escape_html(user_nome)}</div>
+        <div style="font-size:0.85rem;color:{THEME['text_secondary']};">{escape_html(cargo_user)} | {escape_html(user_tipo)}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -524,32 +526,32 @@ def render_chefe(*args):
     if not regs_equipa.empty:
         regs_mes = regs_equipa[
             pd.to_datetime(regs_equipa['Data'], dayfirst=True, errors='coerce'
-            ).dt.date >= inicio_mes
+            ) >= pd.Timestamp(inicio_mes)
         ]
         horas_mes = pd.to_numeric(regs_mes['Horas_Total'], errors='coerce'
                                   ).fillna(0).sum()
     num_tec = len(regs_equipa['Técnico'].unique()) if not regs_equipa.empty else 0
 
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("👷 Técnicos",   num_tec)
-    with c2: st.metric("⏱️ Horas Mês",  f"{horas_mes:.0f}h")
-    with c3: st.metric("⏳ Pendentes",  pendentes)
-    with c4: st.metric("🏭 Obras",
+    with c1: st.metric("Técnicos",   num_tec)
+    with c2: st.metric("Horas Mês",  f"{horas_mes:.0f}h")
+    with c3: st.metric("Pendentes",  pendentes)
+    with c4: st.metric("Obras",
         len(obras_chefe) or (len(obras_db) if not obras_db.empty else 0))
 
     st.divider()
 
     # ── Tabs ──────────────────────────────────────────────────────────────────
     tabs = st.tabs([
-        "👥 Equipa", "✅ Validar Horas", "📋 Meu Ponto",
-        "📊 Folha de Ponto", "🛡️ HSE", "📦 Pedidos"
+        "Equipa", "Validar Horas", "Meu Ponto",
+        "Folha de Ponto", "HSE", "Pedidos"
     ])
 
     # ══════════════════════════════════════════════════════════════════════════
     # TAB 0 — EQUIPA
     # ══════════════════════════════════════════════════════════════════════════
     with tabs[0]:
-        st.markdown("### 👷 Visão Geral da Equipa")
+        st.markdown("### Visão Geral da Equipa")
         if not regs_equipa.empty:
             resumo = regs_equipa.groupby('Técnico').agg(
                 Horas     =('Horas_Total', lambda x: pd.to_numeric(x, errors='coerce').sum()),
@@ -558,33 +560,34 @@ def render_chefe(*args):
                 Aprovados =('Status',      lambda x: (x == '1').sum()),
             ).reset_index()
             for _, row in resumo.iterrows():
-                cor = "#10B981" if row['Pendentes'] == 0 else "#F59E0B"
+                cor = THEME["success"] if row['Pendentes'] == 0 else THEME["warning"]
                 st.markdown(f"""
-                <div style="background:rgba(255,255,255,0.05);padding:14px;
-                    border-radius:12px;margin-bottom:8px;border-left:4px solid {cor};">
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
+                    padding:14px;border-radius:{THEME['radius']};margin-bottom:8px;
+                    border-left:4px solid {cor};box-shadow:0 1px 3px rgba(16,24,40,0.05);">
                     <div style="display:flex;justify-content:space-between;">
                         <div>
-                            <b style="color:#F8FAFC;">👤 {row['Técnico']}</b>
-                            <div style="color:#94A3B8;font-size:0.82rem;">
+                            <b style="color:{THEME['text']};">{escape_html(row['Técnico'])}</b>
+                            <div style="color:{THEME['text_secondary']};font-size:0.82rem;">
                                 {row['Registos']} registos · {fh(row['Horas'])} totais
                             </div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="color:#10B981;font-size:0.82rem;">✅ {row['Aprovados']} aprovados</div>
-                            <div style="color:#F59E0B;font-size:0.82rem;">⏳ {row['Pendentes']} pendentes</div>
+                            <div style="color:{THEME['success']};font-size:0.82rem;">{row['Aprovados']} aprovados</div>
+                            <div style="color:{THEME['warning']};font-size:0.82rem;">{row['Pendentes']} pendentes</div>
                         </div>
                     </div>
                 </div>""", unsafe_allow_html=True)
         else:
-            st.info("📋 Sem dados de equipa.")
+            st.info("Sem dados de equipa.")
 
         st.divider()
-        st.markdown("### 📣 Comunicado à Equipa")
+        st.markdown("### Comunicado à Equipa")
         with st.form("form_comunicado_chefe"):
             titulo_com   = st.text_input("Título", key="com_ch_titulo")
             conteudo_com = st.text_area("Mensagem", key="com_ch_msg")
             urgente      = st.checkbox("Urgente", key="com_ch_urg")
-            if st.form_submit_button("📣 Enviar", use_container_width=True, type="primary"):
+            if st.form_submit_button("Enviar", use_container_width=True, type="primary"):
                 if titulo_com and conteudo_com:
                     novo = pd.DataFrame([{
                         "ID":       str(uuid.uuid4())[:8].upper(),
@@ -599,7 +602,9 @@ def render_chefe(*args):
                           if not comuns_db.empty else novo
                     save_db(upd, "comunicados.csv")
                     inv("comunicados.csv")
-                    st.success("✅ Comunicado enviado!")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
+                    st.success("Comunicado enviado!")
                     st.session_state['_menu_locked'] = True
                     st.rerun()
 
@@ -607,8 +612,8 @@ def render_chefe(*args):
     # TAB 1 — VALIDAR HORAS
     # ══════════════════════════════════════════════════════════════════════════
     with tabs[1]:
-        st.markdown("### ✅ Validação de Horas da Equipa")
-        sub_p, sub_h = st.tabs(["🟠 Pendentes", "📅 Histórico Mensal"])
+        st.markdown("### Validação de Horas da Equipa")
+        sub_p, sub_h = st.tabs(["Pendentes", "Histórico Mensal"])
 
         # ── Pendentes ─────────────────────────────────────────────────────────
         with sub_p:
@@ -628,15 +633,16 @@ def render_chefe(*args):
             if not df_pend.empty:
                 # Barra acções globais
                 st.markdown(f"""
-                <div style="background:#1E293B;border-radius:12px;padding:14px 18px;
+                <div style="background:{THEME['surface']};border-radius:{THEME['radius']};padding:14px 18px;
                     margin-bottom:16px;display:flex;align-items:center;
-                    justify-content:space-between;border:1px solid #334155;">
+                    justify-content:space-between;border:1px solid {THEME['border']};
+                    box-shadow:0 1px 3px rgba(16,24,40,0.05);">
                     <div>
-                        <span style="color:#F1F5F9;font-weight:700;font-size:0.95rem;">
-                            ⏳ {len(df_pend)} registo(s) aguardam validação
+                        <span style="color:{THEME['text']};font-weight:700;font-size:0.95rem;">
+                            {len(df_pend)} registo(s) aguardam validação
                         </span><br>
-                        <span style="color:#64748B;font-size:0.78rem;">
-                            {len(df_pend['Técnico'].unique())} técnico(s) · 
+                        <span style="color:{THEME['text_secondary']};font-size:0.78rem;">
+                            {len(df_pend['Técnico'].unique())} técnico(s) ·
                             {fh(df_pend['Horas_Total'].sum())} no total
                         </span>
                     </div>
@@ -644,35 +650,39 @@ def render_chefe(*args):
 
                 col_vm, col_rm = st.columns(2)
                 with col_vm:
-                    if st.button("🟢 Validar Todos", key="ch_val_todos",
+                    if st.button("Validar Todos", key="ch_val_todos",
                                  type="primary", use_container_width=True):
                         for tec in df_pend['Técnico'].unique():
                             registos_db.loc[
                                 (registos_db['Técnico'] == tec) &
                                 (registos_db['Status']  == '0'), 'Status'] = '1'
                             criar_notificacao(destinatario=tec,
-                                titulo="🟢 Horas Validadas",
+                                titulo="Horas Validadas",
                                 mensagem=f"As tuas horas foram validadas por {user_nome}.",
                                 tipo="success", acao_url="/")
                         save_db(registos_db, "registos.csv")
                         inv("registos.csv")
-                        st.success("✅ Todos validados!")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        st.success("Todos validados!")
                         st.session_state['_menu_locked'] = True
                         st.rerun()
                 with col_rm:
-                    if st.button("❌ Rejeitar Todos", key="ch_rej_todos",
+                    if st.button("Rejeitar Todos", key="ch_rej_todos",
                                  use_container_width=True):
                         for tec in df_pend['Técnico'].unique():
                             registos_db.loc[
                                 (registos_db['Técnico'] == tec) &
                                 (registos_db['Status']  == '0'), 'Status'] = '-1'
                             criar_notificacao(destinatario=tec,
-                                titulo="❌ Horas Rejeitadas",
+                                titulo="Horas Rejeitadas",
                                 mensagem=f"As tuas horas foram rejeitadas. Contacta {user_nome}.",
                                 tipo="error", acao_url="/")
                         save_db(registos_db, "registos.csv")
                         inv("registos.csv")
-                        st.error("❌ Todos rejeitados.")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        st.error("Todos rejeitados.")
                         st.session_state['_menu_locked'] = True
                         st.rerun()
 
@@ -690,19 +700,19 @@ def render_chefe(*args):
                       <div class="val-card-header">
                         <div style="display:flex;align-items:center;gap:12px;">
                           <div style="width:40px;height:40px;border-radius:50%;
-                            background:#DC2626;display:flex;align-items:center;
+                            background:{THEME['accent']};display:flex;align-items:center;
                             justify-content:center;font-weight:900;color:white;
-                            font-size:1rem;flex-shrink:0;">{ini_t}</div>
+                            font-size:1rem;flex-shrink:0;">{escape_html(ini_t)}</div>
                           <div>
-                            <div style="color:#F1F5F9;font-weight:700;font-size:0.95rem;">
-                              👤 {tecnico}
+                            <div style="color:{THEME['text']};font-weight:700;font-size:0.95rem;">
+                              {escape_html(tecnico)}
                             </div>
-                            <div style="color:#64748B;font-size:0.75rem;">
+                            <div style="color:{THEME['text_secondary']};font-size:0.75rem;">
                               {len(regs_t)} registo(s) · {fh(total_h_t)} pendentes
                             </div>
                           </div>
                         </div>
-                        <div style="color:#F59E0B;font-size:1.3rem;font-weight:900;">
+                        <div style="color:{THEME['warning']};font-size:1.3rem;font-weight:900;">
                           {fh(total_h_t)}
                         </div>
                       </div>
@@ -711,7 +721,7 @@ def render_chefe(*args):
                     # Botões validar/rejeitar técnico
                     col_vt, col_rt = st.columns(2)
                     with col_vt:
-                        if st.button(f"🟢 Validar todos de {tecnico.split()[0]}",
+                        if st.button(f"Validar todos de {tecnico.split()[0]}",
                                      key=f"apr_{tecnico}", use_container_width=True,
                                      type="primary"):
                             registos_db.loc[
@@ -719,24 +729,28 @@ def render_chefe(*args):
                                 (registos_db['Status']  == '0'), 'Status'] = '1'
                             save_db(registos_db, "registos.csv")
                             criar_notificacao(destinatario=tecnico,
-                                titulo="🟢 Horas Validadas",
+                                titulo="Horas Validadas",
                                 mensagem=f"As tuas horas foram validadas por {user_nome}.",
                                 tipo="success", acao_url="/")
                             inv("registos.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                             st.session_state['_menu_locked'] = True
                             st.rerun()
                     with col_rt:
-                        if st.button(f"❌ Rejeitar todos de {tecnico.split()[0]}",
+                        if st.button(f"Rejeitar todos de {tecnico.split()[0]}",
                                      key=f"rej_{tecnico}", use_container_width=True):
                             registos_db.loc[
                                 (registos_db['Técnico'] == tecnico) &
                                 (registos_db['Status']  == '0'), 'Status'] = '-1'
                             save_db(registos_db, "registos.csv")
                             criar_notificacao(destinatario=tecnico,
-                                titulo="❌ Horas Rejeitadas",
+                                titulo="Horas Rejeitadas",
                                 mensagem=f"As tuas horas foram rejeitadas. Contacta {user_nome}.",
                                 tipo="error", acao_url="/")
                             inv("registos.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
                             st.session_state['_menu_locked'] = True
                             st.rerun()
 
@@ -753,37 +767,41 @@ def render_chefe(*args):
                         <div class="val-reg-row">
                           <div class="val-reg-info">
                             <div class="val-reg-data">{data_r}</div>
-                            <div class="val-reg-desc">🏭 {obra_r} · {frente_r}</div>
-                            <div class="val-reg-meta">⏰ {turno_r}</div>
+                            <div class="val-reg-desc">{obra_r} · {frente_r}</div>
+                            <div class="val-reg-meta">{turno_r}</div>
                           </div>
                           <div class="val-reg-horas">{fh(horas_r)}</div>
                         </div>""", unsafe_allow_html=True)
 
                         col_i, col_v, col_r = st.columns([6, 1, 1])
                         with col_v:
-                            if st.button("✅", key=f"val_ind_{reg_id}",
+                            if st.button("Sim", key=f"val_ind_{reg_id}",
                                          use_container_width=True, help="Validar"):
                                 registos_db.loc[
                                     registos_db['ID'] == reg_id, 'Status'] = '1'
                                 save_db(registos_db, "registos.csv")
                                 criar_notificacao(destinatario=tecnico,
-                                    titulo="🟢 Horas Validadas",
+                                    titulo="Horas Validadas",
                                     mensagem=f"{fh(horas_r)} em {obra_r} validadas.",
                                     tipo="success", acao_url="/")
                                 inv("registos.csv")
+                                from core import _cached_load_all
+                                _cached_load_all.clear()
                                 st.session_state['_menu_locked'] = True
                                 st.rerun()
                         with col_r:
-                            if st.button("❌", key=f"rej_ind_{reg_id}",
+                            if st.button("Não", key=f"rej_ind_{reg_id}",
                                          use_container_width=True, help="Rejeitar"):
                                 registos_db.loc[
                                     registos_db['ID'] == reg_id, 'Status'] = '-1'
                                 save_db(registos_db, "registos.csv")
                                 criar_notificacao(destinatario=tecnico,
-                                    titulo="❌ Horas Rejeitadas",
+                                    titulo="Horas Rejeitadas",
                                     mensagem=f"{fh(horas_r)} rejeitadas.",
                                     tipo="error", acao_url="/")
                                 inv("registos.csv")
+                                from core import _cached_load_all
+                                _cached_load_all.clear()
                                 st.session_state['_menu_locked'] = True
                                 st.rerun()
 
@@ -791,34 +809,33 @@ def render_chefe(*args):
                     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
             else:
-                st.markdown("""
+                st.markdown(f"""
                 <div style="text-align:center;padding:60px 20px;
-                    background:#1E293B;border-radius:16px;border:1px solid #334155;">
-                    <div style="font-size:3rem;margin-bottom:12px;">✅</div>
-                    <p style="color:#10B981;font-weight:700;font-size:1.1rem;margin:0;">
+                    background:{THEME['surface']};border-radius:{THEME['radius']};border:1px solid {THEME['border']};">
+                    <p style="color:{THEME['success']};font-weight:700;font-size:1.1rem;margin:0;">
                         Sem horas pendentes!
                     </p>
-                    <p style="color:#64748B;font-size:0.85rem;margin:6px 0 0;">
+                    <p style="color:{THEME['text_secondary']};font-size:0.85rem;margin:6px 0 0;">
                         Todos os registos estão validados.
                     </p>
                 </div>""", unsafe_allow_html=True)
 
         # ── Histórico Mensal ───────────────────────────────────────────────────
         with sub_h:
-            st.markdown("### 📅 Histórico de Horas por Colaborador")
+            st.markdown("### Histórico de Horas por Colaborador")
 
             # Selecção colaborador + mês
             tecnicos_lista = sorted(regs_equipa['Técnico'].unique().tolist()) \
                              if not regs_equipa.empty else []
             if not tecnicos_lista:
-                st.info("📋 Sem dados de equipa.")
+                st.info("Sem dados de equipa.")
             else:
                 col_tc, col_mes, col_ano = st.columns([3, 2, 1])
                 with col_tc:
-                    tec_sel = st.selectbox("👤 Colaborador", tecnicos_lista,
+                    tec_sel = st.selectbox("Colaborador", tecnicos_lista,
                                            key="hist_tec_sel")
                 with col_mes:
-                    mes_sel_idx = st.selectbox("📅 Mês", range(1, 13),
+                    mes_sel_idx = st.selectbox("Mês", range(1, 13),
                         format_func=lambda x: _MESES_PT[x-1],
                         index=hoje.month - 1, key="hist_mes_sel")
                 with col_ano:
@@ -867,50 +884,50 @@ def render_chefe(*args):
                 # Header mês
                 ini_t = tec_sel[:1].upper()
                 st.markdown(f"""
-                <div style="background:linear-gradient(135deg,#1E293B,#162032);
-                    border-radius:16px;padding:20px 24px;margin:16px 0;
-                    border:1px solid #334155;">
+                <div style="background:{THEME['surface']};
+                    border-radius:{THEME['radius']};padding:20px 24px;margin:16px 0;
+                    border:1px solid {THEME['border']};box-shadow:0 1px 3px rgba(16,24,40,0.05);">
                     <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
                         <div style="width:48px;height:48px;border-radius:50%;
-                            background:#DC2626;display:flex;align-items:center;
+                            background:{THEME['accent']};display:flex;align-items:center;
                             justify-content:center;font-weight:900;color:white;
-                            font-size:1.2rem;">{ini_t}</div>
+                            font-size:1.2rem;">{escape_html(ini_t)}</div>
                         <div>
-                            <div style="color:#F1F5F9;font-weight:800;font-size:1.1rem;">
-                                {tec_sel}
+                            <div style="color:{THEME['text']};font-weight:800;font-size:1.1rem;">
+                                {escape_html(tec_sel)}
                             </div>
-                            <div style="color:#DC2626;font-weight:600;font-size:0.9rem;">
+                            <div style="color:{THEME['text_secondary']};font-weight:600;font-size:0.9rem;">
                                 {mes_nome} {int(ano_sel)}
                             </div>
                         </div>
                     </div>
                     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-                        <div style="background:#0F172A;border-radius:10px;padding:12px;
+                        <div style="background:{THEME['background']};border-radius:10px;padding:12px;
                             text-align:center;">
-                            <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                            <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                                 text-transform:uppercase;">Total Horas</div>
-                            <div style="color:#DC2626;font-size:1.6rem;font-weight:900;">
+                            <div style="color:{THEME['text']};font-size:1.6rem;font-weight:900;">
                                 {fh(total_h_m)}</div>
                         </div>
-                        <div style="background:#0F172A;border-radius:10px;padding:12px;
+                        <div style="background:{THEME['background']};border-radius:10px;padding:12px;
                             text-align:center;">
-                            <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                            <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                                 text-transform:uppercase;">Dias Trabalhados</div>
-                            <div style="color:#F1F5F9;font-size:1.6rem;font-weight:900;">
+                            <div style="color:{THEME['text']};font-size:1.6rem;font-weight:900;">
                                 {dias_trabalhados}</div>
                         </div>
-                        <div style="background:#0F172A;border-radius:10px;padding:12px;
+                        <div style="background:{THEME['background']};border-radius:10px;padding:12px;
                             text-align:center;">
-                            <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                            <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                                 text-transform:uppercase;">Média/Dia</div>
-                            <div style="color:#3B82F6;font-size:1.6rem;font-weight:900;">
+                            <div style="color:{THEME['accent']};font-size:1.6rem;font-weight:900;">
                                 {fh(media_dia)}</div>
                         </div>
-                        <div style="background:#0F172A;border-radius:10px;padding:12px;
+                        <div style="background:{THEME['background']};border-radius:10px;padding:12px;
                             text-align:center;">
-                            <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                            <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                                 text-transform:uppercase;">Validados</div>
-                            <div style="color:#10B981;font-size:1.6rem;font-weight:900;">
+                            <div style="color:{THEME['success']};font-size:1.6rem;font-weight:900;">
                                 {n_val}</div>
                         </div>
                     </div>
@@ -918,7 +935,7 @@ def render_chefe(*args):
 
                 if not regs_mes_tec.empty:
                     # ── Calendário mensal visual ───────────────────────────────
-                    st.markdown("#### 📆 Vista Calendário")
+                    st.markdown("#### Vista Calendário")
 
                     # Construir mapa dia → horas+status
                     import calendar as cal_lib
@@ -947,8 +964,7 @@ def render_chefe(*args):
                     dias_header = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
                     header_html = "<div style='display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;'>"
                     for dh in dias_header:
-                        eh_fim = dh in ('Dom','Sáb')
-                        header_html += f"<div style='text-align:center;font-size:0.68rem;font-weight:700;color:{'#EF4444' if eh_fim else '#64748B'};padding:4px 0;'>{dh}</div>"
+                        header_html += f"<div style='text-align:center;font-size:0.68rem;font-weight:700;color:{THEME['text_secondary']};padding:4px 0;'>{dh}</div>"
                     header_html += "</div>"
 
                     # Células do calendário
@@ -963,41 +979,41 @@ def render_chefe(*args):
                         if tem_reg:
                             h_dia  = mapa_dia[dia]['h']
                             st_dia = mapa_dia[dia]['status']
-                            cor    = _DOT_COLOR.get(st_dia, '#6B7280')
+                            cor    = _DOT_COLOR.get(st_dia, THEME['text_secondary'])
                             h_str  = fh(h_dia)
                             cells_html += f"""
                             <div style="background:{cor}22;border:1px solid {cor};
                                 border-radius:8px;padding:6px 4px;text-align:center;">
-                                <div style="font-size:0.7rem;color:#94A3B8;font-weight:600;">{dia}</div>
+                                <div style="font-size:0.7rem;color:{THEME['text_secondary']};font-weight:600;">{dia}</div>
                                 <div style="font-size:0.82rem;font-weight:900;color:{cor};">{h_str}</div>
                             </div>"""
                         else:
-                            bg = "rgba(239,68,68,0.05)" if fim_s else "rgba(255,255,255,0.02)"
+                            bg = THEME['background'] if fim_s else THEME['surface']
                             cells_html += f"""
-                            <div style="background:{bg};border:1px solid #1E293B;
+                            <div style="background:{bg};border:1px solid {THEME['border']};
                                 border-radius:8px;padding:6px 4px;text-align:center;">
-                                <div style="font-size:0.7rem;color:{'#EF444444' if fim_s else '#334155'};font-weight:600;">{dia}</div>
-                                <div style="font-size:0.6rem;color:#1E293B;">—</div>
+                                <div style="font-size:0.7rem;color:{THEME['text_secondary']};font-weight:600;">{dia}</div>
+                                <div style="font-size:0.6rem;color:{THEME['text_secondary']};">—</div>
                             </div>"""
                     cells_html += "</div>"
 
                     st.markdown(header_html + cells_html, unsafe_allow_html=True)
 
                     # Legenda
-                    st.markdown("""
+                    st.markdown(f"""
                     <div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;">
-                        <span style="font-size:0.72rem;color:#64748B;">
-                            <span style="color:#F97316;">●</span> Pendente</span>
-                        <span style="font-size:0.72rem;color:#64748B;">
-                            <span style="color:#10B981;">●</span> Validado</span>
-                        <span style="font-size:0.72rem;color:#64748B;">
-                            <span style="color:#3B82F6;">●</span> Faturação</span>
-                        <span style="font-size:0.72rem;color:#64748B;">
-                            <span style="color:#EF4444;">●</span> Rejeitado</span>
+                        <span style="font-size:0.72rem;color:{THEME['text_secondary']};">
+                            <span style="color:{_DOT_COLOR['0']};">●</span> Pendente</span>
+                        <span style="font-size:0.72rem;color:{THEME['text_secondary']};">
+                            <span style="color:{_DOT_COLOR['1']};">●</span> Validado</span>
+                        <span style="font-size:0.72rem;color:{THEME['text_secondary']};">
+                            <span style="color:{_DOT_COLOR['2']};">●</span> Faturação</span>
+                        <span style="font-size:0.72rem;color:{THEME['text_secondary']};">
+                            <span style="color:{_DOT_COLOR['-1']};">●</span> Rejeitado</span>
                     </div>""", unsafe_allow_html=True)
 
                     # ── Breakdown por obra ─────────────────────────────────────
-                    st.markdown("#### 🏭 Breakdown por Obra")
+                    st.markdown("#### Breakdown por Obra")
                     breakdown = regs_mes_tec.groupby('Obra').agg(
                         Horas   =('Horas_Total', lambda x: pd.to_numeric(x, errors='coerce').sum()),
                         Registos=('Obra', 'count'),
@@ -1007,52 +1023,51 @@ def render_chefe(*args):
                     for _, br in breakdown.iterrows():
                         pct = int(br['Horas'] / total_br * 100) if total_br > 0 else 0
                         st.markdown(f"""
-                        <div style="background:#1E293B;border-radius:10px;
+                        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;
                             padding:12px 16px;margin-bottom:8px;">
                             <div style="display:flex;justify-content:space-between;
                                 align-items:center;margin-bottom:6px;">
-                                <span style="color:#F1F5F9;font-weight:600;
-                                    font-size:0.88rem;">🏭 {br['Obra']}</span>
-                                <span style="color:#DC2626;font-weight:900;">
+                                <span style="color:{THEME['text']};font-weight:600;
+                                    font-size:0.88rem;">{escape_html(br['Obra'])}</span>
+                                <span style="color:{THEME['accent']};font-weight:900;">
                                     {fh(br['Horas'])}</span>
                             </div>
-                            <div style="background:#0F172A;border-radius:4px;height:6px;">
-                                <div style="background:#DC2626;width:{pct}%;
+                            <div style="background:{THEME['background']};border-radius:4px;height:6px;">
+                                <div style="background:{THEME['accent']};width:{pct}%;
                                     height:6px;border-radius:4px;"></div>
                             </div>
-                            <div style="color:#64748B;font-size:0.72rem;margin-top:4px;">
+                            <div style="color:{THEME['text_secondary']};font-size:0.72rem;margin-top:4px;">
                                 {br['Registos']} registo(s) · {pct}% do mês
                             </div>
                         </div>""", unsafe_allow_html=True)
 
                     # ── Tabela detalhada ───────────────────────────────────────
-                    with st.expander("📋 Ver todos os registos do mês"):
+                    with st.expander("Ver todos os registos do mês"):
                         cols_show = [c for c in
                             ['Data','Obra','Frente','Turnos','Horas_Total','Status']
                             if c in regs_mes_tec.columns]
                         df_show = regs_mes_tec[cols_show].copy()
                         if 'Status' in df_show.columns:
                             df_show['Status'] = df_show['Status'].map({
-                                "0":"🟠 Pendente","1":"🟢 Validado",
-                                "2":"🔵 Faturação","3":"⚫ Processado","-1":"🔴 Rejeitado"
+                                "0":"Pendente","1":"Validado",
+                                "2":"Faturação","3":"Processado","-1":"Rejeitado"
                             }).fillna(df_show['Status'])
                         st.dataframe(df_show, use_container_width=True, hide_index=True)
 
                         # Indicadores finais
                         col_iv, col_ip, col_ir = st.columns(3)
                         with col_iv:
-                            st.metric("✅ Validados", n_val)
+                            st.metric("Validados", n_val)
                         with col_ip:
-                            st.metric("⏳ Pendentes", n_pend)
+                            st.metric("Pendentes", n_pend)
                         with col_ir:
-                            st.metric("❌ Rejeitados", n_rej)
+                            st.metric("Rejeitados", n_rej)
                 else:
                     st.markdown(f"""
                     <div style="text-align:center;padding:50px 20px;
-                        background:#1E293B;border-radius:16px;
-                        border:1px solid #334155;margin-top:16px;">
-                        <div style="font-size:3rem;margin-bottom:12px;opacity:0.3;">📅</div>
-                        <p style="color:#475569;font-size:0.9rem;margin:0;">
+                        background:{THEME['surface']};border-radius:16px;
+                        border:1px solid {THEME['border']};margin-top:16px;">
+                        <p style="color:{THEME['text_secondary']};font-size:0.9rem;margin:0;">
                             Sem registos para {mes_nome} {int(ano_sel)}
                         </p>
                     </div>""", unsafe_allow_html=True)
@@ -1065,15 +1080,16 @@ def render_chefe(*args):
         for k, v in [
             ('data_consulta_ch',     hoje),
             ('semana_offset_ch',     0),
-            ('show_reg_form_ch',     False),
             ('periodos_trabalho_ch', [{"entrada": "08:00", "saida": "17:00"}]),
         ]:
             if k not in st.session_state:
                 st.session_state[k] = v
+        # Registo de horas desactivado no GestNow — usar CPS Ponto
+        st.session_state['show_reg_form_ch'] = False
 
         foto_b64 = ""
         try:
-            u_data  = _load_users_fresh()
+            u_data  = _load_users_cached()
             u_match = u_data[u_data['Nome'] == user_nome]
             if not u_match.empty:
                 foto_b64 = str(u_match.iloc[0].get('Foto', ''))
@@ -1109,8 +1125,8 @@ def render_chefe(*args):
             with col_mes:
                 st.markdown(
                     f"<div style='text-align:center;padding:6px 0;'>"
-                    f"<p style='color:#F1F5F9;font-weight:700;font-size:0.88rem;margin:0 0 2px;'>Meu Ponto</p>"
-                    f"<p style='color:#DC2626;font-weight:900;font-size:1.05rem;margin:0;'>{mes_label} {ano_label}</p>"
+                    f"<p style='color:{THEME['text']};font-weight:700;font-size:0.88rem;margin:0 0 2px;'>Meu Ponto</p>"
+                    f"<p style='color:{THEME['accent']};font-weight:900;font-size:1.05rem;margin:0;'>{mes_label} {ano_label}</p>"
                     f"</div>", unsafe_allow_html=True)
             with col_foto:
                 col_next, col_img = st.columns([1,1])
@@ -1124,7 +1140,7 @@ def render_chefe(*args):
                             st.markdown(
                                 f"<img src='data:image/jpeg;base64,{foto_b64}' "
                                 f"style='width:34px;height:34px;border-radius:50%;"
-                                f"object-fit:cover;border:2px solid #DC2626;margin-top:2px;'>",
+                                f"object-fit:cover;border:2px solid {THEME['accent']};margin-top:2px;'>",
                                 unsafe_allow_html=True)
                         except: pass
 
@@ -1132,10 +1148,9 @@ def render_chefe(*args):
             letras_cols = st.columns(7)
             for col, d in zip(letras_cols, dias_sem):
                 with col:
-                    dl    = _DIAS_LETRA[(d.weekday()+1) % 7]
-                    fim_s = (d.weekday()+1) % 7 in (0,6)
+                    dl = _DIAS_LETRA[(d.weekday()+1) % 7]
                     st.markdown(
-                        f"<p style='text-align:center;color:{'#EF4444' if fim_s else '#64748B'};"
+                        f"<p style='text-align:center;color:{THEME['text_secondary']};"
                         f"font-size:0.6rem;font-weight:700;margin:0;text-transform:uppercase;'>{dl}</p>",
                         unsafe_allow_html=True)
 
@@ -1161,13 +1176,13 @@ def render_chefe(*args):
             st.markdown("</div>", unsafe_allow_html=True)
 
             st.markdown(
-                "<div style='display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:4px 0 8px;'>"
-                "<span style='font-size:0.62rem;color:#64748B;'><span style='color:#F97316;'>●</span> Pendente</span>"
-                "<span style='font-size:0.62rem;color:#64748B;'><span style='color:#10B981;'>●</span> Validado</span>"
-                "<span style='font-size:0.62rem;color:#64748B;'><span style='color:#3B82F6;'>●</span> Faturação</span>"
-                "<span style='font-size:0.62rem;color:#64748B;'><span style='color:#6B7280;'>●</span> Pago</span>"
-                "</div>", unsafe_allow_html=True)
-            st.markdown("<hr style='border:none;border-top:1px solid #1E293B;margin:4px 0 10px;'>",
+                f"<div style='display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:4px 0 8px;'>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'><span style='color:{_DOT_COLOR['0']};'>●</span> Pendente</span>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'><span style='color:{_DOT_COLOR['1']};'>●</span> Validado</span>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'><span style='color:{_DOT_COLOR['2']};'>●</span> Faturação</span>"
+                f"<span style='font-size:0.62rem;color:{THEME['text_secondary']};'><span style='color:{_DOT_COLOR['3']};'>●</span> Pago</span>"
+                f"</div>", unsafe_allow_html=True)
+            st.markdown(f"<hr style='border:none;border-top:1px solid {THEME['border']};margin:4px 0 10px;'>",
                         unsafe_allow_html=True)
 
             data_sel    = st.session_state.data_consulta_ch
@@ -1177,19 +1192,25 @@ def render_chefe(*args):
 
             col_data, col_fab = st.columns([4,1])
             with col_data:
-                prefix = "📍 Hoje" if eh_hoje_sel else dia_letra_d
+                prefix = "Hoje" if eh_hoje_sel else dia_letra_d
                 st.markdown(
-                    f"<p style='color:#F1F5F9;font-weight:700;font-size:0.92rem;margin:0;'>"
+                    f"<p style='color:{THEME['text']};font-weight:700;font-size:0.92rem;margin:0;'>"
                     f"{prefix}, {data_sel.day} de {mes_nome_d}</p>",
                     unsafe_allow_html=True)
             with col_fab:
                 if st.button("＋", key="ch_fab_btn", type="primary", use_container_width=True):
-                    st.session_state.show_reg_form_ch    = True
-                    st.session_state.periodos_trabalho_ch = [{"entrada":"08:00","saida":"17:00"}]
+                    st.session_state['_pt_redirect_ch'] = True
                     st.session_state['_menu_locked'] = True
                     st.rerun()
 
             st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+
+            if st.session_state.pop('_pt_redirect_ch', False):
+                st.info("O registo de horas é feito na **CPS Ponto**.")
+                st.link_button(
+                    "Abrir CPS Ponto",
+                    "https://cps-ponto-773461449136.europe-west1.run.app",
+                    use_container_width=True, type="primary")
 
             # Cards do dia
             regs_dia = pd.DataFrame()
@@ -1210,7 +1231,7 @@ def render_chefe(*args):
                     unsafe_allow_html=True)
                 for _, r in regs_dia.iterrows():
                     s_str   = str(r.get('Status','0'))
-                    dot_c   = _DOT_COLOR.get(s_str,'#6B7280')
+                    dot_c   = _DOT_COLOR.get(s_str, THEME['text_secondary'])
                     dot_l   = _DOT_LABEL.get(s_str,'Pendente')
                     turnos  = str(r.get('Turnos',''))
                     obra    = str(r.get('Obra',''))
@@ -1245,16 +1266,15 @@ def render_chefe(*args):
                         f"<div style='text-align:right;'><p class='ponto-card-label'>Saída</p>"
                         f"<p class='ponto-card-value'><b>{saida_str if saida_str else '—'}</b></p></div>"
                         f"</div>"
-                        + (f"<p style='color:#475569;font-size:0.73rem;margin:8px 0 0;"
-                           f"border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;'>"
-                           f"{relat}</p>" if relat else "")
+                        + (f"<p style='color:{THEME['text_secondary']};font-size:0.73rem;margin:8px 0 0;"
+                           f"border-top:1px solid {THEME['background']};padding-top:6px;'>"
+                           f"{escape_html(relat)}</p>" if relat else "")
                         + "</div>", unsafe_allow_html=True)
             else:
                 st.markdown(
-                    "<div style='text-align:center;padding:50px 20px 40px;'>"
-                    "<div style='font-size:3.5rem;margin-bottom:12px;opacity:0.25;'>📋</div>"
-                    "<p style='color:#475569;font-weight:600;margin:0;font-size:0.9rem;'>"
-                    "Sem ponto registado neste dia</p></div>", unsafe_allow_html=True)
+                    f"<div style='text-align:center;padding:50px 20px 40px;'>"
+                    f"<p style='color:{THEME['text_secondary']};font-weight:600;margin:0;font-size:0.9rem;'>"
+                    f"Sem ponto registado neste dia</p></div>", unsafe_allow_html=True)
 
         # ── Formulário de registo ──────────────────────────────────────────────
         else:
@@ -1263,29 +1283,29 @@ def render_chefe(*args):
             if foto_b64 and len(foto_b64) > 100:
                 foto_html = (f"<img src='data:image/jpeg;base64,{foto_b64}' "
                              f"style='width:44px;height:44px;border-radius:50%;"
-                             f"object-fit:cover;border:2px solid #DC2626;flex-shrink:0;'>")
+                             f"object-fit:cover;border:2px solid {THEME['accent']};flex-shrink:0;'>")
             else:
                 ini = str(user_nome)[:1].upper()
                 foto_html = (f"<div style='width:44px;height:44px;border-radius:50%;"
-                             f"background:#DC2626;display:flex;align-items:center;"
+                             f"background:{THEME['accent']};display:flex;align-items:center;"
                              f"justify-content:center;font-weight:900;color:white;"
                              f"font-size:1.1rem;flex-shrink:0;'>{ini}</div>")
 
             st.markdown(
-                f"<div style='background:#1E293B;border-radius:14px;padding:14px 16px;"
-                f"margin-bottom:14px;border:1px solid #334155;"
+                f"<div style='background:{THEME['surface']};border-radius:14px;padding:14px 16px;"
+                f"margin-bottom:14px;border:1px solid {THEME['border']};"
                 f"display:flex;align-items:center;gap:14px;'>"
                 f"{foto_html}<div style='flex:1;'>"
-                f"<p style='color:#94A3B8;font-size:0.7rem;margin:0;'>Registo de ponto</p>"
-                f"<p style='color:#F1F5F9;font-weight:700;font-size:0.95rem;margin:2px 0 0;'>{user_nome}</p>"
-                f"<p style='color:#DC2626;font-size:0.82rem;font-weight:600;margin:1px 0 0;'>"
+                f"<p style='color:{THEME['text_secondary']};font-size:0.7rem;margin:0;'>Registo de ponto</p>"
+                f"<p style='color:{THEME['text']};font-weight:700;font-size:0.95rem;margin:2px 0 0;'>{user_nome}</p>"
+                f"<p style='color:{THEME['accent']};font-size:0.82rem;font-weight:600;margin:1px 0 0;'>"
                 f"{data_sel.strftime('%d/%m/%Y')}</p></div></div>",
                 unsafe_allow_html=True)
 
             with st.form("form_ponto_ch", clear_on_submit=False):
-                st.markdown("<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
+                st.markdown(f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                             "letter-spacing:0.08em;text-transform:uppercase;margin:0 0 6px;'>"
-                            "🏗️ Obra</p>", unsafe_allow_html=True)
+                            "Obra</p>", unsafe_allow_html=True)
                 obras_lista = []
                 if not obras_db.empty:
                     at = obras_db[obras_db['Ativa'] == 'Ativa']
@@ -1299,31 +1319,31 @@ def render_chefe(*args):
                     cli = str(oi.get('Cliente',''))
                     if cod or cli:
                         st.markdown(
-                            f"<div style='background:#0F172A;border-radius:10px;"
-                            f"padding:10px 14px;margin:-4px 0 10px;border-left:3px solid #DC2626;'>"
-                            f"<p style='color:#F1F5F9;font-weight:700;font-size:0.82rem;margin:0;'>"
+                            f"<div style='background:{THEME['border']};border-radius:10px;"
+                            f"padding:10px 14px;margin:-4px 0 10px;border-left:3px solid {THEME['accent']};'>"
+                            f"<p style='color:{THEME['text']};font-weight:700;font-size:0.82rem;margin:0;'>"
                             f"{cli if cli else obra_sel}</p>"
-                            + (f"<p style='color:#DC2626;font-size:0.72rem;margin:2px 0 0;'>{cod}</p>" if cod else "")
+                            + (f"<p style='color:{THEME['accent']};font-size:0.72rem;margin:2px 0 0;'>{cod}</p>" if cod else "")
                             + "</div>", unsafe_allow_html=True)
 
-                st.markdown("<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
+                st.markdown(f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                             "letter-spacing:0.08em;text-transform:uppercase;margin:8px 0 6px;'>"
-                            "🔧 Frente de Trabalho</p>", unsafe_allow_html=True)
+                            "Frente de Trabalho</p>", unsafe_allow_html=True)
                 frente_sel = st.selectbox("Frente", TIPOS_FRENTE, key="ch_reg_frente",
                                           label_visibility="collapsed")
 
-                st.markdown("<hr style='border:none;border-top:1px solid #1E293B;margin:12px 0;'>",
+                st.markdown(f"<hr style='border:none;border-top:1px solid {THEME['border']};margin:12px 0;'>",
                             unsafe_allow_html=True)
-                st.markdown("<p style='color:#64748B;font-size:0.68rem;font-weight:700;"
+                st.markdown(f"<p style='color:{THEME['text_secondary']};font-size:0.68rem;font-weight:700;"
                             "letter-spacing:0.08em;text-transform:uppercase;margin:0 0 8px;'>"
-                            "⏱️ Horas de Trabalho</p>", unsafe_allow_html=True)
+                            "Horas de Trabalho</p>", unsafe_allow_html=True)
 
                 total_horas = 0.0
                 periodos_validos = []
 
                 for idx, periodo in enumerate(st.session_state.periodos_trabalho_ch):
                     if idx > 0:
-                        st.markdown("<hr style='border:none;border-top:1px dashed #1E293B;margin:6px 0;'>",
+                        st.markdown(f"<hr style='border:none;border-top:1px dashed {THEME['border']};margin:6px 0;'>",
                                     unsafe_allow_html=True)
                     col_e, col_s = st.columns(2)
                     with col_e:
@@ -1340,31 +1360,31 @@ def render_chefe(*args):
                     if delta > 0:
                         total_horas += delta
                         periodos_validos.append({"entrada": entrada, "saida": saida, "horas": round(delta, 2)})
-                        st.markdown(f"<p style='text-align:right;color:#DC2626;font-weight:700;"
+                        st.markdown(f"<p style='text-align:right;color:{THEME['accent']};font-weight:700;"
                                     f"font-size:0.8rem;margin:0 0 4px;'>= {fh(delta)}</p>",
                                     unsafe_allow_html=True)
                     elif delta < 0:
-                        st.warning("⚠️ Saída antes da entrada")
+                        st.warning("Saída antes da entrada")
 
                 if total_horas > 0:
                     st.markdown(
-                        f"<div style='background:#1E293B;border-radius:10px;padding:12px 16px;"
+                        f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;padding:12px 16px;"
                         f"margin:10px 0;display:flex;justify-content:space-between;align-items:center;'>"
-                        f"<span style='color:#64748B;font-size:0.78rem;font-weight:600;"
+                        f"<span style='color:{THEME['text_secondary']};font-size:0.78rem;font-weight:600;"
                         f"text-transform:uppercase;letter-spacing:0.06em;'>Total</span>"
-                        f"<span style='color:#F1F5F9;font-size:1.6rem;font-weight:900;'>{fh(total_horas)}</span>"
+                        f"<span style='color:{THEME['text']};font-size:1.6rem;font-weight:900;'>{fh(total_horas)}</span>"
                         f"</div>", unsafe_allow_html=True)
 
-                relatorio = st.text_area("📝 Descrição (opcional)",
+                relatorio = st.text_area("Descrição (opcional)",
                     placeholder="Ex: Supervisão, reunião, visita...", key="ch_reg_relat", height=70)
                 st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
                 col_c, col_g = st.columns(2)
                 with col_c:
-                    mais_per = st.form_submit_button("➕ Adicionar Período", use_container_width=True)
+                    mais_per = st.form_submit_button("Adicionar Período", use_container_width=True)
                 with col_g:
-                    guardar  = st.form_submit_button("💾 Guardar Ponto", use_container_width=True, type="primary")
+                    guardar  = st.form_submit_button("Guardar Ponto", use_container_width=True, type="primary")
 
-            if st.button("← Voltar", key="ch_btn_voltar"):
+            if st.button("Voltar", key="ch_btn_voltar"):
                 st.session_state.show_reg_form_ch    = False
                 st.session_state.periodos_trabalho_ch = [{"entrada":"08:00","saida":"17:00"}]
                 st.session_state['_menu_locked'] = True
@@ -1377,9 +1397,9 @@ def render_chefe(*args):
 
             if guardar:
                 if total_horas <= 0:
-                    st.error("⚠️ Horas têm de ser superiores a 0.")
+                    st.error("Horas têm de ser superiores a 0.")
                 elif not obra_sel or obra_sel == "Sem obras":
-                    st.error("⚠️ Seleciona uma obra.")
+                    st.error("Seleciona uma obra.")
                 else:
                     regs_atual = registos_db.copy() if not registos_db.empty else pd.DataFrame()
                     ids_guardados = []
@@ -1404,13 +1424,15 @@ def render_chefe(*args):
                                   tabela="registos.csv", registro_id=reg_id,
                                   detalhes=f"{total_horas}h em {obra_sel}", ip="")
                     criar_notificacao(destinatario="admin",
-                        titulo="📋 Novo Registo de Ponto (Chefe)",
+                        titulo="Novo Registo de Ponto (Chefe)",
                         mensagem=f"{user_nome} registou {fh(total_horas)} em {obra_sel}",
                         tipo="info", acao_url="/admin?tab=validacoes")
                     st.session_state.show_reg_form_ch    = False
                     st.session_state.periodos_trabalho_ch = [{"entrada":"08:00","saida":"17:00"}]
                     st.session_state.data_consulta_ch    = data_sel
                     inv("registos.csv")
+                    from core import _cached_load_all
+                    _cached_load_all.clear()
                     st.session_state['_menu_locked'] = True
                     st.rerun()
 
@@ -1418,7 +1440,7 @@ def render_chefe(*args):
     # TAB 3 — FOLHA DE PONTO (fluxo completo)
     # ══════════════════════════════════════════════════════════════════════════
     with tabs[3]:
-        st.markdown("### 📊 Folha de Ponto")
+        st.markdown("### Folha de Ponto")
 
         # Estado da folha em session_state
         for k, v in [
@@ -1437,27 +1459,27 @@ def render_chefe(*args):
 
         # ── PASSO 1: Configurar ───────────────────────────────────────────────
         if st.session_state.fp_step == 'configurar':
-            st.markdown("""
-            <div style="background:#1E293B;border-radius:14px;padding:18px 20px;
-                margin-bottom:16px;border:1px solid #334155;">
-                <div style="color:#F1F5F9;font-weight:700;font-size:0.95rem;
-                    margin-bottom:4px;">⚙️ Passo 1 de 3 — Configurar Folha</div>
-                <div style="color:#64748B;font-size:0.8rem;">
+            st.markdown(f"""
+            <div style="background:{THEME['surface']};border-radius:{THEME['radius']};padding:18px 20px;
+                margin-bottom:16px;border:1px solid {THEME['border']};">
+                <div style="color:{THEME['text']};font-weight:700;font-size:0.95rem;
+                    margin-bottom:4px;">Passo 1 de 3 — Configurar Folha</div>
+                <div style="color:{THEME['text_secondary']};font-size:0.8rem;">
                     Seleciona a obra, o período e os técnicos a incluir.
                 </div>
             </div>""", unsafe_allow_html=True)
 
             obras_l_fp = obras_db['Obra'].unique().tolist() \
                          if not obras_db.empty else ["Sem Obras"]
-            obra_fp = st.selectbox("🏭 Obra", obras_l_fp, key="fp_ch_obra_sel")
+            obra_fp = st.selectbox("Obra", obras_l_fp, key="fp_ch_obra_sel")
 
             ini_s   = hoje - timedelta(days=hoje.weekday())
             col_d1, col_d2 = st.columns(2)
             with col_d1:
-                sem_ini = st.date_input("📅 Data Início",
+                sem_ini = st.date_input("Data Início",
                     value=ini_s, key="fp_ch_ini_sel")
             with col_d2:
-                sem_fim = st.date_input("📅 Data Fim",
+                sem_fim = st.date_input("Data Fim",
                     value=ini_s + timedelta(days=6), key="fp_ch_fim_sel")
 
             # Técnicos disponíveis nesse período/obra
@@ -1476,7 +1498,7 @@ def render_chefe(*args):
 
             if tec_disponiveis:
                 tec_sel_fp = st.multiselect(
-                    "👷 Técnicos a incluir (todos por omissão)",
+                    "Técnicos a incluir (todos por omissão)",
                     tec_disponiveis, default=tec_disponiveis,
                     key="fp_ch_tecs")
                 regs_fp = regs_fp[regs_fp['Técnico'].isin(tec_sel_fp)] \
@@ -1484,7 +1506,7 @@ def render_chefe(*args):
             else:
                 tec_sel_fp = []
 
-            nome_resp = st.text_input("✍️ Nome do Responsável pela Folha",
+            nome_resp = st.text_input("Nome do Responsável pela Folha",
                 value=user_nome, key="fp_ch_resp_nome")
 
             total_preview = pd.to_numeric(
@@ -1494,20 +1516,21 @@ def render_chefe(*args):
             if not regs_fp.empty:
                 periodo_str = f"{sem_ini.strftime('%d/%m/%Y')} a {sem_fim.strftime('%d/%m/%Y')}"
                 st.markdown(f"""
-                <div style="background:rgba(16,185,129,0.08);border-radius:10px;
-                    padding:14px 18px;margin:12px 0;border-left:3px solid #10B981;">
-                    <div style="color:#10B981;font-weight:700;font-size:0.88rem;">
-                        ✅ {len(regs_fp)} registos encontrados · {fh(total_preview)} totais
+                <div style="background:{THEME['surface']};border-radius:10px;
+                    padding:14px 18px;margin:12px 0;
+                    border:1px solid {THEME['border']};border-left:3px solid {THEME['success']};">
+                    <div style="color:{THEME['success']};font-weight:700;font-size:0.88rem;">
+                        {len(regs_fp)} registos encontrados · {fh(total_preview)} totais
                     </div>
-                    <div style="color:#64748B;font-size:0.78rem;margin-top:4px;">
-                        {len(tec_sel_fp)} técnico(s) · {obra_fp} · {periodo_str}
+                    <div style="color:{THEME['text_secondary']};font-size:0.78rem;margin-top:4px;">
+                        {len(tec_sel_fp)} técnico(s) · {escape_html(obra_fp)} · {periodo_str}
                     </div>
                 </div>""", unsafe_allow_html=True)
 
-                if st.button("👁️ Gerar Preview da Folha →", use_container_width=True,
+                if st.button("Gerar Preview da Folha", use_container_width=True,
                              type="primary", key="btn_fp_preview"):
                     if not nome_resp.strip():
-                        st.warning("⚠️ Indica o nome do responsável.")
+                        st.warning("Indica o nome do responsável.")
                     else:
                         html_folha, total_h = _gerar_html_folha(
                             obra_fp, periodo_str, regs_fp, nome_resp)
@@ -1521,16 +1544,16 @@ def render_chefe(*args):
                         st.session_state['_menu_locked'] = True
                         st.rerun()
             else:
-                st.info("📋 Sem registos para o período e obra seleccionados.")
+                st.info("Sem registos para o período e obra seleccionados.")
 
         # ── PASSO 2: Preview ──────────────────────────────────────────────────
         elif st.session_state.fp_step == 'preview':
-            st.markdown("""
-            <div style="background:#1E293B;border-radius:14px;padding:18px 20px;
-                margin-bottom:16px;border:1px solid #334155;">
-                <div style="color:#F1F5F9;font-weight:700;font-size:0.95rem;
-                    margin-bottom:4px;">👁️ Passo 2 de 3 — Preview da Folha</div>
-                <div style="color:#64748B;font-size:0.8rem;">
+            st.markdown(f"""
+            <div style="background:{THEME['surface']};border-radius:{THEME['radius']};padding:18px 20px;
+                margin-bottom:16px;border:1px solid {THEME['border']};">
+                <div style="color:{THEME['text']};font-weight:700;font-size:0.95rem;
+                    margin-bottom:4px;">Passo 2 de 3 — Preview da Folha</div>
+                <div style="color:{THEME['text_secondary']};font-size:0.8rem;">
                     Verifica os dados. Depois escolhe como queres assinar.
                 </div>
             </div>""", unsafe_allow_html=True)
@@ -1539,22 +1562,22 @@ def render_chefe(*args):
             st.markdown(f"""
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;
                 gap:10px;margin-bottom:16px;">
-                <div style="background:#1E293B;border-radius:10px;padding:12px;text-align:center;">
-                    <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;padding:12px;text-align:center;">
+                    <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                         text-transform:uppercase;">Obra</div>
-                    <div style="color:#F1F5F9;font-weight:700;font-size:0.88rem;">
-                        {st.session_state.fp_obra}</div>
+                    <div style="color:{THEME['text']};font-weight:700;font-size:0.88rem;">
+                        {escape_html(st.session_state.fp_obra)}</div>
                 </div>
-                <div style="background:#1E293B;border-radius:10px;padding:12px;text-align:center;">
-                    <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;padding:12px;text-align:center;">
+                    <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                         text-transform:uppercase;">Período</div>
-                    <div style="color:#F1F5F9;font-weight:700;font-size:0.82rem;">
+                    <div style="color:{THEME['text']};font-weight:700;font-size:0.82rem;">
                         {st.session_state.fp_periodo}</div>
                 </div>
-                <div style="background:#1E293B;border-radius:10px;padding:12px;text-align:center;">
-                    <div style="color:#64748B;font-size:0.7rem;font-weight:700;
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;padding:12px;text-align:center;">
+                    <div style="color:{THEME['text_secondary']};font-size:0.7rem;font-weight:700;
                         text-transform:uppercase;">Total Horas</div>
-                    <div style="color:#DC2626;font-weight:900;font-size:1.1rem;">
+                    <div style="color:{THEME['accent']};font-weight:900;font-size:1.1rem;">
                         {fh(st.session_state.fp_total_h)}</div>
                 </div>
             </div>""", unsafe_allow_html=True)
@@ -1572,7 +1595,7 @@ def render_chefe(*args):
             nome_ficheiro = (f"folha_ponto_{st.session_state.fp_obra.replace(' ','_')}"
                              f"_{datetime.now().strftime('%Y%m%d')}.html")
             st.download_button(
-                "📥 Download da Folha (para imprimir e assinar manualmente)",
+                "Download da Folha (para imprimir e assinar manualmente)",
                 data=html_bytes,
                 file_name=nome_ficheiro,
                 mime="text/html",
@@ -1585,18 +1608,17 @@ def render_chefe(*args):
 
             col_dig, col_man = st.columns(2)
             with col_dig:
-                st.markdown("""
-                <div style="background:rgba(59,130,246,0.08);border-radius:12px;
-                    padding:14px;border:1px solid rgba(59,130,246,0.3);
+                st.markdown(f"""
+                <div style="background:{THEME['surface']};border-radius:12px;
+                    padding:14px;border:1px solid {THEME['border']};border-top:3px solid {THEME['accent']};
                     text-align:center;margin-bottom:8px;">
-                    <div style="font-size:1.5rem;">✍️</div>
-                    <div style="color:#3B82F6;font-weight:700;font-size:0.88rem;">
+                    <div style="color:{THEME['accent']};font-weight:700;font-size:0.88rem;">
                         Assinatura Digital</div>
-                    <div style="color:#64748B;font-size:0.75rem;margin-top:4px;">
+                    <div style="color:{THEME['text_secondary']};font-size:0.75rem;margin-top:4px;">
                         Confirma o nome e aprova online. Gera selo de autenticidade.
                     </div>
                 </div>""", unsafe_allow_html=True)
-                if st.button("✍️ Assinar Digitalmente", key="btn_modo_digital",
+                if st.button("Assinar Digitalmente", key="btn_modo_digital",
                              use_container_width=True, type="primary"):
                     st.session_state.fp_modo_assin = 'digital'
                     st.session_state.fp_step = 'assinar'
@@ -1604,25 +1626,24 @@ def render_chefe(*args):
                     st.rerun()
 
             with col_man:
-                st.markdown("""
-                <div style="background:rgba(16,185,129,0.08);border-radius:12px;
-                    padding:14px;border:1px solid rgba(16,185,129,0.3);
+                st.markdown(f"""
+                <div style="background:{THEME['surface']};border-radius:12px;
+                    padding:14px;border:1px solid {THEME['border']};border-top:3px solid {THEME['success']};
                     text-align:center;margin-bottom:8px;">
-                    <div style="font-size:1.5rem;">🖊️</div>
-                    <div style="color:#10B981;font-weight:700;font-size:0.88rem;">
+                    <div style="color:{THEME['success']};font-weight:700;font-size:0.88rem;">
                         Assinatura Manual</div>
-                    <div style="color:#64748B;font-size:0.75rem;margin-top:4px;">
+                    <div style="color:{THEME['text_secondary']};font-size:0.75rem;margin-top:4px;">
                         Descarrega, imprime, assina e faz upload da folha assinada.
                     </div>
                 </div>""", unsafe_allow_html=True)
-                if st.button("🖊️ Upload Assinatura Manual", key="btn_modo_manual",
+                if st.button("Upload Assinatura Manual", key="btn_modo_manual",
                              use_container_width=True):
                     st.session_state.fp_modo_assin = 'manual'
                     st.session_state.fp_step = 'assinar'
                     st.session_state['_menu_locked'] = True
                     st.rerun()
 
-            if st.button("← Voltar à Configuração", key="btn_fp_back",
+            if st.button("Voltar à Configuração", key="btn_fp_back",
                          use_container_width=True):
                 st.session_state.fp_step = 'configurar'
                 st.session_state['_menu_locked'] = True
@@ -1631,20 +1652,20 @@ def render_chefe(*args):
         # ── PASSO 3: Assinar ──────────────────────────────────────────────────
         elif st.session_state.fp_step == 'assinar':
 
-            st.markdown("""
-            <div style="background:#1E293B;border-radius:14px;padding:18px 20px;
-                margin-bottom:16px;border:1px solid #334155;">
-                <div style="color:#F1F5F9;font-weight:700;font-size:0.95rem;
-                    margin-bottom:4px;">🔏 Passo 3 de 3 — Assinar e Submeter</div>
+            st.markdown(f"""
+            <div style="background:{THEME['surface']};border-radius:{THEME['radius']};padding:18px 20px;
+                margin-bottom:16px;border:1px solid {THEME['border']};">
+                <div style="color:{THEME['text']};font-weight:700;font-size:0.95rem;
+                    margin-bottom:4px;">Passo 3 de 3 — Assinar e Submeter</div>
             </div>""", unsafe_allow_html=True)
 
             # ── Modo Digital ──────────────────────────────────────────────────
             if st.session_state.fp_modo_assin == 'digital':
-                st.markdown("""
-                <div style="background:rgba(59,130,246,0.08);border-radius:12px;
-                    padding:16px 18px;border-left:3px solid #3B82F6;margin-bottom:16px;">
-                    <p style="color:#93C5FD;font-size:0.85rem;margin:0;">
-                        ℹ️ A assinatura digital consiste na confirmação do teu nome completo
+                st.markdown(f"""
+                <div style="background:{THEME['surface']};border-radius:12px;
+                    padding:16px 18px;border:1px solid {THEME['border']};border-left:3px solid {THEME['accent']};margin-bottom:16px;">
+                    <p style="color:{THEME['text']};font-size:0.85rem;margin:0;">
+                        A assinatura digital consiste na confirmação do teu nome completo
                         e aprovação explícita do conteúdo da folha.
                         É gerado um selo único com timestamp e hash de autenticidade.
                     </p>
@@ -1660,26 +1681,26 @@ def render_chefe(*args):
                         value=cargo_user,
                         key="fp_cargo_confirm")
                     aceito = st.checkbox(
-                        "✅ Confirmo que li os dados da folha de ponto e que "
+                        "Confirmo que li os dados da folha de ponto e que "
                         "são correctos. Autorizo a sua submissão.",
                         key="fp_aceito_check")
                     st.markdown(f"""
-                    <div style="background:#0F172A;border-radius:8px;padding:12px 16px;
+                    <div style="background:{THEME['background']};border:1px solid {THEME['border']};border-radius:8px;padding:12px 16px;
                         margin:10px 0;font-size:0.8rem;">
-                        <span style="color:#64748B;">Folha: </span>
-                        <span style="color:#F1F5F9;font-weight:600;">
-                            {st.session_state.fp_obra} · {st.session_state.fp_periodo}</span><br>
-                        <span style="color:#64748B;">Total: </span>
-                        <span style="color:#DC2626;font-weight:700;">
+                        <span style="color:{THEME['text_secondary']};">Folha: </span>
+                        <span style="color:{THEME['text']};font-weight:600;">
+                            {escape_html(st.session_state.fp_obra)} · {st.session_state.fp_periodo}</span><br>
+                        <span style="color:{THEME['text_secondary']};">Total: </span>
+                        <span style="color:{THEME['accent']};font-weight:700;">
                             {fh(st.session_state.fp_total_h)}</span>
                     </div>""", unsafe_allow_html=True)
 
                     col_s1, col_s2 = st.columns(2)
                     with col_s1:
-                        cancelar = st.form_submit_button("← Voltar",
+                        cancelar = st.form_submit_button("Voltar",
                             use_container_width=True)
                     with col_s2:
-                        confirmar = st.form_submit_button("🔏 Assinar e Submeter",
+                        confirmar = st.form_submit_button("Assinar e Submeter",
                             use_container_width=True, type="primary")
 
                 if cancelar:
@@ -1689,9 +1710,9 @@ def render_chefe(*args):
 
                 if confirmar:
                     if not nome_conf.strip():
-                        st.error("⚠️ Confirma o teu nome completo.")
+                        st.error("Confirma o teu nome completo.")
                     elif not aceito:
-                        st.error("⚠️ Tens de confirmar os dados antes de assinar.")
+                        st.error("Tens de confirmar os dados antes de assinar.")
                     else:
                         folha_id = str(uuid.uuid4())[:8].upper()
                         selo_id  = secrets.token_hex(8).upper()
@@ -1719,24 +1740,26 @@ def render_chefe(*args):
                                   detalhes=f"{nome_conf} · {st.session_state.fp_obra}",
                                   ip="")
                         criar_notificacao(destinatario="admin",
-                            titulo="📋 Folha de Ponto Assinada",
+                            titulo="Folha de Ponto Assinada",
                             mensagem=f"{user_nome} assinou digitalmente folha #{folha_id} "
                                      f"— {st.session_state.fp_obra}",
                             tipo="success", acao_url="/admin?tab=folhas")
                         st.session_state.fp_folha_id = folha_id
                         st.session_state.fp_step     = 'concluida'
                         inv("folhas_ponto.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.session_state['_menu_locked'] = True
                         st.rerun()
 
             # ── Modo Manual ───────────────────────────────────────────────────
             else:
-                st.markdown("""
-                <div style="background:#1E293B;border-radius:12px;padding:14px 18px;
-                    margin-bottom:16px;border-left:3px solid #10B981;">
-                    <p style="color:#6EE7B7;font-size:0.85rem;margin:0 0 8px;font-weight:700;">
-                        📋 Instruções:</p>
-                    <p style="color:#94A3B8;font-size:0.82rem;margin:0;">
+                st.markdown(f"""
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:12px;padding:14px 18px;
+                    margin-bottom:16px;border-left:3px solid {THEME['success']};">
+                    <p style="color:{THEME['success']};font-size:0.85rem;margin:0 0 8px;font-weight:700;">
+                        Instruções:</p>
+                    <p style="color:{THEME['text_secondary']};font-size:0.82rem;margin:0;">
                         1. Descarrega a folha no passo anterior (Preview)<br>
                         2. Imprime e faz assinar pelo cliente / representante<br>
                         3. Fotografa ou digitaliza a folha assinada<br>
@@ -1745,20 +1768,20 @@ def render_chefe(*args):
                 </div>""", unsafe_allow_html=True)
 
                 ficheiro_assin = st.file_uploader(
-                    "📤 Upload da folha assinada (JPG, PNG ou PDF)",
+                    "Upload da folha assinada (JPG, PNG ou PDF)",
                     type=["jpg","jpeg","png","pdf"],
                     key="fp_upload_assinada"
                 )
 
                 if ficheiro_assin:
                     tam_kb = len(ficheiro_assin.getvalue()) / 1024
-                    st.success(f"✅ {ficheiro_assin.name} ({tam_kb:.0f} KB)")
+                    st.success(f"{ficheiro_assin.name} ({tam_kb:.0f} KB)")
 
                     nome_cliente = st.text_input(
                         "Nome do cliente / representante que assinou",
                         key="fp_nome_cliente_manual")
 
-                    if st.button("📤 Submeter Folha Assinada ao Admin",
+                    if st.button("Submeter Folha Assinada ao Admin",
                                  use_container_width=True, type="primary",
                                  key="btn_submeter_manual"):
                         folha_id    = str(uuid.uuid4())[:8].upper()
@@ -1790,17 +1813,19 @@ def render_chefe(*args):
                                   detalhes=f"{st.session_state.fp_obra} · assinatura manual",
                                   ip="")
                         criar_notificacao(destinatario="admin",
-                            titulo="📋 Folha Assinada Manualmente",
+                            titulo="Folha Assinada Manualmente",
                             mensagem=f"{user_nome} submeteu folha #{folha_id} assinada "
                                      f"manualmente — {st.session_state.fp_obra}",
                             tipo="success", acao_url="/admin?tab=folhas")
                         st.session_state.fp_folha_id = folha_id
                         st.session_state.fp_step     = 'concluida'
                         inv("folhas_ponto.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
                         st.session_state['_menu_locked'] = True
                         st.rerun()
 
-                if st.button("← Voltar ao Preview", key="btn_fp_back_man",
+                if st.button("Voltar ao Preview", key="btn_fp_back_man",
                              use_container_width=True):
                     st.session_state.fp_step = 'preview'
                     st.session_state['_menu_locked'] = True
@@ -1812,29 +1837,28 @@ def render_chefe(*args):
                           else "Assinatura Manual")
             st.markdown(f"""
             <div style="text-align:center;padding:40px 20px;
-                background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(16,185,129,0.05));
-                border-radius:20px;border:2px solid rgba(16,185,129,0.3);margin:10px 0;">
-                <div style="font-size:3rem;margin-bottom:16px;">✅</div>
-                <h3 style="color:#10B981;margin:0 0 8px;">Folha Submetida com Sucesso!</h3>
-                <p style="color:#94A3B8;font-size:0.9rem;margin:0 0 20px;">
+                background:{THEME['surface']};
+                border-radius:20px;border:2px solid {THEME['success']};margin:10px 0;">
+                <h3 style="color:{THEME['success']};margin:0 0 8px;">Folha Submetida com Sucesso!</h3>
+                <p style="color:{THEME['text_secondary']};font-size:0.9rem;margin:0 0 20px;">
                     {modo_label} · #{st.session_state.fp_folha_id}
                 </p>
-                <div style="background:#0F172A;border-radius:12px;padding:14px 20px;
-                    font-family:monospace;font-size:0.82rem;color:#10B981;
+                <div style="background:{THEME['background']};border:1px solid {THEME['border']};border-radius:12px;padding:14px 20px;
+                    font-family:monospace;font-size:0.82rem;color:{THEME['text']};
                     display:inline-block;">
-                    📋 {st.session_state.fp_obra}<br>
-                    📅 {st.session_state.fp_periodo}<br>
-                    ⏱️ {fh(st.session_state.fp_total_h)}<br>
-                    🔒 #{st.session_state.fp_folha_id}
+                    {escape_html(st.session_state.fp_obra)}<br>
+                    {st.session_state.fp_periodo}<br>
+                    {fh(st.session_state.fp_total_h)}<br>
+                    #{st.session_state.fp_folha_id}
                 </div>
-                <p style="color:#64748B;font-size:0.78rem;margin:16px 0 0;">
+                <p style="color:{THEME['text_secondary']};font-size:0.78rem;margin:16px 0 0;">
                     O Admin foi notificado. A folha está visível em Faturação → Folhas de Ponto.
                 </p>
             </div>""", unsafe_allow_html=True)
 
             st.balloons()
 
-            if st.button("➕ Criar Nova Folha", use_container_width=True,
+            if st.button("Criar Nova Folha", use_container_width=True,
                          type="primary", key="btn_nova_folha"):
                 for k in ['fp_step','fp_html','fp_total_h','fp_obra','fp_periodo',
                           'fp_regs','fp_responsavel','fp_modo_assin','fp_folha_id']:
@@ -1845,7 +1869,7 @@ def render_chefe(*args):
 
         # ── Histórico de folhas emitidas ──────────────────────────────────────
         if not folhas_db.empty:
-            with st.expander("📁 Histórico de Folhas Emitidas"):
+            with st.expander("Histórico de Folhas Emitidas"):
                 cols_f = [c for c in ['ID','Obra','Periodo','Responsavel',
                                        'Data_Assinatura','Tipo_Assinatura','Status']
                           if c in folhas_db.columns]
@@ -1856,12 +1880,12 @@ def render_chefe(*args):
     # TAB 4 — HSE
     # ══════════════════════════════════════════════════════════════════════════
     with tabs[4]:
-        st.markdown("### 🛡️ Segurança & HSE")
-        sub_r, sub_rep, sub_list = st.tabs(["📋 Regras de Ouro","⚠️ Reportar","📊 Incidentes"])
+        st.markdown("### Segurança & HSE")
+        sub_r, sub_rep, sub_list = st.tabs(["Regras de Ouro","Reportar","Incidentes"])
 
         with sub_r:
-            for ic, tit, des in REGRAS_OURO:
-                with st.expander(f"{ic} {tit}"):
+            for tit, des in REGRAS_OURO:
+                with st.expander(tit):
                     st.write(des)
 
         with sub_rep:
@@ -1870,7 +1894,7 @@ def render_chefe(*args):
                     obras_db['Obra'].unique().tolist() if not obras_db.empty else ["Geral"])
                 g_hse = st.selectbox("Gravidade", ["Baixa","Média","Alta (Crítica)"])
                 d_hse = st.text_area("Descrição")
-                if st.form_submit_button("🛡️ Submeter Alerta HSE",
+                if st.form_submit_button("Submeter Alerta HSE",
                                          use_container_width=True, type="primary"):
                     if d_hse:
                         ni = pd.DataFrame([{
@@ -1887,7 +1911,9 @@ def render_chefe(*args):
                               if not incs_db.empty else ni
                         save_db(upd, "incidentes.csv")
                         inv("incidentes.csv")
-                        st.success("✅ Alerta HSE submetido!")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        st.success("Alerta HSE submetido!")
                         st.session_state['_menu_locked'] = True
                         st.rerun()
 
@@ -1900,47 +1926,40 @@ def render_chefe(*args):
                 if not i_eq.empty:
                     st.dataframe(i_eq[cols_s], use_container_width=True, hide_index=True)
                 else:
-                    st.success("✅ Sem incidentes.")
+                    st.success("Sem incidentes.")
             else:
-                st.success("✅ Sem incidentes.")
+                st.success("Sem incidentes.")
 
     # ══════════════════════════════════════════════════════════════════════════
     # TAB 5 — PEDIDOS
     # ══════════════════════════════════════════════════════════════════════════
     with tabs[5]:
-        st.markdown("### 📦 Pedidos da Equipa")
+        st.markdown("### Pedidos da Equipa")
         tecnicos_equipa = regs_equipa['Técnico'].unique().tolist() \
                           if not regs_equipa.empty else []
 
-        sub_f, sub_e, sub_m = st.tabs(["🔧 Ferramentas","🦺 EPIs","📦 Materiais"])
+        sub_f, sub_e, sub_m = st.tabs(["Ferramentas","EPIs","Materiais"])
+
+        _TOM_STATUS_PEDIDO = {"Pendente": "warning", "Aprovado": "success", "Rejeitado": "error"}
 
         def _mostrar_pedidos(df):
             if df.empty:
-                st.info("📋 Sem pedidos.")
+                st.info("Sem pedidos.")
                 return
             df_eq = (df[df['Solicitante'].isin(tecnicos_equipa)]
                      if tecnicos_equipa and 'Solicitante' in df.columns else df)
             if df_eq.empty:
-                st.success("✅ Sem pedidos da equipa.")
+                st.success("Sem pedidos da equipa.")
                 return
             for _, ped in df_eq.iterrows():
-                cor = {"Pendente":"#F59E0B","Aprovado":"#10B981",
-                       "Rejeitado":"#EF4444"}.get(ped.get('Status','Pendente'),"#6B7280")
-                st.markdown(f"""
-                <div style="background:rgba(255,255,255,0.05);border-left:4px solid {cor};
-                     padding:12px;border-radius:8px;margin-bottom:8px;">
-                    <b style="color:#F8FAFC;">
-                        {ped.get('Descricao', ped.get('Item','N/A'))}
-                    </b><br>
-                    <small style="color:#94A3B8;">
-                        {ped.get('Solicitante','N/A')} |
-                        {ped.get('Obra','N/A')} |
-                        {ped.get('Data','N/A')}
-                    </small><br>
-                    <small style="color:{cor};font-weight:bold;">
-                        {ped.get('Status','Pendente')}
-                    </small>
-                </div>""", unsafe_allow_html=True)
+                status = ped.get('Status', 'Pendente')
+                render_card(
+                    title=str(ped.get('Descricao', ped.get('Item', 'N/A'))),
+                    subtitle=f"{ped.get('Solicitante','N/A')} | "
+                             f"{ped.get('Obra','N/A')} | {ped.get('Data','N/A')}",
+                    badge=status,
+                    badge_tone=_TOM_STATUS_PEDIDO.get(status, "neutral"),
+                )
 
         with sub_f: _mostrar_pedidos(req_fer_db)
         with sub_e: _mostrar_pedidos(req_epi_db)

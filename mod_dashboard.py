@@ -5,7 +5,7 @@ Dashboard Avançado com KPIs, Gráficos e Previsões
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-from core import load_db, inv
+from core import load_db, inv, THEME
 
 def _safe_date_str(val):
     """Converte data para string sem crashar com NaT."""
@@ -18,18 +18,56 @@ def _safe_date_str(val):
     except:
         return 'N/A'
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _load_instrumentos_cache(obra_keys_tuple):
+    """Agrega dados de instrumentação de todas as obras activas. TTL=5min."""
+    dados_progresso = []
+    total_inst = 0
+    total_inst_ok = 0
+    total_cal = 0
+    instalacoes = []
+    for o_key, obra_nome in obra_keys_tuple:
+        try:
+            inst = load_db(f"inst_{o_key}_index.csv",
+                           ["Tag", "Status", "Descricao"], silent=True)
+            if not inst.empty:
+                total   = len(inst)
+                inst_ok = len(inst[inst['Status'].isin(['3', '4'])])
+                calib   = len(inst[inst['Status'] == '2'])
+                prog    = (inst_ok / total * 100) if total > 0 else 0
+                total_inst    += total
+                total_inst_ok += inst_ok
+                total_cal     += calib
+                dados_progresso.append({
+                    "Obra":          obra_nome,
+                    "Total":         total,
+                    "Instalados":    inst_ok,
+                    "Progresso (%)": round(prog, 1)
+                })
+                for _, ir in inst[inst['Status'].isin(['3', '4'])].tail(2).iterrows():
+                    instalacoes.append({
+                        "Tag":  ir.get('Tag', 'N/A'),
+                        "Obra": obra_nome,
+                        "Desc": ir.get('Descricao', 'N/A')
+                    })
+        except:
+            pass
+    return dados_progresso, total_inst, total_inst_ok, total_cal, instalacoes
+
+
 def render_dashboard(*args):
     """Dashboard Avançado com KPIs e Analytics"""
 
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    .kpi-card {
-        background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(96,165,250,0.1));
-        border: 2px solid rgba(59,130,246,0.3);
-        border-radius: 15px; padding: 20px; margin-bottom: 15px;
-    }
-    .kpi-value { font-size: 2rem; font-weight: bold; color: #60A5FA; }
-    .kpi-label { color: #94A3B8; font-size: 0.9rem; }
+    .kpi-card {{
+        background: {THEME['surface']};
+        border: 1px solid {THEME['border']};
+        box-shadow: 0 1px 3px rgba(16,24,40,0.05);
+        border-radius: {THEME['radius']}; padding: 20px; margin-bottom: 15px;
+    }}
+    .kpi-value {{ font-size: 2rem; font-weight: bold; color: {THEME['accent']}; }}
+    .kpi-label {{ color: {THEME['text_secondary']}; font-size: 0.9rem; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -39,17 +77,17 @@ def render_dashboard(*args):
     *_) = args
 
     st.markdown(f"""
-    <div style="background:linear-gradient(135deg,#1E293B,#0F172A);padding:30px;
-        border-radius:20px;margin-bottom:30px;border:1px solid rgba(255,255,255,0.2);">
-        <h1 style="color:#F8FAFC;margin:0;font-size:2.5rem;">📊 Dashboard Executivo</h1>
-        <p style="color:#94A3B8;margin:10px 0 0 0;">Visão geral de produção e KPIs</p>
-        <p style="color:#64748B;margin:5px 0 0 0;font-size:0.9rem;">
+    <div style="background:{THEME['surface']};padding:30px;
+        border-radius:{THEME['radius']};margin-bottom:30px;border:1px solid {THEME['border']};">
+        <h1 style="color:{THEME['text']};margin:0;font-size:2.5rem;">Dashboard Executivo</h1>
+        <p style="color:{THEME['text_secondary']};margin:10px 0 0 0;">Visão geral de produção e KPIs</p>
+        <p style="color:{THEME['text_secondary']};margin:5px 0 0 0;font-size:0.9rem;">
             {datetime.now().strftime('%d/%m/%Y %H:%M')}
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### 🔍 Filtros")
+    st.markdown("### Filtros")
     col_f1, col_f2, col_f3 = st.columns(3)
     with col_f1:
         obra_filtro = st.multiselect("Obras",
@@ -65,7 +103,7 @@ def render_dashboard(*args):
     st.divider()
 
     # ── KPIs ──────────────────────────────────────────────────────────
-    st.markdown("### 🎯 KPIs Principais")
+    st.markdown("### KPIs Principais")
 
     total_obras    = len(obras_db[obras_db['Ativa'] == 'Ativa']) if not obras_db.empty else 0
     total_tecnicos = len(users) if not users.empty else 0
@@ -81,46 +119,34 @@ def render_dashboard(*args):
         total_horas     = registos_db['Horas_Total'].sum()
         horas_validadas = registos_db[registos_db['Status'] == '1']['Horas_Total'].sum()
 
-    # Instrumentos
+    # Instrumentos — carregados via cache TTL=5min para evitar N leituras GCS por render
+    dados_progresso         = []
     total_instrumentos      = 0
     instrumentos_instalados = 0
     calibrados_count        = 0
-    dados_progresso         = []
+    instalacoes             = []
 
     if not obras_db.empty:
-        for _, obra in obras_db.iterrows():
-            if obra.get('Ativa', '') == 'Ativa':
-                o_key = obra['Obra'].replace(' ', '_').replace('/', '_')
-                try:
-                    inst = load_db(f"inst_{o_key}_index.csv", ["Status"], silent=True)
-                    if not inst.empty:
-                        total   = len(inst)
-                        inst_ok = len(inst[inst['Status'].isin(['3', '4'])])
-                        calib   = len(inst[inst['Status'] == '2'])
-                        prog    = (inst_ok / total * 100) if total > 0 else 0
-                        total_instrumentos      += total
-                        instrumentos_instalados += inst_ok
-                        calibrados_count        += calib
-                        dados_progresso.append({
-                            "Obra":          obra['Obra'],
-                            "Total":         total,
-                            "Instalados":    inst_ok,
-                            "Progresso (%)": round(prog, 1)
-                        })
-                except:
-                    pass
+        _obra_keys = tuple(
+            (obra['Obra'].replace(' ', '_').replace('/', '_'), obra['Obra'])
+            for _, obra in obras_db.iterrows()
+            if obra.get('Ativa', '') == 'Ativa'
+        )
+        (dados_progresso, total_instrumentos,
+         instrumentos_instalados, calibrados_count, instalacoes) = \
+            _load_instrumentos_cache(_obra_keys)
 
     progresso_geral = (instrumentos_instalados / total_instrumentos * 100) if total_instrumentos > 0 else 0
     produtividade   = (horas_validadas / total_horas * 100) if total_horas > 0 else 0
 
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     kpis = [
-        (total_obras,    "🏭 Obras Ativas"),
-        (total_tecnicos, "👷 Técnicos"),
-        (f"{total_horas:.0f}h", "⏱️ Horas Totais"),
-        (f"{produtividade:.1f}%", "✅ Horas Válidas"),
-        (total_instrumentos, "🔧 Instrumentos"),
-        (f"{progresso_geral:.1f}%", "📈 Progresso"),
+        (total_obras,    "Obras Ativas"),
+        (total_tecnicos, "Técnicos"),
+        (f"{total_horas:.0f}h", "Horas Totais"),
+        (f"{produtividade:.1f}%", "Horas Válidas"),
+        (total_instrumentos, "Instrumentos"),
+        (f"{progresso_geral:.1f}%", "Progresso"),
     ]
     for col, (val, lbl) in zip([col1, col2, col3, col4, col5, col6], kpis):
         with col:
@@ -132,13 +158,13 @@ def render_dashboard(*args):
     st.divider()
 
     # ── Gráficos ───────────────────────────────────────────────────────
-    st.markdown("### 📈 Analytics")
+    st.markdown("### Analytics")
 
     tab_g1, tab_g2, tab_g3, tab_g4 = st.tabs([
-        "📊 Progresso por Obra",
-        "⏱️ Horas por Semana",
-        "🔥 Incidentes",
-        "🏆 Ranking Técnicos"
+        "Progresso por Obra",
+        "Horas por Semana",
+        "Incidentes",
+        "Ranking Técnicos"
     ])
 
     # TAB 1
@@ -149,7 +175,7 @@ def render_dashboard(*args):
             st.bar_chart(df_prog.set_index("Obra")["Progresso (%)"], color="#3B82F6")
             st.dataframe(df_prog, use_container_width=True, hide_index=True)
         else:
-            st.info("📋 Sem dados de instrumentação disponíveis.")
+            st.info("Sem dados de instrumentação disponíveis.")
 
     # TAB 2 ✅ CORRIGIDO — NaTType
     with tab_g2:
@@ -177,13 +203,13 @@ def render_dashboard(*args):
                 st.bar_chart(horas_semana.set_index("Semana"), color="#10B981")
                 st.dataframe(horas_semana, use_container_width=True, hide_index=True)
             else:
-                st.info("📋 Sem datas válidas nos registos.")
+                st.info("Sem datas válidas nos registos.")
         else:
-            st.info("📋 Sem registos de horas disponíveis.")
+            st.info("Sem registos de horas disponíveis.")
 
     # TAB 3
     with tab_g3:
-        st.markdown("### 🔥 Mapa de Incidentes HSE")
+        st.markdown("### Mapa de Incidentes HSE")
         if not incs_db.empty:
             hse_db = incs_db[incs_db.get('Tipo', '') != 'Avaria'] if 'Tipo' in incs_db.columns else incs_db
             if not hse_db.empty:
@@ -200,13 +226,13 @@ def render_dashboard(*args):
                 cols_show = [c for c in ['Data','Utilizador','Obra','Descricao','Gravidade','Status'] if c in hse_db.columns]
                 st.dataframe(hse_db[cols_show].head(10), use_container_width=True, hide_index=True)
             else:
-                st.success("✅ Sem incidentes HSE!")
+                st.success("Sem incidentes HSE!")
         else:
-            st.success("✅ Sem incidentes registados!")
+            st.success("Sem incidentes registados!")
 
     # TAB 4
     with tab_g4:
-        st.markdown("### 🏆 Ranking de Produtividade")
+        st.markdown("### Ranking de Produtividade")
         if not registos_db.empty and 'Técnico' in registos_db.columns:
             df_rank = registos_db.copy()
             df_rank['Horas_Total'] = pd.to_numeric(df_rank['Horas_Total'], errors='coerce').fillna(0)
@@ -228,15 +254,15 @@ def render_dashboard(*args):
                 .rename(columns={0: 'Pendentes'})
             )
             if not pendentes.empty:
-                st.markdown("### ⏳ Validações Pendentes")
+                st.markdown("### Validações Pendentes")
                 st.dataframe(pendentes, use_container_width=True, hide_index=True)
         else:
-            st.info("📋 Sem dados disponíveis.")
+            st.info("Sem dados disponíveis.")
 
     st.divider()
 
     # ── Previsões ──────────────────────────────────────────────────────
-    st.markdown("### 🔮 Previsões")
+    st.markdown("### Previsões")
     data_prev       = (datetime.now() + timedelta(days=max(1, int((100 - progresso_geral) * 3)))).strftime("%d/%m/%Y")
     obras_atrasadas = len([d for d in dados_progresso if d.get('Progresso (%)', 0) < 50])
     pend_horas      = int(registos_db[registos_db['Status'] == '0']['Horas_Total'].sum()) if not registos_db.empty else 0
@@ -245,16 +271,16 @@ def render_dashboard(*args):
     with col_p1:
         st.markdown(f"""
         <div class="kpi-card">
-            <h4 style="color:#60A5FA;margin:0 0 15px 0;">📅 Conclusão Prevista</h4>
-            <p style="color:#94A3B8;">Progresso atual: {progresso_geral:.1f}%</p>
-            <p style="color:#F8FAFC;font-size:1.5rem;font-weight:bold;margin:15px 0;">{data_prev}</p>
-            <p style="color:#64748B;font-size:0.85rem;">*Baseado na média dos últimos 30 dias</p>
+            <h4 style="color:{THEME['accent']};margin:0 0 15px 0;">Conclusão Prevista</h4>
+            <p style="color:{THEME['text_secondary']};">Progresso atual: {progresso_geral:.1f}%</p>
+            <p style="color:{THEME['text']};font-size:1.5rem;font-weight:bold;margin:15px 0;">{data_prev}</p>
+            <p style="color:{THEME['text_secondary']};font-size:0.85rem;">*Baseado na média dos últimos 30 dias</p>
         </div>""", unsafe_allow_html=True)
     with col_p2:
         st.markdown(f"""
         <div class="kpi-card">
-            <h4 style="color:#60A5FA;margin:0 0 15px 0;">⚠️ Riscos Detetados</h4>
-            <ul style="color:#94A3B8;margin:0;padding-left:20px;">
+            <h4 style="color:{THEME['accent']};margin:0 0 15px 0;">Riscos Detetados</h4>
+            <ul style="color:{THEME['text_secondary']};margin:0;padding-left:20px;">
                 <li>{obras_atrasadas} obra(s) com progresso abaixo de 50%</li>
                 <li>{total_instrumentos - instrumentos_instalados - calibrados_count} instrumento(s) por calibrar</li>
                 <li>{pend_horas}h de validações pendentes</li>
@@ -264,11 +290,11 @@ def render_dashboard(*args):
     st.divider()
 
     # ── Atividades Recentes ────────────────────────────────────────────
-    st.markdown("### 🕐 Atividades Recentes")
+    st.markdown("### Atividades Recentes")
     col_a1, col_a2 = st.columns(2)
 
     with col_a1:
-        st.markdown("#### 📋 Últimas Validações")
+        st.markdown("#### Últimas Validações")
         if not registos_db.empty:
             ult_val = registos_db[registos_db['Status'] == '1'].tail(5)
             if not ult_val.empty:
@@ -281,10 +307,10 @@ def render_dashboard(*args):
                     except:
                         horas_v = 0
                     st.markdown(f"""
-                    <div style="background:rgba(16,185,129,0.1);border-left:3px solid #10B981;
+                    <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-left:3px solid {THEME['success']};
                         padding:10px;border-radius:5px;margin-bottom:10px;">
-                        <strong style="color:#10B981;">✅ {val.get('Técnico','N/A')}</strong>
-                        <p style="margin:5px 0 0 0;color:#94A3B8;font-size:0.85rem;">
+                        <strong style="color:{THEME['success']};">{val.get('Técnico','N/A')}</strong>
+                        <p style="margin:5px 0 0 0;color:{THEME['text_secondary']};font-size:0.85rem;">
                             {horas_v:.1f}h em {val.get('Obra','N/A')} | {data_str}
                         </p>
                     </div>""", unsafe_allow_html=True)
@@ -294,32 +320,14 @@ def render_dashboard(*args):
             st.info("Sem registos.")
 
     with col_a2:
-        st.markdown("#### 🔧 Últimas Instalações")
-        instalacoes = []
-        if not obras_db.empty:
-            for _, obra in obras_db.iterrows():
-                o_key = obra['Obra'].replace(' ', '_').replace('/', '_')
-                try:
-                    inst = load_db(f"inst_{o_key}_index.csv",
-                                   ["Tag", "Status", "Descricao"], silent=True)
-                    if not inst.empty:
-                        inst_ok = inst[inst['Status'].isin(['3', '4'])].tail(2)
-                        for _, ir in inst_ok.iterrows():
-                            instalacoes.append({
-                                "Tag":  ir.get('Tag', 'N/A'),
-                                "Obra": obra['Obra'],
-                                "Desc": ir.get('Descricao', 'N/A')
-                            })
-                except:
-                    pass
-
+        st.markdown("#### Últimas Instalações")
         if instalacoes:
             for i in instalacoes[-5:]:
                 st.markdown(f"""
-                <div style="background:rgba(59,130,246,0.1);border-left:3px solid #3B82F6;
+                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};border-left:3px solid {THEME['accent']};
                     padding:10px;border-radius:5px;margin-bottom:10px;">
-                    <strong style="color:#3B82F6;">📍 {i['Tag']}</strong>
-                    <p style="margin:5px 0 0 0;color:#94A3B8;font-size:0.85rem;">
+                    <strong style="color:{THEME['accent']};">{i['Tag']}</strong>
+                    <p style="margin:5px 0 0 0;color:{THEME['text_secondary']};font-size:0.85rem;">
                         {i['Obra']} | {i['Desc']}
                     </p>
                 </div>""", unsafe_allow_html=True)
@@ -327,7 +335,8 @@ def render_dashboard(*args):
             st.info("Sem instalações recentes.")
 
     st.divider()
-    if st.button("🔄 Atualizar Dados", use_container_width=True,
+    if st.button("Atualizar Dados", use_container_width=True,
                  type="secondary", key="dash_refresh"):
+        _load_instrumentos_cache.clear()
         inv()
         st.rerun()

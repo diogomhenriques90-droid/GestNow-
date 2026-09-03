@@ -12,22 +12,18 @@ PERFORMANCE FIXES v3.3:
 """
 import streamlit as st
 import pandas as pd
-import os, re, secrets, io, base64, bcrypt, logging, uuid, hashlib, json
+import os, re, secrets, io, base64, bcrypt, logging, uuid, hashlib, json, time
 from datetime import datetime, timedelta, date
 from google.cloud import storage as gcs
-from PIL import Image
-import plotly.express as px
-from streamlit_folium import folium_static
-import folium
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm
+from google.api_core.exceptions import NotFound as _GCSNotFound
 
 # =============================================================================
 # DESIGN SYSTEM
 # =============================================================================
+# COLORS — paleta ESCURA legada. Mantida tal como está (não a mexer) porque
+# mod_voice_learning.py ainda a lê diretamente e ainda não foi migrado para
+# THEME — fazer isso agora escureceria/desalinharia esse ecrã sem ser essa a
+# fase em que está previsto tocar-lhe. Remover quando esse módulo migrar.
 COLORS = {
     "primary":       "#0F172A",
     "primary_light": "#1E293B",
@@ -43,21 +39,29 @@ COLORS = {
     "text_secondary":"#94A3B8",
 }
 
-ICONS = {
-    "app": "🎛️", "login": "🔐", "admin": "⚡", "technician": "👨‍🔧",
-    "dashboard": "📈", "instrumentation": "🧪", "voice": "🎤", "safety": "🛡️",
-    "profile": "👤", "reports": "📊", "handover": "✅", "gps": "📍",
-    "calibration": "🔬", "material": "📦", "pending": "⏳", "logout": "🚪",
-    "save": "💾", "edit": "✏️", "delete": "🗑️", "add": "➕",
-    "search": "🔍", "filter": "🔽", "download": "📥", "upload": "📤",
-    "check": "✅", "close": "❌", "warning": "⚠️", "info": "ℹ️",
-    "calendar": "📅", "clock": "⏰", "user": "👤", "users": "👥",
-    "settings": "⚙️", "home": "🏠", "work": "🏗️", "tools": "🔧",
-    "equipment": "🔩", "document": "📄", "documents": "📁",
-    "chart": "📊", "graph": "📈", "email": "📧", "phone": "📞",
-    "location": "📍", "time": "⏱️", "approved": "✅", "rejected": "❌",
-    "pending_approval": "⏳",
+# THEME — fonte única de verdade da identidade visual nova (Fase 1). Os
+# valores de cor têm de bater certo com .streamlit/config.toml — ver
+# test_core.py: TestTemaCentral. GLOBAL_CSS e render_card_html/
+# render_badge_html leem só daqui; nenhum módulo deve voltar a escrever
+# hexadecimais à mão para estes conceitos.
+THEME = {
+    "background":     "#F7F9FB",
+    "surface":         "#FFFFFF",
+    "border":          "#E6E9EF",
+    "text":            "#1E293B",
+    "text_secondary":  "#5A6478",
+    "accent":          "#0E7C86",
+    "accent_hover":    "#0B6570",
+    "success":         "#15803D",
+    "warning":         "#B45309",
+    "error":           "#B91C1C",
+    "radius":          "12px",
 }
+
+# ICONS foi retirado (2026-08-25) — decisão do utilizador de não ter
+# nenhum ícone na app (nem emoji, nem Material Symbols, nem fonte de
+# ícones), só texto. Os sítios que liam daqui passaram a usar texto
+# literal diretamente.
 
 logging.basicConfig(
     level=logging.INFO,
@@ -85,8 +89,11 @@ def _gcs_read(fn):
         if client:
             bucket = client.bucket(GCS_BUCKET)
             blob   = bucket.blob(f"data/{fn}")
-            if blob.exists():
+            try:
+                # 1 round-trip: download directo; NotFound substitui o exists()
                 return io.BytesIO(blob.download_as_bytes())
+            except _GCSNotFound:
+                return None
     except Exception as e:
         logger.debug(f"GCS read fallback para {fn}: {e}")
     return None
@@ -94,18 +101,31 @@ def _gcs_read(fn):
 def _gcs_write(fn, content_bytes):
     try:
         client = _gcs_client()
-        if client:
-            bucket = client.bucket(GCS_BUCKET)
-            blob   = bucket.blob(f"data/{fn}")
-            blob.metadata = {
-                "last_updated": datetime.now().isoformat(),
-                "app_version":  "GESTNOW-v3.0"
-            }
-            blob.upload_from_string(content_bytes, content_type="text/csv")
-            return True
+        if not client:
+            logger.error(f"❌ _gcs_write({fn}): cliente GCS não inicializado (credenciais em falta?)")
+            st.toast("Sem ligação ao GCS — dados não guardados")
+            return False
+        bucket = client.bucket(GCS_BUCKET)
+        blob   = bucket.blob(f"data/{fn}")
+        blob.metadata = {
+            "last_updated": datetime.now().isoformat(),
+            "app_version":  "GESTNOW-v3.0"
+        }
+        blob.upload_from_string(content_bytes, content_type="text/csv")
+        return True
     except Exception as e:
-        logger.error(f"❌ Erro crítico GCS write {fn}: {e}")
-        st.toast("⚠️ Erro ao guardar dados", icon="⚙️")
+        logger.error(f"❌ Erro GCS write {fn}: {e} — a verificar se a escrita foi concluída...")
+        # O upload pode ter sido concluído no GCS apesar do erro de rede ao
+        # ler a resposta. Confirma pelo tamanho do blob antes de reportar falha.
+        try:
+            verify_blob = client.bucket(GCS_BUCKET).blob(f"data/{fn}")
+            verify_blob.reload()
+            if verify_blob.size == len(content_bytes):
+                logger.warning(f"✅ _gcs_write({fn}): escrita confirmada apesar do erro ({e})")
+                return True
+        except Exception as e2:
+            logger.error(f"❌ Verificação pós-erro falhou para {fn}: {e2}")
+        st.toast("Erro ao guardar dados")
     return False
 
 # =============================================================================
@@ -152,11 +172,13 @@ def _gcs_append_row(fn: str, row: dict) -> bool:
 def _gcs_write_binary(data: bytes, filename: str) -> bool:
     try:
         client = _gcs_client()
-        if client:
-            bucket = client.bucket(GCS_BUCKET)
-            blob   = bucket.blob(f"data/{filename}")
-            blob.upload_from_string(data)
-            return True
+        if not client:
+            logger.error(f"❌ _gcs_write_binary({filename}): cliente GCS não inicializado")
+            return False
+        bucket = client.bucket(GCS_BUCKET)
+        blob   = bucket.blob(f"data/{filename}")
+        blob.upload_from_string(data)
+        return True
     except Exception as e:
         logger.error(f"❌ Erro GCS write binary {filename}: {e}")
     return False
@@ -172,6 +194,42 @@ def _gcs_read_binary(filename: str):
                 return blob.download_as_bytes()
     except Exception as e:
         logger.error(f"❌ Erro GCS read binary {filename}: {e}")
+    return None
+
+
+def _gcs_write_bin(path: str, data: bytes, content_type: str = "application/octet-stream") -> bool:
+    """Escreve bytes num caminho arbitrário do bucket (ex: anexos de orçamentos).
+
+    Ao contrário de _gcs_write_binary, `path` é o caminho completo dentro do
+    bucket (incluindo o prefixo "data/") e permite definir o content_type.
+    """
+    try:
+        client = _gcs_client()
+        if not client:
+            logger.error(f"❌ _gcs_write_bin({path}): cliente GCS não inicializado")
+            st.toast("Sem ligação ao GCS — ficheiro não guardado")
+            return False
+        bucket = client.bucket(GCS_BUCKET)
+        blob   = bucket.blob(path)
+        blob.upload_from_string(data, content_type=content_type)
+        return True
+    except Exception as e:
+        logger.error(f"❌ Erro GCS write bin {path}: {e}")
+        st.toast("Erro ao guardar ficheiro")
+    return False
+
+
+def _gcs_read_bin(path: str):
+    """Lê bytes de um caminho arbitrário do bucket (ex: anexos de orçamentos)."""
+    try:
+        client = _gcs_client()
+        if client:
+            bucket = client.bucket(GCS_BUCKET)
+            blob   = bucket.blob(path)
+            if blob.exists():
+                return blob.download_as_bytes()
+    except Exception as e:
+        logger.error(f"❌ Erro GCS read bin {path}: {e}")
     return None
 
 
@@ -266,13 +324,14 @@ def _cached_load_db(fn, cols_tuple, silent=False, _v=0):
         try:
             df = pd.read_csv(buf, dtype=str, on_bad_lines='skip', encoding='utf-8-sig')
             df.columns = df.columns.str.strip()
+            # Garante que as colunas obrigatórias existem; preserva todas as outras
             for c in cols_tuple:
                 if c.strip() not in df.columns:
                     df[c.strip()] = ""
-            return df[[c.strip() for c in cols_tuple]].fillna("")
+            return df.fillna("")
         except Exception as e:
             if not silent:
-                logger.warning(f"⚠️ Fallback CSV local para {fn}: {e}")
+                logger.warning(f"⚠️ Erro ao ler {fn}: {e}")
             return pd.DataFrame(columns=[c.strip() for c in cols_tuple])
     return pd.DataFrame(columns=[c.strip() for c in cols_tuple])
 
@@ -286,14 +345,43 @@ def load_db(fn, cols, silent=False):
     return df
 
 # ── Ficheiros críticos — protegidos contra perda de dados ───────────────────
-_CRITICAL_FILES = {"registos.csv", "usuarios.csv", "folhas_ponto.csv"}
+_CRITICAL_FILES = {"registos.csv", "usuarios.csv", "folhas_ponto.csv", "contratos.csv", "obras_lista.csv", "colaboradores_rh.csv", "clientes_financeiro.csv"}
+
+# ── Colunas de permissoes_admin.csv ─────────────────────────────────────────
+_PERM_COLS = [
+    "utilizador", "mod_armazem", "mod_rh", "mod_secretariado", "mod_producao",
+    "mod_faturacao", "mod_orcamentacao", "mod_comercial", "mod_contactos_iso",
+    "mod_qualidade", "mod_it", "mod_hse", "mod_dashboard_obra",
+]
+_SUPER_ADMINS = {"Diogo Henriques", "Admin"}
 
 
-def save_db(df, fn):
+def tem_permissao(utilizador: str, modulo: str) -> bool:
+    """Verifica se utilizador tem permissão para o módulo.
+    Super-admin ('Diogo Henriques') tem sempre True.
+    Utilizador não encontrado no CSV → False.
+    """
+    if utilizador in _SUPER_ADMINS:
+        return True
+    df = load_db("permissoes_admin.csv", _PERM_COLS, silent=True)
+    if df.empty:
+        return False
+    row = df[df["utilizador"] == utilizador]
+    if row.empty:
+        return False
+    val = str(row.iloc[0].get(modulo, "False")).strip().lower()
+    return val in ("true", "1", "yes")
+
+
+def save_db(df, fn, permitir_reducao=False):
     """
     Guarda DataFrame no GCS de forma SEGURA.
     Para ficheiros críticos: verifica perda de registos e cria backup diário.
     Usa snapshot em session_state para evitar leitura GCS antes de cada escrita.
+
+    permitir_reducao: quando True, salta a guarda dos 90% (mas mantém o backup
+    diário). Usar apenas quando o caller é autoritativo e já fez o seu próprio
+    dedup/validação (ex.: importadores).
     """
     # ── Segurança para ficheiros críticos ────────────────────────────────────
     if fn in _CRITICAL_FILES:
@@ -310,13 +398,24 @@ def save_db(df, fn):
                 n_atual = len(df_atual)
                 n_novo  = len(df)
                 _criar_backup_diario(fn, df_atual)
-                if n_atual > 5 and n_novo < int(n_atual * 0.90):
+                if n_novo == 0:
                     logger.error(
-                        f"🚨 BLOQUEADO save_db({fn}): {n_novo} registos "
-                        f"vs {n_atual} existentes — perda de "
-                        f"{n_atual - n_novo} registos (>10%). Operação cancelada."
+                        f"🚨 BLOQUEADO save_db({fn}): tentativa de gravar 0 "
+                        f"registos sobre {n_atual} existentes. Operação cancelada."
                     )
                     return False
+                if n_atual > 5 and n_novo < int(n_atual * 0.90):
+                    if permitir_reducao:
+                        logger.warning(
+                            f"save_db({fn}): redução autorizada {n_atual}->{n_novo}"
+                        )
+                    else:
+                        logger.error(
+                            f"🚨 BLOQUEADO save_db({fn}): {n_novo} registos "
+                            f"vs {n_atual} existentes — perda de "
+                            f"{n_atual - n_novo} registos (>10%). Operação cancelada."
+                        )
+                        return False
         except Exception as e:
             logger.warning(f"Verificação segurança {fn}: {e}")
 
@@ -332,7 +431,10 @@ def save_db(df, fn):
 def _criar_backup_diario(fn, df_atual):
     """Backup automático diário em backups/YYYY-MM-DD/ficheiro.csv"""
     try:
-        today  = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%Y-%m-%d")
+        cache_key = f"_backup_done_{today}_{fn}"
+        if st.session_state.get(cache_key):
+            return
         client = _gcs_client()
         if client:
             bucket = client.bucket(GCS_BUCKET)
@@ -343,6 +445,7 @@ def _criar_backup_diario(fn, df_atual):
                 blob.upload_from_string(
                     buf.getvalue().encode('utf-8-sig'), content_type="text/csv")
                 logger.info(f"✅ Backup diário: backups/{today}/{fn} ({len(df_atual)} registos)")
+            st.session_state[cache_key] = True
     except Exception as e:
         logger.warning(f"Backup diário falhou {fn}: {e}")
 
@@ -396,7 +499,7 @@ def restore_backup(backup_path):
 @st.cache_data(ttl=1800, show_spinner=False)
 def _load_users_cached():
     """
-    Lê usuarios.csv do GCS com cache de 60 segundos.
+    Lê usuarios.csv do GCS com cache de 30 minutos (1800s).
     Usar em todo o código em vez de _gcs_read("usuarios.csv") directo.
     Para forçar leitura fresca: _load_users_cached.clear()
     """
@@ -431,16 +534,491 @@ def inv(ficheiro=None):
         # Nuclear — limpa toda a cache do Streamlit
         st.cache_data.clear()
     else:
-        # Selectivo — incrementa versão só do ficheiro alterado
-        fv = st.session_state.setdefault('_fv', {})
-        fv[ficheiro] = fv.get(ficheiro, 0) + 1
+        # Timestamp ms como _v — chave única por evento, sem colisão entre sessões
+        fv = dict(st.session_state.get('_fv', {}))
+        fv[ficheiro] = int(time.time() * 1000)
+        st.session_state['_fv'] = fv
         if ficheiro == "usuarios.csv":
             _load_users_cached.clear()
 
 
-def load_all():
+# ─────────────────────────────────────────────────────────────────────────────
+# CLIENTES — fonte canónica única (clientes_financeiro.csv)
+# ─────────────────────────────────────────────────────────────────────────────
+NOVO_CLIENTE_OPT = "Novo cliente..."
+
+_CLIENTES_FINANCEIRO_COLS = [
+    "ID", "Nome", "NIF", "Morada", "Email", "Telefone",
+    "Condicoes_Pagamento", "Limite_Credito", "Contacto_Fat", "Activo",
+    "Sector", "Origem", "Criado_Por", "Data_Criacao", "Notas"
+]
+
+def _norm_nome_cliente(nome):
+    """Normaliza nome de cliente para dedup: trim, espaços colapsados,
+    minúsculas e sem acentos."""
+    import unicodedata
+    nome = " ".join(str(nome or "").split())
+    nome = unicodedata.normalize("NFKD", nome)
+    nome = "".join(c for c in nome if not unicodedata.combining(c))
+    return nome.casefold()
+
+def get_clientes_opts():
+    """Lista ordenada de nomes de clientes activos (fonte: clientes_financeiro.csv)."""
+    df = load_db("clientes_financeiro.csv", _CLIENTES_FINANCEIRO_COLS, silent=True)
+    if df.empty or 'Nome' not in df.columns:
+        return []
+    if 'Activo' in df.columns:
+        inativos = df['Activo'].astype(str).str.strip().str.lower().isin(
+            ['não', 'nao', 'inativo', 'inactivo', '0', 'false']
+        )
+        df = df[~inativos]
+    return sorted({n.strip() for n in df['Nome'].astype(str) if n.strip()})
+
+
+def cliente_select(label, key, valor_atual=""):
+    """Selectbox de cliente com a fonte canónica + opção de registar um novo.
+
+    Devolve (nome_cliente, eh_novo). Valores antigos que não constem da fonte
+    canónica são acrescentados à lista em runtime para não perder dados.
+    """
+    opts = get_clientes_opts()
+    display = list(opts)
+    valor_atual = (valor_atual or "").strip()
+    if valor_atual and valor_atual not in display:
+        display.append(valor_atual)
+    display = display + [NOVO_CLIENTE_OPT]
+    idx = display.index(valor_atual) if valor_atual in display else 0
+    sel = st.selectbox(label, display, index=idx, key=key)
+    if sel == NOVO_CLIENTE_OPT:
+        novo = st.text_input("Nome do novo cliente *", key=f"{key}__novo")
+        nc1, nc2, nc3 = st.columns(3)
+        with nc1: st.text_input("NIF (opcional)",      key=f"{key}__novo_nif")
+        with nc2: st.text_input("Email (opcional)",    key=f"{key}__novo_email")
+        with nc3: st.text_input("Telefone (opcional)", key=f"{key}__novo_tel")
+        return novo.strip(), True
+    return sel, False
+
+
+# ── OBRAS — seleção a partir da fonte canónica (obras_lista.csv) ──────────────
+OBRA_VAZIA_OPT = "— Selecionar —"
+
+def get_obras_opts(incluir_inativas=False):
+    """Lista ordenada de nomes de obra (fonte: obras_lista.csv)."""
+    df = load_db("obras_lista.csv", ["Obra", "Cliente", "Ativa"], silent=True)
+    if df.empty or 'Obra' not in df.columns:
+        return []
+    if not incluir_inativas and 'Ativa' in df.columns:
+        df = df[df['Ativa'].astype(str).str.strip() == 'Ativa']
+    return sorted({n.strip() for n in df['Obra'].astype(str) if n.strip()})
+
+
+def get_cliente_da_obra(obra_nome):
+    """Devolve o Cliente de `obra_nome` em obras_lista.csv, ou "" se a obra
+    não existir (ou obra_nome estiver vazio)."""
+    obra_nome = (obra_nome or "").strip()
+    if not obra_nome:
+        return ""
+    df = load_db("obras_lista.csv", ["Obra", "Cliente"], silent=True)
+    if df.empty or 'Obra' not in df.columns:
+        return ""
+    m = df[df['Obra'].astype(str).str.strip() == obra_nome]
+    return str(m.iloc[0].get('Cliente', '')).strip() if not m.empty else ""
+
+
+def get_contactos_cliente(cliente_nome):
+    """Devolve as Pessoas de Contacto de um cliente (contactos_clientes.csv),
+    a partir do Nome — a ponte é clientes_financeiro.csv (Nome -> ID),
+    já que contactos_clientes.csv liga por Cliente_ID, não por nome.
+
+    Devolve lista de dicts (Nome, Cargo, Email, Telefone) — vazia se o
+    cliente não existir, não tiver ID, ou não tiver contactos.
+    """
+    cliente_nome = (cliente_nome or "").strip()
+    if not cliente_nome:
+        return []
+    clientes_df = load_db("clientes_financeiro.csv", _CLIENTES_FINANCEIRO_COLS, silent=True)
+    if clientes_df.empty or 'Nome' not in clientes_df.columns:
+        return []
+    m_cli = clientes_df[clientes_df['Nome'].astype(str).str.strip() == cliente_nome]
+    if m_cli.empty:
+        return []
+    cliente_id = str(m_cli.iloc[0].get('ID', '')).strip()
+    if not cliente_id:
+        return []
+    contactos_df = load_db("contactos_clientes.csv", [
+        "ID", "Cliente_ID", "Nome", "Cargo", "Email", "Telefone",
+        "Notas", "Criado_Por", "Data_Criacao"
+    ], silent=True)
+    if contactos_df.empty or 'Cliente_ID' not in contactos_df.columns:
+        return []
+    m_ct = contactos_df[contactos_df['Cliente_ID'].astype(str).str.strip() == cliente_id]
+    return [
+        {
+            "Nome": str(r.get('Nome', '')).strip(),
+            "Cargo": str(r.get('Cargo', '')).strip(),
+            "Email": str(r.get('Email', '')).strip(),
+            "Telefone": str(r.get('Telefone', '')).strip(),
+        }
+        for _, r in m_ct.iterrows()
+    ]
+
+
+def obra_select(label, key, valor_atual=""):
+    """Selectbox de obra a partir da fonte canónica (obras_lista.csv, só
+    obras Ativas) — sem opção de criar obra nova aqui (usar Gestão de
+    Obras para isso).
+
+    Devolve o nome da obra escolhida, ou "" se nada estiver selecionado.
+    Um valor antigo que já não conste da lista (ex. obra entretanto
+    fechada) é acrescentado em runtime, para não se perder o que já
+    estava gravado.
+    """
+    opts = get_obras_opts()
+    display = [OBRA_VAZIA_OPT] + list(opts)
+    valor_atual = (valor_atual or "").strip()
+    if valor_atual and valor_atual not in display:
+        display.append(valor_atual)
+    idx = display.index(valor_atual) if valor_atual in display else 0
+    sel = st.selectbox(label, display, index=idx, key=key)
+    return "" if sel == OBRA_VAZIA_OPT else sel
+
+
+def registar_novo_cliente(nome, nif="", email="", telefone="", morada="",
+                          sector="", origem="Manual", criado_por="", notas=""):
+    """Adiciona um cliente novo a clientes_financeiro.csv (fonte canónica).
+    Dedup por nome normalizado (case-insensitive, sem acentos). Devolve o
+    nome tal como ficou registado (o já existente, em caso de duplicado)."""
+    nome = " ".join(str(nome or "").split())
+    if not nome:
+        return ""
+    df = load_db("clientes_financeiro.csv", _CLIENTES_FINANCEIRO_COLS, silent=True)
+    if not df.empty and 'Nome' in df.columns:
+        alvo = _norm_nome_cliente(nome)
+        for n_exist in df['Nome'].astype(str):
+            if n_exist.strip() and _norm_nome_cliente(n_exist) == alvo:
+                return n_exist.strip()
+    novo_row = pd.DataFrame([{
+        "ID":           uuid.uuid4().hex[:8].upper(),
+        "Nome":         nome,
+        "NIF":          str(nif or "").strip(),
+        "Email":        str(email or "").strip(),
+        "Telefone":     str(telefone or "").strip(),
+        "Morada":       str(morada or "").strip(),
+        "Sector":       str(sector or "").strip(),
+        "Origem":       origem,
+        "Criado_Por":   criado_por or st.session_state.get('user', '') or '',
+        "Data_Criacao": datetime.now().strftime("%d/%m/%Y"),
+        "Activo":       "Sim",
+        "Notas":        str(notas or "").strip(),
+    }])
+    upd = pd.concat([df, novo_row], ignore_index=True) if not df.empty else novo_row
+    save_db(upd, "clientes_financeiro.csv")
+    inv("clientes_financeiro.csv")
+    return nome
+
+
+def registar_cliente_do_select(nome, key, origem="Manual"):
+    """Regista um cliente criado via cliente_select, lendo os campos
+    opcionais (NIF/Email/Telefone) do mini-form inline."""
+    return registar_novo_cliente(
+        nome,
+        nif=st.session_state.get(f"{key}__novo_nif", ""),
+        email=st.session_state.get(f"{key}__novo_email", ""),
+        telefone=st.session_state.get(f"{key}__novo_tel", ""),
+        origem=origem,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FUNÇÃO / CATEGORIA OPERACIONAL — fonte única em usuarios.csv (W5)
+# Categoria Operacional ≠ Categoria CCT (Relatório Único) e ≠ Categoria_Profissional
+# (texto livre do onboarding/perfil).
+# ─────────────────────────────────────────────────────────────────────────────
+NOVO_VALOR_LISTA_OPT = "Novo..."
+
+_RH_LISTAS_COLS = ["Lista", "Valor", "Criado_Por", "Data"]
+
+
+def get_lista_rh(lista):
+    """Valores do catálogo rh_listas.csv para uma lista ('funcao' ou
+    'categoria_operacional')."""
+    df = load_db("rh_listas.csv", _RH_LISTAS_COLS, silent=True)
+    if df.empty:
+        return []
+    sel = df[df['Lista'].astype(str).str.strip() == lista]
+    return sorted({v.strip() for v in sel['Valor'].astype(str) if v.strip()})
+
+
+def registar_valor_lista_rh(lista, valor):
+    """Adiciona um valor ao catálogo rh_listas.csv com dedup por valor
+    normalizado (trim, minúsculas, sem acentos). Devolve o valor tal como
+    ficou registado (o já existente, em caso de duplicado)."""
+    valor = " ".join(str(valor or "").split())
+    if not valor:
+        return ""
+    df = load_db("rh_listas.csv", _RH_LISTAS_COLS, silent=True)
+    alvo = _norm_nome_cliente(valor)
+    if not df.empty:
+        sel = df[df['Lista'].astype(str).str.strip() == lista]
+        for v_exist in sel['Valor'].astype(str):
+            if v_exist.strip() and _norm_nome_cliente(v_exist) == alvo:
+                return v_exist.strip()
+    novo = pd.DataFrame([{
+        "Lista":      lista,
+        "Valor":      valor,
+        "Criado_Por": st.session_state.get('user', '') or '',
+        "Data":       datetime.now().strftime("%d/%m/%Y"),
+    }])
+    upd = pd.concat([df, novo], ignore_index=True) if not df.empty else novo
+    save_db(upd, "rh_listas.csv")
+    inv("rh_listas.csv")
+    return valor
+
+
+def lista_rh_select(label, lista, key, valor_atual="", em_uso=None):
+    """Selectbox com catálogo rh_listas.csv ∪ valores em uso ∪ valor actual,
+    mais '➕ Novo...' (padrão idêntico ao cliente_select). Devolve
+    (valor, eh_novo). Valores gravados fora do catálogo são acrescentados
+    em runtime para não perder dados."""
+    opts = set(get_lista_rh(lista))
+    if em_uso is not None:
+        opts |= {str(v).strip() for v in em_uso if str(v).strip()}
+    valor_atual = (valor_atual or "").strip()
+    if valor_atual:
+        opts.add(valor_atual)
+    display = [""] + sorted(opts) + [NOVO_VALOR_LISTA_OPT]
+    idx = display.index(valor_atual) if valor_atual in display else 0
+    sel = st.selectbox(label, display, index=idx, key=key)
+    if sel == NOVO_VALOR_LISTA_OPT:
+        novo = st.text_input(f"Novo valor — {label} *", key=f"{key}__novo")
+        return novo.strip(), True
+    return sel, False
+
+
+def set_funcao_categoria(nome, funcao=None, categoria=None):
+    """Escreve Funcao / Categoria_Operacional no registo de `nome` em
+    usuarios.csv — helper ÚNICO de escrita destes campos (fonte única,
+    usado pelas vistas Dados Legais e Alocações e pelo importador).
+    None = não tocar no campo. Devolve True/False."""
+    buf = _gcs_read("usuarios.csv")
+    if not buf:
+        return False
+    df = pd.read_csv(buf, dtype=str, on_bad_lines='skip', encoding='utf-8-sig')
+    df.columns = df.columns.str.strip()
+    df = df.fillna("")
+    for col in ("Funcao", "Categoria_Operacional"):
+        if col not in df.columns:
+            df[col] = ""
+    mask = df['Nome'].astype(str).str.strip() == str(nome).strip()
+    if not mask.any():
+        return False
+    detalhes = []
+    if funcao is not None:
+        df.loc[mask, 'Funcao'] = str(funcao).strip()
+        detalhes.append(f"Funcao={str(funcao).strip()}")
+    if categoria is not None:
+        df.loc[mask, 'Categoria_Operacional'] = str(categoria).strip()
+        detalhes.append(f"Categoria_Operacional={str(categoria).strip()}")
+    if not detalhes:
+        return True
+    if not save_db(df, "usuarios.csv"):
+        return False
+    inv("usuarios.csv")
+    _cached_load_all.clear()
+    log_audit(usuario=st.session_state.get('user', '') or '',
+              acao="ALTERAR_FUNCAO_CATEGORIA", tabela="usuarios.csv",
+              registro_id=nome, detalhes=", ".join(detalhes))
+    return True
+
+
+def update_usuario(chave, alteracoes: dict, *,
+                   chave_col: str = "Nome",
+                   acao: str = "ATUALIZAR_USUARIO",
+                   detalhes: str | None = None,
+                   permitir_multiplos: bool = False) -> bool:
+    """Helper ÚNICO de actualização in-place de usuarios.csv (generaliza o
+    padrão W5 set_funcao_categoria). Lê SEMPRE o df completo fresco do GCS,
+    aplica as `alteracoes` via .loc, preserva a união de colunas e nunca
+    reindexa a uma lista fixa. NÃO cria linhas.
+
+    chave              valor que identifica o registo (por omissão, o Nome).
+    alteracoes         {coluna: valor} já validado/formatado pelo caller. Os
+                       valores são gravados tal-e-qual (sem .strip()) — preserva
+                       b64/JSON; a formatação é responsabilidade do caller.
+    chave_col          coluna usada no match (default "Nome").
+    acao / detalhes    para o log_audit. Se detalhes is None, gera
+                       "Campos: c1, c2" — SÓ nomes de colunas, NUNCA valores
+                       (o helper toca Password/PIN/IBAN; regra dura).
+    permitir_multiplos Segurança contra corrupção cross-collaborator: por
+                       omissão (False), se o match casar >1 linha o helper
+                       RECUSA (return False) e regista o conflito, sem escrever.
+                       Só escreve em várias linhas quando explicitamente True.
+
+    Devolve True em sucesso; False em ficheiro vazio, no-match, match múltiplo
+    sem flag, ou falha do save_db (guarda 0-linhas/10% mantida por save_db).
+    """
+    if not alteracoes:
+        return True  # no-op: zero I/O, sem leitura/escrita/log
+    buf = _gcs_read("usuarios.csv")
+    if not buf:
+        return False
+    df = pd.read_csv(buf, dtype=str, on_bad_lines='skip', encoding='utf-8-sig')
+    df.columns = df.columns.str.strip()
+    df = df.fillna("")
+    if chave_col not in df.columns:
+        return False
+    # Garante que as colunas a escrever existem — preserva a união de colunas
+    for col in alteracoes:
+        if col not in df.columns:
+            df[col] = ""
+    mask = df[chave_col].astype(str).str.strip() == str(chave).strip()
+    n_match = int(mask.sum())
+    if n_match == 0:
+        return False
+    if n_match > 1 and not permitir_multiplos:
+        # Match múltiplo = recusa por default (Nomes não são únicos).
+        # Escrever em todas as linhas seria corrupção cross-collaborator.
+        log_audit(usuario=st.session_state.get('user', '') or '',
+                  acao="UPDATE_USUARIO_CONFLITO", tabela="usuarios.csv",
+                  registro_id=str(chave),
+                  detalhes=f"{n_match} linhas com {chave_col}={chave} — "
+                           f"escrita recusada (permitir_multiplos=False)")
+        return False
+    for col, valor in alteracoes.items():
+        df.loc[mask, col] = valor
+    if not save_db(df, "usuarios.csv"):
+        return False
+    inv("usuarios.csv")
+    _cached_load_all.clear()
+    det = detalhes if detalhes is not None else \
+        "Campos: " + ", ".join(alteracoes.keys())
+    log_audit(usuario=st.session_state.get('user', '') or '',
+              acao=acao, tabela="usuarios.csv",
+              registro_id=str(chave), detalhes=det)
+    return True
+
+
+# Fontes de nomes de cliente em texto livre (migração + verificação de refs)
+_FONTES_CLIENTE = [
+    ("obras_lista.csv",             "Cliente",              "Obras"),
+    ("orcamentos.csv",              "Cliente",              "Orçamentos"),
+    ("comercial_oportunidades.csv", "Cliente",              "Oportunidades"),
+    ("com_contactos.csv",           "Cliente_Nome",         "Contactos ISO"),
+    ("comercial_clientes.csv",      "Nome",                 "Clientes Angariados"),
+    ("faturas_clientes.csv",        "Cliente",              "Faturação"),
+    ("usuarios.csv",                "Cliente_Obra",         "Colaboradores (obra)"),
+    ("usuarios.csv",                "Contrato_Cliente_Obra","Contratos RH"),
+]
+
+
+def referencias_cliente(nome):
+    """Verifica onde um cliente está referenciado (match normalizado).
+    Devolve lista de (descrição, nº de ocorrências) — vazia se sem referências."""
+    alvo = _norm_nome_cliente(nome)
+    refs = []
+    for fn, col, desc in _FONTES_CLIENTE:
+        df = load_db(fn, [col], silent=True)
+        if df.empty or col not in df.columns:
+            continue
+        n = sum(1 for v in df[col].astype(str) if v.strip() and _norm_nome_cliente(v) == alvo)
+        if n:
+            refs.append((desc, n))
+    return refs
+
+
+def migrar_clientes_existentes(executar=False):
+    """Recolhe nomes de cliente em texto livre de todos os CSVs com coluna de
+    cliente e cria os que faltam em clientes_financeiro.csv (Origem="Migração").
+    Idempotente (dedup por nome normalizado); NÃO altera os CSVs de origem.
+
+    executar=False → dry-run: devolve a lista sem gravar nada.
+    Devolve (a_criar, n_existentes): lista ordenada de nomes a criar e nº de
+    clientes já registados na fonte canónica.
+    """
+    df_cli = load_db("clientes_financeiro.csv", _CLIENTES_FINANCEIRO_COLS, silent=True)
+    existentes = set()
+    if not df_cli.empty and 'Nome' in df_cli.columns:
+        existentes = {_norm_nome_cliente(n) for n in df_cli['Nome'].astype(str) if n.strip()}
+
+    # comercial_clientes.csv traz NIF/contactos — usar para enriquecer
+    com_cli = load_db("comercial_clientes.csv", [
+        "ID", "Nome", "NIF", "Setor", "Morada", "Email", "Telefone",
+        "Contacto", "Comercial_Resp", "Data_Angariacao", "Origem",
+        "Potencial", "Notas"
+    ], silent=True)
+    detalhes = {}
+    if not com_cli.empty and 'Nome' in com_cli.columns:
+        for _, r in com_cli.iterrows():
+            nm = str(r.get('Nome', '')).strip()
+            if nm:
+                detalhes[_norm_nome_cliente(nm)] = {
+                    "nif":      str(r.get('NIF', '')).strip(),
+                    "email":    str(r.get('Email', '')).strip(),
+                    "telefone": str(r.get('Telefone', '')).strip(),
+                    "morada":   str(r.get('Morada', '')).strip(),
+                    "sector":   str(r.get('Setor', '')).strip(),
+                }
+
+    a_criar = {}
+    for fn, col, _desc in _FONTES_CLIENTE:
+        if fn == "faturas_clientes.csv":
+            continue  # faturas referem clientes, não são fonte de registo
+        df = load_db(fn, [col], silent=True)
+        if df.empty or col not in df.columns:
+            continue
+        for v in df[col].astype(str):
+            nome = " ".join(v.split())
+            if not nome:
+                continue
+            chave = _norm_nome_cliente(nome)
+            if chave not in existentes and chave not in a_criar:
+                a_criar[chave] = nome
+
+    nomes_ordenados = sorted(a_criar.values(), key=str.casefold)
+    if not executar or not a_criar:
+        return nomes_ordenados, len(existentes)
+
+    novas = []
+    for chave, nome in a_criar.items():
+        det = detalhes.get(chave, {})
+        novas.append({
+            "ID":           uuid.uuid4().hex[:8].upper(),
+            "Nome":         nome,
+            "NIF":          det.get("nif", ""),
+            "Email":        det.get("email", ""),
+            "Telefone":     det.get("telefone", ""),
+            "Morada":       det.get("morada", ""),
+            "Sector":       det.get("sector", ""),
+            "Origem":       "Migração",
+            "Criado_Por":   st.session_state.get('user', '') or '',
+            "Data_Criacao": datetime.now().strftime("%d/%m/%Y"),
+            "Activo":       "Sim",
+            "Notas":        "",
+        })
+    upd = pd.concat([df_cli, pd.DataFrame(novas)], ignore_index=True) \
+          if not df_cli.empty else pd.DataFrame(novas)
+    save_db(upd, "clientes_financeiro.csv")
+    inv("clientes_financeiro.csv")
+    return nomes_ordenados, len(existentes)
+
+
+_LOAD_ALL_FILES = (
+    "usuarios.csv", "obras_lista.csv", "frentes_lista.csv", "registos.csv",
+    "faturas.csv", "documentos.csv", "incidentes.csv", "safety_walks.csv",
+    "obs_seguranca.csv", "equipamentos.csv", "dialogos.csv", "dialogos_users.csv",
+    "folhas_ponto.csv", "comunicados.csv", "comunicados_lidos.csv",
+    "req_ferramentas.csv", "req_materiais.csv", "req_epis.csv",
+    "avaliacoes.csv", "inst_acessos.csv", "diarias_config.csv",
+    "diarias_faltas.csv", "diarias_pagamentos.csv", "folhas_ocr.csv",
+)
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _cached_load_all(_versions):
+    """Backend cacheado de load_all. _versions força cache miss quando qualquer ficheiro muda."""
     users = load_db("usuarios.csv", [
         "Nome", "Password", "Tipo", "Email", "Telefone", "Cargo",
+        "Numero_Colaborador", "Bloqueado", "Bloqueado_Em",
+        "Funcao", "Categoria_Operacional",
         "NIF", "NISS", "CC", "CC_Validade", "DataNasc", "Nacionalidade",
         "Morada", "Localidade", "Concelho", "Codigo_Postal", "Naturalidade",
         "Estado_Civil", "Sexo", "Dependentes", "Profissao",
@@ -464,7 +1042,9 @@ def load_all():
     obras = load_db("obras_lista.csv", [
         "Obra", "Codigo", "Cliente", "Local", "Ativa",
         "Latitude", "Longitude", "Raio_Validacao",
-        "DataInicio", "DataFim", "TipoObra", "AssinaturaObrigatoria", "Logo_b64"
+        "DataInicio", "DataFim", "TipoObra", "AssinaturaObrigatoria", "Logo_b64",
+        "Alojamento", "Viatura", "Ferramentas", "EPIs",
+        "Descricao_Trabalhos", "Plataforma", "Responsavel_Equipa"
     ])
 
     frentes = load_db("frentes_lista.csv", [
@@ -538,7 +1118,7 @@ def load_all():
     ])
 
     diarias_config = load_db("diarias_config.csv", [
-        "Obra", "Valor_Diaria", "Atualizado_Em", "Atualizado_Por"
+        "Obra", "Valor_Diaria", "Modalidade", "Atualizado_Em", "Atualizado_Por"
     ])
 
     diarias_faltas = load_db("diarias_faltas.csv", [
@@ -563,6 +1143,11 @@ def load_all():
             avals, inst_acessos, diarias_config, diarias_faltas, diarias_pagamentos,
             folhas_ocr)
 
+
+def load_all():
+    fv = st.session_state.get('_fv', {})
+    return _cached_load_all(tuple(fv.get(fn, 0) for fn in _LOAD_ALL_FILES))
+
 # =============================================================================
 # UTILITÁRIOS
 # =============================================================================
@@ -575,20 +1160,9 @@ def fh(h):
     except:
         return "0h00m"
 
-def sl(s):
-    mapping = {
-        "0":  ("Pendente",    "status-pending",    "⏳", COLORS["warning"]),
-        "1":  ("Material OK", "status-ok",         "📦✅", COLORS["success"]),
-        "2":  ("Calibrado",   "status-calibrated", "🧪", COLORS["info"]),
-        "3":  ("Instalado",   "status-installed",  "📍", COLORS["accent"]),
-        "4":  ("Concluído",   "status-completed",  "✅🎯", COLORS["success"]),
-        "-1": ("Rejeitado",   "status-rejected",   "❌", COLORS["error"]),
-    }
-    key = str(s).strip() if s else "0"
-    return mapping.get(key, ("Desconhecido", "status-unknown", "❓", COLORS["text_secondary"]))
-
 def process_and_compress_image(image_file, max_size=(1280, 1280), quality=85):
     try:
+        from PIL import Image
         img = Image.open(image_file)
         if img.mode in ("RGBA", "P"):
             img = img.convert("RGB")
@@ -602,6 +1176,7 @@ def process_and_compress_image(image_file, max_size=(1280, 1280), quality=85):
 
 def canvas_to_b64(image_data):
     try:
+        from PIL import Image
         img = Image.fromarray(image_data.astype("uint8"), "RGBA")
         buf = io.BytesIO()
         img.save(buf, format="PNG")
@@ -614,13 +1189,13 @@ def canvas_to_b64(image_data):
 # PWA & METADATA
 # =============================================================================
 def inject_pwa_meta():
-    st.markdown("""
+    st.markdown(f"""
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0F172A">
+    <meta name="theme-color" content="{THEME['background']}">
     <meta name="description" content="GESTNOW - Gestão de Instrumentação Industrial">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/png" href="/favicon-32x32.png">
+    <link rel="manifest" href="/app/static/manifest.json">
+    <link rel="icon" type="image/png" href="/app/static/icone_cps_192.png">
     """, unsafe_allow_html=True)
 
 # =============================================================================
@@ -645,7 +1220,7 @@ def check_timeout():
             if inactive > 120:
                 logger.info(f"🔒 Timeout: {st.session_state.get('user')}")
                 st.session_state.clear()
-                st.toast("🔒 Sessão expirada", icon="🔐")
+                st.toast("Sessão expirada")
                 st.rerun()
             st.session_state['last_activity'] = datetime.now()
 
@@ -658,6 +1233,77 @@ def cp(p, h):
     except Exception as e:
         logger.warning(f"⚠️ Erro na verificação: {e}")
         return False
+
+def gerar_numero_colaborador(existentes):
+    """Gera um número de colaborador novo para login: 5 dígitos
+    (10000-99999), aleatório (não sequencial — não revela quantos
+    colaboradores existem nem a ordem de admissão), garantidamente
+    único face a `existentes`."""
+    existentes = {str(n).strip() for n in existentes if str(n).strip()}
+    while True:
+        candidato = str(secrets.randbelow(90000) + 10000)
+        if candidato not in existentes:
+            return candidato
+
+# ── Bloqueio de login por tentativas falhadas ───────────────────────────────
+# login_tentativas.csv regista tentativas falhadas por Número tentado —
+# EXISTA ou não uma conta real com esse número — para que a resposta
+# externa nunca distinga um número real de um inventado (ver
+# criar_admin.py/mod_login.py: mensagem de erro sempre genérica).
+_LOGIN_TENTATIVAS_COLS = ["Numero", "Timestamp"]
+
+def registar_tentativa_login(numero):
+    """Regista uma tentativa de login falhada para `numero`. Ficheiro
+    não crítico — sem guarda de perda de registos; poda entradas com
+    mais de 24h para não crescer sem controlo."""
+    df = load_db("login_tentativas.csv", _LOGIN_TENTATIVAS_COLS, silent=True)
+    agora = datetime.now()
+    if not df.empty:
+        ts = pd.to_datetime(df["Timestamp"], format="%d/%m/%Y %H:%M:%S", errors="coerce")
+        df = df[ts >= agora - timedelta(hours=24)]
+    nova = pd.DataFrame([{
+        "Numero": str(numero).strip(),
+        "Timestamp": agora.strftime("%d/%m/%Y %H:%M:%S"),
+    }])
+    df = pd.concat([df, nova], ignore_index=True)
+    save_db(df, "login_tentativas.csv")
+
+def contar_falhas_recentes(numero, janela_minutos=30):
+    """Conta quantas tentativas falhadas há para `numero` nos últimos
+    `janela_minutos` — a contagem decai sozinha fora da janela."""
+    df = load_db("login_tentativas.csv", _LOGIN_TENTATIVAS_COLS, silent=True)
+    if df.empty:
+        return 0
+    df = df[df["Numero"].astype(str).str.strip() == str(numero).strip()]
+    if df.empty:
+        return 0
+    agora = datetime.now()
+    ts = pd.to_datetime(df["Timestamp"], format="%d/%m/%Y %H:%M:%S", errors="coerce")
+    return int((ts >= agora - timedelta(minutes=janela_minutos)).sum())
+
+def limpar_tentativas_login(numero):
+    """Limpa o histórico de tentativas de `numero` — chamado quando o
+    Admin desbloqueia uma conta, para um recomeço limpo."""
+    df = load_db("login_tentativas.csv", _LOGIN_TENTATIVAS_COLS, silent=True)
+    if df.empty:
+        return
+    df = df[df["Numero"].astype(str).str.strip() != str(numero).strip()]
+    save_db(df, "login_tentativas.csv")
+
+def bloquear_conta_por_numero(numero, df_users):
+    """Marca como bloqueada a conta com este Numero_Colaborador, se
+    existir uma. Devolve True se uma conta real foi bloqueada, False
+    se o número não corresponde a ninguém — o chamador usa isto só
+    para decidir se dispara notificação/email, nunca para variar a
+    mensagem mostrada à pessoa que tentou entrar."""
+    mask = df_users["Numero_Colaborador"].astype(str).str.strip() == str(numero).strip()
+    if not mask.any():
+        return False
+    df_users.loc[mask, "Bloqueado"]    = "Sim"
+    df_users.loc[mask, "Bloqueado_Em"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    save_db(df_users, "usuarios.csv")
+    inv("usuarios.csv")
+    return True
 
 # =============================================================================
 # COMPONENTES UI
@@ -692,98 +1338,202 @@ CATEGORIAS_SAFETY_WALK = [
     "Trabalho em Altura", "Elétrica", "Pressão", "Outro"
 ]
 REGRAS_OURO = [
-    ("🛡️", "EPI Industrial Obrigatório",  "Capacete, óculos, luvas e calçado de segurança."),
-    ("⚡", "LOTO - Lockout/Tagout",        "Bloqueio e etiquetagem de energias."),
-    ("🪜", "Trabalho em Altura",           "Arnés e linha de vida acima de 1.8m."),
-    ("⚡", "Energias Perigosas",           "Verificar ausência de tensão."),
-    ("🧪", "Calibração Certificada",       "Usar equipamentos com certificado válido."),
-    ("📍", "Procedimentos de Campo",       "Seguir ITRs e checklists."),
-    ("🔒", "Acesso Restrito",              "Áreas de instrumentação controladas."),
-    ("📋", "Análise de Risco",             "JSA/JHA obrigatório."),
-    ("🧤", "Mãos Limpas",                  "Luvas adequadas para instrumentos."),
-    ("📱", "Zona Livre de Telemóvel",       "Dispositivos proibidos em áreas classificadas."),
+    ("EPI Industrial Obrigatório",  "Capacete, óculos, luvas e calçado de segurança."),
+    ("LOTO - Lockout/Tagout",        "Bloqueio e etiquetagem de energias."),
+    ("Trabalho em Altura",           "Arnés e linha de vida acima de 1.8m."),
+    ("Energias Perigosas",           "Verificar ausência de tensão."),
+    ("Calibração Certificada",       "Usar equipamentos com certificado válido."),
+    ("Procedimentos de Campo",       "Seguir ITRs e checklists."),
+    ("Acesso Restrito",              "Áreas de instrumentação controladas."),
+    ("Análise de Risco",             "JSA/JHA obrigatório."),
+    ("Mãos Limpas",                  "Luvas adequadas para instrumentos."),
+    ("Zona Livre de Telemóvel",       "Dispositivos proibidos em áreas classificadas."),
 ]
 
 # =============================================================================
 # CSS GLOBAL
 # =============================================================================
-GLOBAL_CSS = """
-:root {
-    --primary: #0F172A; --primary-light: #1E293B;
-    --accent: #3B82F6; --accent-hover: #60A5FA;
-    --success: #10B981; --warning: #F59E0B;
-    --error: #EF4444; --info: #8B5CF6;
-    --text-primary: #FFFFFF; --text-secondary: #94A3B8;
-    --text-dark: #1E293B; --text-light: #F8FAFC;
-    --bg-white: #FFFFFF; --bg-light: #F8FAFC; --bg-dark: #0F172A;
-}
-.stApp {
-    background: linear-gradient(135deg, var(--primary) 0%, #1a1a2e 100%);
-    color: var(--text-primary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
+GLOBAL_CSS = f"""
+:root {{
+    --bg: {THEME['background']}; --surface: {THEME['surface']};
+    --border: {THEME['border']};
+    --text: {THEME['text']}; --text-secondary: {THEME['text_secondary']};
+    --accent: {THEME['accent']}; --accent-hover: {THEME['accent_hover']};
+    --success: {THEME['success']}; --warning: {THEME['warning']};
+    --error: {THEME['error']};
+    --radius: {THEME['radius']};
+}}
+.stApp {{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+}}
+/* Logótipo da barra lateral (st.logo(), size="large" já é o máximo
+   nativo do Streamlit) — aumentado via CSS para ficar bem legível.
+   O contentor stSidebarHeader tem altura fixa por omissão; passa a
+   altura automática para não cortar o logótipo maior.
+   O logótipo da SIDEBAR (ao contrário do logótipo genérico) sai do
+   Streamlit com data-testid="stSidebarLogo", não "stLogo" — por isso
+   o seletor tem de incluir os dois (a classe .stLogo é sempre igual
+   em ambos os casos, é o data-testid que muda consoante o contexto). */
+[data-testid="stSidebarHeader"] {{
+    height: auto !important;
+    padding: 0.6rem 0 !important;
+}}
+img[data-testid="stLogo"], img[data-testid="stSidebarLogo"], img.stLogo {{
+    height: 6rem !important;
+    max-width: 85% !important;
+}}
 .stTextInput > div > div > input,
 .stNumberInput > div > div > input,
-.stTextArea > div > div > textarea {
-    background: var(--bg-white) !important;
-    color: var(--text-dark) !important;
-    border: 1px solid rgba(0,0,0,0.3) !important;
+.stTextArea > div > div > textarea {{
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
     font-weight: 500;
-}
+}}
 .stTextInput label, .stNumberInput label, .stTextArea label,
 .stDateInput label, .stTimeInput label, .stSelectbox label,
-.stMultiSelect label, .stRadio label, .stCheckbox label {
-    color: var(--text-light) !important;
+.stMultiSelect label, .stRadio label, .stCheckbox label {{
+    color: var(--text) !important;
     font-weight: 600;
-}
-.stSelectbox > div > div > div, .stMultiSelect > div > div > div {
-    background: var(--bg-white) !important;
-    color: var(--text-dark) !important;
-    border: 1px solid rgba(0,0,0,0.3) !important;
-}
-[data-baseweb="select"] * { color: #111827 !important; }
-[data-baseweb="menu"] { background: #FFFFFF !important; }
-[data-baseweb="menu"] * { color: #111827 !important; background: #FFFFFF !important; }
-[data-baseweb="popover"] { background: #FFFFFF !important; }
-[data-baseweb="popover"] * { color: #111827 !important; }
-ul[role="listbox"] { background: #FFFFFF !important; }
-ul[role="listbox"] li { color: #111827 !important; }
-ul[role="listbox"] li:hover { background: #F1F5F9 !important; }
-.stDataFrame { background: var(--bg-white) !important; color: var(--text-dark) !important; }
-.stDataFrame td, .stDataFrame th { color: var(--text-dark) !important; background: var(--bg-white) !important; }
-section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%) !important;
-}
-section[data-testid="stSidebar"] *, section[data-testid="stSidebar"] label {
-    color: var(--text-light) !important;
-}
-.dash-card, .rp-card, .metric-card {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 16px; padding: 20px; margin-bottom: 16px;
-}
-.dash-card *, .rp-card *, .metric-card * { color: var(--text-primary) !important; }
-.stButton > button {
-    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-    color: white !important; border: none;
-    border-radius: 12px; padding: 10px 24px; font-weight: 600;
-}
-.status-pending    { color: var(--warning) !important; font-weight: 600; }
-.status-ok         { color: var(--success) !important; font-weight: 600; }
-.status-calibrated { color: var(--info)    !important; font-weight: 600; }
-.status-installed  { color: var(--accent)  !important; font-weight: 600; }
-.status-completed  { color: var(--success) !important; font-weight: 700; }
-.status-rejected   { color: var(--error)   !important; font-weight: 600; }
-[data-testid="stMetric"] {
-    background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.2));
-    border: 2px solid rgba(59,130,246,0.5); border-radius: 12px; padding: 15px;
-}
-[data-testid="stMetricValue"] { color: #60A5FA !important; }
-[data-testid="stMetricLabel"] { color: #94A3B8 !important; }
+}}
+.stSelectbox > div > div > div, .stMultiSelect > div > div > div {{
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}}
+[data-baseweb="select"] * {{ color: var(--text) !important; }}
+[data-baseweb="menu"] {{ background: var(--surface) !important; }}
+[data-baseweb="menu"] * {{ color: var(--text) !important; background: var(--surface) !important; }}
+[data-baseweb="popover"] {{ background: var(--surface) !important; }}
+[data-baseweb="popover"] * {{ color: var(--text) !important; }}
+ul[role="listbox"] {{ background: var(--surface) !important; }}
+ul[role="listbox"] li {{ color: var(--text) !important; }}
+ul[role="listbox"] li:hover {{ background: var(--bg) !important; }}
+.stDataFrame {{
+    background: var(--surface) !important; color: var(--text) !important;
+    border: 1px solid var(--border) !important; border-radius: var(--radius);
+}}
+.stDataFrame td, .stDataFrame th {{ color: var(--text) !important; background: var(--surface) !important; }}
+.dash-card, .rp-card, .metric-card, .gn-card {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 18px 16px; margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(16,24,40,0.05);
+}}
+.dash-card *, .rp-card *, .metric-card * {{ color: var(--text) !important; }}
+.stButton > button {{
+    background: var(--accent); color: white !important; border: none;
+    border-radius: var(--radius); padding: 10px 24px; font-weight: 600;
+}}
+.stButton > button:hover {{ background: var(--accent-hover); }}
+/* O rótulo do botão vem embrulhado num p/div interno do Streamlit;
+   sem isto, uma regra genérica de cor de texto de um módulo (ex.
+   "p, div, span com cor") ganha ao branco herdado do botão, porque
+   uma cor especificada diretamente no elemento vence sempre uma cor
+   apenas herdada — mesmo sendo o botão a usar !important. */
+.stButton > button * {{ color: inherit !important; }}
+.status-pending    {{ color: var(--warning) !important; font-weight: 600; }}
+.status-ok         {{ color: var(--success) !important; font-weight: 600; }}
+.status-calibrated {{ color: var(--accent)  !important; font-weight: 600; }}
+.status-installed  {{ color: var(--accent)  !important; font-weight: 600; }}
+.status-completed  {{ color: var(--success) !important; font-weight: 700; }}
+.status-rejected   {{ color: var(--error)   !important; font-weight: 600; }}
+[data-testid="stMetric"] {{
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 15px;
+}}
+[data-testid="stMetricValue"] {{ color: var(--accent) !important; }}
+[data-testid="stMetricLabel"] {{ color: var(--text-secondary) !important; }}
+
+/* ── Badge partilhado (gn-badge) ── */
+.gn-badge {{
+    display: inline-block; font-size: 0.72rem; font-weight: 700;
+    padding: 2px 10px; border-radius: 999px;
+}}
+.gn-badge-success {{ background: rgba(21,128,61,0.12);  color: var(--success); }}
+.gn-badge-warning {{ background: rgba(180,83,9,0.12);   color: var(--warning); }}
+.gn-badge-error   {{ background: rgba(185,28,28,0.12);  color: var(--error); }}
+.gn-badge-info    {{ background: rgba(14,124,134,0.12); color: var(--accent); }}
+.gn-badge-neutral {{ background: #EEF0F3; color: var(--text-secondary); }}
+
+/* ── Cartão partilhado (gn-card) ── */
+.gn-card-title {{ font-weight: 700; font-size: 1.0rem; color: var(--text); margin: 0; }}
+.gn-card-sub   {{ font-size: 0.82rem; color: var(--text-secondary); margin: 2px 0 8px; }}
+.gn-card-grid  {{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px;
+    border-top: 1px solid var(--bg); padding-top: 10px; margin-top: 8px;
+}}
+.gn-card-label {{
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-secondary);
+}}
+.gn-card-value {{ font-size: 0.82rem; font-weight: 600; color: var(--text); }}
 """
 
 def inject_global_css():
     st.markdown(f"<style>{GLOBAL_CSS}</style>", unsafe_allow_html=True)
+
+
+# =============================================================================
+# COMPONENTES PARTILHADOS — cartão / badge (Fase 1 da Identidade Visual)
+# =============================================================================
+_BADGE_TONES = {"success", "warning", "error", "info", "neutral"}
+
+
+def escape_html(v):
+    """Escapa <, > para uso seguro dentro de HTML injetado via st.markdown."""
+    return (str(v) if v is not None else "").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def render_badge_html(label, tone="neutral"):
+    """Devolve o HTML de uma badge (pílula) na tonalidade semântica pedida.
+    tone: 'success' | 'warning' | 'error' | 'info' | 'neutral' (por omissão)."""
+    tone = tone if tone in _BADGE_TONES else "neutral"
+    return f'<span class="gn-badge gn-badge-{tone}">{escape_html(label)}</span>'
+
+
+def render_badge(label, tone="neutral"):
+    """Desenha uma badge diretamente (wrapper de render_badge_html + st.markdown)."""
+    st.markdown(render_badge_html(label, tone), unsafe_allow_html=True)
+
+
+def render_card_html(title, subtitle="", badge=None, badge_tone="neutral",
+                      fields=None, footer=""):
+    """Devolve o HTML de um cartão (fundo branco, borda e raio do THEME),
+    para os módulos deixarem de colar o seu próprio HTML de cartão.
+
+    fields: lista de tuplos (label, valor) mostrados numa grelha de 2 colunas
+    (mesmo padrão usado em mod_dashboard_obra.py)."""
+    parts = ['<div class="gn-card">']
+    parts.append('<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">')
+    parts.append(f'<p class="gn-card-title">{escape_html(title)}</p>')
+    if badge:
+        parts.append(render_badge_html(badge, badge_tone))
+    parts.append('</div>')
+    if subtitle:
+        parts.append(f'<p class="gn-card-sub">{escape_html(subtitle)}</p>')
+    if fields:
+        parts.append('<div class="gn-card-grid">')
+        for label, valor in fields:
+            parts.append(
+                f'<div><p class="gn-card-label">{escape_html(label)}</p>'
+                f'<p class="gn-card-value">{escape_html(valor)}</p></div>'
+            )
+        parts.append('</div>')
+    if footer:
+        parts.append(f'<p class="gn-card-sub" style="margin-top:8px;">{escape_html(footer)}</p>')
+    parts.append('</div>')
+    return "".join(parts)
+
+
+def render_card(title, subtitle="", badge=None, badge_tone="neutral",
+                 fields=None, footer=""):
+    """Desenha um cartão diretamente (wrapper de render_card_html + st.markdown)."""
+    st.markdown(
+        render_card_html(title, subtitle, badge, badge_tone, fields, footer),
+        unsafe_allow_html=True
+    )
 
 # =============================================================================
 # AUDIT TRAIL
@@ -986,7 +1736,7 @@ def render_connection_indicator():
         const indicator = document.getElementById('connection-indicator');
         if (indicator) {
             indicator.className = `connection-status ${status}`;
-            indicator.textContent = status === 'online' ? '🟢 Online' : '🔴 Offline';
+            indicator.textContent = status === 'online' ? 'Online' : 'Offline';
         }
     }
     window.addEventListener('online',  updateConnectionStatus);
@@ -1003,7 +1753,7 @@ def render_connection_indicator():
     .connection-status.offline { background:#EF4444; color:white; animation:pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
     </style>
-    <div id="connection-indicator" class="connection-status online">🟢 Online</div>
+    <div id="connection-indicator" class="connection-status online">Online</div>
     """, unsafe_allow_html=True)
 
 def render_offline_banner():
@@ -1023,20 +1773,24 @@ def render_offline_banner():
     </script>
     <div id="offline-banner" style="display:none;background:#EF4444;color:white;
         padding:15px;border-radius:10px;margin-bottom:20px;text-align:center;">
-        <strong>🔴 ESTÁ OFFLINE</strong> — Alterações guardadas localmente.
+        <strong>ESTÁ OFFLINE</strong> — Alterações guardadas localmente.
     </div>
     """, unsafe_allow_html=True)
 
 def sync_data_when_online():
-    if "offline_action_queue" in st.session_state:
-        pendentes = [i for i in st.session_state["offline_action_queue"] if i["estado"]=="pendente"]
-        if pendentes and check_connection_status():
-            resultados = execute_offline_queue()
-            if resultados["sucessos"] > 0:
-                st.success(f"✅ {resultados['sucessos']} ações sincronizadas!")
-            if resultados["falhas"] > 0:
-                st.error(f"❌ {resultados['falhas']} ações falharam.")
-            _cached_load_db.clear()
+    if "offline_action_queue" not in st.session_state:
+        return
+    pendentes = [i for i in st.session_state["offline_action_queue"] if i["estado"] == "pendente"]
+    if not pendentes:
+        return
+    if not check_connection_status():
+        return
+    resultados = execute_offline_queue()
+    if resultados["sucessos"] > 0:
+        st.success(f"{resultados['sucessos']} ações sincronizadas!")
+        _cached_load_db.clear()
+    if resultados["falhas"] > 0:
+        st.error(f"{resultados['falhas']} ações falharam.")
 
 # =============================================================================
 # QR CODE
@@ -1074,11 +1828,11 @@ def render_qr_code_image(qr_data, size=200):
     return f"https://api.qrserver.com/v1/create-qr-code/?size={size}x{size}&data={encoded}"
 
 def render_camera_scanner(label="Scan QR Code", key_prefix="qr_scan"):
-    st.markdown(f"### 📱 {label}", unsafe_allow_html=True)
+    st.markdown(f"### {label}", unsafe_allow_html=True)
     uploaded = st.file_uploader("Upload de foto do QR Code",
         type=["png","jpg","jpeg"], key=f"{key_prefix}_upload")
     if uploaded:
-        st.info("🔧 Leitura automática em desenvolvimento. Use o campo abaixo:")
+        st.info("Leitura automática em desenvolvimento. Use o campo abaixo:")
     qr_manual = st.text_input("Dados do QR Code (formato: GN|TAG|OBRA ou JSON)",
         key=f"{key_prefix}_input")
     if qr_manual and len(qr_manual.strip()) > 5:
@@ -1133,7 +1887,7 @@ def get_email_template(tipo, dados=None):
         "validacao_horas": {
             "assunto": "Horas Validadas - {obra}",
             "html":    """<html><body style="font-family:Arial,sans-serif;padding:20px;">
-                <h2>✅ Horas Validadas</h2>
+                <h2>Horas Validadas</h2>
                 <p>Olá <strong>{tecnico}</strong>,</p>
                 <p>As suas horas foram validadas com sucesso!</p>
                 <p><strong>Obra:</strong> {obra}<br>

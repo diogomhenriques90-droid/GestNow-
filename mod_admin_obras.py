@@ -1,11 +1,29 @@
 import streamlit as st
 import pandas as pd
 import uuid
-from datetime import datetime
-from core import save_db, inv, load_db
+from datetime import datetime, date
+from core import (save_db, inv, load_db, cliente_select,
+                  registar_cliente_do_select, lista_rh_select,
+                  registar_valor_lista_rh, set_funcao_categoria,
+                  get_contactos_cliente, THEME)
+
+RESPONSAVEL_OPTS = ["", "CPS", "Cliente", "Outro"]
+RESPONSAVEL_EQUIPA_VAZIO = "— Nenhum —"
+
+
+def _parse_data_pt(s):
+    """'dd/mm/aaaa' -> date, ou None se vazio/inválido."""
+    s = str(s or "").strip()
+    if not s:
+        return None
+    try:
+        return datetime.strptime(s, "%d/%m/%Y").date()
+    except ValueError:
+        return None
+
 
 def render_obras(obras_db, frentes_db, users, inst_acessos_db):
-    st.markdown("### 🏗️ Gestão de Obras")
+    st.markdown("### Gestão de Obras")
 
     # Carregar histórico de obras
     try:
@@ -19,10 +37,24 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
             "DataFecho","Fechada_Por"
         ])
 
+    # Requisitos de acesso por obra — só leitura aqui; edita-se em
+    # Gestão de Acessos › ⚙️ Requisitos de Acesso por Obra
+    # (mod_admin_acessos_obras.py). Não duplicar a edição em dois sítios.
+    try:
+        req_obras_db = load_db("acessos_requisitos_obras.csv", [
+            "ID", "Obra", "Tipo_Obra", "Documentos_Obrigatorios",
+            "Nivel_Seguranca", "Instrucoes", "Atualizado_Em"
+        ], silent=True)
+    except:
+        req_obras_db = pd.DataFrame(columns=[
+            "ID", "Obra", "Tipo_Obra", "Documentos_Obrigatorios",
+            "Nivel_Seguranca", "Instrucoes", "Atualizado_Em"
+        ])
+
     user_nome = st.session_state.get('user', 'Admin')
 
     tab_obras, tab_alocacoes, tab_historico = st.tabs([
-        "🏗️ Obras", "👷 Alocações", "📜 Histórico"
+        "Obras", "Alocações", "Histórico"
     ])
 
     # ════════════════════════════════════════════════════════════════
@@ -32,10 +64,10 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
         col1, col2 = st.columns([1, 2])
 
         with col1:
-            st.markdown("#### ➕ Nova Obra")
+            st.markdown("#### Nova Obra")
             with st.form("form_nova_obra"):
                 nome     = st.text_input("Nome da Obra *", key="obra_nome")
-                cliente  = st.text_input("Cliente *",      key="obra_cliente")
+                cliente, cliente_novo = cliente_select("Cliente *", "obra_cliente")
                 tipo     = st.selectbox(
                     "Tipo",
                     ["Normal","Instrumentação","Manutenção","Comissionamento"],
@@ -44,42 +76,48 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 local    = st.text_input("Localização", key="obra_local")
                 cod      = st.text_input("Código Obra", key="obra_cod",
                                           placeholder="Ex: SINES-001")
+                data_fim = st.date_input("Data de Término Prevista",
+                    value=None, key="obra_data_fim")
 
                 if st.form_submit_button(
-                    "💾 Criar Obra",
+                    "Criar Obra",
                     use_container_width=True, type="primary"
                 ):
                     if not nome.strip() or not cliente.strip():
-                        st.error("❌ Nome e Cliente obrigatórios.")
+                        st.error("Nome e Cliente obrigatórios.")
                     elif not obras_db.empty and \
                          nome.strip() in obras_db['Obra'].values:
-                        st.error("❌ Obra já existe.")
+                        st.error("Obra já existe.")
                     else:
+                        if cliente_novo:
+                            registar_cliente_do_select(cliente, "obra_cliente")
                         nova = pd.DataFrame([{
                             "Obra":       nome.strip(),
                             "Cliente":    cliente.strip(),
                             "Codigo":     cod.strip(),
                             "TipoObra":   tipo,
                             "Local":      local.strip(),
-                            "Ativa":      "Ativa",
-                            "DataInicio": datetime.now().strftime("%d/%m/%Y")
+                            "Ativa":        "Ativa",
+                            "DataInicio":   datetime.now().strftime("%d/%m/%Y"),
+                            "DataFim":      data_fim.strftime("%d/%m/%Y") if data_fim else "",
+                            "Orcamento_ID": "",
                         }])
                         obras_db = pd.concat(
                             [obras_db, nova], ignore_index=True
                         ) if not obras_db.empty else nova
                         save_db(obras_db, "obras_lista.csv")
                         inv("obras_lista.csv")
-                        st.success(f"✅ Obra '{nome}' criada!")
-                        st.rerun()
+                        st.success(f"Obra '{nome}' criada!")
+                        st.rerun(scope="fragment")
 
         with col2:
-            st.markdown("#### 🏭 Obras Ativas")
+            st.markdown("#### Obras Ativas")
             if obras_db.empty:
-                st.info("📋 Sem obras.")
+                st.info("Sem obras.")
             else:
                 ativas = obras_db[obras_db['Ativa'] == 'Ativa']
                 if ativas.empty:
-                    st.info("📋 Sem obras ativas.")
+                    st.info("Sem obras ativas.")
                 else:
                     for _, ob in ativas.iterrows():
                         ob_nome = ob.get('Obra','')
@@ -96,42 +134,200 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                             ])
 
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:10px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                             f"padding:12px 16px;margin-bottom:8px;"
-                            f"border-left:4px solid #10B981;'>"
-                            f"<b style='color:#F1F5F9;'>{ob_nome}</b>"
-                            f"<span style='float:right;color:#10B981;"
-                            f"font-size:0.8rem;'>✅ Ativa</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"border-left:4px solid {THEME['success']};'>"
+                            f"<b style='color:{THEME['text']};'>{ob_nome}</b>"
+                            f"<span style='float:right;color:{THEME['success']};"
+                            f"font-size:0.8rem;'>Ativa</span><br>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{ob_cli} · {ob_tipo} · {ob_loc} · "
-                            f"👷 {n_colabs} colaborador(es)</small>"
+                            f"{n_colabs} colaborador(es)</small>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
 
                         col_ed, col_del = st.columns([3, 1])
                         with col_ed:
-                            # Editar cliente/local inline
-                            pass
+                            if st.button(
+                                "Editar",
+                                key=f"editar_obra_{ob_nome}",
+                                use_container_width=True,
+                                help="Editar dados operacionais da obra"
+                            ):
+                                chave_editar = f'a_editar_obra_{ob_nome}'
+                                st.session_state[chave_editar] = \
+                                    not st.session_state.get(chave_editar, False)
                         with col_del:
                             if st.button(
-                                "🗄️ Fechar",
+                                "Fechar",
                                 key=f"fechar_obra_{ob_nome}",
                                 use_container_width=True,
                                 help="Fechar obra e mover para histórico"
                             ):
                                 st.session_state[f'confirmar_fechar_{ob_nome}'] = True
 
+                        # ── Formulário de edição (campos operacionais) ──
+                        if st.session_state.get(f'a_editar_obra_{ob_nome}', False):
+                            # Requisitos de acesso — só leitura; a edição
+                            # fica em Gestão de Acessos › ⚙️ Requisitos de
+                            # Acesso por Obra (não duplicar aqui).
+                            req_match = req_obras_db[req_obras_db['Obra'] == ob_nome] \
+                                if not req_obras_db.empty else pd.DataFrame()
+                            if not req_match.empty:
+                                req_row = req_match.iloc[0]
+                                docs_str = str(req_row.get('Documentos_Obrigatorios', '')).strip()
+                                docs_lista = [d for d in docs_str.split('|') if d]
+                                instrucoes = str(req_row.get('Instrucoes', '')).strip()
+                                st.markdown(
+                                    "**Requisitos de Acesso** _(editar em "
+                                    "Gestão de Acessos › Requisitos de Acesso por Obra)_"
+                                )
+                                st.caption(
+                                    "Formações/Documentos Obrigatórios: " +
+                                    (", ".join(docs_lista) if docs_lista else "—")
+                                )
+                                if instrucoes:
+                                    st.caption(f"Requisitos Adicionais: {instrucoes}")
+                            else:
+                                st.info(
+                                    "Sem requisitos de acesso configurados para esta "
+                                    "obra — configura em Gestão de Acessos › Requisitos "
+                                    "de Acesso por Obra."
+                                )
+
+                            # Contacto do Cliente — só leitura; a edição fica
+                            # em Faturação › Clientes › Gestão de Clientes
+                            # (não duplicar aqui).
+                            contactos_cliente = get_contactos_cliente(ob_cli)
+                            if contactos_cliente:
+                                st.markdown(
+                                    "**Contacto do Cliente** _(editar em "
+                                    "Faturação › Clientes › Gestão de Clientes)_"
+                                )
+                                for ct in contactos_cliente:
+                                    linha = ct["Nome"]
+                                    if ct["Cargo"]:
+                                        linha += f" — {ct['Cargo']}"
+                                    detalhes = " · ".join(
+                                        v for v in [ct["Email"], ct["Telefone"]] if v
+                                    )
+                                    if detalhes:
+                                        linha += f" ({detalhes})"
+                                    st.caption(linha)
+                            else:
+                                st.info(
+                                    "Sem pessoas de contacto registadas para este "
+                                    "cliente — regista em Faturação › Clientes › "
+                                    "Gestão de Clientes."
+                                )
+
+                            with st.form(f"form_editar_obra_{ob_nome}"):
+                                # Responsável de Equipa — só entre quem está
+                                # atualmente alocado a esta obra (evita
+                                # escrever um nome à mão desalinhado da
+                                # equipa real). Um valor antigo que já não
+                                # esteja alocado é preservado na lista, para
+                                # não se perder o que estava gravado.
+                                equipa_obra = []
+                                if not inst_acessos_db.empty and \
+                                   {'Obra', 'Utilizador', 'Ativo'} <= set(inst_acessos_db.columns):
+                                    equipa_obra = sorted(set(
+                                        inst_acessos_db.loc[
+                                            (inst_acessos_db['Obra'] == ob_nome) &
+                                            (inst_acessos_db['Ativo'] == 'Sim'),
+                                            'Utilizador'
+                                        ].astype(str)
+                                    ))
+                                resp_atual = str(ob.get('Responsavel_Equipa', '')).strip()
+                                resp_opts = [RESPONSAVEL_EQUIPA_VAZIO] + equipa_obra
+                                if resp_atual and resp_atual not in resp_opts:
+                                    resp_opts.append(resp_atual)
+                                ed_responsavel = st.selectbox(
+                                    "Responsável de Equipa", resp_opts,
+                                    index=resp_opts.index(resp_atual) if resp_atual in resp_opts else 0,
+                                    key=f"ed_resp_{ob_nome}",
+                                    help="Só lista quem está atualmente alocado a esta obra."
+                                )
+                                if not equipa_obra:
+                                    st.caption("Sem colaboradores alocados a esta obra.")
+
+                                ed_c1, ed_c2 = st.columns(2)
+                                with ed_c1:
+                                    ed_data_fim = st.date_input(
+                                        "Data de Término Prevista",
+                                        value=_parse_data_pt(ob.get('DataFim', '')),
+                                        key=f"ed_datafim_{ob_nome}"
+                                    )
+                                    ed_alojamento = st.selectbox(
+                                        "Alojamento", RESPONSAVEL_OPTS,
+                                        index=RESPONSAVEL_OPTS.index(ob.get('Alojamento', ''))
+                                              if ob.get('Alojamento', '') in RESPONSAVEL_OPTS else 0,
+                                        key=f"ed_aloj_{ob_nome}"
+                                    )
+                                    ed_viatura = st.selectbox(
+                                        "Viatura", RESPONSAVEL_OPTS,
+                                        index=RESPONSAVEL_OPTS.index(ob.get('Viatura', ''))
+                                              if ob.get('Viatura', '') in RESPONSAVEL_OPTS else 0,
+                                        key=f"ed_viat_{ob_nome}"
+                                    )
+                                with ed_c2:
+                                    ed_ferramentas = st.selectbox(
+                                        "Ferramentas", RESPONSAVEL_OPTS,
+                                        index=RESPONSAVEL_OPTS.index(ob.get('Ferramentas', ''))
+                                              if ob.get('Ferramentas', '') in RESPONSAVEL_OPTS else 0,
+                                        key=f"ed_ferr_{ob_nome}"
+                                    )
+                                    ed_epis = st.selectbox(
+                                        "EPIs", RESPONSAVEL_OPTS,
+                                        index=RESPONSAVEL_OPTS.index(ob.get('EPIs', ''))
+                                              if ob.get('EPIs', '') in RESPONSAVEL_OPTS else 0,
+                                        key=f"ed_epis_{ob_nome}"
+                                    )
+                                    ed_plataforma = st.text_input(
+                                        "Plataforma",
+                                        value=ob.get('Plataforma', ''),
+                                        key=f"ed_plat_{ob_nome}"
+                                    )
+                                ed_descricao = st.text_area(
+                                    "Descrição dos Trabalhos",
+                                    value=ob.get('Descricao_Trabalhos', ''),
+                                    key=f"ed_desc_{ob_nome}"
+                                )
+
+                                if st.form_submit_button(
+                                    "Guardar Alterações",
+                                    use_container_width=True, type="primary"
+                                ):
+                                    mask_ed = obras_db['Obra'] == ob_nome
+                                    obras_db.loc[mask_ed, 'DataFim'] = \
+                                        ed_data_fim.strftime("%d/%m/%Y") if ed_data_fim else ""
+                                    obras_db.loc[mask_ed, 'Responsavel_Equipa'] = \
+                                        "" if ed_responsavel == RESPONSAVEL_EQUIPA_VAZIO else ed_responsavel
+                                    obras_db.loc[mask_ed, 'Alojamento']  = ed_alojamento
+                                    obras_db.loc[mask_ed, 'Viatura']     = ed_viatura
+                                    obras_db.loc[mask_ed, 'Ferramentas'] = ed_ferramentas
+                                    obras_db.loc[mask_ed, 'EPIs']        = ed_epis
+                                    obras_db.loc[mask_ed, 'Plataforma']  = ed_plataforma
+                                    obras_db.loc[mask_ed, 'Descricao_Trabalhos'] = ed_descricao
+                                    save_db(obras_db, "obras_lista.csv")
+                                    inv("obras_lista.csv")
+                                    from core import _cached_load_all
+                                    _cached_load_all.clear()
+                                    st.session_state[f'a_editar_obra_{ob_nome}'] = False
+                                    st.success(f"Obra '{ob_nome}' atualizada!")
+                                    st.rerun(scope="fragment")
+
                         # Confirmação fechar
                         if st.session_state.get(f'confirmar_fechar_{ob_nome}'):
                             st.warning(
-                                f"⚠️ Confirmas que queres fechar a obra **{ob_nome}**? "
+                                f"Confirmas que queres fechar a obra **{ob_nome}**? "
                                 f"Vai para o histórico."
                             )
                             col_sim, col_nao = st.columns(2)
                             with col_sim:
                                 if st.button(
-                                    "✅ Sim, fechar",
+                                    "Sim, fechar",
                                     key=f"sim_fechar_{ob_nome}",
                                     type="primary",
                                     use_container_width=True
@@ -170,24 +366,24 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     st.session_state.pop(
                                         f'confirmar_fechar_{ob_nome}', None
                                     )
-                                    st.success(f"✅ Obra '{ob_nome}' fechada e movida para histórico.")
-                                    st.rerun()
+                                    st.success(f"Obra '{ob_nome}' fechada e movida para histórico.")
+                                    st.rerun(scope="fragment")
                             with col_nao:
                                 if st.button(
-                                    "❌ Cancelar",
+                                    "Cancelar",
                                     key=f"nao_fechar_{ob_nome}",
                                     use_container_width=True
                                 ):
                                     st.session_state.pop(
                                         f'confirmar_fechar_{ob_nome}', None
                                     )
-                                    st.rerun()
+                                    st.rerun(scope="fragment")
 
     # ════════════════════════════════════════════════════════════════
     # TAB ALOCAÇÕES
     # ════════════════════════════════════════════════════════════════
     with tab_alocacoes:
-        st.markdown("#### 👷 Alocação de Colaboradores")
+        st.markdown("#### Alocação de Colaboradores")
 
         obras_ativas = obras_db[
             obras_db['Ativa'] == 'Ativa'
@@ -207,27 +403,71 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 key="aloc_tec"
             )
 
+        cargo_aloc  = ""
+        u_row_aloc  = None
+        if not users.empty and tec_aloc in users['Nome'].values:
+            u_row_aloc = users[users['Nome'] == tec_aloc].iloc[0]
+            cargo_aloc = str(u_row_aloc.get('Cargo', ''))
+
+        preco_hora_default = 15.0
+        if u_row_aloc is not None:
+            try:
+                preco_hora_default = float(str(u_row_aloc.get('PrecoHora', '')).replace(',', '.'))
+            except (ValueError, TypeError):
+                pass
+
+        # Função / Categoria Operacional — fonte única em usuarios.csv,
+        # sincronizada com RH › Dados Legais (substitui o texto "Cargo: X")
         col3, col4 = st.columns(2)
         with col3:
             preco_hora = st.number_input(
                 "Preço Hora na Obra (€)",
-                min_value=0.0, value=15.0, step=0.5,
-                key="aloc_preco"
+                min_value=0.0, value=preco_hora_default, step=0.5,
+                # Key por colaborador — recria o widget (com o novo valor
+                # por omissão) ao mudar de pessoa, em vez de manter o
+                # que ficou escrito para o colaborador anterior.
+                key=f"aloc_preco_{tec_aloc}"
             )
         with col4:
-            cargo_aloc = ""
-            if not users.empty and tec_aloc in users['Nome'].values:
-                cargo_aloc = str(
-                    users[users['Nome'] == tec_aloc]['Cargo'].values[0]
-                )
-            st.markdown(
-                f"<p style='color:#94A3B8;font-size:0.85rem;"
-                f"padding:28px 0 0;margin:0;'>Cargo: {cargo_aloc}</p>",
-                unsafe_allow_html=True
+            fc_f_aloc, fc_f_novo = lista_rh_select(
+                "Função", "funcao", f"aloc_fc_f_{tec_aloc}",
+                valor_atual=str(u_row_aloc.get('Funcao', ''))
+                            if u_row_aloc is not None else "",
+                em_uso=users['Funcao'] if 'Funcao' in users.columns else []
             )
+        col5, col6 = st.columns(2)
+        with col5:
+            fc_c_aloc, fc_c_novo = lista_rh_select(
+                "Categoria Operacional (interna)", "categoria_operacional",
+                f"aloc_fc_c_{tec_aloc}",
+                valor_atual=str(u_row_aloc.get('Categoria_Operacional', ''))
+                            if u_row_aloc is not None else "",
+                em_uso=users['Categoria_Operacional']
+                       if 'Categoria_Operacional' in users.columns else []
+            )
+        with col6:
+            st.markdown("<div style='height:28px;'></div>",
+                        unsafe_allow_html=True)
+            if st.button("Guardar Função/Categoria",
+                         key=f"aloc_fc_save_{tec_aloc}",
+                         use_container_width=True):
+                if (fc_f_novo and not fc_f_aloc) or (fc_c_novo and not fc_c_aloc):
+                    st.error("Introduz o novo valor antes de guardar.")
+                else:
+                    if fc_f_novo:
+                        fc_f_aloc = registar_valor_lista_rh("funcao", fc_f_aloc)
+                    if fc_c_novo:
+                        fc_c_aloc = registar_valor_lista_rh(
+                            "categoria_operacional", fc_c_aloc)
+                    if set_funcao_categoria(tec_aloc, funcao=fc_f_aloc,
+                                            categoria=fc_c_aloc):
+                        st.success("Função/Categoria Operacional guardadas.")
+                        st.rerun(scope="fragment")
+                    else:
+                        st.error("Erro ao guardar — verifica ligação ao GCS")
 
         if st.button(
-            "➕ Alocar Colaborador",
+            "Alocar Colaborador",
             key="btn_alocar", type="primary",
             use_container_width=True
         ):
@@ -243,7 +483,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
 
             if ja_alocado:
                 st.warning(
-                    f"⚠️ {tec_aloc} já está alocado à obra {obra_aloc}."
+                    f"{tec_aloc} já está alocado à obra {obra_aloc}."
                 )
             else:
                 nova_aloc = pd.DataFrame([{
@@ -259,17 +499,17 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 ) if not inst_acessos_db.empty else nova_aloc
                 save_db(inst_acessos_db, "inst_acessos.csv")
                 inv("inst_acessos.csv")
-                st.success(f"✅ {tec_aloc} alocado à obra {obra_aloc}!")
-                st.rerun()
+                st.success(f"{tec_aloc} alocado à obra {obra_aloc}!")
+                st.rerun(scope="fragment")
 
         # ── Colaboradores por obra ────────────────────────────────
         st.markdown("---")
-        st.markdown("#### 👥 Colaboradores por Obra")
+        st.markdown("#### Colaboradores por Obra")
 
         if not inst_acessos_db.empty and not obras_ativas:
-            st.info("📋 Sem obras ativas.")
+            st.info("Sem obras ativas.")
         elif inst_acessos_db.empty:
-            st.info("📋 Sem alocações.")
+            st.info("Sem alocações.")
         else:
             obra_ver = st.selectbox(
                 "Ver colaboradores da obra",
@@ -282,19 +522,19 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
             ] if not inst_acessos_db.empty else pd.DataFrame()
 
             if colabs_obra.empty:
-                st.info(f"📋 Sem colaboradores em {obra_ver}.")
+                st.info(f"Sem colaboradores em {obra_ver}.")
             else:
                 for _, colab in colabs_obra.iterrows():
                     col_ci, col_cm = st.columns([4, 1])
                     with col_ci:
                         st.markdown(
-                            f"<div style='background:#1E293B;border-radius:8px;"
+                            f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:8px;"
                             f"padding:10px 14px;margin-bottom:4px;'>"
-                            f"<b style='color:#F1F5F9;'>"
+                            f"<b style='color:{THEME['text']};'>"
                             f"{colab.get('Utilizador','')}</b>"
-                            f"<span style='float:right;color:#3B82F6;'>"
+                            f"<span style='float:right;color:{THEME['accent']};'>"
                             f"€ {colab.get('PrecoHora','')}/h</span><br>"
-                            f"<small style='color:#64748B;'>"
+                            f"<small style='color:{THEME['text_secondary']};'>"
                             f"{colab.get('Cargo','')} · "
                             f"Desde {colab.get('Data_Aloc','')}"
                             f"</small></div>",
@@ -303,7 +543,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                     with col_cm:
                         colab_idx = colab.name
                         if st.button(
-                            "🔄 Mover/Remover",
+                            "Mover/Remover",
                             key=f"mv_{colab_idx}",
                             use_container_width=True
                         ):
@@ -320,7 +560,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                 key=f"nova_obra_{colab_idx}"
                             )
                             if st.button(
-                                "✅ Mover",
+                                "Mover",
                                 key=f"confirmar_mv_{colab_idx}",
                                 type="primary",
                                 use_container_width=True
@@ -334,17 +574,17 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     f'acao_colab_{colab_idx}', None
                                 )
                                 st.success(
-                                    f"✅ {colab.get('Utilizador','')} "
+                                    f"{colab.get('Utilizador','')} "
                                     f"movido para {nova_obra_mv}!"
                                 )
-                                st.rerun()
+                                st.rerun(scope="fragment")
                         with col_rm:
                             st.markdown(
                                 "<div style='height:28px;'></div>",
                                 unsafe_allow_html=True
                             )
                             if st.button(
-                                "❌ Remover da Obra",
+                                "Remover da Obra",
                                 key=f"remover_{colab_idx}",
                                 use_container_width=True
                             ):
@@ -357,31 +597,31 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                                     f'acao_colab_{colab_idx}', None
                                 )
                                 st.success(
-                                    f"✅ {colab.get('Utilizador','')} "
+                                    f"{colab.get('Utilizador','')} "
                                     f"removido de {obra_ver}."
                                 )
-                                st.rerun()
+                                st.rerun(scope="fragment")
 
     # ════════════════════════════════════════════════════════════════
     # TAB HISTÓRICO
     # ════════════════════════════════════════════════════════════════
     with tab_historico:
-        st.markdown("#### 📜 Obras Fechadas")
+        st.markdown("#### Obras Fechadas")
 
         if obras_historico.empty:
-            st.info("📋 Sem obras no histórico.")
+            st.info("Sem obras no histórico.")
         else:
             for _, ob_h in obras_historico.sort_values(
                 'DataFecho', ascending=False
             ).iterrows():
                 st.markdown(
-                    f"<div style='background:#1E293B;border-radius:10px;"
+                    f"<div style='background:{THEME['surface']};border:1px solid {THEME['border']};border-radius:10px;"
                     f"padding:12px 16px;margin-bottom:8px;"
-                    f"border-left:4px solid #6B7280;'>"
-                    f"<b style='color:#94A3B8;'>{ob_h.get('Obra','')}</b>"
-                    f"<span style='float:right;color:#6B7280;"
-                    f"font-size:0.8rem;'>⚫ Fechada</span><br>"
-                    f"<small style='color:#64748B;'>"
+                    f"border-left:4px solid {THEME['text_secondary']};'>"
+                    f"<b style='color:{THEME['text']};'>{ob_h.get('Obra','')}</b>"
+                    f"<span style='float:right;color:{THEME['text_secondary']};"
+                    f"font-size:0.8rem;'>Fechada</span><br>"
+                    f"<small style='color:{THEME['text_secondary']};'>"
                     f"{ob_h.get('Cliente','')} · {ob_h.get('TipoObra','')} · "
                     f"{ob_h.get('Local','')} · "
                     f"Início: {ob_h.get('DataInicio','')} · "
@@ -393,7 +633,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
 
             # Reativar obra do histórico
             st.markdown("---")
-            st.markdown("#### 🔄 Reativar Obra")
+            st.markdown("#### Reativar Obra")
             obras_hist_lista = obras_historico['Obra'].tolist()
             obra_reativar    = st.selectbox(
                 "Selecionar obra para reativar",
@@ -401,7 +641,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 key="obra_reativar"
             )
             if st.button(
-                "🔄 Reativar Obra",
+                "Reativar Obra",
                 key="btn_reativar",
                 use_container_width=True
             ):
@@ -414,5 +654,5 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 save_db(obras_db,        "obras_lista.csv")
                 save_db(obras_historico, "obras_historico.csv")
                 inv("obras_lista.csv"); inv("obras_historico.csv")
-                st.success(f"✅ Obra '{obra_reativar}' reativada!")
-                st.rerun()
+                st.success(f"Obra '{obra_reativar}' reativada!")
+                st.rerun(scope="fragment")
