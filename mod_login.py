@@ -93,11 +93,70 @@ def _render_forcar_reset_password():
                 st.error("Ocorreu um erro a localizar a conta. Tenta entrar novamente.")
                 st.rerun()
 
+def _completar_login_antigo(row):
+    """Login bem-sucedido pela via antiga (por Nome). Enquanto durar a
+    transição, quem já tiver Número de colaborador atribuído vê-o em
+    destaque antes de entrar, para o aprender sem ser preciso
+    contactá-lo um a um. Quem ainda não tiver número (ex. duplicado
+    por resolver) entra normalmente, sem o passo extra."""
+    numero = str(row.get('Numero_Colaborador', '')).strip()
+    if numero:
+        st.session_state['_pendente_login'] = {
+            "nome":   row['Nome'].strip(),
+            "tipo":   row.get('Tipo', 'Técnico').strip(),
+            "cargo":  row.get('Cargo', 'Técnico').strip(),
+            "numero": numero,
+        }
+        st.rerun()
+    else:
+        st.session_state['user']          = row['Nome'].strip()
+        st.session_state['tipo']          = row.get('Tipo', 'Técnico').strip()
+        st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()
+        st.session_state['last_activity'] = datetime.now()
+        st.session_state['menu_selected'] = ''
+        st.success("Login bem-sucedido!")
+        st.balloons()
+        st.rerun()
+
+def _render_banner_numero():
+    """Ecrã intermédio (rollout Fase 1): mostra o Número de colaborador
+    a quem entrou pela via antiga, antes de completar a sessão."""
+    pendente = st.session_state.get('_pendente_login', {})
+    st.success(f"Login bem-sucedido, {pendente.get('nome','')}!")
+    st.markdown(
+        f"<div style='background:{THEME['surface']};border:2px solid {THEME['accent']};"
+        f"border-radius:{THEME['radius']};padding:24px;text-align:center;margin:16px 0;'>"
+        f"<p style='color:{THEME['text_secondary']};font-size:0.85rem;margin:0 0 8px;'>"
+        "O teu número de colaborador é</p>"
+        f"<p style='color:{THEME['text']};font-size:2.2rem;font-weight:800;"
+        f"letter-spacing:0.1em;margin:0 0 8px;'>{pendente.get('numero','')}</p>"
+        f"<p style='color:{THEME['text_secondary']};font-size:0.82rem;margin:0;'>"
+        "Grava-o — vais precisar dele para entrar quando este acesso por "
+        "Nome deixar de existir.</p></div>",
+        unsafe_allow_html=True
+    )
+    if st.button("Continuar", key="btn_continuar_banner_numero",
+                 use_container_width=True, type="primary"):
+        st.session_state['user']          = pendente.get('nome', '')
+        st.session_state['tipo']          = pendente.get('tipo', 'Técnico')
+        st.session_state['cargo']         = pendente.get('cargo', 'Técnico')
+        st.session_state['last_activity'] = datetime.now()
+        st.session_state['menu_selected'] = ''
+        del st.session_state['_pendente_login']
+        st.rerun()
+
 def render_login():
     if st.session_state.get('_forcar_reset_numero'):
         st.markdown("<div class='login-wrap'><div class='login-card'>",
                     unsafe_allow_html=True)
         _render_forcar_reset_password()
+        st.markdown("</div></div>", unsafe_allow_html=True)
+        return
+
+    if st.session_state.get('_pendente_login'):
+        st.markdown("<div class='login-wrap'><div class='login-card'>",
+                    unsafe_allow_html=True)
+        _render_banner_numero()
         st.markdown("</div></div>", unsafe_allow_html=True)
         return
 
@@ -308,17 +367,9 @@ def render_login():
                                     "Contacta o administrador."
                                 )
                             elif cp(password_clean, pwd_hash):
-                                # ✅ Login bem-sucedido
-                                st.session_state['user']          = user_match['Nome'].strip()
-                                st.session_state['tipo']          = user_match.get('Tipo', 'Técnico').strip()
-                                st.session_state['cargo']         = user_match.get('Cargo', 'Técnico').strip()
-                                st.session_state['last_activity'] = datetime.now()
-                                st.session_state['menu_selected'] = ''
                                 # Limpar contadores de erro
                                 st.session_state['login_tentativas'] = 0
-                                st.success("Login bem-sucedido!")
-                                st.balloons()
-                                st.rerun()
+                                _completar_login_antigo(user_match)
                             else:
                                 st.error("Password incorreta.")
                                 tentativas = st.session_state.get('login_tentativas', 0) + 1
@@ -381,13 +432,7 @@ def render_login():
                             row = nome_matches.iloc[0]
                             pin_hash = str(row.get('PIN', '')).strip()
                             if pin_hash and cp(pin_clean, pin_hash):
-                                st.session_state['user']          = row['Nome'].strip()
-                                st.session_state['tipo']          = row.get('Tipo', 'Técnico').strip()
-                                st.session_state['cargo']         = row.get('Cargo', 'Técnico').strip()
-                                st.session_state['last_activity'] = datetime.now()
-                                st.session_state['menu_selected'] = ''
-                                st.success("Login com PIN bem-sucedido!")
-                                st.rerun()
+                                _completar_login_antigo(row)
                             else:
                                 st.error("PIN incorreto.")
 

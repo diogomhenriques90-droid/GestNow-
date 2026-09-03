@@ -42,6 +42,16 @@ def _script_com_reset_pendente(numero):
     render_login()
 
 
+def _script_com_pendente_login(pendente):
+    import streamlit as st
+    st.session_state.setdefault('_fv', {})
+    if not st.session_state.get('_ja_semeado_pendente'):
+        st.session_state['_pendente_login']     = pendente
+        st.session_state['_ja_semeado_pendente'] = True
+    from mod_login import render_login
+    render_login()
+
+
 def _script():
     import streamlit as st
     st.session_state.setdefault('_fv', {})
@@ -457,6 +467,82 @@ class TestForcarResetPasswordCurta(unittest.TestCase):
         self.assertNotIn("_forcar_reset_numero", at.session_state)
         conteudo = writes["usuarios.csv"].decode("utf-8-sig")
         self.assertIn("$2b$", conteudo)
+
+
+class TestBannerNumeroViaAntiga(unittest.TestCase):
+    """Fase 1 (rollout): quem entra pela via antiga (por Nome) e já tem
+    Número de colaborador atribuído vê-o em destaque antes de a sessão
+    ficar completa — para o aprender sem ser preciso contactá-lo um a
+    um. Quem ainda não tiver número entra normalmente."""
+
+    PWD = "passwordLonga123"
+    PIN = "9876"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.csv_com_numero = (
+            "Nome,Password,PIN,Tipo,Cargo,Numero_Colaborador\n"
+            f"Rui Costa,{hp(cls.PWD)},{hp(cls.PIN)},Admin,Administrador,45678\n"
+        ).encode("utf-8-sig")
+        cls.csv_sem_numero = (
+            "Nome,Password,PIN,Tipo,Cargo,Numero_Colaborador\n"
+            f"Rui Costa,{hp(cls.PWD)},{hp(cls.PIN)},Admin,Administrador,\n"
+        ).encode("utf-8-sig")
+
+    def _login_password_antigo(self, csv):
+        core._cached_load_db.clear()
+        with patch("mod_login._gcs_read", return_value=io.BytesIO(csv)):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="login_u1").set_value("Rui Costa").run()
+            at.text_input(key="login_p1").set_value(self.PWD).run()
+            at.button(key="FormSubmitter:form_login_pwd-ENTRAR").click().run()
+        return at
+
+    def test_com_numero_mostra_banner_antes_de_completar_sessao(self):
+        at = self._login_password_antigo(self.csv_com_numero)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertNotIn("user", at.session_state)
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn("45678", textos)
+
+    def test_continuar_completa_a_sessao(self):
+        # Parte já do banner pendente (pré-semeado), pela mesma razão
+        # documentada em _script_com_reset_pendente — encadear a partir
+        # do formulário de login no mesmo `at` tenta reidratar widgets
+        # (login_u1/login_p1) que já não existem na árvore do banner.
+        pendente = {"nome": "Rui Costa", "tipo": "Admin",
+                    "cargo": "Administrador", "numero": "45678"}
+        core._cached_load_db.clear()
+        with patch("mod_login._gcs_read", return_value=io.BytesIO(self.csv_com_numero)):
+            at = AppTest.from_function(
+                _script_com_pendente_login, args=(pendente,), default_timeout=30)
+            at.run()
+            at.button(key="btn_continuar_banner_numero").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertEqual(at.session_state["user"], "Rui Costa")
+        self.assertNotIn("_pendente_login", at.session_state)
+
+    def test_sem_numero_entra_diretamente_sem_banner(self):
+        at = self._login_password_antigo(self.csv_sem_numero)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertEqual(at.session_state["user"], "Rui Costa")
+        self.assertNotIn("_pendente_login", at.session_state)
+
+    def test_via_pin_tambem_mostra_banner(self):
+        core._cached_load_db.clear()
+        with patch("mod_login._gcs_read", return_value=io.BytesIO(self.csv_com_numero)):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="login_u2").set_value("Rui Costa").run()
+            at.text_input(key="login_p2").set_value(self.PIN).run()
+            at.button(key="FormSubmitter:form_login_pin-ENTRAR COM PIN").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertNotIn("user", at.session_state)
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn("45678", textos)
 
 
 if __name__ == "__main__":
