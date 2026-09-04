@@ -1017,6 +1017,7 @@ def _cached_load_all(_versions):
     """Backend cacheado de load_all. _versions força cache miss quando qualquer ficheiro muda."""
     users = load_db("usuarios.csv", [
         "Nome", "Password", "Tipo", "Email", "Telefone", "Cargo",
+        "Numero_Colaborador", "Bloqueado", "Bloqueado_Em",
         "Funcao", "Categoria_Operacional",
         "NIF", "NISS", "CC", "CC_Validade", "DataNasc", "Nacionalidade",
         "Morada", "Localidade", "Concelho", "Codigo_Postal", "Naturalidade",
@@ -1232,6 +1233,77 @@ def cp(p, h):
     except Exception as e:
         logger.warning(f"⚠️ Erro na verificação: {e}")
         return False
+
+def gerar_numero_colaborador(existentes):
+    """Gera um número de colaborador novo para login: 5 dígitos
+    (10000-99999), aleatório (não sequencial — não revela quantos
+    colaboradores existem nem a ordem de admissão), garantidamente
+    único face a `existentes`."""
+    existentes = {str(n).strip() for n in existentes if str(n).strip()}
+    while True:
+        candidato = str(secrets.randbelow(90000) + 10000)
+        if candidato not in existentes:
+            return candidato
+
+# ── Bloqueio de login por tentativas falhadas ───────────────────────────────
+# login_tentativas.csv regista tentativas falhadas por Número tentado —
+# EXISTA ou não uma conta real com esse número — para que a resposta
+# externa nunca distinga um número real de um inventado (ver
+# criar_admin.py/mod_login.py: mensagem de erro sempre genérica).
+_LOGIN_TENTATIVAS_COLS = ["Numero", "Timestamp"]
+
+def registar_tentativa_login(numero):
+    """Regista uma tentativa de login falhada para `numero`. Ficheiro
+    não crítico — sem guarda de perda de registos; poda entradas com
+    mais de 24h para não crescer sem controlo."""
+    df = load_db("login_tentativas.csv", _LOGIN_TENTATIVAS_COLS, silent=True)
+    agora = datetime.now()
+    if not df.empty:
+        ts = pd.to_datetime(df["Timestamp"], format="%d/%m/%Y %H:%M:%S", errors="coerce")
+        df = df[ts >= agora - timedelta(hours=24)]
+    nova = pd.DataFrame([{
+        "Numero": str(numero).strip(),
+        "Timestamp": agora.strftime("%d/%m/%Y %H:%M:%S"),
+    }])
+    df = pd.concat([df, nova], ignore_index=True)
+    save_db(df, "login_tentativas.csv")
+
+def contar_falhas_recentes(numero, janela_minutos=30):
+    """Conta quantas tentativas falhadas há para `numero` nos últimos
+    `janela_minutos` — a contagem decai sozinha fora da janela."""
+    df = load_db("login_tentativas.csv", _LOGIN_TENTATIVAS_COLS, silent=True)
+    if df.empty:
+        return 0
+    df = df[df["Numero"].astype(str).str.strip() == str(numero).strip()]
+    if df.empty:
+        return 0
+    agora = datetime.now()
+    ts = pd.to_datetime(df["Timestamp"], format="%d/%m/%Y %H:%M:%S", errors="coerce")
+    return int((ts >= agora - timedelta(minutes=janela_minutos)).sum())
+
+def limpar_tentativas_login(numero):
+    """Limpa o histórico de tentativas de `numero` — chamado quando o
+    Admin desbloqueia uma conta, para um recomeço limpo."""
+    df = load_db("login_tentativas.csv", _LOGIN_TENTATIVAS_COLS, silent=True)
+    if df.empty:
+        return
+    df = df[df["Numero"].astype(str).str.strip() != str(numero).strip()]
+    save_db(df, "login_tentativas.csv")
+
+def bloquear_conta_por_numero(numero, df_users):
+    """Marca como bloqueada a conta com este Numero_Colaborador, se
+    existir uma. Devolve True se uma conta real foi bloqueada, False
+    se o número não corresponde a ninguém — o chamador usa isto só
+    para decidir se dispara notificação/email, nunca para variar a
+    mensagem mostrada à pessoa que tentou entrar."""
+    mask = df_users["Numero_Colaborador"].astype(str).str.strip() == str(numero).strip()
+    if not mask.any():
+        return False
+    df_users.loc[mask, "Bloqueado"]    = "Sim"
+    df_users.loc[mask, "Bloqueado_Em"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    save_db(df_users, "usuarios.csv")
+    inv("usuarios.csv")
+    return True
 
 # =============================================================================
 # COMPONENTES UI

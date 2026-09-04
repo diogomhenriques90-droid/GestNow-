@@ -11,7 +11,7 @@ from core import (
     cliente_select, registar_cliente_do_select,
     obra_select, get_cliente_da_obra,
     lista_rh_select, registar_valor_lista_rh, set_funcao_categoria,
-    THEME
+    THEME, _norm_nome_cliente, limpar_tentativas_login
 )
 
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
@@ -803,7 +803,7 @@ def render_admin_rh(*args):
                         key="nc_tel", placeholder="9XXXXXXXX")
                     novo_pwd  = st.text_input("Password *",
                         key="nc_pwd", type="password",
-                        placeholder="Mínimo 4 caracteres")
+                        placeholder="Mínimo 8 caracteres")
 
                 # Cargo dinâmico baseado no tipo
                 cargos_disp = CARGOS_POR_TIPO.get(novo_tipo, ["Outro"])
@@ -827,7 +827,7 @@ def render_admin_rh(*args):
                     novo_nif    = st.text_input("NIF (opcional na criação)",
                         key="nc_nif")
                     novo_preco  = st.number_input("Preço Hora (€)",
-                        min_value=0.0, value=15.0, step=0.5,
+                        min_value=0.0, value=0.0, step=0.5,
                         key="nc_preco")
                 with c6:
                     novo_email  = st.text_input("Email",
@@ -853,8 +853,8 @@ def render_admin_rh(*args):
                 erros = []
                 if not novo_nome.strip():   erros.append("Nome Completo")
                 if not novo_tel.strip():    erros.append("Contacto")
-                if not novo_pwd.strip() or len(novo_pwd.strip()) < 4:
-                    erros.append("Password (mínimo 4 caracteres)")
+                if not novo_pwd.strip() or len(novo_pwd.strip()) < 8:
+                    erros.append("Password (mínimo 8 caracteres)")
                 if not novo_local.strip():  erros.append("Local da Obra")
                 novo_cliente = get_cliente_da_obra(novo_local)
                 if not novo_cliente:         erros.append("Cliente (a Obra escolhida não tem Cliente associado)")
@@ -862,9 +862,13 @@ def render_admin_rh(*args):
                 if erros:
                     st.error(f"Campos obrigatórios em falta: {', '.join(erros)}")
                 else:
-                    # Verificar nome duplicado
-                    if not users_live.empty and \
-                       novo_nome.strip() in users_live['Nome'].values:
+                    # Verificar nome duplicado (normalizado — maiúsculas/
+                    # acentos/espaços a mais não escondem um duplicado)
+                    nomes_existentes = {
+                        _norm_nome_cliente(n) for n in users_live['Nome'].astype(str)
+                        if n.strip()
+                    } if not users_live.empty else set()
+                    if _norm_nome_cliente(novo_nome) in nomes_existentes:
                         st.error(f"Já existe um colaborador com o nome '{novo_nome.strip()}'")
                     else:
                         novo_id  = str(uuid.uuid4())[:8].upper()
@@ -1335,15 +1339,15 @@ def render_admin_rh(*args):
         with st.expander("Redefinir Password"):
             nova_pwd_admin = st.text_input(
                 "Nova Password *", type="password", key="rh_nova_pwd_admin",
-                placeholder="Mínimo 4 caracteres")
+                placeholder="Mínimo 8 caracteres")
             conf_pwd_admin = st.text_input(
                 "Confirmar Password *", type="password", key="rh_conf_pwd_admin")
             if st.button("Redefinir Password", key="btn_redef_pwd",
                          type="primary"):
                 if not nova_pwd_admin.strip():
                     st.error("Introduz uma nova password.")
-                elif len(nova_pwd_admin.strip()) < 4:
-                    st.error("Mínimo 4 caracteres.")
+                elif len(nova_pwd_admin.strip()) < 8:
+                    st.error("Mínimo 8 caracteres.")
                 elif nova_pwd_admin != conf_pwd_admin:
                     st.error("As passwords não coincidem.")
                 else:
@@ -1361,6 +1365,72 @@ def render_admin_rh(*args):
                                   registro_id=nome_sel,
                                   detalhes="Password redefinida pelo Admin")
                         st.success(f"Password de {nome_sel} redefinida.")
+                        st.rerun()
+
+        # ── Redefinir PIN ────────────────────────────────────────────
+        st.markdown("---")
+        with st.expander("Redefinir PIN"):
+            st.markdown(
+                f"<p style='color:{THEME['text_secondary']}; font-size:0.8rem;'>"
+                f"ID: <code>{row.get('ID','—') or '—'}</code> &nbsp;·&nbsp; "
+                f"Número de colaborador: <code>{row.get('Numero_Colaborador','—') or '—'}</code>"
+                f"</p>",
+                unsafe_allow_html=True
+            )
+            novo_pin_admin = st.text_input(
+                "Novo PIN (4 dígitos) *", type="password", max_chars=4,
+                key="rh_novo_pin_admin", placeholder="0000")
+            conf_pin_admin = st.text_input(
+                "Confirmar PIN *", type="password", max_chars=4,
+                key="rh_conf_pin_admin")
+            if st.button("Redefinir PIN", key="btn_redef_pin",
+                         type="primary"):
+                if len(novo_pin_admin.strip()) != 4 or not novo_pin_admin.strip().isdigit():
+                    st.error("O PIN deve ter exatamente 4 dígitos numéricos.")
+                elif novo_pin_admin != conf_pin_admin:
+                    st.error("Os PINs não coincidem.")
+                else:
+                    u_pin = _load_users_fresh()
+                    mk_pin = u_pin["Nome"] == nome_sel
+                    if mk_pin.any():
+                        u_pin.loc[mk_pin, "PIN"] = hp(novo_pin_admin.strip())
+                        save_db(u_pin, "usuarios.csv")
+                        inv("usuarios.csv")
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        log_audit(usuario=st.session_state.get("user","admin"),
+                                  acao="REDEFINIR_PIN",
+                                  tabela="usuarios.csv",
+                                  registro_id=nome_sel,
+                                  detalhes="PIN redefinido pelo Admin")
+                        st.success(f"PIN de {nome_sel} redefinido.")
+                        st.rerun()
+
+            if str(row.get("Bloqueado", "")).strip().lower() == "sim":
+                st.markdown("---")
+                st.warning(
+                    f"Conta bloqueada em {row.get('Bloqueado_Em','') or 'data desconhecida'} "
+                    "por tentativas de login falhadas."
+                )
+                if st.button("Desbloquear conta", key="btn_desbloquear_conta"):
+                    u_desb = _load_users_fresh()
+                    mk_desb = u_desb["Nome"] == nome_sel
+                    if mk_desb.any():
+                        u_desb.loc[mk_desb, "Bloqueado"]    = ""
+                        u_desb.loc[mk_desb, "Bloqueado_Em"] = ""
+                        save_db(u_desb, "usuarios.csv")
+                        inv("usuarios.csv")
+                        numero_desb = str(row.get("Numero_Colaborador", "")).strip()
+                        if numero_desb:
+                            limpar_tentativas_login(numero_desb)
+                        from core import _cached_load_all
+                        _cached_load_all.clear()
+                        log_audit(usuario=st.session_state.get("user","admin"),
+                                  acao="DESBLOQUEAR_CONTA",
+                                  tabela="usuarios.csv",
+                                  registro_id=nome_sel,
+                                  detalhes="Conta desbloqueada pelo Admin")
+                        st.success(f"Conta de {nome_sel} desbloqueada.")
                         st.rerun()
 
         # ── Remover ou Lista Negra ────────────────────────────────

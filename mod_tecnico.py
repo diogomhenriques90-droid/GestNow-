@@ -1576,17 +1576,17 @@ def render_tecnico(*args):
                                 from core import cp as chk
                                 ph = str(ul.loc[m, 'Password'].values[0])
                                 if chk(pa_.strip(), ph):
-                                    if len(pn_.strip()) >= 4:
+                                    if len(pn_.strip()) >= 8:
                                         ul.loc[m, 'Password'] = hp(pn_.strip())
                                         st.success("Password atualizada!")
                                     else:
-                                        st.error("Mínimo 4 caracteres.")
+                                        st.error("Mínimo 8 caracteres.")
                                 else:
                                     st.error("Password atual incorreta.")
                             if pin_.strip():
                                 if (len(pin_.strip()) == 4
                                         and pin_.strip().isdigit()):
-                                    ul.loc[m, 'PIN'] = pin_.strip()
+                                    ul.loc[m, 'PIN'] = hp(pin_.strip())
                                 else:
                                     st.error("PIN: 4 dígitos numéricos.")
                             save_db(ul, "usuarios.csv")
