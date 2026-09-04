@@ -276,7 +276,10 @@ class TestEditarObra(unittest.TestCase):
 class TestAlocacaoPrecoHoraAutoPreenchido(unittest.TestCase):
     """Fase 3 do Painel de Obra (campos operacionais): o "Preço Hora na
     Obra" passa a assumir por omissão o PrecoHora real do colaborador
-    selecionado (usuarios.csv), continuando editável (override manual)."""
+    selecionado (usuarios.csv), continuando editável (override manual).
+    Quando o colaborador não tem PrecoHora válido, o campo arranca a 0
+    (em vez do antigo default mágico de 15) e a gravação fica bloqueada
+    enquanto o preço estiver a 0 — obriga a preenchimento deliberado."""
 
     @classmethod
     def setUpClass(cls):
@@ -318,7 +321,7 @@ class TestAlocacaoPrecoHoraAutoPreenchido(unittest.TestCase):
         df_gravado = mock_save.call_args[0][0]
         self.assertEqual(df_gravado.iloc[0]["PrecoHora"], 30.0)
 
-    def test_colaborador_sem_precohora_valido_usa_15(self):
+    def test_colaborador_sem_precohora_valido_arranca_a_zero(self):
         users_sem_preco = [{
             "Nome": "Colaborador Sem Preco", "Cargo": "Técnico",
             "PrecoHora": "", "Funcao": "", "Categoria_Operacional": "",
@@ -333,7 +336,53 @@ class TestAlocacaoPrecoHoraAutoPreenchido(unittest.TestCase):
                 default_timeout=30)
             at.run()
         campo = at.number_input(key="aloc_preco_Colaborador Sem Preco")
-        self.assertEqual(campo.value, 15.0)
+        self.assertEqual(campo.value, 0.0)
+
+    def test_alocar_com_preco_a_zero_bloqueia_gravacao(self):
+        users_sem_preco = [{
+            "Nome": "Colaborador Sem Preco", "Cargo": "Técnico",
+            "PrecoHora": "", "Funcao": "", "Categoria_Operacional": "",
+        }]
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("streamlit.rerun"), \
+             patch("mod_admin_obras.save_db") as mock_save:
+            core._cached_load_db.clear()
+            at = AppTest.from_function(
+                _script_com_obra_e_users,
+                args=(_OBRAS_RECORDS, users_sem_preco),
+                default_timeout=30)
+            at.run()
+            at.button(key="btn_alocar").click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertFalse(mock_save.called)
+        textos_erro = " ".join(m.value for m in at.error)
+        self.assertIn("preço", textos_erro.lower())
+
+    def test_alocar_com_preco_preenchido_manualmente_grava(self):
+        users_sem_preco = [{
+            "Nome": "Colaborador Sem Preco", "Cargo": "Técnico",
+            "PrecoHora": "", "Funcao": "", "Categoria_Operacional": "",
+        }]
+        with patch("mod_admin_obras.load_db", side_effect=_fake_load_db), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("streamlit.rerun"), \
+             patch("mod_admin_obras.save_db") as mock_save:
+            mock_save.return_value = True
+            core._cached_load_db.clear()
+            at = AppTest.from_function(
+                _script_com_obra_e_users,
+                args=(_OBRAS_RECORDS, users_sem_preco),
+                default_timeout=30)
+            at.run()
+            at.number_input(key="aloc_preco_Colaborador Sem Preco").set_value(18.0).run()
+            at.button(key="btn_alocar").click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertTrue(mock_save.called)
+        df_gravado = mock_save.call_args[0][0]
+        self.assertEqual(df_gravado.iloc[0]["PrecoHora"], 18.0)
 
 
 def _script_com_obra_e_equipa(obras_records, inst_acessos_records):

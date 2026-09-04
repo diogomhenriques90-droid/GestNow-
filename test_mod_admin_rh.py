@@ -556,6 +556,51 @@ class TestCriarColaboradorObraReal(unittest.TestCase):
         mock_write.assert_not_called()
 
 
+class TestCriarColaboradorPrecoHoraSemDefaultMagico(unittest.TestCase):
+    """O campo "Preço Hora (€)" no formulário de criar colaborador deixa
+    de arrancar a 15 (valor mágico que se confundia com preços reais
+    negociados a €15/h — ver alocações). Passa a arrancar a 0. Ao
+    contrário da Alocação (mod_admin_obras.py), este campo continua
+    dentro de "Dados opcionais" — não bloqueia a criação do colaborador
+    ficar a 0, só deixa de sugerir um valor que ninguém escolheu."""
+
+    def test_campo_arranca_a_zero(self):
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(_script_criar, default_timeout=30)
+            at.run()
+        campo = at.number_input(key="nc_preco")
+        self.assertEqual(campo.label, "Preço Hora (€)")
+        self.assertEqual(campo.value, 0.0)
+
+    def test_criar_colaborador_com_preco_a_zero_nao_bloqueia(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script_criar, default_timeout=30)
+            at.run()
+            at.text_input(key="nc_nome").set_value("Preco Zero Teste").run()
+            at.text_input(key="nc_tel").set_value("911111111").run()
+            at.text_input(key="nc_pwd").set_value("segredo123").run()
+            at.selectbox(key="nc_local").set_value("Obra Real Y").run()
+            at.button(
+                key="FormSubmitter:form_criar_colab-Criar Colaborador"
+            ).click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        gravado = writes.get("usuarios.csv", b"")
+        self.assertIn(b"Preco Zero Teste", gravado)
+
+
 class TestCriarColaboradorNomeDuplicado(unittest.TestCase):
     """Fase 0: a verificação de nome duplicado no "Criar Colaborador"
     passou a normalizar (via `_norm_nome_cliente`, reaproveitada de

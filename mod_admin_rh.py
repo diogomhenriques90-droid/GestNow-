@@ -827,7 +827,7 @@ def render_admin_rh(*args):
                     novo_nif    = st.text_input("NIF (opcional na criação)",
                         key="nc_nif")
                     novo_preco  = st.number_input("Preço Hora (€)",
-                        min_value=0.0, value=15.0, step=0.5,
+                        min_value=0.0, value=0.0, step=0.5,
                         key="nc_preco")
                 with c6:
                     novo_email  = st.text_input("Email",

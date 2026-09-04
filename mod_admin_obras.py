@@ -409,7 +409,7 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
             u_row_aloc = users[users['Nome'] == tec_aloc].iloc[0]
             cargo_aloc = str(u_row_aloc.get('Cargo', ''))
 
-        preco_hora_default = 15.0
+        preco_hora_default = 0.0
         if u_row_aloc is not None:
             try:
                 preco_hora_default = float(str(u_row_aloc.get('PrecoHora', '')).replace(',', '.'))
@@ -481,7 +481,11 @@ def render_obras(obras_db, frentes_db, users, inst_acessos_db):
                 ]
                 ja_alocado = not check.empty
 
-            if ja_alocado:
+            if preco_hora <= 0:
+                st.error(
+                    "Define o preço/hora antes de alocar — não pode ficar a 0."
+                )
+            elif ja_alocado:
                 st.warning(
                     f"{tec_aloc} já está alocado à obra {obra_aloc}."
                 )
