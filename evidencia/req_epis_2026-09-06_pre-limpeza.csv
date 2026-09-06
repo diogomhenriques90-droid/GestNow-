@@ -1,0 +1,5 @@
+﻿ID,Data,Solicitante,Obra,Item,Tamanho,Quantidade,Descricao,Status,Data_Validacao,Validado_Por,Data_Envio,Enviado_Por
+RE81571060,24/03/2026,Alexandre Reis,Basf,Capacete,M,,,Rejeitado,,,,
+1C36D448,04/05/2026 14:13,Alexandre Reis,Basf,Arnés,M,,,Enviado,,,05/06/2026 15:23,Admin
+A83B32FE,05/05/2026 13:01,Renato Santos,Basf,Luvas,M,,,Enviado,05/05/2026 13:28,Admin,17/06/2026 08:44,Mauricio Figueiredo
+7B2C21BF,12/05/2026 13:54,Cleudir Rodrigues,Sines,Luvas,G,1,,Aprovado,15/06/2026 09:53,Mauricio Figueiredo,,
