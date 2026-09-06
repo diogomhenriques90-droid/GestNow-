@@ -510,9 +510,9 @@ def render_chefe(*args):
     # ── KPIs ──────────────────────────────────────────────────────────────────
     inicio_mes = hoje.replace(day=1)
     obras_chefe = []
-    if not inst_acessos_db.empty and 'Utilizador' in inst_acessos_db.columns:
-        obras_chefe = inst_acessos_db[
-            inst_acessos_db['Utilizador'] == user_nome
+    if not obras_db.empty and 'Responsavel_Equipa' in obras_db.columns:
+        obras_chefe = obras_db[
+            obras_db['Responsavel_Equipa'].str.strip() == user_nome
         ]['Obra'].tolist()
 
     regs_equipa = pd.DataFrame()
