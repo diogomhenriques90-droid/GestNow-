@@ -89,3 +89,36 @@ Como o cps-ponto, segundo a informação recebida, também já tem uma parte do 
 ## Nota final
 
 Esta auditoria foi feita inteiramente por leitura — código-fonte deste repositório e dados reais em produção descarregados temporariamente e apagados após a análise. Não foi escrito nem alterado nada em produção, em código, ou no cps-ponto. Alguns dos achados (sobretudo a hipótese de o cps-ponto escrever diretamente no mesmo `registos.csv`, e a ambiguidade sobre onde acontece cada etapa de validação) dependem de confirmação de quem opera ou conhece melhor o cps-ponto — recomenda-se validar isso antes de decidir seja o que for sobre descontinuar qualquer uma das partes.
+
+---
+
+## Aprofundamento — coluna Data e identificação da pessoa (06/09/2026)
+
+Segunda fase da auditoria, focada especificamente no tamanho do problema da data vazia e da identificação da pessoa em `registos.csv`. Feita por leitura direta aos 10 backups diários disponíveis (22/05 a 01/09/2026), ao ficheiro atual, e a `colaboradores_rh.csv`. Nada foi alterado; ficheiros temporários apagados após a análise.
+
+### Exposição de horas e pessoas
+
+- Dos 79 registos, **68 já passaram pelo menos a primeira validação** (Status 1/2/3/4) — ou seja, já estão numa fase em que entrariam no cálculo de um recibo de vencimento se este fosse gerado.
+- Desses 68, **100% têm pelo menos um dos dois problemas** (data vazia, nome não reconhecido em `colaboradores_rh.csv`, ou ambos). Não sobra nenhum registo limpo.
+- No total: **408,5 horas**, envolvendo **11 das 12 pessoas** que aparecem no ficheiro (a 12ª, Mauricio Figueiredo, só tem um registo e ainda está pendente).
+- **22 registos (148,5 horas, 7 pessoas** — Cesar Flor, Cleudir Rodrigues, Patrícia Oliveira, Rafael Correia, Rafael Santos, Renato Santos, Shayan Shafie) têm **os dois problemas ao mesmo tempo**: mesmo corrigindo a data, o nome continua sem correspondência em RH.
+- Jorge Oliveira é quem tem mais horas expostas: 137,5h.
+- O GestNow não guarda registo de que recibos já foram gerados/entregues no passado (o cálculo é "ao vivo", nunca fica gravado como "emitido") — por isso não é possível confirmar com certeza se já houve pagamento a menos, só que a exposição estrutural é total para quem já passou a primeira validação.
+
+### Recuperabilidade das datas a partir dos backups
+
+- **16 de 79** registos podem ser reconstruídos com confiança (valor único e consistente em todo o histórico de backups).
+- **1** já tem data, mas corrompida (troca dia/mês entre gravações sucessivas) — não é possível saber qual das duas leituras é a verdadeira só pelos dados.
+- **62** nunca apareceram com nenhuma data em nenhum dos 10 backups disponíveis — para esses, a informação não existe em lado nenhum a que tenhamos acesso; estão perdidos, a menos que se confirme por outra via (a própria pessoa, relatório de obra, cliente).
+- Nota: 18 dos 79 registos não têm identificador único (anteriores à introdução do sistema de ID), e alguns são fisicamente indistinguíveis entre si (mesma pessoa, obra e horário repetidos) — o que tornaria qualquer reconstrução futura para esses casos especificamente incerta, mesmo que uma data aparecesse num backup.
+
+### Os 4 ecrãs que reescrevem o ficheiro inteiro
+
+Todos os pontos vivos de escrita em `registos.csv` gravam o `DataFrame` completo carregado no início do ecrã, o que apaga silenciosamente qualquer atualização feita por outro processo (nomeadamente o cps-ponto) entre a leitura e a gravação:
+
+1. **Ecrã do Chefe de Equipa → separador "Validar Horas"** (validar/rejeitar, em massa ou individual).
+2. **Ecrã do Secretariado → separador "1ª Validação"** (obras sem chefe, ou não validadas pelo chefe).
+3. **Ecrã do Secretariado → separador "2ª Validação"** (passagem a faturação).
+4. **Ecrã do Secretariado → separador "Faturação & Folhas"**, botões "Processar Pagamento" e "Aprovar com Inconformidade".
+
+Os quatro têm o mesmo risco — nenhum é "mais seguro" que os outros. Os pontos de escrita equivalentes em `mod_tecnico.py` (formulário de registo e validação/rejeição dentro do ramo `is_chefe`) continuam confirmados como código morto/inacessível em produção.
