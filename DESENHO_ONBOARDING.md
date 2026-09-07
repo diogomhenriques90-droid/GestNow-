@@ -6,7 +6,15 @@ Decisões sobre o percurso de integração do colaborador, a seguir à auditoria
 
 ## 1. Onde vive o onboarding
 
-**Decisão: só no cps-ponto**, tal como já aconteceu ao registo de ponto. O GestNow deixa de ter os 4 passos e fica só com o lado do RH: gerar e enviar o contrato, validar a assinatura, e acompanhar quem está por completar (ponto 3).
+**Decisão: só no cps-ponto, e só para colaboradores e chefes.** O pessoal administrativo (escritório, secretariado, armazém, faturação) **não faz onboarding nenhum na app** — são contratos diferentes, tratados à parte, em papel, fora da aplicação. O onboarding dos 4 passos é uma coisa exclusiva de quem está no terreno.
+
+Consequência direta: **o bloco dos 4 passos no GestNow passa a ser código morto e sai** — não fica desativado nem escondido, é removido. O GestNow fica só com o lado do RH: gerar e enviar o contrato, validar a assinatura, e acompanhar quem (colaboradores/chefes) está por completar (ponto 3) — nunca administrativos, que não têm este percurso.
+
+**Implicação a ter presente para o passo 3** (não decidida aqui, só registada): se algum dia um administrativo precisar de entrar no cps-ponto para registar ponto, o portão do onboarding não se pode aplicar a ele — precisa de ser condicional ao Tipo (só trava Técnico/Chefe/Gestor), senão ficaria preso a preencher passos que não lhe dizem respeito.
+
+### Nota de conformidade — dois processos de integração, duas rastreabilidades
+
+Fica registado, para refletir no procedimento da qualidade: há **dois processos de integração diferentes, com rastreabilidade diferente**. O dos colaboradores fica registado na app (data de cada passo, quem validou o quê, histórico consultável). O dos administrativos é em papel, fora da aplicação — a rastreabilidade é a do processo documental da empresa, não a da app. Isto não é uma lacuna a corrigir: é uma escolha consciente, mas tem de estar escrita no procedimento da qualidade para que não pareça, a quem auditar o processo mais tarde, que os administrativos "não têm onboarding" — têm, só que não fica nesta ferramenta.
 
 ### Pré-requisito revisto: já não é preciso nenhum ecrã dedicado a Secretariado/Armazém
 
