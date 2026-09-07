@@ -76,6 +76,8 @@ O que sobreviveu: a separação registo (cps-ponto) / validação-faturação (G
 - **HSE** — o cps-ponto já reporta e lista incidentes, mas só os próprios da pessoa; a vista de equipa (todas as obras do chefe) não existe lá. Construção média — reaproveita o padrão já usado para o Secretariado (filtrar por `Responsavel_Equipa`), não é uma funcionalidade nova de base.
 - **Pedidos** — vista de leitura dos pedidos de EPI/ferramenta/material da equipa. Não existe nada disto no cps-ponto, nem sequer o lado do técnico (submeter um pedido) — que também não existe lá. É a maior depêndencia das quatro: a vista do chefe só faz sentido depois de os técnicos poderem submeter pedidos no cps-ponto, o que é trabalho prévio, não paralelo.
 
+**Sequenciamento com o corte de acesso**: o corte de acesso do Chefe de Equipa ao GestNow (`DESENHO_AUTENTICACAO.md`) só pode acontecer depois de estas quatro peças estarem migradas ou removidas — cortar antes disso deixa estas funcionalidades sem ninguém as poder usar.
+
 ---
 
 ## 6. Documentos antigos que passam a estar errados
