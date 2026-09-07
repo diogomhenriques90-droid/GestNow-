@@ -13,7 +13,9 @@ from core import (
 # telemóvel) — todos os outros entram por Password. Ver briefing da
 # Fase 1: PIN prioriza rapidez em campo, Password prioriza força para
 # quem mexe em dados financeiros/pessoais a partir de um computador.
-TIPOS_PIN = {"Técnico", "Instrumentista", "Engenheiro", "Chefe de Equipa", "Armazém"}
+TIPOS_PIN = {"Técnico", "Instrumentista", "Engenheiro", "Chefe de Equipa"}
+# Armazém saiu deste conjunto: é um papel administrativo, só existe no
+# GestNow, entra por número + password como qualquer outro administrativo.
 
 _LIMITE_TENTATIVAS = 3
 
