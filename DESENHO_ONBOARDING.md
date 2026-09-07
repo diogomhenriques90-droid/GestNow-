@@ -32,7 +32,9 @@ Fica registado, para refletir no procedimento da qualidade: há **dois processos
 
 Hoje, a pessoa descarrega o ficheiro e confirma num botão — isso prova que carregou no botão, não que abriu o documento. Não é evidência suficiente para a 9001 nem para a 19443. Percorrer até ao fim antes de poder confirmar não garante leitura a sério, mas é uma evidência muito mais forte do que existe hoje, e é isso que interessa como prova para auditoria.
 
-Ver mais abaixo (fora deste documento, na conversa) a avaliação técnica sobre o tamanho deste trabalho em Streamlit e o que fica registado.
+**Mecanismo: por páginas, não por scroll contínuo.** Mostra-se o documento uma página de cada vez, avança-se página a página, e só depois de passar pela última é que o botão de confirmar aparece. Escolhido em vez de detetar scroll contínuo porque é mais barato de construir (não exige JavaScript nem um componente próprio — o Streamlit já sabe mostrar imagens de origem), é mais fiável em qualquer telemóvel (deixa de depender do leitor de PDF do browser, que varia muito entre aparelhos), e como evidência é pelo menos tão forte — obriga a uma ação explícita por página.
+
+**O que fica registado, por documento e por pessoa**: hora de abertura, hora de passagem por cada página, e hora de confirmação final. Não só a confirmação. O objetivo é conseguir detetar confirmações suspeitas — por exemplo, um documento de 10 páginas confirmado poucos segundos depois de aberto. Timestamp total sozinho ("esteve X minutos") não chega, porque não prova progressão nenhuma; a sequência de horas por página conta uma história muito mais convincente para um auditor.
 
 ---
 
