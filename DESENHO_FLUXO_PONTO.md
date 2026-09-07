@@ -58,7 +58,7 @@ O que sobreviveu: a separação registo (cps-ponto) / validação-faturação (G
 - ✅ Secretariado faz 2ª validação (`mod_secretariado.py`, separador "2ª Validação", Status `1→2`).
 - ✅ Secretariado faz 1ª validação para obras sem chefe (separador "1ª Validação", filtra exatamente as obras que não estão na lista de "obras com chefe").
 - ✅ Processamento de pagamento (separador "Faturação & Folhas", Status `→3`).
-- ✅ Registo de ponto desativado no GestNow, a favor do cps-ponto (confirmado: formulário morto em `mod_tecnico.py`/`mod_chefe.py`, com link direto para a app cps-ponto).
+- ⚠️ **Registo de ponto desativado no GestNow, mas não removido — só escondido atrás de uma flag.** O formulário continua fisicamente no código: `mod_tecnico.py`, linhas 521-799 (~280 linhas), e `mod_chefe.py`, linhas 1282-1439 (~157 linhas), cada um por trás de uma variável de sessão (`show_reg_form`/`show_reg_form_ch`) forçada a `False` em todos os renders. Hoje, na prática, é inacessível pela app — a flag é reposta a `False` incondicionalmente em todos os renders, não só uma vez, por isso nem manipular o estado da sessão chegaria lá. Mas isso é uma garantia de comportamento, não a ausência do caminho: o código que grava em `registos.csv` continua todo lá, a uma linha de distância de voltar a ficar acessível se algum dia alguém mexer nessa flag sem perceber porque está ali. O desenho alvo (registo só no cps-ponto) exige apagar estes dois blocos por completo — a garantia deixa de depender de uma variável nunca ser alterada, e passa a ser: o caminho simplesmente não existe.
 - ❌ **A fonte de dados para "que obra tem chefe" está desatualizada.** Tanto `mod_secretariado.py` como `mod_chefe.py` usam `inst_acessos.csv` (um ficheiro cujo propósito documentado é outro — alocação de instrumentação, não chefia) para decidir isto. Desde agosto de 2026 existe um campo próprio, `Responsavel_Equipa` em `obras_lista.csv`, criado especificamente para o Painel de Obra — mas o fluxo de validação nunca foi atualizado para o usar. Há hoje duas fontes de verdade para a mesma pergunta de negócio, e nenhuma sabe da outra.
 - ❌ **A escrita da Data no GestNow corrompe/apaga o valor mesmo sem qualquer concorrência com o cps-ponto.** Confirmado agora dos dois lados: o cps-ponto escreve sempre texto limpo (DD/MM/AAAA); o defeito está inteiramente na forma como o GestNow lê (converte para um valor de data real) e depois volta a escrever essa coluna já convertida. Já documentado em detalhe em `AUDITORIA_REGISTO_PONTO.md`.
 - ❌ Escrita concorrente sem bloqueio (ler tudo → alterar → escrever tudo de volta) — confirmado nos dois lados, incluindo o próprio `AUDITORIA_2026-09-06.md` do cps-ponto a apontar exatamente o mesmo padrão, de forma independente.
@@ -66,16 +66,15 @@ O que sobreviveu: a separação registo (cps-ponto) / validação-faturação (G
 
 ---
 
-## 5. A aba "Obra" do Chefe de Equipa no GestNow, no novo desenho
+## 5. A aba "Obra" do Chefe de Equipa no GestNow — decisão tomada: sai por completo
 
-`mod_chefe.py` tem 6 separadores: **Equipa**, **Validar Horas**, **Meu Ponto**, **Folha de Ponto**, **HSE**, **Pedidos**. Com a validação do chefe a passar para o cps-ponto, cada um precisa de uma decisão própria:
+**Decisão (ver também `DESENHO_AUTENTICACAO.md`): o Chefe de Equipa nunca mais entra no GestNow, sem exceções.** Não é uma escolha tab a tab — é uma exclusão total. Tudo o que hoje é do Chefe em `mod_chefe.py` (6 separadores: **Equipa**, **Validar Horas**, **Meu Ponto**, **Folha de Ponto**, **HSE**, **Pedidos**) tem de passar para o cps-ponto ou desaparecer. **Validar Horas** e **Meu Ponto** já estão cobertos pelo desenho geral (validação e histórico já vivem no cps-ponto). Os outros quatro, levantados um a um:
 
-- **Validar Horas** — deixa de fazer sentido aqui como ecrã de ação. A validação do chefe passa a acontecer só no cps-ponto; manter os botões dos dois lados recria exatamente o problema de duas peças de código a escreverem `Status`/`Validado_Por` de forma independente sobre a mesma linha. Deve sair — ou, no máximo, ficar como consulta sem botões.
-- **Meu Ponto** — consulta do próprio ponto do chefe; o cps-ponto já tem o equivalente (Histórico). Redundante — decidir se fica só como atalho de consulta no GestNow ou se desaparece a favor do cps-ponto.
-- **Equipa** — é um resumo de leitura (não escreve nada); pode continuar a fazer sentido como visão de gestão para quem está no escritório, desde que a lista de "obras do chefe" venha de `Responsavel_Equipa` e não de `inst_acessos.csv`.
-- **Folha de Ponto** — existe dos dois lados: o cps-ponto tem o seu próprio gerador (`_render_folha`, com assinatura por canvas), o GestNow também. É duplicação real de funcionalidade sobre os mesmos dados, não só sobreposição de ecrã — precisa de decisão sobre qual fica, ou como se dividem (por exemplo, registo/assinatura no local via cps-ponto, e o GestNow só consulta para efeitos de faturação).
-- **HSE** — reportar no local (cps-ponto) e gerir/triagem no escritório (GestNow) parece ser a divisão pretendida — coerente com o cps-ponto não ter ecrã de gestão de incidentes. Fica a fazer sentido tal como está, mas vale a pena confirmar que o separador HSE do GestNow não se limita a repetir "reportar+listar" sem nenhuma ação de gestão que o justifique aqui.
-- **Pedidos** — só consulta, não escreve nada, não tem equivalente no cps-ponto. Sem conflito, pode manter-se como está.
+- **Equipa** — resumo de leitura por técnico (horas, registos, pendentes, aprovados), já baseado em `Responsavel_Equipa`. Não existe equivalente no cps-ponto, mas os dados de base já lá estão. Construção pequena.
+- **Comunicados à Equipa** (dentro da aba Equipa) — **achado**: este formulário grava em `comunicados.csv`, mas não existe, em nenhum dos dois repositórios, nenhum ecrã que leia ou mostre esse conteúdo a alguém. `comunicados.csv` está encadeado como parâmetro por mais de dez módulos do GestNow, sem que nenhum o use de facto; `comunicados_lidos.csv` nunca é escrito em lado nenhum. É uma funcionalidade que hoje não funciona para ninguém — não há nada a migrar, é construção de raiz nas duas pontas (enviar e mostrar/marcar como lido). É a maior das quatro peças, exatamente por não haver nada existente para reaproveitar.
+- **Folha de Ponto** — o cps-ponto já tem um gerador completo e equivalente (`_render_folha`, com assinatura por canvas). Não é migração, é decidir que a versão do GestNow deixa de ser usada. Construção nova: zero.
+- **HSE** — o cps-ponto já reporta e lista incidentes, mas só os próprios da pessoa; a vista de equipa (todas as obras do chefe) não existe lá. Construção média — reaproveita o padrão já usado para o Secretariado (filtrar por `Responsavel_Equipa`), não é uma funcionalidade nova de base.
+- **Pedidos** — vista de leitura dos pedidos de EPI/ferramenta/material da equipa. Não existe nada disto no cps-ponto, nem sequer o lado do técnico (submeter um pedido) — que também não existe lá. É a maior depêndencia das quatro: a vista do chefe só faz sentido depois de os técnicos poderem submeter pedidos no cps-ponto, o que é trabalho prévio, não paralelo.
 
 ---
 
@@ -100,7 +99,8 @@ O que sobreviveu: a separação registo (cps-ponto) / validação-faturação (G
 ### 7.2 O que existe hoje e não cabe neste desenho, e deve sair
 
 - **cps-ponto**: a 2ª validação "Gestor" (Status `1→2`) dentro do cps-ponto — essa transição deve passar a existir só no GestNow.
-- **GestNow**: os botões de ação do separador "Validar Horas" em `mod_chefe.py` — a ação de validar pelo chefe deixa de fazer sentido aqui.
+- **GestNow**: os dois blocos de código do formulário de registo de ponto (`mod_tecnico.py` linhas 521-799, `mod_chefe.py` linhas 1282-1439) — hoje inacessíveis por uma flag, mas têm de ser apagados por completo, não só desligados (ver secção 4).
+- **GestNow**: o Chefe de Equipa deixa de ter acesso à app, sem exceções — as abas Equipa, Folha de Ponto, HSE e Pedidos de `mod_chefe.py` saem todas (secção 5).
 - **GestNow / cps-ponto**: um dos dois geradores de Folha de Ponto — ficar com os dois é manter duplicação ativa sobre os mesmos dados.
 - **GestNow**: `inst_acessos.csv` como fonte de "que obra tem chefe" — sai, substituído por `Responsavel_Equipa`.
 
@@ -112,7 +112,9 @@ O que sobreviveu: a separação registo (cps-ponto) / validação-faturação (G
 4. **Remover ou esvaziar o separador "Validar Horas" de `mod_chefe.py`** no GestNow.
 5. **Corrigir o formato da Data na escrita** (defeito já localizado, independente da concorrência) — pode ser feito em paralelo com o ponto seguinte, no mesmo sítio de código.
 6. **Resolver a escrita concorrente com bloqueio otimista** ("só escreve se ninguém mexeu desde que li") — depende de 1 e 2 estarem estáveis, para não se estar a testar bloqueio em cima de uma base de dados ainda inconsistente. Decisão de arquitetura já tomada (ver histórico de conversa), plano de faseamento entre os dois repositórios por decidir à parte.
-7. **Decidir e resolver a duplicação de Folha de Ponto / Meu Ponto** entre as duas apps.
-8. *(Achado relacionado, fora do fluxo de validação em si, mas no mesmo ficheiro `registos.csv`)*: corrigir os 24 de 25 pontos de escrita no cps-ponto que não verificam se `save_db()` teve sucesso — risco separado, mas do mesmo tipo ("a app diz que guardou e não guardou").
+7. **Decidir e resolver a duplicação de Folha de Ponto / Meu Ponto** entre as duas apps — já resolvido no sentido Folha de Ponto (cps-ponto fica, GestNow sai, sem construção nova).
+8. **Apagar por completo os dois blocos mortos de registo de ponto** em `mod_tecnico.py` e `mod_chefe.py` (secção 4) — não basta a flag que já os desliga.
+9. **Migrar as quatro peças do Chefe de Equipa para o cps-ponto** (secção 5), por tamanho crescente: Equipa (pequena) → HSE de equipa (média, reaproveita o padrão de `Responsavel_Equipa`) → Comunicados à Equipa (grande, construção de raiz nas duas pontas, nada a reaproveitar) → Pedidos (a maior, depende primeiro de os técnicos poderem submeter pedidos no cps-ponto, que também não existe).
+10. *(Achado relacionado, fora do fluxo de validação em si, mas no mesmo ficheiro `registos.csv`)*: corrigir os 24 de 25 pontos de escrita no cps-ponto que não verificam se `save_db()` teve sucesso — risco separado, mas do mesmo tipo ("a app diz que guardou e não guardou").
 
 Não há prazo definido para este trabalho.
