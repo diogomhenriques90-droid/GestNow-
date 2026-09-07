@@ -29,9 +29,11 @@ Decisões sobre login e credenciais, tomadas antes de qualquer implementação. 
 ### Prioridade
 Primeiro o acesso (decisões 1-4), depois os 4 passos do onboarding com PIN inicial (decisões 5-6), depois a recuperação (decisão 7).
 
-### Tensão a resolver antes de avançar — não decidida aqui
+### Tensão resolvida: o Chefe de Equipa nunca entra no GestNow
 
-A decisão 2 diz "só papéis administrativos têm acesso" ao GestNow. Mas o trabalho já feito nesta conversa sobre o ecrã do Chefe de Equipa manteve, de propósito, as abas Equipa/Folha de Ponto/HSE/Pedidos no GestNow para o Chefe — o que implica o Chefe continuar a precisar de entrar no GestNow, não só no cps-ponto. Isto não bate certo com "só administrativos". Precisa de decisão explícita: o Chefe de Equipa mantém conta de password no GestNow (para essas abas), ou essas abas saem do GestNow a favor do cps-ponto? Não avancei nenhum lado desta escolha.
+**Decisão**: sem exceções — o GestNow é só para administrativos. Tudo o que hoje é do Chefe no GestNow (Equipa, Folha de Ponto, HSE, Pedidos, e os Comunicados à Equipa dentro de Equipa) tem de passar para o cps-ponto ou desaparecer. O Chefe de Equipa deixa de ter conta de password no GestNow — a única credencial que tem é o número+PIN do cps-ponto.
+
+O levantamento tab a tab desta migração (o que faz cada uma, se já há equivalente no cps-ponto, e o tamanho de construir o que falta) está fora deste documento — foi feito à parte, a pedido, e fica registado na conversa, não aqui.
 
 ---
 
@@ -53,7 +55,7 @@ A decisão 2 diz "só papéis administrativos têm acesso" ao GestNow. Mas o tra
 A prioridade número um, em qualquer momento desta lista, é **nunca ficar sem forma de entrar** — nem tu, nem os técnicos que hoje trabalham.
 
 1. **Verificar, sem implementar nada**: confirmar que todas as 8-10 contas administrativas (incluindo a tua) têm Número de Colaborador atribuído e conseguem entrar com sucesso pela via principal (número + password) — antes de tocar em qualquer coisa que dependa disso. Esta verificação é o que impede um bloqueio acidental.
-2. Tirar `Armazém` (e, consoante a decisão da tensão em aberto, `Chefe de Equipa`) do conjunto de tipos que usam PIN no GestNow.
+2. Tirar `Armazém` do conjunto de tipos que usam PIN no GestNow — e `Chefe de Equipa` deixa de ter conta no GestNow, ponto final (não é só sair do PIN, é não ter acesso nenhum a esta app).
 3. Remover o ecrã "Acesso antigo (por Nome)" do GestNow — só depois do passo 1 estar confirmado para toda a gente.
 4. Simplificar a via principal do GestNow para só password, sem ramo de PIN.
 5. Construir o ecrã de Número + PIN no cps-ponto, de raiz.
