@@ -275,5 +275,154 @@ class TestOnboardingSemIconesTemaClaro(unittest.TestCase):
         self.assertNotIn("#94A3B8", textos)
 
 
+class TestPasswordProvisoria(unittest.TestCase):
+    """_verificar_password_provisoria (app.py) — gémeo do
+    _verificar_pin_provisorio do cps-ponto. Corre logo a seguir ao login,
+    para qualquer Tipo (incluindo Admin, ao contrário do onboarding que só
+    se aplica a Técnicos/Chefes), antes de load_all() e de qualquer outro
+    ecrã."""
+
+    @classmethod
+    def setUpClass(cls):
+        # Importar 'app' uma única vez, através de um AppTest normal (NÃO
+        # um "import app" cru fora de qualquer script run — isso deixa o
+        # registo interno de formulários do Streamlit por fechar, e todos
+        # os st.form() a seguir, no processo inteiro, rebentam com "Forms
+        # cannot be nested"). Sessão já autenticada como Admin, para o
+        # topo do app.py nunca cair no ecrã de login (evita form aberto
+        # aí) — só depois disto é que os testes fazem
+        # patch("app._load_users_cached", ...) com segurança.
+        import sys
+        if 'app' not in sys.modules:
+            import pandas as pd
+
+            def _warmup_script():
+                import streamlit as st
+                st.session_state['user']          = 'Aquecimento'
+                st.session_state['tipo']          = 'Admin'
+                st.session_state['cargo']         = 'Administrador'
+                st.session_state['menu_selected'] = 'Dashboard'
+                st.session_state['_fv']           = {}
+                st.session_state['_menu_locked']  = True
+                import app  # noqa: F401
+
+            df = pd.DataFrame([{"Nome": "Aquecimento", "Password_Provisoria": ""}])
+            with patch("core._gcs_read", return_value=None), \
+                 patch("core._load_users_cached", return_value=df):
+                at = AppTest.from_function(_warmup_script, default_timeout=30)
+                at.run()
+
+    def _run_gate(self, nome, user_row, interagir=None, tambem_onboarding=False):
+        """Chama _verificar_password_provisoria() diretamente (e, se
+        tambem_onboarding, _render_validacao_obrigatoria() a seguir, tal
+        como app.py faz na rotina principal) — evita depender de o
+        'import app' completo voltar a correr o ficheiro inteiro em cada
+        teste (só executa mesmo na primeira vez em todo o processo,
+        porque fica em sys.modules — chamar a função apontada resolve
+        isto sem esse efeito colateral).
+
+        interagir(at), se dado, corre AINDA DENTRO do with patch(...) —
+        um set_value/click().run() feito depois do with já ter fechado
+        executa sem mocks e bate em dados reais de produção (ver memória
+        'patches em interações multi-passo')."""
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        def _script(nome, tambem_onboarding):
+            import streamlit as st
+            st.session_state['user'] = nome
+            # 'app' já foi importado em setUpClass — isto só vai buscar as
+            # funções ao módulo já pronto, sem voltar a correr o topo do
+            # ficheiro (routing completa) como efeito colateral.
+            from app import _verificar_password_provisoria, _render_validacao_obrigatoria
+            _verificar_password_provisoria(nome)
+            if tambem_onboarding:
+                _render_validacao_obrigatoria(nome)
+
+        import pandas as pd
+        df = pd.DataFrame([user_row])
+
+        # app.py faz "from core import ..., _load_users_cached" — a cópia
+        # do nome é feita UMA SÓ VEZ, na primeira importação de 'app' em
+        # todo o processo de testes. Corrigir só "core._load_users_cached"
+        # não chega a partir da segunda vez: app.py continua com a cópia
+        # antiga. Ambos têm de ser corrigidos.
+        with patch("core._gcs_read", return_value=None), \
+             patch("core._load_users_cached", return_value=df), \
+             patch("app._load_users_cached", return_value=df), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(
+                _script, default_timeout=30,
+                args=(nome, tambem_onboarding),
+            )
+            at.run()
+            if interagir is not None:
+                interagir(at)
+        return at, writes
+
+    def test_bloqueia_quando_provisoria_mesmo_para_admin(self):
+        at, _ = self._run_gate("Diogo Henriques", {
+            "Nome": "Diogo Henriques", "Password_Provisoria": "Sim",
+        })
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertIn("Password provisória", _texto(at))
+
+    def test_nao_bloqueia_quando_flag_vazia(self):
+        at, _ = self._run_gate("Diogo Henriques", {
+            "Nome": "Diogo Henriques", "Password_Provisoria": "",
+        })
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertNotIn("Password provisória", _texto(at))
+
+    def test_corre_antes_do_onboarding(self):
+        """Um Técnico com password provisória E onboarding pendente tem de
+        ver o ecrã da password primeiro — o de onboarding nem chega a
+        desenhar nada, porque a password já fez st.stop()."""
+        at, _ = self._run_gate("Técnico Teste", {
+            "Nome": "Técnico Teste", "Password_Provisoria": "Sim",
+            "PDFs_Validados": "Não", "PrecoHoraStatus": "",
+            "Perfil_Completo": "", "IBAN_Comprovativo_b64": "",
+        }, tambem_onboarding=True)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertIn("Password provisória", _texto(at))
+        self.assertNotIn("Bem-vindo", _texto(at))
+
+    def test_submissao_valida_grava_hash_limpa_flag_e_nao_expoe_texto_simples(self):
+        def _interagir(at):
+            at.text_input(key="npp_nova_pwd").set_value("umaPasswordNova123")
+            at.text_input(key="npp_conf_pwd").set_value("umaPasswordNova123")
+            [b for b in at.button if b.label == "Definir Password"][0].click().run()
+
+        at, writes = self._run_gate(
+            "Diogo Henriques", {"Nome": "Diogo Henriques", "Password_Provisoria": "Sim"},
+            interagir=_interagir,
+        )
+        self.assertFalse(at.exception, msg=str(at.exception))
+        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
+        self.assertNotIn("umaPasswordNova123", conteudo)
+        self.assertIn("$2b$", conteudo)
+        linha = [l for l in conteudo.splitlines() if l.startswith("Diogo Henriques")][0]
+        campos = linha.split(",")
+        # Password_Provisoria é a última coluna do cabeçalho escrito
+        self.assertNotIn("Sim", campos[-1])
+
+    def test_confirmacao_errada_mantem_bloqueado(self):
+        def _interagir(at):
+            at.text_input(key="npp_nova_pwd").set_value("umaPasswordNova123")
+            at.text_input(key="npp_conf_pwd").set_value("outraCoisaqualquer")
+            [b for b in at.button if b.label == "Definir Password"][0].click().run()
+
+        at, writes = self._run_gate(
+            "Diogo Henriques", {"Nome": "Diogo Henriques", "Password_Provisoria": "Sim"},
+            interagir=_interagir,
+        )
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertTrue(any("não coincidem" in e.value for e in at.error))
+        self.assertNotIn("usuarios.csv", writes)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

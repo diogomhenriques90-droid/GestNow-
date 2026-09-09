@@ -53,6 +53,61 @@ if page == "criar_admin":
     st.stop()
 
 
+def _verificar_password_provisoria(user_nome):
+    """Password gerada em massa (ou individualmente) pelo RH nasce sempre
+    provisória (Password_Provisoria=Sim). Bloqueia tudo — sem forma de
+    contornar — até a pessoa definir uma password própria. Corre logo a
+    seguir ao login, antes de qualquer outro ecrã ou bloqueio, e para
+    qualquer Tipo (incluindo Admin) — simétrico ao
+    _verificar_pin_provisorio do cps-ponto."""
+    try:
+        uc = _load_users_cached()
+        if uc.empty: return False
+        m = uc[uc['Nome'] == user_nome]
+        if m.empty: return False
+        r = m.iloc[0]
+        if str(r.get('Password_Provisoria', '')).strip() != 'Sim':
+            return False
+    except Exception:
+        return False
+
+    st.markdown(f"""
+    <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
+        border-radius:{THEME['radius']};padding:25px;margin-bottom:25px;text-align:center;">
+        <h2 style="color:{THEME['text']};margin:0 0 8px 0;">Password provisória</h2>
+        <p style="color:{THEME['text_secondary']};margin:0;font-size:1rem;">
+            Esta password foi-te atribuída pelo RH e é provisória.<br>
+            Define uma password só tua para continuar.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.form("form_password_provisoria", clear_on_submit=False):
+        nova = st.text_input("Nova Password", type="password", key="npp_nova_pwd")
+        conf = st.text_input("Confirmar Nova Password", type="password", key="npp_conf_pwd")
+        submetido = st.form_submit_button(
+            "Definir Password", use_container_width=True, type="primary"
+        )
+
+    if submetido:
+        if len(nova) < 8:
+            st.error("Mínimo 8 caracteres.")
+        elif nova != conf:
+            st.error("As passwords não coincidem.")
+        else:
+            up = _load_users_cached().copy()
+            mk = up['Nome'] == user_nome
+            if mk.any():
+                up.loc[mk, 'Password']            = hp(nova)
+                up.loc[mk, 'Password_Provisoria'] = ''
+                save_db(up, "usuarios.csv")
+                inv("usuarios.csv")
+            st.success("Password definida. A continuar...")
+            st.rerun()
+    st.stop()
+    return True
+
+
 def _render_validacao_obrigatoria(user_nome):
     users_live = _load_users_cached()
     if users_live.empty: return False
@@ -669,6 +724,8 @@ if not st.session_state.get('user'):
     from mod_login import render_login
     render_login()
 else:
+    _verificar_password_provisoria(st.session_state.get('user', ''))
+
     DATA = load_all()
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
