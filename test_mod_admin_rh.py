@@ -660,6 +660,18 @@ _USUARIOS_PIN_CSV = (
     "A1B2C3D4,12345,,,\n"
 ).encode("utf-8-sig")
 
+_USUARIOS_PIN_JA_DEFINIDO_CSV = (
+    "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
+    "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
+    "Estado_Civil,PrecoHora,Local_Obra,Cliente_Obra,"
+    "ID,Numero_Colaborador,PIN,Bloqueado,Bloqueado_Em\n"
+    "Ana Teste,Técnico,Instrumentista,ana@usuarios.pt,911111111,123456789,"
+    "11122233344,12345678,01/01/2030,15/05/1990,"
+    "Rua A 100,Lisboa,Lisboa,1000-001,PT50000000000000000000000,Portuguesa,"
+    f"Solteiro(a),15,Refinaria X,Cliente X,"
+    f"A1B2C3D4,12345,{core.hp('9999')},,\n"
+).encode("utf-8-sig")
+
 _USUARIOS_PIN_BLOQUEADA_CSV = (
     "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
     "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
@@ -676,6 +688,18 @@ _USUARIOS_PIN_BLOQUEADA_CSV = (
 def _fake_gcs_read_pin(fn):
     if fn == "usuarios.csv":
         return io.BytesIO(_USUARIOS_PIN_CSV)
+    if fn == "colaboradores_rh.csv":
+        return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    return None
+
+
+def _fake_gcs_read_pin_ja_definido(fn):
+    if fn == "usuarios.csv":
+        return io.BytesIO(_USUARIOS_PIN_JA_DEFINIDO_CSV)
     if fn == "colaboradores_rh.csv":
         return io.BytesIO(_RH_CSV)
     if fn == "obras_lista.csv":
@@ -718,7 +742,24 @@ class TestRedefinirPin(unittest.TestCase):
         self.assertIn("A1B2C3D4", textos)
         self.assertIn("12345", textos)
 
-    def test_redefinir_pin_grava_hash_nao_texto_simples(self):
+    def test_sem_pin_mostra_gerar_sem_aviso(self):
+        # Ana Teste não tem PIN na fixture — o bloco chama-se "Gerar
+        # PIN", não "Redefinir", e não mostra aviso de invalidação
+        # (não há nada para invalidar).
+        at = self._run_com(_fake_gcs_read_pin)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertTrue(at.button(key="btn_gerar_pin"))
+        textos_aviso = " ".join(m.value for m in at.warning)
+        self.assertNotIn("invalida", textos_aviso)
+
+    def test_com_pin_existente_mostra_redefinir_com_aviso(self):
+        at = self._run_com(_fake_gcs_read_pin_ja_definido)
+        self.assertTrue(at.button(key="btn_gerar_pin"))
+        textos_aviso = " ".join(m.value for m in at.warning)
+        self.assertIn("invalida", textos_aviso)
+        self.assertIn("deixa de conseguir entrar com o PIN antigo", textos_aviso)
+
+    def test_gerar_pin_grava_hash_e_marca_provisorio(self):
         writes = {}
 
         def _gcs_write(fn, content_bytes):
@@ -732,27 +773,62 @@ class TestRedefinirPin(unittest.TestCase):
              patch("core._gcs_write", side_effect=_gcs_write):
             at = AppTest.from_function(_script, default_timeout=30)
             at.run()
-            at.text_input(key="rh_novo_pin_admin").set_value("4321").run()
-            at.text_input(key="rh_conf_pin_admin").set_value("4321").run()
-            at.button(key="btn_redef_pin").click().run()
+            at.button(key="btn_gerar_pin").click().run()
 
         self.assertFalse(at.exception, msg=str(at.exception))
         conteudo = writes["usuarios.csv"].decode("utf-8-sig")
-        self.assertNotIn(",4321,", conteudo)
         self.assertIn("$2b$", conteudo)
+        self.assertIn("PIN_Provisorio", conteudo)
+        linha_ana = [l for l in conteudo.splitlines() if l.startswith("Ana Teste")][0]
+        self.assertIn("Sim", linha_ana)
+        # O PIN gerado (texto simples) fica só no estado transitório da
+        # sessão, para ser mostrado uma vez — nunca no ficheiro.
+        pin_mostrado = at.session_state["rh_pin_gerado_para"]["pin"]
+        self.assertEqual(len(pin_mostrado), 4)
+        self.assertTrue(pin_mostrado.isdigit())
+        self.assertNotIn(pin_mostrado, conteudo)
 
-    def test_pins_diferentes_sao_recusados(self):
+    def test_pin_gerado_aparece_uma_vez_e_desaparece_ao_reconhecer(self):
         core._cached_load_db.clear()
         with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_pin), \
              patch("core._gcs_read", side_effect=_fake_gcs_read_pin), \
-             patch("core._gcs_client", return_value=None):
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", return_value=True):
             at = AppTest.from_function(_script, default_timeout=30)
             at.run()
-            at.text_input(key="rh_novo_pin_admin").set_value("1111").run()
-            at.text_input(key="rh_conf_pin_admin").set_value("2222").run()
-            at.button(key="btn_redef_pin").click().run()
-        textos_erro = " ".join(m.value for m in at.error)
-        self.assertIn("não coincidem", textos_erro)
+            at.button(key="btn_gerar_pin").click().run()
+
+            pin_gerado = at.session_state["rh_pin_gerado_para"]["pin"]
+            textos_sucesso = " ".join(m.value for m in at.success)
+            self.assertIn(pin_gerado, textos_sucesso)
+
+            at.button(key="btn_ack_pin_gerado").click().run()
+            self.assertNotIn("rh_pin_gerado_para", at.session_state)
+            textos_sucesso_depois = " ".join(m.value for m in at.success)
+            self.assertNotIn(pin_gerado, textos_sucesso_depois)
+
+    def test_acao_de_auditoria_distingue_gerar_de_redefinir(self):
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_pin), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_pin), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", return_value=True), \
+             patch("mod_admin_rh.log_audit") as mock_log:
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.button(key="btn_gerar_pin").click().run()
+        self.assertEqual(mock_log.call_args.kwargs.get("acao"), "GERAR_PIN_INICIAL")
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_pin_ja_definido), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_pin_ja_definido), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", return_value=True), \
+             patch("mod_admin_rh.log_audit") as mock_log2:
+            at2 = AppTest.from_function(_script, default_timeout=30)
+            at2.run()
+            at2.button(key="btn_gerar_pin").click().run()
+        self.assertEqual(mock_log2.call_args.kwargs.get("acao"), "REDEFINIR_PIN")
 
     def test_sem_conta_bloqueada_nao_mostra_botao_desbloquear(self):
         at = self._run_com(_fake_gcs_read_pin)

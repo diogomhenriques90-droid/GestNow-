@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import uuid, base64, hashlib, json, unicodedata, re
+import uuid, base64, hashlib, json, unicodedata, re, secrets
 from datetime import datetime, date, timedelta
 from io import BytesIO
 
@@ -1367,9 +1367,11 @@ def render_admin_rh(*args):
                         st.success(f"Password de {nome_sel} redefinida.")
                         st.rerun()
 
-        # ── Redefinir PIN ────────────────────────────────────────────
+        # ── Gerar / Redefinir PIN ──────────────────────────────────────
         st.markdown("---")
-        with st.expander("Redefinir PIN"):
+        pin_existe = bool(str(row.get("PIN", "")).strip())
+        titulo_pin = "Redefinir PIN" if pin_existe else "Gerar PIN"
+        with st.expander(titulo_pin):
             st.markdown(
                 f"<p style='color:{THEME['text_secondary']}; font-size:0.8rem;'>"
                 f"ID: <code>{row.get('ID','—') or '—'}</code> &nbsp;·&nbsp; "
@@ -1377,33 +1379,49 @@ def render_admin_rh(*args):
                 f"</p>",
                 unsafe_allow_html=True
             )
-            novo_pin_admin = st.text_input(
-                "Novo PIN (4 dígitos) *", type="password", max_chars=4,
-                key="rh_novo_pin_admin", placeholder="0000")
-            conf_pin_admin = st.text_input(
-                "Confirmar PIN *", type="password", max_chars=4,
-                key="rh_conf_pin_admin")
-            if st.button("Redefinir PIN", key="btn_redef_pin",
-                         type="primary"):
-                if len(novo_pin_admin.strip()) != 4 or not novo_pin_admin.strip().isdigit():
-                    st.error("O PIN deve ter exatamente 4 dígitos numéricos.")
-                elif novo_pin_admin != conf_pin_admin:
-                    st.error("Os PINs não coincidem.")
-                else:
+
+            # Mostra o PIN gerado na execução anterior, uma única vez —
+            # nunca fica guardado em claro, só neste session_state
+            # transitório, e desaparece assim que a pessoa reconhece.
+            pin_mostrado = st.session_state.get("rh_pin_gerado_para")
+            if pin_mostrado and pin_mostrado.get("nome") == nome_sel:
+                st.success(
+                    f"PIN gerado para {nome_sel}: "
+                    f"**`{pin_mostrado['pin']}`**\n\n"
+                    "Anota-o agora e transmite-o à pessoa — não vai voltar "
+                    "a ser mostrado."
+                )
+                if st.button("Já anotei", key="btn_ack_pin_gerado"):
+                    del st.session_state["rh_pin_gerado_para"]
+                    st.rerun()
+            else:
+                if pin_existe:
+                    st.warning(
+                        "Já existe um PIN definido. Gerar um novo invalida "
+                        "imediatamente o atual — a pessoa deixa de conseguir "
+                        "entrar com o PIN antigo."
+                    )
+                if st.button(titulo_pin, key="btn_gerar_pin",
+                             type="primary"):
                     u_pin = _load_users_fresh()
                     mk_pin = u_pin["Nome"] == nome_sel
                     if mk_pin.any():
-                        u_pin.loc[mk_pin, "PIN"] = hp(novo_pin_admin.strip())
+                        novo_pin = f"{secrets.randbelow(10000):04d}"
+                        u_pin.loc[mk_pin, "PIN"] = hp(novo_pin)
+                        u_pin.loc[mk_pin, "PIN_Provisorio"] = "Sim"
                         save_db(u_pin, "usuarios.csv")
                         inv("usuarios.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
                         log_audit(usuario=st.session_state.get("user","admin"),
-                                  acao="REDEFINIR_PIN",
+                                  acao="REDEFINIR_PIN" if pin_existe else "GERAR_PIN_INICIAL",
                                   tabela="usuarios.csv",
                                   registro_id=nome_sel,
-                                  detalhes="PIN redefinido pelo Admin")
-                        st.success(f"PIN de {nome_sel} redefinido.")
+                                  detalhes="PIN redefinido pelo Admin" if pin_existe
+                                           else "PIN inicial gerado pelo Admin")
+                        st.session_state["rh_pin_gerado_para"] = {
+                            "nome": nome_sel, "pin": novo_pin,
+                        }
                         st.rerun()
 
             if str(row.get("Bloqueado", "")).strip().lower() == "sim":
