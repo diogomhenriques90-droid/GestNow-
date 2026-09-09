@@ -19,7 +19,7 @@ Decisões sobre login e credenciais, tomadas antes de qualquer implementação. 
 3. Uma pessoa com as duas apps tem duas credenciais, uma em cada — assumido e correto, não é para unificar.
 4. O ecrã de "Acesso antigo (por Nome)" (GestNow) morre por completo. As credenciais atuais de técnicos são de teste e são substituídas.
 5. **Criação de colaborador (GestNow, RH)**: a app gera um PIN inicial aleatório e mostra-o ao RH, que o transmite ao colaborador. O RH define também a categoria profissional.
-6. **Primeira entrada**: o colaborador faz os 4 passos do onboarding com o PIN inicial. No fim, fica bloqueado até definir um PIN próprio.
+6. **PIN provisório**: todo o PIN gerado pelo RH — seja primeira atribuição ou redefinição — nasce marcado `PIN_Provisorio=Sim`. O gate que obriga a definir um PIN próprio corre **logo a seguir ao login, antes do onboarding e da verificação de contrato** — não "no fim do onboarding" como estava decidido inicialmente aqui. Essa colocação inicial partia do caso da primeira entrada e não cobria a redefinição: para um colaborador já com a conta toda feita, o onboarding não tem nada pendente e passa direto, pelo que um gate colocado no fim dele nunca chegaria a disparar. Bloqueio incondicional (sem forma de contornar) implementado em `_verificar_pin_provisorio()` (cps-ponto, `app_ponto.py`).
 7. **PIN esquecido**: recuperação automática por email.
 
 ### Pré-requisitos
