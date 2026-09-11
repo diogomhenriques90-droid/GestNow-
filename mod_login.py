@@ -139,8 +139,8 @@ def render_login():
     # LOGIN — NÚMERO DE COLABORADOR + PASSWORD (única via)
     # ═══════════════════════════════════════════════════════════════
     with st.form("form_login_numero", clear_on_submit=False):
-        numero = st.text_input("Número de colaborador", key="login_numero",
-                                max_chars=5, placeholder="00000")
+        numero = st.text_input("Username", key="login_numero",
+                                max_chars=5, placeholder="")
         credencial = st.text_input("Password", type="password",
                                     key="login_credencial",
                                     placeholder="••••••••")
