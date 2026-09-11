@@ -17,6 +17,13 @@ from core import (
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
 TIPOS_USUARIO = ["Técnico","Instrumentista","Engenheiro","Chefe de Equipa",
                  "Secretariado","Armazém","Admin","Cliente"]
+
+# ── Geração de credenciais em massa ────────────────────────────────────
+# Administrativos recebem password; todos os outros (incl. Chefe de
+# Equipa, que só vive no cps-ponto) recebem PIN. Cliente fica sempre de
+# fora — não tem conta operacional nestas apps.
+MASSA_TIPOS_PASSWORD  = {"Admin", "Secretariado", "Armazém"}
+MASSA_TIPOS_EXCLUIDOS = {"Cliente"}
 CARGOS_POR_TIPO = {
     "Técnico":        ["Técnico Eletricista","Técnico Mecânico","Técnico Automação",
                        "Técnico Instrumentação","Operador Especializado","Serralheiro","Outro"],
@@ -760,13 +767,14 @@ def render_admin_rh(*args):
         st.markdown("---")
 
     (tab_lista, tab_gestao, tab_eticadata,
-     tab_contrato, tab_template, tab_formacoes) = st.tabs([
+     tab_contrato, tab_template, tab_formacoes, tab_massa) = st.tabs([
         "Colaboradores",
         "Ficha do Colaborador",
         "Importar Eticadata",
         "Contratos",
         "Templates & Config",
         "Formações",
+        "Credenciais Iniciais (em massa)",
     ])
 
     # ════════════════════════════════════════════════════════════════
@@ -3194,3 +3202,141 @@ def render_admin_rh(*args):
     with tab_formacoes:
         from mod_admin_formacoes import render_formacoes
         render_formacoes(users, obras_db)
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 7 — CREDENCIAIS INICIAIS EM MASSA
+    # ════════════════════════════════════════════════════════════════
+    with tab_massa:
+        st.markdown("### Credenciais Iniciais (em massa)")
+        st.markdown(
+            "Gera uma password ou PIN inicial para várias contas de uma só "
+            "vez. Administrativos (Admin, Secretariado, Armazém) recebem "
+            "password; todos os outros recebem PIN. Contas Cliente ficam "
+            "sempre de fora. Cada credencial gerada fica marcada como "
+            "**provisória** — a pessoa é obrigada a trocá-la no primeiro "
+            "acesso, sem forma de contornar."
+        )
+
+        lote_gerado = st.session_state.get("rh_lote_gerado")
+
+        if lote_gerado:
+            st.success(
+                f"{len(lote_gerado)} credenciais geradas. Copia ou "
+                "descarrega agora — não vão voltar a ser mostradas."
+            )
+            df_lote = pd.DataFrame(lote_gerado)
+            st.dataframe(df_lote, use_container_width=True, hide_index=True,
+                         key="rh_lote_tabela")
+            csv_bytes = df_lote.to_csv(index=False).encode("utf-8-sig")
+            st.download_button(
+                "Descarregar CSV", data=csv_bytes,
+                file_name=f"credenciais_iniciais_{date.today().isoformat()}.csv",
+                mime="text/csv", key="btn_dl_lote"
+            )
+            if st.button("Já distribuí, apagar da ecrã", key="btn_ack_lote",
+                         type="primary"):
+                del st.session_state["rh_lote_gerado"]
+                st.rerun()
+        else:
+            u_massa = _load_users_fresh()
+            if u_massa.empty:
+                st.info("Sem dados de utilizadores.")
+            else:
+                if "Numero_Colaborador" not in u_massa.columns:
+                    u_massa["Numero_Colaborador"] = ""
+                if "Tipo" not in u_massa.columns:
+                    u_massa["Tipo"] = ""
+
+                def _grupo_credencial(tipo):
+                    t = str(tipo).strip()
+                    if t in MASSA_TIPOS_EXCLUIDOS:
+                        return None
+                    return "Password" if t in MASSA_TIPOS_PASSWORD else "PIN"
+
+                u_massa["_grupo"] = u_massa["Tipo"].apply(_grupo_credencial)
+                elegiveis = u_massa[u_massa["_grupo"].notna()].copy()
+                elegiveis = elegiveis[
+                    elegiveis["Numero_Colaborador"].astype(str).str.strip() != ""
+                ]
+
+                if elegiveis.empty:
+                    st.info("Nenhuma conta elegível (falta atribuir Número "
+                            "de Colaborador antes de gerar credenciais).")
+                else:
+                    elegiveis = elegiveis.sort_values(["_grupo", "Tipo", "Nome"])
+                    preview = elegiveis[
+                        ["Nome", "Numero_Colaborador", "Tipo", "_grupo"]
+                    ].rename(columns={"_grupo": "Credencial"})
+                    preview.insert(0, "Incluir", True)
+
+                    st.markdown(
+                        f"**{len(preview)} contas elegíveis** — desmarca "
+                        "quem deve ficar de fora desta leva."
+                    )
+                    editado = st.data_editor(
+                        preview, hide_index=True, use_container_width=True,
+                        key="rh_lote_editor",
+                        disabled=["Nome", "Numero_Colaborador", "Tipo", "Credencial"],
+                    )
+                    selecionados = editado[editado["Incluir"]]
+                    n_pwd = int((selecionados["Credencial"] == "Password").sum())
+                    n_pin = int((selecionados["Credencial"] == "PIN").sum())
+
+                    st.markdown(
+                        f"A gerar: **{n_pwd} passwords** e **{n_pin} PINs** "
+                        f"({len(selecionados)} contas no total)."
+                    )
+
+                    if len(selecionados) > 0:
+                        confirmar = st.checkbox(
+                            f"Confirmo: gerar {len(selecionados)} credenciais "
+                            "novas agora, invalidando imediatamente as que já "
+                            "existirem para estas contas.",
+                            key="rh_lote_confirmar"
+                        )
+                        if st.button("Gerar credenciais", key="btn_gerar_lote",
+                                     type="primary", disabled=not confirmar):
+                            u_write = _load_users_fresh()
+                            resultado = []
+                            numeros_pwd, numeros_pin = [], []
+                            for _, r in selecionados.iterrows():
+                                numero = str(r["Numero_Colaborador"]).strip()
+                                mk = (u_write["Numero_Colaborador"]
+                                      .astype(str).str.strip() == numero)
+                                if not mk.any():
+                                    continue
+                                if r["Credencial"] == "Password":
+                                    valor = secrets.token_urlsafe(9)
+                                    u_write.loc[mk, "Password"] = hp(valor)
+                                    u_write.loc[mk, "Password_Provisoria"] = "Sim"
+                                    numeros_pwd.append(numero)
+                                else:
+                                    valor = f"{secrets.randbelow(10000):04d}"
+                                    u_write.loc[mk, "PIN"] = hp(valor)
+                                    u_write.loc[mk, "PIN_Provisorio"] = "Sim"
+                                    numeros_pin.append(numero)
+                                resultado.append({
+                                    "Nome": r["Nome"],
+                                    "Numero_Colaborador": numero,
+                                    "Tipo": r["Tipo"],
+                                    "Credencial": r["Credencial"],
+                                    "Valor": valor,
+                                })
+                            save_db(u_write, "usuarios.csv")
+                            inv("usuarios.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
+                            log_audit(
+                                usuario=st.session_state.get("user", "admin"),
+                                acao="GERAR_CREDENCIAIS_MASSA",
+                                tabela="usuarios.csv",
+                                registro_id=f"{len(resultado)}_contas",
+                                detalhes=(
+                                    f"Passwords ({len(numeros_pwd)}): "
+                                    f"{','.join(numeros_pwd)}; "
+                                    f"PINs ({len(numeros_pin)}): "
+                                    f"{','.join(numeros_pin)}"
+                                ),
+                            )
+                            st.session_state["rh_lote_gerado"] = resultado
+                            st.rerun()

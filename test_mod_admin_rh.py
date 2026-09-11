@@ -916,5 +916,178 @@ class TestTemaClaroAplicado(unittest.TestCase):
         self.assertNotIn("#FCA5A5", self.textos)
 
 
+# ── Fixture: geração de credenciais em massa (Tab 7) ─────────────────────
+# Quatro contas para cobrir os casos de elegibilidade: Ana (Técnico, sem
+# PIN, entra no grupo PIN), Bruno (Admin, já tem password, entra no grupo
+# Password mesmo assim — o âmbito escolhido foi "forçar renovação de
+# tudo"), Carla (Cliente, excluída por Tipo), Duarte (Técnico mas sem
+# Numero_Colaborador, excluído por falta de número).
+_USUARIOS_MASSA_CSV = (
+    "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
+    "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
+    "Estado_Civil,PrecoHora,Local_Obra,Cliente_Obra,"
+    "ID,Numero_Colaborador,PIN,Password,Password_Provisoria,PIN_Provisorio,"
+    "Bloqueado,Bloqueado_Em\n"
+    "Ana Teste,Técnico,Instrumentista,ana@usuarios.pt,911111111,123456789,"
+    "11122233344,12345678,01/01/2030,15/05/1990,"
+    "Rua A 100,Lisboa,Lisboa,1000-001,PT50000000000000000000000,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,"
+    "A1B2C3D4,11111,,,,,,\n"
+    "Bruno Admin,Admin,Administrador,bruno@usuarios.pt,911111112,123456780,"
+    "11122233345,12345679,01/01/2030,15/05/1985,"
+    "Rua B 100,Lisboa,Lisboa,1000-001,PT50000000000000000000001,Portuguesa,"
+    f"Casado(a),,,,"
+    f"B1B2C3D4,22222,,{core.hp('passwordAntiga1')},,,,\n"
+    "Carla Cliente,Cliente,Gestor de Projeto,carla@cliente.pt,911111113,"
+    "123456781,11122233346,12345680,01/01/2030,15/05/1980,"
+    "Rua C 100,Lisboa,Lisboa,1000-001,PT50000000000000000000002,Portuguesa,"
+    "Solteiro(a),,,,"
+    "C1B2C3D4,33333,,,,,,\n"
+    "Duarte SemNumero,Técnico,Instrumentista,duarte@usuarios.pt,911111114,"
+    "123456782,11122233347,12345681,01/01/2030,15/05/1992,"
+    "Rua D 100,Lisboa,Lisboa,1000-001,PT50000000000000000000003,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,"
+    "D1B2C3D4,,,,,,,\n"
+).encode("utf-8-sig")
+
+
+def _fake_gcs_read_massa(fn):
+    if fn == "usuarios.csv":
+        return io.BytesIO(_USUARIOS_MASSA_CSV)
+    if fn == "colaboradores_rh.csv":
+        return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    return None
+
+
+class TestCredenciaisEmMassa(unittest.TestCase):
+    """Tab 7 — "Credenciais Iniciais (em massa)". Não gera nada até ao
+    segundo clique explícito (checkbox de confirmação + botão)."""
+
+    def _run(self):
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+        return at
+
+    def test_lista_so_as_duas_elegiveis(self):
+        # Ana (PIN) e Bruno (Password) entram; Carla (Cliente) e Duarte
+        # (sem número) ficam de fora — mas nada é gravado nesta chamada.
+        at = self._run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn("2 contas elegíveis", textos)
+        self.assertIn("1 passwords", textos)
+        self.assertIn("1 PINs", textos)
+
+    def test_botao_gerar_desativado_sem_confirmar(self):
+        at = self._run()
+        botao = at.button(key="btn_gerar_lote")
+        self.assertTrue(botao.disabled)
+
+    def test_gerar_grava_hash_marca_provisorio_e_nao_expoe_texto_simples(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.checkbox(key="rh_lote_confirmar").set_value(True).run()
+            at.button(key="btn_gerar_lote").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
+        self.assertIn("$2b$", conteudo)
+
+        linha_ana = [l for l in conteudo.splitlines() if l.startswith("Ana Teste")][0]
+        self.assertIn("Sim", linha_ana.split(",")[
+            conteudo.splitlines()[0].split(",").index("PIN_Provisorio")])
+
+        resultado = at.session_state["rh_lote_gerado"]
+        self.assertEqual(len(resultado), 2)
+        valores = {r["Nome"]: r["Valor"] for r in resultado}
+        self.assertEqual(len(valores["Ana Teste"]), 4)
+        self.assertTrue(valores["Ana Teste"].isdigit())
+        self.assertGreaterEqual(len(valores["Bruno Admin"]), 8)
+        # Os valores em claro nunca vão parar ao ficheiro gravado.
+        self.assertNotIn(valores["Ana Teste"], conteudo)
+        self.assertNotIn(valores["Bruno Admin"], conteudo)
+
+    def test_carla_cliente_e_duarte_sem_numero_nunca_sao_tocados(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.checkbox(key="rh_lote_confirmar").set_value(True).run()
+            at.button(key="btn_gerar_lote").click().run()
+
+        resultado = at.session_state["rh_lote_gerado"]
+        nomes_gerados = {r["Nome"] for r in resultado}
+        self.assertNotIn("Carla Cliente", nomes_gerados)
+        self.assertNotIn("Duarte SemNumero", nomes_gerados)
+        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
+        linha_carla = [l for l in conteudo.splitlines() if l.startswith("Carla Cliente")][0]
+        cabecalho = conteudo.splitlines()[0].split(",")
+        self.assertEqual(linha_carla.split(",")[cabecalho.index("PIN")], "")
+        self.assertEqual(linha_carla.split(",")[cabecalho.index("Password")], "")
+
+    def test_lista_gerada_aparece_uma_vez_e_desaparece_ao_reconhecer(self):
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", return_value=True):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.checkbox(key="rh_lote_confirmar").set_value(True).run()
+            at.button(key="btn_gerar_lote").click().run()
+
+            self.assertIn("rh_lote_gerado", at.session_state)
+            at.button(key="btn_ack_lote").click().run()
+            self.assertNotIn("rh_lote_gerado", at.session_state)
+
+    def test_auditoria_regista_numeros_nunca_o_valor(self):
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", return_value=True), \
+             patch("mod_admin_rh.log_audit") as mock_log:
+            core._cached_load_db.clear()
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.checkbox(key="rh_lote_confirmar").set_value(True).run()
+            at.button(key="btn_gerar_lote").click().run()
+
+        self.assertEqual(mock_log.call_args.kwargs.get("acao"), "GERAR_CREDENCIAIS_MASSA")
+        detalhes = mock_log.call_args.kwargs.get("detalhes")
+        self.assertIn("11111", detalhes)
+        self.assertIn("22222", detalhes)
+        resultado = at.session_state["rh_lote_gerado"]
+        for r in resultado:
+            self.assertNotIn(r["Valor"], detalhes)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
