@@ -2810,6 +2810,53 @@ def render_admin_rh(*args):
             st.info("Sem colaboradores.")
             return
 
+        # ── Quem já completou o onboarding e ainda não tem contrato
+        # enviado — para o RH deixar de depender de se lembrar de cada
+        # pessoa (DESENHO_ONBOARDING.md, secção 4, ponto 2). Só se
+        # aplica a colaboradores/chefes — administrativos têm o
+        # contrato tratado em papel, fora da app (secção 1).
+        for _col_ct in ('Tipo', 'PDFs_Validados', 'PrecoHoraStatus',
+                        'Perfil_Completo', 'IBAN_Comprovativo_b64',
+                        'Contrato_Enviado', 'Contrato_Gerado'):
+            if _col_ct not in users_ct.columns:
+                users_ct[_col_ct] = ''
+
+        def _completou_onboarding(r):
+            return (
+                str(r.get('PDFs_Validados', '')).strip() == 'Sim'
+                and str(r.get('PrecoHoraStatus', '')).strip() == 'Aceite'
+                and str(r.get('Perfil_Completo', '')).strip() == 'Sim'
+                and bool(str(r.get('IBAN_Comprovativo_b64', '')).strip())
+            )
+
+        _mask_papel = users_ct['Tipo'].astype(str).str.strip().isin(MASSA_TIPOS_PASSWORD)
+        _mask_completou = users_ct.apply(_completou_onboarding, axis=1)
+        _mask_sem_contrato = users_ct['Contrato_Enviado'].astype(str).str.strip() != 'Sim'
+        pendentes_ct = users_ct[~_mask_papel & _mask_completou & _mask_sem_contrato]
+
+        st.markdown("#### Contrato por gerar/enviar")
+        if pendentes_ct.empty:
+            st.success("Ninguém à espera de contrato — todos os colaboradores "
+                        "que já completaram o onboarding têm contrato enviado.")
+        else:
+            st.warning(
+                f"{len(pendentes_ct)} colaborador(es) já completaram o "
+                "onboarding e ainda não têm contrato enviado."
+            )
+            for _, r_p in pendentes_ct.sort_values('Nome').iterrows():
+                estado_ct = ("Contrato gerado, por enviar"
+                             if str(r_p.get('Contrato_Gerado', '')).strip() == 'Sim'
+                             else "Contrato por gerar")
+                c_nome, c_btn = st.columns([3, 1])
+                with c_nome:
+                    st.markdown(f"**{r_p['Nome']}** — {estado_ct}")
+                with c_btn:
+                    if st.button("Ver", key=f"ct_ir_para_{r_p['Nome']}",
+                                 use_container_width=True):
+                        st.session_state['ct_colab_sel'] = r_p['Nome']
+                        st.rerun()
+        st.markdown("---")
+
         nomes_ct    = users_ct['Nome'].tolist()
         colab_ct    = st.session_state.get('rh_colaborador_sel', nomes_ct[0])
         idx_ct      = nomes_ct.index(colab_ct) if colab_ct in nomes_ct else 0

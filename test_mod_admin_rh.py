@@ -1341,5 +1341,103 @@ class TestRepoDecisaoPrecoHora(unittest.TestCase):
         self.assertEqual(campos["PrecoHoraData"], "01/09/2026 10:00")
 
 
+# ── Fixture: lista "Contrato por gerar/enviar" (Tab Contratos) ──────────
+# Quatro contas: Bruno (Técnico, completou o onboarding, sem contrato
+# enviado — deve aparecer), Carla (Técnico, completou, mas já tem
+# contrato enviado — não deve aparecer), Duarte (Técnico, onboarding
+# incompleto — não deve aparecer), Elsa (Admin, com todos os campos de
+# onboarding "completos" por acidente — não deve aparecer, é
+# administrativa).
+_USUARIOS_CONTRATOS_CSV = (
+    "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
+    "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
+    "Estado_Civil,PrecoHora,Local_Obra,Cliente_Obra,"
+    "PDFs_Validados,PrecoHoraStatus,Perfil_Completo,IBAN_Comprovativo_b64,"
+    "Contrato_Gerado,Contrato_Enviado\n"
+    "Bruno Tecnico,Técnico,Instrumentista,b@x.pt,911111111,123456789,"
+    "11122233344,12345678,01/01/2030,15/05/1990,"
+    "Rua A 100,Lisboa,Lisboa,1000-001,PT50000000000000000000000,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,"
+    "Sim,Aceite,Sim,abc,,\n"
+    "Carla Tecnico,Técnico,Instrumentista,c@x.pt,911111112,123456780,"
+    "11122233345,12345679,01/01/2030,15/05/1991,"
+    "Rua B 100,Lisboa,Lisboa,1000-001,PT50000000000000000000001,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,"
+    "Sim,Aceite,Sim,abc,Sim,Sim\n"
+    "Duarte Tecnico,Técnico,Instrumentista,d@x.pt,911111113,123456781,"
+    "11122233346,12345680,01/01/2030,15/05/1992,"
+    "Rua C 100,Lisboa,Lisboa,1000-001,PT50000000000000000000002,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,"
+    "Sim,Aceite,,abc,,\n"
+    "Elsa Admin,Admin,Administradora,e@x.pt,911111114,123456782,"
+    "11122233347,12345681,01/01/2030,15/05/1980,"
+    "Rua D 100,Lisboa,Lisboa,1000-001,PT50000000000000000000003,Portuguesa,"
+    "Solteiro(a),,,Sim,,,\n"
+).encode("utf-8-sig")
+
+
+def _fake_gcs_read_contratos(fn):
+    if fn == "usuarios.csv":
+        return io.BytesIO(_USUARIOS_CONTRATOS_CSV)
+    if fn == "colaboradores_rh.csv":
+        return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    return None
+
+
+class TestListaContratoPorGerarEnviar(unittest.TestCase):
+    """Tab "Contratos" — lista de quem completou o onboarding e ainda
+    não tem contrato enviado (DESENHO_ONBOARDING.md, secção 4, ponto 2).
+    Testes lêem só o texto do separador Contratos (após o marcador de
+    Formações, onde os outros separadores terminam)."""
+
+    @classmethod
+    def setUpClass(cls):
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_contratos), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_contratos), \
+             patch("core._gcs_client", return_value=None):
+            cls.at = _run()
+        # A aba "Colaboradores" também lista nomes com um resumo de
+        # estado de contrato — isolar só a secção nova ("Contrato por
+        # gerar/enviar" até às 4 caixas de passos do colaborador
+        # seleccionado, que já existiam antes desta alteração).
+        todo_o_texto = " ".join(m.value for m in cls.at.markdown)
+        inicio = todo_o_texto.index("Contrato por gerar/enviar")
+        fim    = todo_o_texto.index("border:2px solid #5A6478", inicio)
+        cls.textos = todo_o_texto[inicio:fim]
+
+    def test_sem_erro(self):
+        self.assertFalse(self.at.exception, msg=str(self.at.exception))
+
+    def test_bruno_aparece_carla_e_duarte_nao(self):
+        self.assertIn("Bruno Tecnico", self.textos)
+        self.assertNotIn("Carla Tecnico", self.textos)
+        self.assertNotIn("Duarte Tecnico", self.textos)
+
+    def test_admin_nunca_aparece_mesmo_com_campos_completos(self):
+        self.assertNotIn("Elsa Admin", self.textos)
+
+    def test_mostra_contagem_de_um_pendente(self):
+        avisos = " ".join(w.value for w in self.at.warning)
+        self.assertIn("1 colaborador", avisos)
+
+    def test_botao_ver_existe_para_o_pendente(self):
+        self.assertTrue(any(b.key == "ct_ir_para_Bruno Tecnico" for b in self.at.button))
+
+    def test_ver_seleciona_o_colaborador_no_separador(self):
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_contratos), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_contratos), \
+             patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.button(key="ct_ir_para_Bruno Tecnico").click().run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertEqual(at.session_state["ct_colab_sel"], "Bruno Tecnico")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
