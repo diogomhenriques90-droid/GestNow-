@@ -1266,5 +1266,80 @@ class TestDocumentosObrigatoriosPorFuncao(unittest.TestCase):
                               msg=f"falhou para {acao_esperada}")
 
 
+# ── Fixture: reposição da decisão de Preço/Hora ao mudar o valor ────────
+# Ana Teste com PrecoHoraStatus="Recusado" já definido — para confirmar
+# que mudar o valor do Preço/Hora repõe a decisão (DESENHO_ONBOARDING.md,
+# secção 3), e que NÃO mudar o valor a mantém intacta.
+_USUARIOS_PRECO_RECUSADO_CSV = (
+    "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
+    "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
+    "Estado_Civil,PrecoHora,PrecoHoraStatus,PrecoHoraData,Local_Obra,"
+    "Cliente_Obra\n"
+    "Ana Teste,Técnico,Instrumentista,ana@usuarios.pt,911111111,123456789,"
+    "11122233344,12345678,01/01/2030,15/05/1990,"
+    "Rua A 100,Lisboa,Lisboa,1000-001,PT50000000000000000000000,Portuguesa,"
+    "Solteiro(a),15,Recusado,01/09/2026 10:00,Refinaria X,Cliente X\n"
+).encode("utf-8-sig")
+
+
+def _fake_gcs_read_preco(fn):
+    if fn == "usuarios.csv":
+        return io.BytesIO(_USUARIOS_PRECO_RECUSADO_CSV)
+    if fn == "colaboradores_rh.csv":
+        return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    return None
+
+
+class TestRepoDecisaoPrecoHora(unittest.TestCase):
+    """Mudar o valor de Preço/Hora, na Ficha do Colaborador, repõe a
+    decisão da pessoa (PrecoHoraStatus/PrecoHoraData) — sobretudo depois
+    de uma recusa, para o RH não precisar de nenhum passo extra além de
+    mudar o número. Não mudar o valor mantém a decisão intacta."""
+
+    def _submeter(self, novo_preco):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_preco), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_preco), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            core._cached_load_db.clear()
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key=f"gi_preco_{SLUG}").set_value(novo_preco).run()
+            at.button(
+                key=f"FormSubmitter:gi_form_prof_{SLUG}-Guardar Profissional"
+            ).click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        return writes
+
+    def _linha_ana(self, writes):
+        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
+        cabecalho = conteudo.splitlines()[0].split(",")
+        linha = [l for l in conteudo.splitlines() if l.startswith("Ana Teste")][0]
+        return dict(zip(cabecalho, linha.split(",")))
+
+    def test_mudar_o_valor_repoe_status_e_data(self):
+        writes = self._submeter("22.5")
+        campos = self._linha_ana(writes)
+        self.assertEqual(campos["PrecoHora"], "22.5")
+        self.assertEqual(campos["PrecoHoraStatus"], "")
+        self.assertEqual(campos["PrecoHoraData"], "")
+
+    def test_manter_o_mesmo_valor_nao_toca_no_status(self):
+        writes = self._submeter("15")
+        campos = self._linha_ana(writes)
+        self.assertEqual(campos["PrecoHoraStatus"], "Recusado")
+        self.assertEqual(campos["PrecoHoraData"], "01/09/2026 10:00")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

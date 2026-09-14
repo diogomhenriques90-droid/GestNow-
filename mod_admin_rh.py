@@ -1257,7 +1257,7 @@ def render_admin_rh(*args):
 
                 if st.form_submit_button("Guardar Profissional",
                                          use_container_width=True, type="primary"):
-                    if _save_gi({
+                    _prof_updates = {
                         "PrecoHora": _gi_preco, "Local_Obra": _gi_local,
                         "Cliente_Obra": get_cliente_da_obra(_gi_local),
                         "Tamanho_Camisola": _gi_camisola, "Tamanho_Calca": _gi_calca,
@@ -1266,7 +1266,15 @@ def render_admin_rh(*args):
                         "Contrato_Enviado": _gi_ct_env, "Contrato_Enviado_Data": _gi_ct_env_data,
                         "Contrato_Assinado": _gi_ct_assin, "Contrato_Assinatura_Data": _gi_ct_assin_data,
                         "Contrato_Validado_Admin": _gi_ct_valid, "Contrato_Validado_Data": _gi_ct_valid_data,
-                    }) and _sync_rh_csv(nome_sel, {
+                    }
+                    # Mudar o Preço/Hora repõe a decisão da pessoa (Aceite/
+                    # Recusado) — sobretudo depois de uma recusa: o RH só
+                    # tem de mudar o número, sem passo extra, e a pessoa
+                    # volta a ver o ecrã de decisão com o valor novo.
+                    if _gi_preco.strip() != str(_vg("PrecoHora")).strip():
+                        _prof_updates["PrecoHoraStatus"] = ""
+                        _prof_updates["PrecoHoraData"]   = ""
+                    if _save_gi(_prof_updates) and _sync_rh_csv(nome_sel, {
                         "Salario_Base": _gi_salb, "Local_Trabalho": _gi_local_trab,
                     }):
                         st.success("Dados profissionais guardados.")
