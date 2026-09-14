@@ -2,7 +2,7 @@
 
 Decisões sobre o percurso de integração do colaborador, a seguir à auditoria em `AUDITORIA_ONBOARDING.md` (mesma pasta). Este é o desenho acordado, para servir de referência ao trabalho que se seguir.
 
-**Estado (actualizado)**: passos 1, 2 e 5 da ordem de dependência (secção 6) feitos. `_render_onboarding()` no cps-ponto já distingue por Tipo quem pára nos documentos (Admin, Secretariado, Armazém) e quem faz os 4 passos completos (Técnico, Instrumentista, Engenheiro, Chefe de Equipa) — já filtra os documentos mostrados pela `Funcao` da pessoa (ecrã de gestão em RH, `mod_admin_rh.py`; documento sem função associada = toda a gente) — o passo dos documentos já lê página a página dentro da app (um documento pendente de cada vez, navegação Anterior/Seguinte, botão de confirmar só na última página), com o registo por evento (abertura, cada página, confirmação) em `pdfs_leitura_log.csv` — e recusar o Preço/Hora já trava mesmo o percurso, com o RH a poder repor a decisão só por mudar o valor (secção 3). Com isto, o cps-ponto já cobre onboarding — documentos incluídos, com o novo mecanismo de leitura — para todos os papéis; a remoção do bloco duplicado no GestNow (passo 6) continua por decidir explicitamente antes de ser feita. Passos 3 e 4 (aviso de contrato em falta, e a lista/notificação no GestNow) continuam por fazer.
+**Estado (actualizado)**: passos 1, 2, 3 e 5 da ordem de dependência (secção 6) feitos. `_render_onboarding()` no cps-ponto já distingue por Tipo quem pára nos documentos (Admin, Secretariado, Armazém) e quem faz os 4 passos completos (Técnico, Instrumentista, Engenheiro, Chefe de Equipa) — já filtra os documentos mostrados pela `Funcao` da pessoa (ecrã de gestão em RH, `mod_admin_rh.py`; documento sem função associada = toda a gente) — o passo dos documentos já lê página a página dentro da app (um documento pendente de cada vez, navegação Anterior/Seguinte, botão de confirmar só na última página), com o registo por evento (abertura, cada página, confirmação) em `pdfs_leitura_log.csv` — recusar o Preço/Hora já trava mesmo o percurso, com o RH a poder repor a decisão só por mudar o valor (secção 3) — e o aviso de contrato em falta já não bloqueia a app (`_verificar_contrato()` tinha um `st.stop()` que contradizia a própria decisão; removido, secção 4). Com isto, o cps-ponto já cobre onboarding — documentos incluídos, com o novo mecanismo de leitura — para todos os papéis; a remoção do bloco duplicado no GestNow (passo 6) continua por decidir explicitamente antes de ser feita. Passo 4 (lista para o RH de quem falta contrato, e a notificação no momento certo) continua por fazer.
 
 ---
 
@@ -54,9 +54,9 @@ Hoje, a pessoa descarrega o ficheiro e confirma num botão — isso prova que ca
 
 **Decisão: não bloquear o acesso à app**, para colaboradores e chefes. Impedir alguém de trabalhar no primeiro dia por causa de papelada em atraso é pior do que o problema que resolve. Em vez de bloqueio, três coisas:
 
-1. **Aviso permanente à pessoa**, visível sempre que usa a app, de que falta assinar o contrato — até o RH validar a assinatura.
-2. **Uma lista no GestNow**, do lado do RH, com quem já completou os 4 passos e ainda não tem contrato gerado/enviado — para deixar de depender de alguém se lembrar.
-3. **Corrigir a notificação que hoje dispara cedo de mais** (no fim do Perfil, em vez de no fim real dos 4 passos) — passa a disparar no momento certo, dirigida a quem trata de contratos.
+1. ✅ **Aviso permanente à pessoa**, visível sempre que usa a app, de que falta assinar o contrato — até o RH validar a assinatura. **Feito** — `_verificar_contrato()` (cps-ponto) já existia, mas tinha um `st.stop()` que bloqueava a app inteira; removido. Administrativos ficam explicitamente excluídos (o contrato deles é em papel).
+2. **Uma lista no GestNow**, do lado do RH, com quem já completou os 4 passos e ainda não tem contrato gerado/enviado — para deixar de depender de alguém se lembrar. Por fazer.
+3. **Corrigir a notificação que hoje dispara cedo de mais** (no fim do Perfil, em vez de no fim real dos 4 passos) — passa a disparar no momento certo, dirigida a quem trata de contratos. Por fazer.
 
 Para administrativos, o contrato é todo em papel (secção 1) — nada disto se aplica a eles.
 
@@ -72,7 +72,7 @@ Para administrativos, o contrato é todo em papel (secção 1) — nada disto se
 
 1. ✅ **Migrar os 4 passos para serem só no cps-ponto**, já distinguindo por Tipo quem para nos documentos e quem continua — feito em `_render_onboarding()` (`app_ponto.py`). O bloco do GestNow fica por remover de propósito, candidato ao ponto 6.
 2. ✅ **Aplicar as correções de comportamento na versão que fica** — feito: recusa do preço a travar e a notificar em conjunto (secção 3); o novo mecanismo de confirmação de documentos (secção 2).
-3. **Construir o aviso permanente à pessoa** sobre o contrato em falta, no cps-ponto (onde a pessoa passa a estar) — só para colaboradores/chefes.
+3. ✅ **Construir o aviso permanente à pessoa** sobre o contrato em falta, no cps-ponto (onde a pessoa passa a estar) — só para colaboradores/chefes. Feito em `_verificar_contrato()`.
 4. **Construir, no GestNow, a lista para o RH** de quem completou os 4 passos sem contrato, e a notificação disparada no momento certo — pode ser feito em paralelo com os pontos 1-3, já que só depende de colunas já partilhadas em `usuarios.csv`.
 5. ✅ **Associar documentos a funções** — feito. Nova coluna `Funcoes` em `pdfs_obrigatorios.csv` (lista de valores de `usuarios.csv`/`Funcao`; vazia = toda a gente), novo ecrã de gestão em RH (`mod_admin_rh.py`, separador "Documentos Obrigatórios"), e `_render_onboarding()` no cps-ponto já filtra pela `Funcao` da pessoa.
 6. **Remover o bloco de onboarding do GestNow** — os pré-requisitos (pontos 1 e 5) já estão feitos; falta decidir explicitamente avançar com a remoção.
