@@ -1,6 +1,8 @@
 # Desenho do onboarding — GestNow + cps-ponto
 
-Decisões sobre o percurso de integração do colaborador, a seguir à auditoria em `AUDITORIA_ONBOARDING.md` (mesma pasta). Nada disto está implementado — é o desenho acordado, para servir de referência ao trabalho que se seguir.
+Decisões sobre o percurso de integração do colaborador, a seguir à auditoria em `AUDITORIA_ONBOARDING.md` (mesma pasta). Este é o desenho acordado, para servir de referência ao trabalho que se seguir.
+
+**Estado (actualizado)**: passo 1 da ordem de dependência (secção 6) feito parcialmente — `_render_onboarding()` no cps-ponto já distingue por Tipo quem pára nos documentos (Admin, Secretariado, Armazém) e quem faz os 4 passos completos (Técnico, Instrumentista, Engenheiro, Chefe de Equipa). O bloco duplicado no GestNow fica por remover de propósito, tal como já previa o passo 6 — só depois de "Associar documentos a funções" (passo 5) estar feito, para nenhum administrativo ficar sem nenhum sítio para fazer os documentos entretanto. Passos 2-6 continuam por fazer.
 
 ---
 
@@ -64,11 +66,11 @@ Para administrativos, o contrato é todo em papel (secção 1) — nada disto se
 
 ## 6. Ordem de dependência para chegar aqui
 
-1. **Migrar os 4 passos para serem só no cps-ponto**, já distinguindo por Tipo quem para nos documentos e quem continua — a implementação de lá já existe e serve de base; o bloco do GestNow passa a candidato a remover (ponto 6).
+1. ✅ **Migrar os 4 passos para serem só no cps-ponto**, já distinguindo por Tipo quem para nos documentos e quem continua — feito em `_render_onboarding()` (`app_ponto.py`). O bloco do GestNow fica por remover de propósito, candidato ao ponto 6.
 2. **Aplicar as correções de comportamento na versão que fica**: recusa do preço a travar e a notificar em conjunto (secção 3); o novo mecanismo de confirmação de documentos (secção 2).
 3. **Construir o aviso permanente à pessoa** sobre o contrato em falta, no cps-ponto (onde a pessoa passa a estar) — só para colaboradores/chefes.
 4. **Construir, no GestNow, a lista para o RH** de quem completou os 4 passos sem contrato, e a notificação disparada no momento certo — pode ser feito em paralelo com os pontos 1-3, já que só depende de colunas já partilhadas em `usuarios.csv`.
 5. **Associar documentos a funções** (RH, GestNow ou onde a categoria profissional já é gerida) — pré-requisito para os administrativos terem algo a confirmar no dia em que entrarem pela primeira vez.
 6. **Remover o bloco de onboarding do GestNow** — só depois de confirmar que o cps-ponto já cobre os documentos para todos os papéis, e os 4 passos completos para colaboradores/chefes.
 
-Não há prazo definido. Nada disto foi implementado.
+Não há prazo definido.
