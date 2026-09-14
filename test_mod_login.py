@@ -138,13 +138,6 @@ class TestTemaClaroAplicado(unittest.TestCase):
         html = " ".join(m.value for m in at.markdown)
         self.assertIn(core.THEME["text_secondary"], html)
 
-    def test_ligacao_usa_acento(self):
-        at = _run()
-        html = " ".join(m.value for m in at.markdown)
-        self.assertIn(core.THEME["accent"], html)
-        self.assertNotIn("#3B82F6", html)
-        self.assertNotIn("#64748B", html)
-
 
 class TestLoginPorNumero(unittest.TestCase):
     """Via única de login: Número de colaborador + Password, para

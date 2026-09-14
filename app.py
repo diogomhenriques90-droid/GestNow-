@@ -46,12 +46,6 @@ from streamlit_autorefresh import st_autorefresh
 if st.session_state.get('user'):
     st_autorefresh(interval=300000, limit=None, key="auto_refresh")
 
-page = st.query_params.get("page", "")
-if page == "criar_admin":
-    from criar_admin import render_criar_admin
-    render_criar_admin()
-    st.stop()
-
 
 def _verificar_password_provisoria(user_nome):
     """Password gerada em massa (ou individualmente) pelo RH nasce sempre

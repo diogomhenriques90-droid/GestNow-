@@ -224,11 +224,5 @@ def render_login():
         f"Esqueceste a credencial ou a conta está bloqueada? Contacta o administrador.</p>",
         unsafe_allow_html=True
     )
-    st.markdown(
-        f"<p style='text-align:center; font-size:0.8rem;'>"
-        f"<a href='/?page=criar_admin' style='color:{THEME['accent']};'>"
-        f"Criar utilizador Admin</a></p>",
-        unsafe_allow_html=True
-    )
 
     st.markdown("</div></div>", unsafe_allow_html=True)
