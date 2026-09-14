@@ -11,8 +11,12 @@ from core import (
     cliente_select, registar_cliente_do_select,
     obra_select, get_cliente_da_obra,
     lista_rh_select, registar_valor_lista_rh, set_funcao_categoria,
+    get_lista_rh,
     THEME, _norm_nome_cliente, limpar_tentativas_login
 )
+
+_PDFS_OBRIGATORIOS_COLS = ["ID", "Nome", "Descricao", "Data_Upload",
+                           "Upload_Por", "Ficheiro_b64", "Funcoes"]
 
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
 TIPOS_USUARIO = ["Técnico","Instrumentista","Engenheiro","Chefe de Equipa",
@@ -767,7 +771,7 @@ def render_admin_rh(*args):
         st.markdown("---")
 
     (tab_lista, tab_gestao, tab_eticadata,
-     tab_contrato, tab_template, tab_formacoes, tab_massa) = st.tabs([
+     tab_contrato, tab_template, tab_formacoes, tab_massa, tab_docs) = st.tabs([
         "Colaboradores",
         "Ficha do Colaborador",
         "Importar Eticadata",
@@ -775,6 +779,7 @@ def render_admin_rh(*args):
         "Templates & Config",
         "Formações",
         "Credenciais Iniciais (em massa)",
+        "Documentos Obrigatórios",
     ])
 
     # ════════════════════════════════════════════════════════════════
@@ -3340,3 +3345,154 @@ def render_admin_rh(*args):
                             )
                             st.session_state["rh_lote_gerado"] = resultado
                             st.rerun()
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 8 — DOCUMENTOS OBRIGATÓRIOS (associação a funções)
+    # ════════════════════════════════════════════════════════════════
+    with tab_docs:
+        st.markdown("### Documentos Obrigatórios do Onboarding")
+        st.markdown(
+            "Documentos mostrados no onboarding do cps-ponto. Um documento "
+            "sem nenhuma função seleccionada aplica-se a toda a gente "
+            "(ex.: Manual de Acolhimento) — só passa a ser específico "
+            "quando se associa a uma ou mais funções."
+        )
+
+        pdfs_db = load_db("pdfs_obrigatorios.csv", _PDFS_OBRIGATORIOS_COLS,
+                           silent=True)
+
+        u_funcoes_docs = _load_users_fresh()
+        funcoes_em_uso = set()
+        if not u_funcoes_docs.empty and 'Funcao' in u_funcoes_docs.columns:
+            funcoes_em_uso = {
+                v.strip() for v in u_funcoes_docs['Funcao'].astype(str) if v.strip()
+            }
+        funcoes_catalogo = sorted(set(get_lista_rh('funcao')) | funcoes_em_uso)
+
+        def _funcoes_de(doc):
+            try:
+                return json.loads(doc.get('Funcoes', '') or '[]')
+            except Exception:
+                return []
+
+        st.markdown("#### Documentos existentes")
+        if pdfs_db.empty:
+            st.info("Ainda não há nenhum documento.")
+        else:
+            for _, doc in pdfs_db.sort_values('Nome').iterrows():
+                doc_id  = str(doc.get('ID', '')).strip()
+                titulo  = doc.get('Nome', '(sem nome)') or '(sem nome)'
+                funcoes_doc = _funcoes_de(doc)
+                etiqueta = ", ".join(funcoes_doc) if funcoes_doc else "Toda a gente"
+                with st.expander(f"{titulo} — {etiqueta}"):
+                    st.markdown(
+                        f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;'>"
+                        f"Enviado por {doc.get('Upload_Por','—') or '—'} "
+                        f"em {doc.get('Data_Upload','—') or '—'}</p>",
+                        unsafe_allow_html=True
+                    )
+                    if doc.get('Ficheiro_b64'):
+                        try:
+                            st.download_button(
+                                "Descarregar", data=base64.b64decode(doc['Ficheiro_b64']),
+                                file_name=f"{titulo}.pdf", mime="application/pdf",
+                                key=f"doc_dl_{doc_id}"
+                            )
+                        except Exception:
+                            st.error("Erro no ficheiro.")
+
+                    novas_funcoes = st.multiselect(
+                        "Aplica-se a (vazio = toda a gente)",
+                        funcoes_catalogo,
+                        default=[f for f in funcoes_doc if f in funcoes_catalogo],
+                        key=f"doc_funcoes_{doc_id}"
+                    )
+                    col_g, col_r = st.columns(2)
+                    with col_g:
+                        if st.button("Guardar", key=f"doc_guardar_{doc_id}",
+                                     type="primary", use_container_width=True):
+                            u_docs = load_db("pdfs_obrigatorios.csv",
+                                              _PDFS_OBRIGATORIOS_COLS, silent=True)
+                            mk = u_docs['ID'] == doc_id
+                            if mk.any():
+                                u_docs.loc[mk, 'Funcoes'] = json.dumps(
+                                    novas_funcoes, ensure_ascii=False)
+                                save_db(u_docs, "pdfs_obrigatorios.csv")
+                                inv("pdfs_obrigatorios.csv")
+                                log_audit(
+                                    usuario=st.session_state.get("user", "admin"),
+                                    acao="EDITAR_FUNCOES_DOCUMENTO",
+                                    tabela="pdfs_obrigatorios.csv",
+                                    registro_id=doc_id,
+                                    detalhes=f"{titulo} -> "
+                                             f"{', '.join(novas_funcoes) or 'Toda a gente'}",
+                                )
+                                st.success("Guardado.")
+                                st.rerun()
+                    with col_r:
+                        confirmar_remover = st.checkbox(
+                            "Confirmo que quero remover este documento",
+                            key=f"doc_confirmar_remover_{doc_id}"
+                        )
+                        if st.button("Remover", key=f"doc_remover_{doc_id}",
+                                     use_container_width=True,
+                                     disabled=not confirmar_remover):
+                            u_docs = load_db("pdfs_obrigatorios.csv",
+                                              _PDFS_OBRIGATORIOS_COLS, silent=True)
+                            u_docs = u_docs[u_docs['ID'] != doc_id]
+                            save_db(u_docs, "pdfs_obrigatorios.csv")
+                            inv("pdfs_obrigatorios.csv")
+                            log_audit(
+                                usuario=st.session_state.get("user", "admin"),
+                                acao="REMOVER_DOCUMENTO_OBRIGATORIO",
+                                tabela="pdfs_obrigatorios.csv",
+                                registro_id=doc_id,
+                                detalhes=titulo,
+                            )
+                            st.success("Removido.")
+                            st.rerun()
+
+        st.markdown("---")
+        st.markdown("#### Novo documento")
+        with st.form("form_novo_doc_obrigatorio", clear_on_submit=True):
+            nome_doc  = st.text_input("Nome do documento *", key="novo_doc_nome")
+            desc_doc  = st.text_input("Descrição", key="novo_doc_desc")
+            funcoes_novo = st.multiselect(
+                "Aplica-se a (vazio = toda a gente)", funcoes_catalogo,
+                key="novo_doc_funcoes"
+            )
+            ficheiro_doc = st.file_uploader("Ficheiro (PDF)", type=["pdf"],
+                                             key="novo_doc_ficheiro")
+            submeter_doc = st.form_submit_button(
+                "Adicionar documento", type="primary", use_container_width=True)
+
+        if submeter_doc:
+            if not nome_doc.strip():
+                st.error("O nome é obrigatório.")
+            elif not ficheiro_doc:
+                st.error("Escolhe um ficheiro.")
+            else:
+                u_docs = load_db("pdfs_obrigatorios.csv",
+                                  _PDFS_OBRIGATORIOS_COLS, silent=True)
+                novo_doc = {
+                    "ID":           uuid.uuid4().hex[:8].upper(),
+                    "Nome":         nome_doc.strip(),
+                    "Descricao":    desc_doc.strip(),
+                    "Data_Upload":  datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "Upload_Por":   st.session_state.get("user", "Admin"),
+                    "Ficheiro_b64": base64.b64encode(ficheiro_doc.read()).decode(),
+                    "Funcoes":      json.dumps(funcoes_novo, ensure_ascii=False),
+                }
+                u_docs = pd.concat([u_docs, pd.DataFrame([novo_doc])], ignore_index=True)
+                save_db(u_docs, "pdfs_obrigatorios.csv")
+                inv("pdfs_obrigatorios.csv")
+                log_audit(
+                    usuario=st.session_state.get("user", "admin"),
+                    acao="CRIAR_DOCUMENTO_OBRIGATORIO",
+                    tabela="pdfs_obrigatorios.csv",
+                    registro_id=novo_doc["ID"],
+                    detalhes=f"{novo_doc['Nome']} -> "
+                             f"{', '.join(funcoes_novo) or 'Toda a gente'}",
+                )
+                st.success(f"Documento '{novo_doc['Nome']}' adicionado.")
+                st.rerun()

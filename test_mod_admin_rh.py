@@ -1089,5 +1089,182 @@ class TestCredenciaisEmMassa(unittest.TestCase):
             self.assertNotIn(r["Valor"], detalhes)
 
 
+# ── Fixture: Documentos Obrigatórios / associação a funções (Tab 8) ──────
+# Uma conta com Funcao="Eletricista" (para popular o catálogo de funções
+# a partir de usuarios.csv, tal como em produção) e dois documentos:
+# um universal (Funcoes=[]) e um específico de Eletricista.
+_USUARIOS_FUNCAO_CSV = (
+    "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
+    "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
+    "Estado_Civil,PrecoHora,Local_Obra,Cliente_Obra,Funcao\n"
+    "Ana Teste,Técnico,Instrumentista,ana@usuarios.pt,911111111,123456789,"
+    "11122233344,12345678,01/01/2030,15/05/1990,"
+    "Rua A 100,Lisboa,Lisboa,1000-001,PT50000000000000000000000,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,Eletricista\n"
+).encode("utf-8-sig")
+
+_PDFS_DOCS_CSV = (
+    "ID,Nome,Descricao,Data_Upload,Upload_Por,Ficheiro_b64,Funcoes\n"
+    'DOC1,Manual de Acolhimento,,01/01/2026 10:00,Admin,YWJj,[]\n'
+    'DOC2,Ficha de Risco Eletricista,,01/01/2026 10:00,Admin,YWJj,'
+    '"[""Eletricista""]"\n'
+).encode("utf-8-sig")
+
+
+def _fake_gcs_read_docs(fn):
+    if fn == "usuarios.csv":
+        return io.BytesIO(_USUARIOS_FUNCAO_CSV)
+    if fn == "colaboradores_rh.csv":
+        return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    if fn == "pdfs_obrigatorios.csv":
+        return io.BytesIO(_PDFS_DOCS_CSV)
+    return None
+
+
+class TestDocumentosObrigatoriosPorFuncao(unittest.TestCase):
+    """Tab 8 — "Documentos Obrigatórios". Lista existente, edição da
+    associação a funções, criação de novo documento, remoção com
+    confirmação explícita."""
+
+    def _run(self):
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+        return at
+
+    def test_lista_mostra_toda_a_gente_e_funcao_especifica(self):
+        at = self._run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        titulos = [e.label for e in at.expander]
+        self.assertTrue(any("Manual de Acolhimento" in t and "Toda a gente" in t
+                             for t in titulos))
+        self.assertTrue(any("Ficha de Risco Eletricista" in t and "Eletricista" in t
+                             for t in titulos))
+
+    def test_catalogo_de_funcoes_inclui_valores_em_uso_em_usuarios(self):
+        at = self._run()
+        multiselect = at.multiselect(key="doc_funcoes_DOC1")
+        self.assertIn("Eletricista", multiselect.options)
+
+    def test_guardar_novas_funcoes_grava_no_ficheiro(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            # DOC1 (Manual de Acolhimento) passa a ser só para Eletricista.
+            at.multiselect(key="doc_funcoes_DOC1").set_value(["Eletricista"]).run()
+            at.button(key="doc_guardar_DOC1").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        conteudo = writes["pdfs_obrigatorios.csv"].decode("utf-8-sig")
+        linha_doc1 = [l for l in conteudo.splitlines() if l.startswith("DOC1")][0]
+        self.assertIn("Eletricista", linha_doc1)
+
+    def test_remover_fica_desativado_sem_confirmar(self):
+        at = self._run()
+        botao = at.button(key="doc_remover_DOC1")
+        self.assertTrue(botao.disabled)
+
+    def test_remover_com_confirmacao_apaga_a_linha(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.checkbox(key="doc_confirmar_remover_DOC1").set_value(True).run()
+            at.button(key="doc_remover_DOC1").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        conteudo = writes["pdfs_obrigatorios.csv"].decode("utf-8-sig")
+        self.assertNotIn("DOC1", conteudo)
+        self.assertIn("DOC2", conteudo)
+
+    def test_criar_documento_grava_com_funcoes_e_ficheiro(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="novo_doc_nome").set_value("Regras de Segurança").run()
+            at.multiselect(key="novo_doc_funcoes").set_value(["Eletricista"]).run()
+            at.file_uploader(key="novo_doc_ficheiro").set_value(
+                ("regras.pdf", b"conteudo de teste", "application/pdf")).run()
+            at.button(
+                key="FormSubmitter:form_novo_doc_obrigatorio-Adicionar documento"
+            ).click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        conteudo = writes["pdfs_obrigatorios.csv"].decode("utf-8-sig")
+        self.assertIn("Regras de Segurança", conteudo)
+        linha_nova = [l for l in conteudo.splitlines()
+                      if "Regras de Segurança" in l][0]
+        self.assertIn("Eletricista", linha_nova)
+        # O conteúdo do ficheiro fica em base64, nunca em claro.
+        import base64 as _b64
+        self.assertIn(_b64.b64encode(b"conteudo de teste").decode(), conteudo)
+
+    def test_auditoria_das_tres_acoes(self):
+        for acao_esperada, interagir in [
+            ("CRIAR_DOCUMENTO_OBRIGATORIO", lambda at: (
+                at.text_input(key="novo_doc_nome").set_value("Doc X").run(),
+                at.file_uploader(key="novo_doc_ficheiro").set_value(
+                    ("x.pdf", b"x", "application/pdf")).run(),
+                at.button(key="FormSubmitter:form_novo_doc_obrigatorio-"
+                              "Adicionar documento").click().run(),
+            )),
+            ("EDITAR_FUNCOES_DOCUMENTO", lambda at: (
+                at.multiselect(key="doc_funcoes_DOC1").set_value(["Eletricista"]).run(),
+                at.button(key="doc_guardar_DOC1").click().run(),
+            )),
+            ("REMOVER_DOCUMENTO_OBRIGATORIO", lambda at: (
+                at.checkbox(key="doc_confirmar_remover_DOC1").set_value(True).run(),
+                at.button(key="doc_remover_DOC1").click().run(),
+            )),
+        ]:
+            core._cached_load_db.clear()
+            with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_docs), \
+                 patch("core._gcs_read", side_effect=_fake_gcs_read_docs), \
+                 patch("core._gcs_client", return_value=None), \
+                 patch("core._gcs_write", return_value=True), \
+                 patch("mod_admin_rh.log_audit") as mock_log:
+                at = AppTest.from_function(_script, default_timeout=30)
+                at.run()
+                interagir(at)
+            self.assertEqual(mock_log.call_args.kwargs.get("acao"), acao_esperada,
+                              msg=f"falhou para {acao_esperada}")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
