@@ -168,18 +168,25 @@ class TestBarraInferiorSoMobile(unittest.TestCase):
         self.assertIn(".bottom-nav-spacer", bloco)
 
 
-class TestOnboardingSemIconesTemaClaro(unittest.TestCase):
-    """Ecrã de onboarding de novos utilizadores (_render_validacao_obrigatoria
-    em app.py) — nunca teve nenhum teste antes desta sessão. Migrado do
-    visual escuro antigo (cores fixas) para o THEME central, e sem ícones,
-    ao mesmo tempo que os outros ecrãs da app.
+class TestContratoPendenteSemIconesTemaClaro(unittest.TestCase):
+    """Bloqueio "contrato pendente de assinatura" (app.py, MAIN routing,
+    logo a seguir ao ponto onde o onboarding de 4 passos costumava
+    correr) — migrado do visual escuro antigo (cores fixas) para o THEME
+    central, e sem ícones, ao mesmo tempo que os outros ecrãs da app.
+
+    Esta classe cobria antes também o ecrã de onboarding de 4 passos
+    (_render_validacao_obrigatoria), removido de app.py por completo —
+    esse percurso vive agora só no cps-ponto (DESENHO_ONBOARDING.md,
+    passo 6). Os testes desses 4 passos saíram daqui com ele; fica só o
+    teste do bloqueio de contrato, que é um bloco à parte e continua a
+    existir em app.py.
 
     A sessão é marcada como já autenticada (Técnico) ANTES do `import app`
-    dentro do script — assim o próprio fluxo normal de app.py chama
-    _render_validacao_obrigatoria sozinho (linha ~693), em vez de nós
-    chamarmos explicitamente depois de app.py já ter corrido o ecrã de
-    login como efeito secundário do import (o que gerava um erro de
-    "form aninhado" — dois st.form() na mesma execução de script)."""
+    dentro do script — assim o próprio fluxo normal de app.py chama o
+    bloqueio sozinho, em vez de nós chamarmos explicitamente depois de
+    app.py já ter corrido o ecrã de login como efeito secundário do
+    import (o que gerava um erro de "form aninhado" — dois st.form() na
+    mesma execução de script)."""
 
     def _run_passo(self, users_df, pdfs_df=None):
         import pandas as pd
@@ -227,28 +234,6 @@ class TestOnboardingSemIconesTemaClaro(unittest.TestCase):
         for m in at.markdown:
             self.assertIsNone(padrao.search(m.value), f"emoji encontrado: {m.value!r}")
 
-    def test_passo1_documentos_sem_erro_sem_icones(self):
-        import pandas as pd
-        pdfs = pd.DataFrame([{
-            "ID": "1", "Nome": "Contrato", "Descricao": "Contrato de trabalho",
-            "Data_Upload": "", "Upload_Por": "", "Ficheiro_b64": "",
-        }])
-        at = self._run_passo(self._base_user(PDFs_Validados="Não"), pdfs)
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self._sem_emoji(at)
-
-    def test_passo2_preco_hora_sem_erro_sem_icones(self):
-        at = self._run_passo(self._base_user(PrecoHoraStatus=""))
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self._sem_emoji(at)
-        textos = " ".join(m.value for m in at.markdown)
-        self.assertIn(core.THEME["accent"], textos)
-
-    def test_passo3_perfil_sem_erro_sem_icones(self):
-        at = self._run_passo(self._base_user(Perfil_Completo=""))
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self._sem_emoji(at)
-
     def test_contrato_pendente_sem_erro_sem_icones_tema_claro(self):
         """Bloqueio "contrato pendente de assinatura" (linha ~695 de
         app.py) — logo a seguir ao onboarding, mesma migração."""
@@ -262,17 +247,6 @@ class TestOnboardingSemIconesTemaClaro(unittest.TestCase):
         self.assertIn("Contrato pendente de assinatura", textos)
         self.assertNotIn("#0F172A", textos)
         self.assertNotIn("#1E40AF", textos)
-
-    def test_passo4_iban_sem_erro_sem_icones(self):
-        at = self._run_passo(self._base_user(IBAN_Comprovativo_b64=""))
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self._sem_emoji(at)
-        textos = " ".join(m.value for m in at.markdown)
-        # #60A5FA/#94A3B8 eram as cores escuras antigas, fora da paleta
-        # THEME — #1E293B não se testa aqui porque, por coincidência,
-        # é o valor atual de THEME['text'], por isso apareceria sempre.
-        self.assertNotIn("#60A5FA", textos)
-        self.assertNotIn("#94A3B8", textos)
 
 
 class TestPasswordProvisoria(unittest.TestCase):
@@ -312,14 +286,12 @@ class TestPasswordProvisoria(unittest.TestCase):
                 at = AppTest.from_function(_warmup_script, default_timeout=30)
                 at.run()
 
-    def _run_gate(self, nome, user_row, interagir=None, tambem_onboarding=False):
-        """Chama _verificar_password_provisoria() diretamente (e, se
-        tambem_onboarding, _render_validacao_obrigatoria() a seguir, tal
-        como app.py faz na rotina principal) — evita depender de o
-        'import app' completo voltar a correr o ficheiro inteiro em cada
-        teste (só executa mesmo na primeira vez em todo o processo,
-        porque fica em sys.modules — chamar a função apontada resolve
-        isto sem esse efeito colateral).
+    def _run_gate(self, nome, user_row, interagir=None):
+        """Chama _verificar_password_provisoria() diretamente — evita
+        depender de o 'import app' completo voltar a correr o ficheiro
+        inteiro em cada teste (só executa mesmo na primeira vez em todo
+        o processo, porque fica em sys.modules — chamar a função
+        apontada resolve isto sem esse efeito colateral).
 
         interagir(at), se dado, corre AINDA DENTRO do with patch(...) —
         um set_value/click().run() feito depois do with já ter fechado
@@ -331,16 +303,14 @@ class TestPasswordProvisoria(unittest.TestCase):
             writes[fn] = content_bytes
             return True
 
-        def _script(nome, tambem_onboarding):
+        def _script(nome):
             import streamlit as st
             st.session_state['user'] = nome
-            # 'app' já foi importado em setUpClass — isto só vai buscar as
-            # funções ao módulo já pronto, sem voltar a correr o topo do
+            # 'app' já foi importado em setUpClass — isto só vai buscar a
+            # função ao módulo já pronto, sem voltar a correr o topo do
             # ficheiro (routing completa) como efeito colateral.
-            from app import _verificar_password_provisoria, _render_validacao_obrigatoria
+            from app import _verificar_password_provisoria
             _verificar_password_provisoria(nome)
-            if tambem_onboarding:
-                _render_validacao_obrigatoria(nome)
 
         import pandas as pd
         df = pd.DataFrame([user_row])
@@ -356,7 +326,7 @@ class TestPasswordProvisoria(unittest.TestCase):
              patch("core._gcs_write", side_effect=_gcs_write):
             at = AppTest.from_function(
                 _script, default_timeout=30,
-                args=(nome, tambem_onboarding),
+                args=(nome,),
             )
             at.run()
             if interagir is not None:
@@ -376,19 +346,6 @@ class TestPasswordProvisoria(unittest.TestCase):
         })
         self.assertFalse(at.exception, msg=str(at.exception))
         self.assertNotIn("Password provisória", _texto(at))
-
-    def test_corre_antes_do_onboarding(self):
-        """Um Técnico com password provisória E onboarding pendente tem de
-        ver o ecrã da password primeiro — o de onboarding nem chega a
-        desenhar nada, porque a password já fez st.stop()."""
-        at, _ = self._run_gate("Técnico Teste", {
-            "Nome": "Técnico Teste", "Password_Provisoria": "Sim",
-            "PDFs_Validados": "Não", "PrecoHoraStatus": "",
-            "Perfil_Completo": "", "IBAN_Comprovativo_b64": "",
-        }, tambem_onboarding=True)
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertIn("Password provisória", _texto(at))
-        self.assertNotIn("Bem-vindo", _texto(at))
 
     def test_submissao_valida_grava_hash_limpa_flag_e_nao_expoe_texto_simples(self):
         def _interagir(at):
