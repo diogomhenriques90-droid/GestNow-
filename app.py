@@ -302,10 +302,14 @@ else:
     # ── BLOQUEIO CENTRALIZADO — só Técnicos e Chefes ──────────────────
     # O onboarding de 4 passos (Documentos/Preço/Perfil/IBAN) saiu daqui
     # por completo — vive só no cps-ponto (DESENHO_ONBOARDING.md, passo
-    # 6). O bloqueio de contrato pendente abaixo é uma peça à parte,
-    # ainda em avaliação separada.
+    # 6).
     if tipo not in ['Admin', 'Cliente']:
-        # ── Bloqueio contrato pendente de assinatura ───────────────
+        # ── Aviso de contrato pendente de assinatura — PERMANENTE, NÃO
+        # BLOQUEANTE (DESENHO_ONBOARDING.md, secção 4: "impedir alguém de
+        # trabalhar no primeiro dia por causa de papelada em atraso é
+        # pior do que o problema que resolve"). Tinha aqui um st.stop()
+        # que bloqueava a app inteira — o mesmo bug já corrigido na
+        # versão gémea do cps-ponto (_verificar_contrato); removido.
         try:
             u_ct_check = _load_users_cached()
             if not u_ct_check.empty:
@@ -317,17 +321,11 @@ else:
                     ct_validado = row_ct.get('Contrato_Validado_Admin','') == 'Sim'
 
                     if ct_enviado and not ct_assinado and not ct_validado:
-                        st.markdown(f"""
-                        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
-                            padding:30px;border-radius:20px;margin-bottom:25px;
-                            text-align:center;">
-                            <h2 style="color:{THEME['text']};margin:0 0 10px;">Contrato pendente de assinatura</h2>
-                            <p style="color:{THEME['text_secondary']};margin:0;font-size:0.95rem;">
-                                O teu contrato de trabalho está disponível.<br>
-                                Assina e faz upload para continuar a usar a app.
-                            </p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        st.warning(
+                            "Tens um contrato pendente de assinatura. Podes "
+                            "continuar a usar a app normalmente — só falta "
+                            "este passo."
+                        )
 
                         ct_b64 = row_ct.get('Contrato_b64','')
                         if ct_b64:
@@ -402,7 +400,7 @@ else:
                                     inv("usuarios.csv")  # FIX 2 — selectivo
                                     st.success("Assinatura submetida! O RH será notificado.")
                                     st.rerun()
-                        st.stop()
+                        st.markdown("---")
         except Exception as _e_ct:
             pass
 

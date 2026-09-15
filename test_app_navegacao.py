@@ -231,22 +231,30 @@ class TestContratoPendenteSemIconesTemaClaro(unittest.TestCase):
     def _sem_emoji(self, at):
         import re
         padrao = re.compile(r'[\U0001F300-\U0001FAFF☀-➿←-⇿⬀-⯿️]')
-        for m in at.markdown:
+        for m in list(at.markdown) + list(at.warning):
             self.assertIsNone(padrao.search(m.value), f"emoji encontrado: {m.value!r}")
 
     def test_contrato_pendente_sem_erro_sem_icones_tema_claro(self):
-        """Bloqueio "contrato pendente de assinatura" (linha ~695 de
-        app.py) — logo a seguir ao onboarding, mesma migração."""
+        """Aviso "contrato pendente de assinatura" (app.py, MAIN routing)
+        — sem ícones, mesma migração de tema. Não bloqueante: tinha um
+        st.stop() que impedia o resto da app de aparecer (o mesmo bug já
+        corrigido em _verificar_contrato() no cps-ponto); removido."""
         at = self._run_passo(self._base_user(
             Contrato_Enviado="Sim", Contrato_Assinado="",
             Contrato_Validado_Admin="",
         ))
         self.assertFalse(at.exception, msg=str(at.exception))
         self._sem_emoji(at)
+        self.assertTrue(any(
+            "contrato pendente de assinatura" in w.value.lower()
+            for w in at.warning
+        ))
         textos = " ".join(m.value for m in at.markdown)
-        self.assertIn("Contrato pendente de assinatura", textos)
         self.assertNotIn("#0F172A", textos)
         self.assertNotIn("#1E40AF", textos)
+        # Prova de que já não bloqueia: o resto do ecrã do Técnico (que
+        # antes nunca era alcançado, por causa do st.stop()) aparece.
+        self.assertIn("Horas este mês", textos)
 
 
 class TestPasswordProvisoria(unittest.TestCase):
