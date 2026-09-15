@@ -1249,7 +1249,7 @@ def gerar_numero_colaborador(existentes):
 # login_tentativas.csv regista tentativas falhadas por Número tentado —
 # EXISTA ou não uma conta real com esse número — para que a resposta
 # externa nunca distinga um número real de um inventado (ver
-# criar_admin.py/mod_login.py: mensagem de erro sempre genérica).
+# mod_login.py: mensagem de erro sempre genérica).
 _LOGIN_TENTATIVAS_COLS = ["Numero", "Timestamp"]
 
 def registar_tentativa_login(numero):

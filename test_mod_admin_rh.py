@@ -660,6 +660,18 @@ _USUARIOS_PIN_CSV = (
     "A1B2C3D4,12345,,,\n"
 ).encode("utf-8-sig")
 
+_USUARIOS_PIN_JA_DEFINIDO_CSV = (
+    "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
+    "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
+    "Estado_Civil,PrecoHora,Local_Obra,Cliente_Obra,"
+    "ID,Numero_Colaborador,PIN,Bloqueado,Bloqueado_Em\n"
+    "Ana Teste,Técnico,Instrumentista,ana@usuarios.pt,911111111,123456789,"
+    "11122233344,12345678,01/01/2030,15/05/1990,"
+    "Rua A 100,Lisboa,Lisboa,1000-001,PT50000000000000000000000,Portuguesa,"
+    f"Solteiro(a),15,Refinaria X,Cliente X,"
+    f"A1B2C3D4,12345,{core.hp('9999')},,\n"
+).encode("utf-8-sig")
+
 _USUARIOS_PIN_BLOQUEADA_CSV = (
     "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
     "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
@@ -676,6 +688,18 @@ _USUARIOS_PIN_BLOQUEADA_CSV = (
 def _fake_gcs_read_pin(fn):
     if fn == "usuarios.csv":
         return io.BytesIO(_USUARIOS_PIN_CSV)
+    if fn == "colaboradores_rh.csv":
+        return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    return None
+
+
+def _fake_gcs_read_pin_ja_definido(fn):
+    if fn == "usuarios.csv":
+        return io.BytesIO(_USUARIOS_PIN_JA_DEFINIDO_CSV)
     if fn == "colaboradores_rh.csv":
         return io.BytesIO(_RH_CSV)
     if fn == "obras_lista.csv":
@@ -718,7 +742,24 @@ class TestRedefinirPin(unittest.TestCase):
         self.assertIn("A1B2C3D4", textos)
         self.assertIn("12345", textos)
 
-    def test_redefinir_pin_grava_hash_nao_texto_simples(self):
+    def test_sem_pin_mostra_gerar_sem_aviso(self):
+        # Ana Teste não tem PIN na fixture — o bloco chama-se "Gerar
+        # PIN", não "Redefinir", e não mostra aviso de invalidação
+        # (não há nada para invalidar).
+        at = self._run_com(_fake_gcs_read_pin)
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertTrue(at.button(key="btn_gerar_pin"))
+        textos_aviso = " ".join(m.value for m in at.warning)
+        self.assertNotIn("invalida", textos_aviso)
+
+    def test_com_pin_existente_mostra_redefinir_com_aviso(self):
+        at = self._run_com(_fake_gcs_read_pin_ja_definido)
+        self.assertTrue(at.button(key="btn_gerar_pin"))
+        textos_aviso = " ".join(m.value for m in at.warning)
+        self.assertIn("invalida", textos_aviso)
+        self.assertIn("deixa de conseguir entrar com o PIN antigo", textos_aviso)
+
+    def test_gerar_pin_grava_hash_e_marca_provisorio(self):
         writes = {}
 
         def _gcs_write(fn, content_bytes):
@@ -732,27 +773,62 @@ class TestRedefinirPin(unittest.TestCase):
              patch("core._gcs_write", side_effect=_gcs_write):
             at = AppTest.from_function(_script, default_timeout=30)
             at.run()
-            at.text_input(key="rh_novo_pin_admin").set_value("4321").run()
-            at.text_input(key="rh_conf_pin_admin").set_value("4321").run()
-            at.button(key="btn_redef_pin").click().run()
+            at.button(key="btn_gerar_pin").click().run()
 
         self.assertFalse(at.exception, msg=str(at.exception))
         conteudo = writes["usuarios.csv"].decode("utf-8-sig")
-        self.assertNotIn(",4321,", conteudo)
         self.assertIn("$2b$", conteudo)
+        self.assertIn("PIN_Provisorio", conteudo)
+        linha_ana = [l for l in conteudo.splitlines() if l.startswith("Ana Teste")][0]
+        self.assertIn("Sim", linha_ana)
+        # O PIN gerado (texto simples) fica só no estado transitório da
+        # sessão, para ser mostrado uma vez — nunca no ficheiro.
+        pin_mostrado = at.session_state["rh_pin_gerado_para"]["pin"]
+        self.assertEqual(len(pin_mostrado), 4)
+        self.assertTrue(pin_mostrado.isdigit())
+        self.assertNotIn(pin_mostrado, conteudo)
 
-    def test_pins_diferentes_sao_recusados(self):
+    def test_pin_gerado_aparece_uma_vez_e_desaparece_ao_reconhecer(self):
         core._cached_load_db.clear()
         with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_pin), \
              patch("core._gcs_read", side_effect=_fake_gcs_read_pin), \
-             patch("core._gcs_client", return_value=None):
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", return_value=True):
             at = AppTest.from_function(_script, default_timeout=30)
             at.run()
-            at.text_input(key="rh_novo_pin_admin").set_value("1111").run()
-            at.text_input(key="rh_conf_pin_admin").set_value("2222").run()
-            at.button(key="btn_redef_pin").click().run()
-        textos_erro = " ".join(m.value for m in at.error)
-        self.assertIn("não coincidem", textos_erro)
+            at.button(key="btn_gerar_pin").click().run()
+
+            pin_gerado = at.session_state["rh_pin_gerado_para"]["pin"]
+            textos_sucesso = " ".join(m.value for m in at.success)
+            self.assertIn(pin_gerado, textos_sucesso)
+
+            at.button(key="btn_ack_pin_gerado").click().run()
+            self.assertNotIn("rh_pin_gerado_para", at.session_state)
+            textos_sucesso_depois = " ".join(m.value for m in at.success)
+            self.assertNotIn(pin_gerado, textos_sucesso_depois)
+
+    def test_acao_de_auditoria_distingue_gerar_de_redefinir(self):
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_pin), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_pin), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", return_value=True), \
+             patch("mod_admin_rh.log_audit") as mock_log:
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.button(key="btn_gerar_pin").click().run()
+        self.assertEqual(mock_log.call_args.kwargs.get("acao"), "GERAR_PIN_INICIAL")
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_pin_ja_definido), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_pin_ja_definido), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", return_value=True), \
+             patch("mod_admin_rh.log_audit") as mock_log2:
+            at2 = AppTest.from_function(_script, default_timeout=30)
+            at2.run()
+            at2.button(key="btn_gerar_pin").click().run()
+        self.assertEqual(mock_log2.call_args.kwargs.get("acao"), "REDEFINIR_PIN")
 
     def test_sem_conta_bloqueada_nao_mostra_botao_desbloquear(self):
         at = self._run_com(_fake_gcs_read_pin)
@@ -838,6 +914,529 @@ class TestTemaClaroAplicado(unittest.TestCase):
     def test_sem_fundo_escuro_forcado(self):
         self.assertNotIn("#334155", self.textos)
         self.assertNotIn("#FCA5A5", self.textos)
+
+
+# ── Fixture: geração de credenciais em massa (Tab 7) ─────────────────────
+# Quatro contas para cobrir os casos de elegibilidade: Ana (Técnico, sem
+# PIN, entra no grupo PIN), Bruno (Admin, já tem password, entra no grupo
+# Password mesmo assim — o âmbito escolhido foi "forçar renovação de
+# tudo"), Carla (Cliente, excluída por Tipo), Duarte (Técnico mas sem
+# Numero_Colaborador, excluído por falta de número).
+_USUARIOS_MASSA_CSV = (
+    "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
+    "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
+    "Estado_Civil,PrecoHora,Local_Obra,Cliente_Obra,"
+    "ID,Numero_Colaborador,PIN,Password,Password_Provisoria,PIN_Provisorio,"
+    "Bloqueado,Bloqueado_Em\n"
+    "Ana Teste,Técnico,Instrumentista,ana@usuarios.pt,911111111,123456789,"
+    "11122233344,12345678,01/01/2030,15/05/1990,"
+    "Rua A 100,Lisboa,Lisboa,1000-001,PT50000000000000000000000,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,"
+    "A1B2C3D4,11111,,,,,,\n"
+    "Bruno Admin,Admin,Administrador,bruno@usuarios.pt,911111112,123456780,"
+    "11122233345,12345679,01/01/2030,15/05/1985,"
+    "Rua B 100,Lisboa,Lisboa,1000-001,PT50000000000000000000001,Portuguesa,"
+    f"Casado(a),,,,"
+    f"B1B2C3D4,22222,,{core.hp('passwordAntiga1')},,,,\n"
+    "Carla Cliente,Cliente,Gestor de Projeto,carla@cliente.pt,911111113,"
+    "123456781,11122233346,12345680,01/01/2030,15/05/1980,"
+    "Rua C 100,Lisboa,Lisboa,1000-001,PT50000000000000000000002,Portuguesa,"
+    "Solteiro(a),,,,"
+    "C1B2C3D4,33333,,,,,,\n"
+    "Duarte SemNumero,Técnico,Instrumentista,duarte@usuarios.pt,911111114,"
+    "123456782,11122233347,12345681,01/01/2030,15/05/1992,"
+    "Rua D 100,Lisboa,Lisboa,1000-001,PT50000000000000000000003,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,"
+    "D1B2C3D4,,,,,,,\n"
+).encode("utf-8-sig")
+
+
+def _fake_gcs_read_massa(fn):
+    if fn == "usuarios.csv":
+        return io.BytesIO(_USUARIOS_MASSA_CSV)
+    if fn == "colaboradores_rh.csv":
+        return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    return None
+
+
+class TestCredenciaisEmMassa(unittest.TestCase):
+    """Tab 7 — "Credenciais Iniciais (em massa)". Não gera nada até ao
+    segundo clique explícito (checkbox de confirmação + botão)."""
+
+    def _run(self):
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+        return at
+
+    def test_lista_so_as_duas_elegiveis(self):
+        # Ana (PIN) e Bruno (Password) entram; Carla (Cliente) e Duarte
+        # (sem número) ficam de fora — mas nada é gravado nesta chamada.
+        at = self._run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        textos = " ".join(m.value for m in at.markdown)
+        self.assertIn("2 contas elegíveis", textos)
+        self.assertIn("1 passwords", textos)
+        self.assertIn("1 PINs", textos)
+
+    def test_botao_gerar_desativado_sem_confirmar(self):
+        at = self._run()
+        botao = at.button(key="btn_gerar_lote")
+        self.assertTrue(botao.disabled)
+
+    def test_gerar_grava_hash_marca_provisorio_e_nao_expoe_texto_simples(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.checkbox(key="rh_lote_confirmar").set_value(True).run()
+            at.button(key="btn_gerar_lote").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
+        self.assertIn("$2b$", conteudo)
+
+        linha_ana = [l for l in conteudo.splitlines() if l.startswith("Ana Teste")][0]
+        self.assertIn("Sim", linha_ana.split(",")[
+            conteudo.splitlines()[0].split(",").index("PIN_Provisorio")])
+
+        resultado = at.session_state["rh_lote_gerado"]
+        self.assertEqual(len(resultado), 2)
+        valores = {r["Nome"]: r["Valor"] for r in resultado}
+        self.assertEqual(len(valores["Ana Teste"]), 4)
+        self.assertTrue(valores["Ana Teste"].isdigit())
+        self.assertGreaterEqual(len(valores["Bruno Admin"]), 8)
+        # Os valores em claro nunca vão parar ao ficheiro gravado.
+        self.assertNotIn(valores["Ana Teste"], conteudo)
+        self.assertNotIn(valores["Bruno Admin"], conteudo)
+
+    def test_carla_cliente_e_duarte_sem_numero_nunca_sao_tocados(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.checkbox(key="rh_lote_confirmar").set_value(True).run()
+            at.button(key="btn_gerar_lote").click().run()
+
+        resultado = at.session_state["rh_lote_gerado"]
+        nomes_gerados = {r["Nome"] for r in resultado}
+        self.assertNotIn("Carla Cliente", nomes_gerados)
+        self.assertNotIn("Duarte SemNumero", nomes_gerados)
+        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
+        linha_carla = [l for l in conteudo.splitlines() if l.startswith("Carla Cliente")][0]
+        cabecalho = conteudo.splitlines()[0].split(",")
+        self.assertEqual(linha_carla.split(",")[cabecalho.index("PIN")], "")
+        self.assertEqual(linha_carla.split(",")[cabecalho.index("Password")], "")
+
+    def test_lista_gerada_aparece_uma_vez_e_desaparece_ao_reconhecer(self):
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", return_value=True):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.checkbox(key="rh_lote_confirmar").set_value(True).run()
+            at.button(key="btn_gerar_lote").click().run()
+
+            self.assertIn("rh_lote_gerado", at.session_state)
+            at.button(key="btn_ack_lote").click().run()
+            self.assertNotIn("rh_lote_gerado", at.session_state)
+
+    def test_auditoria_regista_numeros_nunca_o_valor(self):
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_massa), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", return_value=True), \
+             patch("mod_admin_rh.log_audit") as mock_log:
+            core._cached_load_db.clear()
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.checkbox(key="rh_lote_confirmar").set_value(True).run()
+            at.button(key="btn_gerar_lote").click().run()
+
+        self.assertEqual(mock_log.call_args.kwargs.get("acao"), "GERAR_CREDENCIAIS_MASSA")
+        detalhes = mock_log.call_args.kwargs.get("detalhes")
+        self.assertIn("11111", detalhes)
+        self.assertIn("22222", detalhes)
+        resultado = at.session_state["rh_lote_gerado"]
+        for r in resultado:
+            self.assertNotIn(r["Valor"], detalhes)
+
+
+# ── Fixture: Documentos Obrigatórios / associação a funções (Tab 8) ──────
+# Uma conta com Funcao="Eletricista" (para popular o catálogo de funções
+# a partir de usuarios.csv, tal como em produção) e dois documentos:
+# um universal (Funcoes=[]) e um específico de Eletricista.
+_USUARIOS_FUNCAO_CSV = (
+    "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
+    "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
+    "Estado_Civil,PrecoHora,Local_Obra,Cliente_Obra,Funcao\n"
+    "Ana Teste,Técnico,Instrumentista,ana@usuarios.pt,911111111,123456789,"
+    "11122233344,12345678,01/01/2030,15/05/1990,"
+    "Rua A 100,Lisboa,Lisboa,1000-001,PT50000000000000000000000,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,Eletricista\n"
+).encode("utf-8-sig")
+
+_PDFS_DOCS_CSV = (
+    "ID,Nome,Descricao,Data_Upload,Upload_Por,Ficheiro_b64,Funcoes\n"
+    'DOC1,Manual de Acolhimento,,01/01/2026 10:00,Admin,YWJj,[]\n'
+    'DOC2,Ficha de Risco Eletricista,,01/01/2026 10:00,Admin,YWJj,'
+    '"[""Eletricista""]"\n'
+).encode("utf-8-sig")
+
+
+def _fake_gcs_read_docs(fn):
+    if fn == "usuarios.csv":
+        return io.BytesIO(_USUARIOS_FUNCAO_CSV)
+    if fn == "colaboradores_rh.csv":
+        return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    if fn == "pdfs_obrigatorios.csv":
+        return io.BytesIO(_PDFS_DOCS_CSV)
+    return None
+
+
+class TestDocumentosObrigatoriosPorFuncao(unittest.TestCase):
+    """Tab 8 — "Documentos Obrigatórios". Lista existente, edição da
+    associação a funções, criação de novo documento, remoção com
+    confirmação explícita."""
+
+    def _run(self):
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_client", return_value=None):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+        return at
+
+    def test_lista_mostra_toda_a_gente_e_funcao_especifica(self):
+        at = self._run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        titulos = [e.label for e in at.expander]
+        self.assertTrue(any("Manual de Acolhimento" in t and "Toda a gente" in t
+                             for t in titulos))
+        self.assertTrue(any("Ficha de Risco Eletricista" in t and "Eletricista" in t
+                             for t in titulos))
+
+    def test_catalogo_de_funcoes_inclui_valores_em_uso_em_usuarios(self):
+        at = self._run()
+        multiselect = at.multiselect(key="doc_funcoes_DOC1")
+        self.assertIn("Eletricista", multiselect.options)
+
+    def test_guardar_novas_funcoes_grava_no_ficheiro(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            # DOC1 (Manual de Acolhimento) passa a ser só para Eletricista.
+            at.multiselect(key="doc_funcoes_DOC1").set_value(["Eletricista"]).run()
+            at.button(key="doc_guardar_DOC1").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        conteudo = writes["pdfs_obrigatorios.csv"].decode("utf-8-sig")
+        linha_doc1 = [l for l in conteudo.splitlines() if l.startswith("DOC1")][0]
+        self.assertIn("Eletricista", linha_doc1)
+
+    def test_remover_fica_desativado_sem_confirmar(self):
+        at = self._run()
+        botao = at.button(key="doc_remover_DOC1")
+        self.assertTrue(botao.disabled)
+
+    def test_remover_com_confirmacao_apaga_a_linha(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.checkbox(key="doc_confirmar_remover_DOC1").set_value(True).run()
+            at.button(key="doc_remover_DOC1").click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        conteudo = writes["pdfs_obrigatorios.csv"].decode("utf-8-sig")
+        self.assertNotIn("DOC1", conteudo)
+        self.assertIn("DOC2", conteudo)
+
+    def test_criar_documento_grava_com_funcoes_e_ficheiro(self):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        core._cached_load_db.clear()
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_docs), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key="novo_doc_nome").set_value("Regras de Segurança").run()
+            at.multiselect(key="novo_doc_funcoes").set_value(["Eletricista"]).run()
+            at.file_uploader(key="novo_doc_ficheiro").set_value(
+                ("regras.pdf", b"conteudo de teste", "application/pdf")).run()
+            at.button(
+                key="FormSubmitter:form_novo_doc_obrigatorio-Adicionar documento"
+            ).click().run()
+
+        self.assertFalse(at.exception, msg=str(at.exception))
+        conteudo = writes["pdfs_obrigatorios.csv"].decode("utf-8-sig")
+        self.assertIn("Regras de Segurança", conteudo)
+        linha_nova = [l for l in conteudo.splitlines()
+                      if "Regras de Segurança" in l][0]
+        self.assertIn("Eletricista", linha_nova)
+        # O conteúdo do ficheiro fica em base64, nunca em claro.
+        import base64 as _b64
+        self.assertIn(_b64.b64encode(b"conteudo de teste").decode(), conteudo)
+
+    def test_auditoria_das_tres_acoes(self):
+        for acao_esperada, interagir in [
+            ("CRIAR_DOCUMENTO_OBRIGATORIO", lambda at: (
+                at.text_input(key="novo_doc_nome").set_value("Doc X").run(),
+                at.file_uploader(key="novo_doc_ficheiro").set_value(
+                    ("x.pdf", b"x", "application/pdf")).run(),
+                at.button(key="FormSubmitter:form_novo_doc_obrigatorio-"
+                              "Adicionar documento").click().run(),
+            )),
+            ("EDITAR_FUNCOES_DOCUMENTO", lambda at: (
+                at.multiselect(key="doc_funcoes_DOC1").set_value(["Eletricista"]).run(),
+                at.button(key="doc_guardar_DOC1").click().run(),
+            )),
+            ("REMOVER_DOCUMENTO_OBRIGATORIO", lambda at: (
+                at.checkbox(key="doc_confirmar_remover_DOC1").set_value(True).run(),
+                at.button(key="doc_remover_DOC1").click().run(),
+            )),
+        ]:
+            core._cached_load_db.clear()
+            with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_docs), \
+                 patch("core._gcs_read", side_effect=_fake_gcs_read_docs), \
+                 patch("core._gcs_client", return_value=None), \
+                 patch("core._gcs_write", return_value=True), \
+                 patch("mod_admin_rh.log_audit") as mock_log:
+                at = AppTest.from_function(_script, default_timeout=30)
+                at.run()
+                interagir(at)
+            self.assertEqual(mock_log.call_args.kwargs.get("acao"), acao_esperada,
+                              msg=f"falhou para {acao_esperada}")
+
+
+# ── Fixture: reposição da decisão de Preço/Hora ao mudar o valor ────────
+# Ana Teste com PrecoHoraStatus="Recusado" já definido — para confirmar
+# que mudar o valor do Preço/Hora repõe a decisão (DESENHO_ONBOARDING.md,
+# secção 3), e que NÃO mudar o valor a mantém intacta.
+_USUARIOS_PRECO_RECUSADO_CSV = (
+    "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
+    "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
+    "Estado_Civil,PrecoHora,PrecoHoraStatus,PrecoHoraData,Local_Obra,"
+    "Cliente_Obra\n"
+    "Ana Teste,Técnico,Instrumentista,ana@usuarios.pt,911111111,123456789,"
+    "11122233344,12345678,01/01/2030,15/05/1990,"
+    "Rua A 100,Lisboa,Lisboa,1000-001,PT50000000000000000000000,Portuguesa,"
+    "Solteiro(a),15,Recusado,01/09/2026 10:00,Refinaria X,Cliente X\n"
+).encode("utf-8-sig")
+
+
+def _fake_gcs_read_preco(fn):
+    if fn == "usuarios.csv":
+        return io.BytesIO(_USUARIOS_PRECO_RECUSADO_CSV)
+    if fn == "colaboradores_rh.csv":
+        return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    return None
+
+
+class TestRepoDecisaoPrecoHora(unittest.TestCase):
+    """Mudar o valor de Preço/Hora, na Ficha do Colaborador, repõe a
+    decisão da pessoa (PrecoHoraStatus/PrecoHoraData) — sobretudo depois
+    de uma recusa, para o RH não precisar de nenhum passo extra além de
+    mudar o número. Não mudar o valor mantém a decisão intacta."""
+
+    def _submeter(self, novo_preco):
+        writes = {}
+
+        def _gcs_write(fn, content_bytes):
+            writes[fn] = content_bytes
+            return True
+
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_preco), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_preco), \
+             patch("core._gcs_client", return_value=None), \
+             patch("core._gcs_write", side_effect=_gcs_write):
+            core._cached_load_db.clear()
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.text_input(key=f"gi_preco_{SLUG}").set_value(novo_preco).run()
+            at.button(
+                key=f"FormSubmitter:gi_form_prof_{SLUG}-Guardar Profissional"
+            ).click().run()
+            self.assertFalse(at.exception, msg=str(at.exception))
+        return writes
+
+    def _linha_ana(self, writes):
+        conteudo = writes["usuarios.csv"].decode("utf-8-sig")
+        cabecalho = conteudo.splitlines()[0].split(",")
+        linha = [l for l in conteudo.splitlines() if l.startswith("Ana Teste")][0]
+        return dict(zip(cabecalho, linha.split(",")))
+
+    def test_mudar_o_valor_repoe_status_e_data(self):
+        writes = self._submeter("22.5")
+        campos = self._linha_ana(writes)
+        self.assertEqual(campos["PrecoHora"], "22.5")
+        self.assertEqual(campos["PrecoHoraStatus"], "")
+        self.assertEqual(campos["PrecoHoraData"], "")
+
+    def test_manter_o_mesmo_valor_nao_toca_no_status(self):
+        writes = self._submeter("15")
+        campos = self._linha_ana(writes)
+        self.assertEqual(campos["PrecoHoraStatus"], "Recusado")
+        self.assertEqual(campos["PrecoHoraData"], "01/09/2026 10:00")
+
+
+# ── Fixture: lista "Contrato por gerar/enviar" (Tab Contratos) ──────────
+# Quatro contas: Bruno (Técnico, completou o onboarding, sem contrato
+# enviado — deve aparecer), Carla (Técnico, completou, mas já tem
+# contrato enviado — não deve aparecer), Duarte (Técnico, onboarding
+# incompleto — não deve aparecer), Elsa (Admin, com todos os campos de
+# onboarding "completos" por acidente — não deve aparecer, é
+# administrativa).
+_USUARIOS_CONTRATOS_CSV = (
+    "Nome,Tipo,Cargo,Email,Telefone,NIF,NISS,CC,CC_Validade,DataNasc,"
+    "Morada,Localidade,Concelho,Codigo_Postal,Banco_IBAN,Nacionalidade,"
+    "Estado_Civil,PrecoHora,Local_Obra,Cliente_Obra,"
+    "PDFs_Validados,PrecoHoraStatus,Perfil_Completo,IBAN_Comprovativo_b64,"
+    "Contrato_Gerado,Contrato_Enviado\n"
+    "Bruno Tecnico,Técnico,Instrumentista,b@x.pt,911111111,123456789,"
+    "11122233344,12345678,01/01/2030,15/05/1990,"
+    "Rua A 100,Lisboa,Lisboa,1000-001,PT50000000000000000000000,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,"
+    "Sim,Aceite,Sim,abc,,\n"
+    "Carla Tecnico,Técnico,Instrumentista,c@x.pt,911111112,123456780,"
+    "11122233345,12345679,01/01/2030,15/05/1991,"
+    "Rua B 100,Lisboa,Lisboa,1000-001,PT50000000000000000000001,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,"
+    "Sim,Aceite,Sim,abc,Sim,Sim\n"
+    "Duarte Tecnico,Técnico,Instrumentista,d@x.pt,911111113,123456781,"
+    "11122233346,12345680,01/01/2030,15/05/1992,"
+    "Rua C 100,Lisboa,Lisboa,1000-001,PT50000000000000000000002,Portuguesa,"
+    "Solteiro(a),15,Refinaria X,Cliente X,"
+    "Sim,Aceite,,abc,,\n"
+    "Elsa Admin,Admin,Administradora,e@x.pt,911111114,123456782,"
+    "11122233347,12345681,01/01/2030,15/05/1980,"
+    "Rua D 100,Lisboa,Lisboa,1000-001,PT50000000000000000000003,Portuguesa,"
+    "Solteiro(a),,,Sim,,,\n"
+).encode("utf-8-sig")
+
+
+def _fake_gcs_read_contratos(fn):
+    if fn == "usuarios.csv":
+        return io.BytesIO(_USUARIOS_CONTRATOS_CSV)
+    if fn == "colaboradores_rh.csv":
+        return io.BytesIO(_RH_CSV)
+    if fn == "obras_lista.csv":
+        return io.BytesIO(_OBRAS_LISTA_CSV)
+    if fn == "clientes_financeiro.csv":
+        return io.BytesIO(_CLIENTES_FINANCEIRO_CSV)
+    return None
+
+
+class TestListaContratoPorGerarEnviar(unittest.TestCase):
+    """Tab "Contratos" — lista de quem completou o onboarding e ainda
+    não tem contrato enviado (DESENHO_ONBOARDING.md, secção 4, ponto 2).
+    Testes lêem só o texto do separador Contratos (após o marcador de
+    Formações, onde os outros separadores terminam)."""
+
+    @classmethod
+    def setUpClass(cls):
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_contratos), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_contratos), \
+             patch("core._gcs_client", return_value=None):
+            cls.at = _run()
+        # A aba "Colaboradores" também lista nomes com um resumo de
+        # estado de contrato — isolar só a secção nova ("Contrato por
+        # gerar/enviar" até às 4 caixas de passos do colaborador
+        # seleccionado, que já existiam antes desta alteração).
+        todo_o_texto = " ".join(m.value for m in cls.at.markdown)
+        inicio = todo_o_texto.index("Contrato por gerar/enviar")
+        fim    = todo_o_texto.index("border:2px solid #5A6478", inicio)
+        cls.textos = todo_o_texto[inicio:fim]
+
+    def test_sem_erro(self):
+        self.assertFalse(self.at.exception, msg=str(self.at.exception))
+
+    def test_bruno_aparece_carla_e_duarte_nao(self):
+        self.assertIn("Bruno Tecnico", self.textos)
+        self.assertNotIn("Carla Tecnico", self.textos)
+        self.assertNotIn("Duarte Tecnico", self.textos)
+
+    def test_admin_nunca_aparece_mesmo_com_campos_completos(self):
+        self.assertNotIn("Elsa Admin", self.textos)
+
+    def test_mostra_contagem_de_um_pendente(self):
+        avisos = " ".join(w.value for w in self.at.warning)
+        self.assertIn("1 colaborador", avisos)
+
+    def test_botao_ver_existe_para_o_pendente(self):
+        self.assertTrue(any(b.key == "ct_ir_para_Bruno Tecnico" for b in self.at.button))
+
+    def test_ver_seleciona_o_colaborador_no_separador(self):
+        with patch("mod_admin_rh._gcs_read", side_effect=_fake_gcs_read_contratos), \
+             patch("core._gcs_read", side_effect=_fake_gcs_read_contratos), \
+             patch("core._gcs_client", return_value=None):
+            core._cached_load_db.clear()
+            at = AppTest.from_function(_script, default_timeout=30)
+            at.run()
+            at.button(key="ct_ir_para_Bruno Tecnico").click().run()
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertEqual(at.session_state["ct_colab_sel"], "Bruno Tecnico")
 
 
 if __name__ == "__main__":

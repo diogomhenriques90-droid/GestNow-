@@ -5,6 +5,13 @@ e polimento dos restantes (cartão em torno do formulário, THEME
 central), mantendo o logótipo da CPS exatamente como estava (mesmo
 ficheiro, sem alterações de cor/forma/proporção).
 
+A partir daqui, login só por Número de Colaborador + Password — o
+acesso antigo por Nome (Password ou PIN) e a via de PIN dentro do
+próprio número foram removidos por completo, não só desativados.
+Os testes que cobriam essas vias foram removidos com o código; os que
+cobrem o que sobrevive (via por número, força-reset de password
+curta) mantêm-se.
+
 Não tocam em GCS real: `mod_login._gcs_read` é mockado (devolve None
 por omissão — não há tentativa de login nestes testes).
 
@@ -42,16 +49,6 @@ def _script_com_reset_pendente(numero):
     render_login()
 
 
-def _script_com_pendente_login(pendente):
-    import streamlit as st
-    st.session_state.setdefault('_fv', {})
-    if not st.session_state.get('_ja_semeado_pendente'):
-        st.session_state['_pendente_login']     = pendente
-        st.session_state['_ja_semeado_pendente'] = True
-    from mod_login import render_login
-    render_login()
-
-
 def _script():
     import streamlit as st
     st.session_state.setdefault('_fv', {})
@@ -83,11 +80,14 @@ class TestRenderLoginSemErro(unittest.TestCase):
         self.assertIn("data:image/png;base64,", html)
         self.assertIn("CPS Smart Solutions", html)
 
-    def test_os_dois_separadores_existem(self):
+    def test_so_existe_a_via_por_numero_sem_separadores(self):
+        # O acesso antigo (por Nome, com abas Password/PIN) foi
+        # removido por completo — já não há nenhuma aba no ecrã de
+        # login, só o formulário único de Número + Password.
         at = _run()
-        labels = [t.label for t in at.tabs]
-        self.assertIn("Password", labels)
-        self.assertIn("PIN", labels)
+        self.assertEqual(len(at.tabs), 0)
+        self.assertIsNotNone(at.text_input(key="login_numero"))
+        self.assertIsNotNone(at.text_input(key="login_credencial"))
 
 
 class TestLogotipoVarianteClara(unittest.TestCase):
@@ -138,155 +138,21 @@ class TestTemaClaroAplicado(unittest.TestCase):
         html = " ".join(m.value for m in at.markdown)
         self.assertIn(core.THEME["text_secondary"], html)
 
-    def test_ligacao_usa_acento(self):
-        at = _run()
-        html = " ".join(m.value for m in at.markdown)
-        self.assertIn(core.THEME["accent"], html)
-        self.assertNotIn("#3B82F6", html)
-        self.assertNotIn("#64748B", html)
-
-
-class TestLoginComNomesDuplicados(unittest.TestCase):
-    """Fase 0: quando dois colaboradores partilham o mesmo Nome em
-    usuarios.csv — já aconteceu em produção (ver comentário em
-    mod_dashboard_obra.py sobre "NUNCA de join por nome... gerou
-    duplicados no passado") — a via Password recusa o login com um erro
-    explícito de ambiguidade, em vez de autenticar silenciosamente a
-    primeira linha que bater (o bug anterior, que já permitia por sorte
-    a uma das duas pessoas entrar na sua própria conta enquanto a outra
-    ficava de fora sem explicação)."""
-
-    PWD_PRIMEIRA = "PasswordPrimeira123"
-    PWD_SEGUNDA  = "PasswordSegunda456"
-
-    @classmethod
-    def setUpClass(cls):
-        cls.hash_primeira = hp(cls.PWD_PRIMEIRA)
-        cls.hash_segunda  = hp(cls.PWD_SEGUNDA)
-        cls.csv = (
-            "Nome,Password,Tipo,Cargo,PIN\n"
-            f"Maria Santos,{cls.hash_primeira},Técnico,Instrumentista,\n"
-            f"Maria Santos,{cls.hash_segunda},Chefe de Equipa,Chefe,\n"
-        ).encode("utf-8-sig")
-
-    def _tentar_login(self, password):
-        core._cached_load_db.clear()
-        with patch("mod_login._gcs_read", return_value=io.BytesIO(self.csv)):
-            at = AppTest.from_function(_script, default_timeout=30)
-            at.run()
-            at.text_input(key="login_u1").set_value("Maria Santos").run()
-            at.text_input(key="login_p1").set_value(password).run()
-            at.button(key="FormSubmitter:form_login_pwd-ENTRAR").click().run()
-        return at
-
-    def test_primeira_pessoa_e_recusada_com_erro_de_ambiguidade(self):
-        # Antes da Fase 0, esta pessoa entrava "por sorte" (era a
-        # primeira linha). Agora fica de fora tal como a segunda, até o
-        # Admin resolver a duplicação.
-        at = self._tentar_login(self.PWD_PRIMEIRA)
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertNotIn("user", at.session_state)
-        textos_erro = " ".join(m.value for m in at.error)
-        self.assertIn("mais do que um utilizador com este nome", textos_erro)
-
-    def test_segunda_pessoa_e_recusada_com_erro_de_ambiguidade(self):
-        at = self._tentar_login(self.PWD_SEGUNDA)
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertNotIn("user", at.session_state)
-        textos_erro = " ".join(m.value for m in at.error)
-        self.assertIn("mais do que um utilizador com este nome", textos_erro)
-
-
-class TestLoginPinComNomesDuplicados(unittest.TestCase):
-    """Fase 0: o mesmo defeito existia na via PIN (verificava Nome+PIN em
-    conjunto, com `.iloc[0]` a escolher silenciosamente a primeira
-    correspondência) — agora verifica primeiro se o Nome é único, antes
-    de sequer olhar para o PIN."""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.csv = (
-            "Nome,Password,Tipo,Cargo,PIN\n"
-            "Maria Santos,,Técnico,Instrumentista,1111\n"
-            "Maria Santos,,Chefe de Equipa,Chefe,2222\n"
-        ).encode("utf-8-sig")
-
-    def _tentar_login_pin(self, pin):
-        core._cached_load_db.clear()
-        with patch("mod_login._gcs_read", return_value=io.BytesIO(self.csv)):
-            at = AppTest.from_function(_script, default_timeout=30)
-            at.run()
-            at.text_input(key="login_u2").set_value("Maria Santos").run()
-            at.text_input(key="login_p2").set_value(pin).run()
-            at.button(key="FormSubmitter:form_login_pin-ENTRAR COM PIN").click().run()
-        return at
-
-    def test_pin_da_primeira_e_recusado_com_erro_de_ambiguidade(self):
-        at = self._tentar_login_pin("1111")
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertNotIn("user", at.session_state)
-        textos_erro = " ".join(m.value for m in at.error)
-        self.assertIn("mais do que um utilizador com este nome", textos_erro)
-
-    def test_pin_da_segunda_e_recusado_com_erro_de_ambiguidade(self):
-        at = self._tentar_login_pin("2222")
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertNotIn("user", at.session_state)
-        textos_erro = " ".join(m.value for m in at.error)
-        self.assertIn("mais do que um utilizador com este nome", textos_erro)
-
-
-class TestLoginPinComHash(unittest.TestCase):
-    """Fase 1: o PIN passou a ser gravado em hash (hp/cp), como a
-    password — o login por PIN tem de comparar por hash, não por
-    igualdade de texto simples."""
-
-    PIN = "4321"
-
-    @classmethod
-    def setUpClass(cls):
-        cls.csv = (
-            "Nome,Password,Tipo,Cargo,PIN\n"
-            f"Rui Costa,,Técnico,Instrumentista,{hp(cls.PIN)}\n"
-        ).encode("utf-8-sig")
-
-    def _tentar(self, pin):
-        core._cached_load_db.clear()
-        with patch("mod_login._gcs_read", return_value=io.BytesIO(self.csv)):
-            at = AppTest.from_function(_script, default_timeout=30)
-            at.run()
-            at.text_input(key="login_u2").set_value("Rui Costa").run()
-            at.text_input(key="login_p2").set_value(pin).run()
-            at.button(key="FormSubmitter:form_login_pin-ENTRAR COM PIN").click().run()
-        return at
-
-    def test_pin_correto_entra(self):
-        at = self._tentar(self.PIN)
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertEqual(at.session_state["user"], "Rui Costa")
-
-    def test_pin_errado_nao_entra(self):
-        at = self._tentar("0000")
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertNotIn("user", at.session_state)
-        textos_erro = " ".join(m.value for m in at.error)
-        self.assertIn("PIN incorreto", textos_erro)
-
 
 class TestLoginPorNumero(unittest.TestCase):
-    """Fase 1: via principal de login — Número de colaborador + um
-    único campo de credencial, sempre com o mesmo aspeto, que o sistema
-    valida como PIN ou Password consoante o Tipo, sem nunca revelar
-    isso no ecrã antes da submissão."""
+    """Via única de login: Número de colaborador + Password, para
+    qualquer Tipo — já não há distinção por Tipo (PIN para uns,
+    Password para outros); todos entram sempre pela mesma verificação
+    de Password."""
 
-    PIN_TECNICO   = "1234"
-    PWD_ADMIN     = "password123"
+    PWD_TECNICO = "passwordTecnico1"
+    PWD_ADMIN   = "password123"
 
     @classmethod
     def setUpClass(cls):
         cls.csv = (
             "Nome,Password,PIN,Tipo,Cargo,Numero_Colaborador,Bloqueado\n"
-            f"Rui Costa,,{hp(cls.PIN_TECNICO)},Técnico,Instrumentista,12345,\n"
+            f"Rui Costa,{hp(cls.PWD_TECNICO)},,Técnico,Instrumentista,12345,\n"
             f"Ana Silva,{hp(cls.PWD_ADMIN)},,Admin,Administrador,54321,\n"
             "Marta Reis,,,Chefe de Equipa,Chefe,67890,Sim\n"
         ).encode("utf-8-sig")
@@ -310,8 +176,10 @@ class TestLoginPorNumero(unittest.TestCase):
             limpar=mock_limpar, bloquear=mock_bloquear, notif=mock_notif,
         )
 
-    def test_tecnico_entra_com_pin(self):
-        at, mocks = self._submeter("12345", self.PIN_TECNICO)
+    def test_tecnico_tambem_entra_por_password(self):
+        # Já não há PIN para nenhum Tipo — um Técnico entra pela mesma
+        # verificação de Password que um Admin.
+        at, mocks = self._submeter("12345", self.PWD_TECNICO)
         self.assertFalse(at.exception, msg=str(at.exception))
         self.assertEqual(at.session_state["user"], "Rui Costa")
         mocks["limpar"].assert_called_once_with("12345")
@@ -338,8 +206,8 @@ class TestLoginPorNumero(unittest.TestCase):
         mocks["registar"].assert_called_once_with("99999")
 
     def test_conta_ja_bloqueada_recusa_mesmo_com_credencial_certa(self):
-        # Marta Reis está com Bloqueado=Sim na fixture — sem PIN/Password
-        # definidos, então nenhuma credencial "acerta" de propósito;
+        # Marta Reis está com Bloqueado=Sim na fixture — sem Password
+        # definida, então nenhuma credencial "acerta" de propósito;
         # confirma-se que a resposta é a mesma genérica, sem tentar
         # sequer validar a credencial.
         at, mocks = self._submeter("67890", "qualquer-coisa")
@@ -387,7 +255,7 @@ class TestLoginPorNumero(unittest.TestCase):
 
 
 class TestForcarResetPasswordCurta(unittest.TestCase):
-    """Fase 1: quem ainda tiver uma Password anterior ao mínimo de 8
+    """Quem ainda tiver uma Password anterior ao mínimo de 8
     caracteres (legado de antes da correção) autentica normalmente,
     mas a sessão só fica completa depois de definir uma password nova
     — não entra logo com a password curta."""
@@ -467,82 +335,6 @@ class TestForcarResetPasswordCurta(unittest.TestCase):
         self.assertNotIn("_forcar_reset_numero", at.session_state)
         conteudo = writes["usuarios.csv"].decode("utf-8-sig")
         self.assertIn("$2b$", conteudo)
-
-
-class TestBannerNumeroViaAntiga(unittest.TestCase):
-    """Fase 1 (rollout): quem entra pela via antiga (por Nome) e já tem
-    Número de colaborador atribuído vê-o em destaque antes de a sessão
-    ficar completa — para o aprender sem ser preciso contactá-lo um a
-    um. Quem ainda não tiver número entra normalmente."""
-
-    PWD = "passwordLonga123"
-    PIN = "9876"
-
-    @classmethod
-    def setUpClass(cls):
-        cls.csv_com_numero = (
-            "Nome,Password,PIN,Tipo,Cargo,Numero_Colaborador\n"
-            f"Rui Costa,{hp(cls.PWD)},{hp(cls.PIN)},Admin,Administrador,45678\n"
-        ).encode("utf-8-sig")
-        cls.csv_sem_numero = (
-            "Nome,Password,PIN,Tipo,Cargo,Numero_Colaborador\n"
-            f"Rui Costa,{hp(cls.PWD)},{hp(cls.PIN)},Admin,Administrador,\n"
-        ).encode("utf-8-sig")
-
-    def _login_password_antigo(self, csv):
-        core._cached_load_db.clear()
-        with patch("mod_login._gcs_read", return_value=io.BytesIO(csv)):
-            at = AppTest.from_function(_script, default_timeout=30)
-            at.run()
-            at.text_input(key="login_u1").set_value("Rui Costa").run()
-            at.text_input(key="login_p1").set_value(self.PWD).run()
-            at.button(key="FormSubmitter:form_login_pwd-ENTRAR").click().run()
-        return at
-
-    def test_com_numero_mostra_banner_antes_de_completar_sessao(self):
-        at = self._login_password_antigo(self.csv_com_numero)
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertNotIn("user", at.session_state)
-        textos = " ".join(m.value for m in at.markdown)
-        self.assertIn("45678", textos)
-
-    def test_continuar_completa_a_sessao(self):
-        # Parte já do banner pendente (pré-semeado), pela mesma razão
-        # documentada em _script_com_reset_pendente — encadear a partir
-        # do formulário de login no mesmo `at` tenta reidratar widgets
-        # (login_u1/login_p1) que já não existem na árvore do banner.
-        pendente = {"nome": "Rui Costa", "tipo": "Admin",
-                    "cargo": "Administrador", "numero": "45678"}
-        core._cached_load_db.clear()
-        with patch("mod_login._gcs_read", return_value=io.BytesIO(self.csv_com_numero)):
-            at = AppTest.from_function(
-                _script_com_pendente_login, args=(pendente,), default_timeout=30)
-            at.run()
-            at.button(key="btn_continuar_banner_numero").click().run()
-
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertEqual(at.session_state["user"], "Rui Costa")
-        self.assertNotIn("_pendente_login", at.session_state)
-
-    def test_sem_numero_entra_diretamente_sem_banner(self):
-        at = self._login_password_antigo(self.csv_sem_numero)
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertEqual(at.session_state["user"], "Rui Costa")
-        self.assertNotIn("_pendente_login", at.session_state)
-
-    def test_via_pin_tambem_mostra_banner(self):
-        core._cached_load_db.clear()
-        with patch("mod_login._gcs_read", return_value=io.BytesIO(self.csv_com_numero)):
-            at = AppTest.from_function(_script, default_timeout=30)
-            at.run()
-            at.text_input(key="login_u2").set_value("Rui Costa").run()
-            at.text_input(key="login_p2").set_value(self.PIN).run()
-            at.button(key="FormSubmitter:form_login_pin-ENTRAR COM PIN").click().run()
-
-        self.assertFalse(at.exception, msg=str(at.exception))
-        self.assertNotIn("user", at.session_state)
-        textos = " ".join(m.value for m in at.markdown)
-        self.assertIn("45678", textos)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,10 @@
 import streamlit as st
-import pandas as pd
-import json, base64, time
+import base64, time
 from datetime import datetime
 from core import (init_session, check_timeout, load_all, inject_pwa_meta,
                   inject_global_css, hp, save_db, log_audit,
-                  criar_notificacao, load_db, _gcs_read, inv, tem_permissao,
+                  criar_notificacao, _gcs_read, inv, tem_permissao,
                   _verificar_alerta_backup, _registar_backup, THEME,
-                  render_badge_html,
                   # FIX 1 — importar a versão cached de core em vez de redefinir
                   _load_users_cached)
 from translations import init_language, t, get_language_options, set_language
@@ -46,449 +44,60 @@ from streamlit_autorefresh import st_autorefresh
 if st.session_state.get('user'):
     st_autorefresh(interval=300000, limit=None, key="auto_refresh")
 
-page = st.query_params.get("page", "")
-if page == "criar_admin":
-    from criar_admin import render_criar_admin
-    render_criar_admin()
-    st.stop()
 
-
-def _render_validacao_obrigatoria(user_nome):
-    users_live = _load_users_cached()
-    if users_live.empty: return False
-    match = users_live[users_live['Nome'] == user_nome]
-    if match.empty: return False
-
-    user_idx  = match.index[0]
-    user_data = match.iloc[0]
-
-    pdfs_validados   = user_data.get('PDFs_Validados',  'Não')
-    preco_status     = user_data.get('PrecoHoraStatus', '')
-    preco_hora_valor = user_data.get('PrecoHora',       '15.0')
-    perfil_completo  = str(user_data.get('Perfil_Completo', '')).strip()
-
+def _verificar_password_provisoria(user_nome):
+    """Password gerada em massa (ou individualmente) pelo RH nasce sempre
+    provisória (Password_Provisoria=Sim). Bloqueia tudo — sem forma de
+    contornar — até a pessoa definir uma password própria. Corre logo a
+    seguir ao login, antes de qualquer outro ecrã ou bloqueio, e para
+    qualquer Tipo (incluindo Admin) — simétrico ao
+    _verificar_pin_provisorio do cps-ponto."""
     try:
-        pdfs_db = load_db("pdfs_obrigatorios.csv", [
-            "ID","Nome","Descricao","Data_Upload","Upload_Por","Ficheiro_b64"
-        ], silent=True)
-    except:
-        pdfs_db = pd.DataFrame(columns=[
-            "ID","Nome","Descricao","Data_Upload","Upload_Por","Ficheiro_b64"
-        ])
-
-    try:
-        pdfs_vistos = json.loads(user_data.get('PDFs_Vistos', '[]'))
-    except:
-        pdfs_vistos = []
-
-    total_pdfs      = len(pdfs_db) if not pdfs_db.empty else 0
-    pdf_ids_validos = pdfs_db['ID'].tolist() if not pdfs_db.empty else []
-    pdfs_val_count  = len([p for p in pdfs_vistos if p in pdf_ids_validos])
-
-    tem_pdfs_pend   = (pdfs_validados  != 'Sim') and (total_pdfs > 0)
-    tem_preco_pend  = (preco_status    == '')
-    tem_perfil_pend = (perfil_completo != 'Sim')
-    tem_iban_pend   = str(user_data.get('IBAN_Comprovativo_b64', '')).strip() == ''
-
-    if not tem_pdfs_pend and not tem_preco_pend and not tem_perfil_pend and not tem_iban_pend:
+        uc = _load_users_cached()
+        if uc.empty: return False
+        m = uc[uc['Nome'] == user_nome]
+        if m.empty: return False
+        r = m.iloc[0]
+        if str(r.get('Password_Provisoria', '')).strip() != 'Sim':
+            return False
+    except Exception:
         return False
 
     st.markdown(f"""
     <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
         border-radius:{THEME['radius']};padding:25px;margin-bottom:25px;text-align:center;">
-        <h2 style="color:{THEME['text']};margin:0 0 8px 0;">Bem-vindo, {user_nome}!</h2>
+        <h2 style="color:{THEME['text']};margin:0 0 8px 0;">Password provisória</h2>
         <p style="color:{THEME['text_secondary']};margin:0;font-size:1rem;">
-            Completa os seguintes passos de integração para aceder à app.
+            Esta password foi-te atribuída pelo RH e é provisória.<br>
+            Define uma password só tua para continuar.
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-    col_s1, col_s2, col_s3, col_s4 = st.columns(4)
-    iban_ok = str(user_data.get('IBAN_Comprovativo_b64', '')).strip() != ''
-    passos = [
-        (pdfs_validados   == 'Sim',                 tem_pdfs_pend,  "Passo 1 — Documentos"),
-        (preco_status in ['Aceite','Recusado'],      tem_preco_pend, "Passo 2 — Preço Hora"),
-        (perfil_completo  == 'Sim',                 tem_perfil_pend,"Passo 3 — Meu Perfil"),
-        (iban_ok,                                   tem_iban_pend,  "Passo 4 — IBAN"),
-    ]
-    _tone_cor = {"success": THEME['success'], "info": THEME['accent'], "neutral": THEME['border']}
-    for col, (done, active, label) in zip([col_s1,col_s2,col_s3,col_s4], passos):
-        tone = "success" if done else "info" if active else "neutral"
-        with col:
-            st.markdown(
-                f"<div style='text-align:center;padding:15px;"
-                f"background:{THEME['surface']};border-radius:{THEME['radius']};"
-                f"border:2px solid {_tone_cor[tone]};'>"
-                f"{render_badge_html(label, tone)}"
-                f"</div>",
-                unsafe_allow_html=True
-            )
-
-    st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
-
-    # ── PASSO 1: DOCUMENTOS ───────────────────────────────────────────
-    if tem_pdfs_pend:
-        pct = int(pdfs_val_count / total_pdfs * 100) if total_pdfs > 0 else 0
-        st.markdown(f"""
-        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
-            border-radius:{THEME['radius']};padding:20px;margin-bottom:15px;">
-            <h3 style="color:{THEME['accent']};margin:0 0 8px 0;">Passo 1 — Documentos Obrigatórios</h3>
-            <p style="color:{THEME['text_secondary']};margin:0 0 12px 0;font-size:0.9rem;">
-                Lê e confirma cada documento. <b>{pdfs_val_count}/{total_pdfs}</b> validados.
-            </p>
-            <div style="background:{THEME['border']};border-radius:6px;height:8px;">
-                <div style="background:{THEME['success']};width:{pct}%;height:8px;border-radius:6px;"></div>
-            </div>
-        </div>""", unsafe_allow_html=True)
-
-        if not pdfs_db.empty:
-            for _, pdf in pdfs_db.iterrows():
-                pdf_id   = str(pdf.get('ID','')).strip()
-                pdf_nome = pdf.get('Nome','Documento')
-                pdf_desc = pdf.get('Descricao','')
-                visto    = pdf_id in pdfs_vistos
-
-                st.markdown(f"""
-                <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
-                    border-left:4px solid {THEME['success'] if visto else THEME['error']};
-                    border-radius:10px;padding:12px 15px;margin-bottom:10px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div>
-                            <b style="color:{THEME['success'] if visto else THEME['text']};">
-                                {pdf_nome}
-                            </b>
-                            <p style="color:{THEME['text_secondary']};font-size:0.82rem;margin:3px 0 0 0;">{pdf_desc}</p>
-                        </div>
-                        <span style="color:{THEME['success'] if visto else THEME['warning']};
-                            font-size:0.8rem;font-weight:bold;white-space:nowrap;margin-left:10px;">
-                            {'Validado' if visto else 'Por ler'}
-                        </span>
-                    </div>
-                </div>""", unsafe_allow_html=True)
-
-                col_dl, col_ok = st.columns([2, 1])
-                with col_dl:
-                    if pdf.get('Ficheiro_b64'):
-                        try:
-                            pdf_data = base64.b64decode(pdf['Ficheiro_b64'])
-                            st.download_button(
-                                f"Ler: {pdf_nome}", data=pdf_data,
-                                file_name=f"{pdf_nome}.pdf", mime="application/pdf",
-                                key=f"app_dl_pdf_{pdf_id}", use_container_width=True
-                            )
-                        except:
-                            st.error("Erro ao carregar PDF")
-                with col_ok:
-                    if not visto:
-                        if st.button("Confirmar", key=f"app_val_pdf_{pdf_id}",
-                                     use_container_width=True, type="primary"):
-                            pdfs_vistos.append(pdf_id)
-                            novos_val = len([p for p in pdfs_vistos if p in pdf_ids_validos])
-                            # Recarregar users frescos para editar
-                            u_edit = _load_users_cached().copy()
-                            mask   = u_edit['Nome'] == user_nome
-                            if mask.any():
-                                u_edit.loc[mask, 'PDFs_Vistos'] = json.dumps(pdfs_vistos)
-                                if novos_val >= total_pdfs:
-                                    u_edit.loc[mask, 'PDFs_Validados']      = 'Sim'
-                                    u_edit.loc[mask, 'PDFs_Validacao_Data'] = \
-                                        datetime.now().strftime("%d/%m/%Y %H:%M")
-                                save_db(u_edit, "usuarios.csv")
-                                # FIX 2 — inv selectivo
-                                inv("usuarios.csv")
-                            if novos_val >= total_pdfs:
-                                log_audit(usuario=user_nome, acao="VALIDAR_PDFS",
-                                          tabela="usuarios.csv", registro_id=user_nome,
-                                          detalhes=f"Validou {novos_val} PDFs", ip="")
-                                criar_notificacao(destinatario="admin",
-                                    titulo="PDFs Validados",
-                                    mensagem=f"{user_nome} validou todos os documentos.",
-                                    tipo="success", acao_url="/admin?tab=rh")
-                                st.success("Todos os documentos confirmados!")
-                            else:
-                                st.success(f"'{pdf_nome}' confirmado! ({novos_val}/{total_pdfs})")
-                            st.rerun()
-                    else:
-                        st.success("")
-
-        if pdfs_val_count < total_pdfs:
-            st.warning(f"Faltam {total_pdfs - pdfs_val_count} documento(s).")
-        st.stop()
-
-    # ── PASSO 2: PREÇO HORA ───────────────────────────────────────────
-    if tem_preco_pend:
-        st.markdown(f"""
-        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
-            border-radius:{THEME['radius']};padding:20px;margin-bottom:15px;">
-            <h3 style="color:{THEME['accent']};margin:0 0 8px 0;">Passo 2 — Validação do Preço Hora</h3>
-            <p style="color:{THEME['text_secondary']};margin:0;font-size:0.9rem;">
-                Aceita ou recusa o preço hora proposto pela empresa.
-            </p>
-        </div>""", unsafe_allow_html=True)
-
-        st.markdown(f"""
-        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
-            border-radius:15px;padding:30px;text-align:center;margin-bottom:25px;">
-            <p style="color:{THEME['text_secondary']};margin:0 0 10px 0;">Preço Hora Proposto:</p>
-            <p style="color:{THEME['success']};font-size:3.5rem;font-weight:900;margin:0 0 15px 0;">
-                € {preco_hora_valor}
-                <span style="font-size:1.4rem;color:{THEME['text_secondary']};">/hora</span>
-            </p>
-        </div>""", unsafe_allow_html=True)
-
-        col_ac, col_rec = st.columns(2)
-        with col_ac:
-            if st.button("ACEITAR", key="app_aceitar_preco",
-                          use_container_width=True, type="primary"):
-                u2 = _load_users_cached().copy()
-                mask = u2['Nome'] == user_nome
-                if mask.any():
-                    u2.loc[mask, 'PrecoHoraStatus'] = 'Aceite'
-                    u2.loc[mask, 'PrecoHoraData']   = datetime.now().strftime("%d/%m/%Y %H:%M")
-                    save_db(u2, "usuarios.csv")
-                    inv("usuarios.csv")  # FIX 2 — selectivo
-                    log_audit(usuario=user_nome, acao="ACEITAR_PRECO_HORA",
-                              tabela="usuarios.csv", registro_id=user_nome,
-                              detalhes=f"Aceitou €{preco_hora_valor}/hora", ip="")
-                    criar_notificacao(destinatario="admin",
-                        titulo="Preço Hora Aceite",
-                        mensagem=f"{user_nome} aceitou €{preco_hora_valor}/hora.",
-                        tipo="success", acao_url="/admin?tab=rh")
-                    st.success("Preço hora aceite!")
-                    st.balloons()
-                    st.rerun()
-        with col_rec:
-            if st.button("RECUSAR", key="app_recusar_preco",
-                          use_container_width=True, type="secondary"):
-                u2 = _load_users_cached().copy()
-                mask = u2['Nome'] == user_nome
-                if mask.any():
-                    u2.loc[mask, 'PrecoHoraStatus'] = 'Recusado'
-                    u2.loc[mask, 'PrecoHoraData']   = datetime.now().strftime("%d/%m/%Y %H:%M")
-                    save_db(u2, "usuarios.csv")
-                    inv("usuarios.csv")  # FIX 2 — selectivo
-                    log_audit(usuario=user_nome, acao="RECUSAR_PRECO_HORA",
-                              tabela="usuarios.csv", registro_id=user_nome,
-                              detalhes=f"Recusou €{preco_hora_valor}/hora", ip="")
-                    criar_notificacao(destinatario="admin",
-                        titulo="Preço Hora RECUSADO",
-                        mensagem=f"{user_nome} RECUSOU €{preco_hora_valor}/hora.",
-                        tipo="error", acao_url="/admin?tab=rh")
-                    st.warning("Preço recusado. Admin notificado.")
-                    st.rerun()
-        st.stop()
-
-    # ── PASSO 3: PERFIL ───────────────────────────────────────────────
-    if tem_perfil_pend:
-        st.markdown(f"""
-        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
-            border-radius:{THEME['radius']};padding:20px;margin-bottom:15px;">
-            <h3 style="color:{THEME['accent']};margin:0 0 8px 0;">Passo 3 — Preencher o Meu Perfil</h3>
-            <p style="color:{THEME['text_secondary']};margin:0;font-size:0.9rem;">
-                Preenche os teus dados para os Recursos Humanos.
-                Campos com <b>*</b> são obrigatórios.
-            </p>
-        </div>""", unsafe_allow_html=True)
-
-        with st.form("form_onboard_perfil"):
-            st.markdown("#### Dados Pessoais")
-            col1, col2 = st.columns(2)
-            with col1:
-                telefone     = st.text_input("Telefone *",
-                    value=user_data.get('Telefone',''), key="onb_tel", placeholder="9XXXXXXXX")
-                data_nasc    = st.text_input("Data Nascimento * (dd/mm/aaaa)",
-                    value=user_data.get('DataNasc',''), key="onb_nasc", placeholder="01/01/1990")
-                naturalidade = st.text_input("Naturalidade",
-                    value=user_data.get('Naturalidade',''), key="onb_nat")
-            with col2:
-                nif          = st.text_input("NIF *",
-                    value=user_data.get('NIF',''), key="onb_nif", placeholder="XXXXXXXXX")
-                niss         = st.text_input("NISS",
-                    value=user_data.get('NISS',''), key="onb_niss", placeholder="XXXXXXXXXXX")
-                estado_civil = st.selectbox("Estado Civil *",
-                    ["Solteiro(a)","Casado(a)","Divorciado(a)","Viúvo(a)","União de Facto"],
-                    key="onb_ec")
-
-            st.markdown("#### Morada")
-            morada = st.text_input("Morada *",
-                value=user_data.get('Morada',''), key="onb_morada", placeholder="Rua, nº, andar")
-            col3, col4, col5 = st.columns(3)
-            with col3:
-                localidade = st.text_input("Localidade *",
-                    value=user_data.get('Localidade',''), key="onb_loc")
-            with col4:
-                concelho   = st.text_input("Concelho",
-                    value=user_data.get('Concelho',''), key="onb_conc")
-            with col5:
-                cod_postal = st.text_input("Código Postal",
-                    value=user_data.get('Codigo_Postal',''), key="onb_cp", placeholder="XXXX-XXX")
-
-            st.markdown("#### Documentos & Contacto")
-            col6, col7 = st.columns(2)
-            with col6:
-                cc    = st.text_input("Nº Cartão Cidadão", value=user_data.get('CC',''), key="onb_cc")
-                cc_v  = st.text_input("Validade CC (dd/mm/aaaa)",
-                    value=user_data.get('CC_Validade',''), key="onb_cc_val")
-            with col7:
-                email = st.text_input("Email", value=user_data.get('Email',''),
-                    key="onb_email", placeholder="exemplo@email.com")
-
-            st.markdown("#### Emergência")
-            col8, col9 = st.columns(2)
-            with col8:
-                nome_emerg = st.text_input("Nome *",
-                    value=user_data.get('Nome_Emergencia',''), key="onb_emerg_nome")
-                tel_emerg  = st.text_input("Telefone *",
-                    value=user_data.get('Contacto_Emergencia',''), key="onb_emerg_tel")
-            with col9:
-                grau = st.text_input("Grau Parentesco",
-                    value=user_data.get('Grau_Parentesco',''), key="onb_grau")
-
-            st.markdown("#### Dados Profissionais")
-            col_p1, col_p2 = st.columns(2)
-            with col_p1:
-                profissao = st.text_input("Profissão",
-                    value=user_data.get('Profissao',''), key="onb_prof",
-                    placeholder="Ex: Instrumentista")
-                categoria = st.text_input("Categoria Profissional",
-                    value=user_data.get('Categoria_Profissional',''), key="onb_cat",
-                    placeholder="Ex: Técnico Sénior")
-            with col_p2:
-                hab_opts = ["9º Ano","12º Ano","Licenciatura","Mestrado","Doutoramento","Outro"]
-                hab_v = user_data.get('Habilitacoes_Literarias','12º Ano')
-                habilitacoes = st.selectbox("Habilitações",
-                    hab_opts,
-                    index=hab_opts.index(hab_v) if hab_v in hab_opts else 1,
-                    key="onb_hab")
-
-            st.markdown("#### Fardamento")
-            col10, col11, col12 = st.columns(3)
-            cam_opts = ["XS","S","M","L","XL","XXL","XXXL"]
-            cal_opts = ["XS (34/36)","S (38)","M (40/42)","L (42/44)","XL (46/48)","XXL (50/52)"]
-            bot_opts = ["40","41","42","43","44","45","Outro"]
-            with col10:
-                cam_v   = user_data.get('Tamanho_Camisola','M')
-                tam_cam = st.selectbox("Camisola", cam_opts,
-                    index=cam_opts.index(cam_v) if cam_v in cam_opts else 3, key="onb_cam")
-            with col11:
-                cal_v   = user_data.get('Tamanho_Calca','')
-                tam_cal = st.selectbox("Calça", cal_opts,
-                    index=cal_opts.index(cal_v) if cal_v in cal_opts else 0, key="onb_cal")
-            with col12:
-                bot_v   = user_data.get('Tamanho_Botas','')
-                tam_bot = st.selectbox("Botas", bot_opts,
-                    index=bot_opts.index(bot_v) if bot_v in bot_opts else 2, key="onb_bot")
-
-            submitted = st.form_submit_button("Guardar e Continuar",
-                use_container_width=True, type="primary")
-
-        if submitted:
-            erros = []
-            if not telefone.strip():   erros.append("Telefone")
-            if not nif.strip():        erros.append("NIF")
-            if not data_nasc.strip():  erros.append("Data Nascimento")
-            if not morada.strip():     erros.append("Morada")
-            if not localidade.strip(): erros.append("Localidade")
-            if not nome_emerg.strip(): erros.append("Nome Emergência")
-            if not tel_emerg.strip():  erros.append("Telefone Emergência")
-            if erros:
-                st.error(f"Campos em falta: {', '.join(erros)}")
-            else:
-                u3 = _load_users_cached().copy()
-                mask = u3['Nome'] == user_nome
-                if mask.any():
-                    for campo, valor in {
-                        'Telefone': telefone.strip(), 'NIF': nif.strip(),
-                        'DataNasc': data_nasc.strip(), 'Morada': morada.strip(),
-                        'Localidade': localidade.strip(), 'Concelho': concelho.strip(),
-                        'Codigo_Postal': cod_postal.strip(), 'Naturalidade': naturalidade.strip(),
-                        'Estado_Civil': estado_civil, 'CC': cc.strip(), 'CC_Validade': cc_v.strip(),
-                        'NISS': niss.strip(), 'Email': email.strip(),
-                        'Nome_Emergencia': nome_emerg.strip(), 'Contacto_Emergencia': tel_emerg.strip(),
-                        'Grau_Parentesco': grau.strip(), 'Tamanho_Camisola': tam_cam,
-                        'Tamanho_Calca': tam_cal, 'Tamanho_Botas': tam_bot,
-                        'Profissao':                 profissao.strip(),
-                        'Categoria_Profissional':    categoria.strip(),
-                        'Habilitacoes_Literarias':   habilitacoes,
-                        'Perfil_Completo': 'Sim',
-                        'Perfil_Data': datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    }.items():
-                        if campo not in u3.columns:
-                            u3[campo] = ''
-                        u3.loc[mask, campo] = valor
-                    save_db(u3, "usuarios.csv")
-                    inv("usuarios.csv")  # FIX 2 — selectivo
-                    log_audit(usuario=user_nome, acao="COMPLETAR_PERFIL_ONBOARDING",
-                              tabela="usuarios.csv", registro_id=user_nome,
-                              detalhes="Perfil preenchido no onboarding", ip="")
-                    criar_notificacao(destinatario="admin",
-                        titulo="Perfil Preenchido",
-                        mensagem=f"{user_nome} completou todos os passos de integração.",
-                        tipo="success", acao_url="/admin?tab=rh")
-                    st.success("Perfil guardado! Bem-vindo(a) ao GESTNOW!")
-                    st.balloons()
-                    st.rerun()
-        st.stop()
-
-    # ── PASSO 4: UPLOAD COMPROVATIVO IBAN ─────────────────────────────
-    if tem_iban_pend:
-        st.markdown(f"""
-        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
-            border-radius:{THEME['radius']};padding:20px;margin-bottom:15px;">
-            <h3 style="color:{THEME['accent']};margin:0 0 8px 0;">Passo 4 — Comprovativo Bancário</h3>
-            <p style="color:{THEME['text_secondary']};margin:0;font-size:0.9rem;">
-                Faz upload do comprovativo IBAN (extrato bancário, documento do banco
-                ou captura do homebanking com o IBAN visível).
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown(f"""
-        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
-            border-radius:10px;padding:14px;margin-bottom:16px;border-left:3px solid {THEME['accent']};">
-            <p style="color:{THEME['text_secondary']};font-size:0.85rem;margin:0;">
-                O IBAN não é guardado como texto — apenas o comprovativo é armazenado
-                de forma segura para acesso exclusivo do RH.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        ficheiro_iban = st.file_uploader(
-            "Comprovativo bancário (PDF, JPG ou PNG)",
-            type=["pdf","jpg","jpeg","png"],
-            key="onb_iban_file"
+    with st.form("form_password_provisoria", clear_on_submit=False):
+        nova = st.text_input("Nova Password", type="password", key="npp_nova_pwd")
+        conf = st.text_input("Confirmar Nova Password", type="password", key="npp_conf_pwd")
+        submetido = st.form_submit_button(
+            "Definir Password", use_container_width=True, type="primary"
         )
 
-        if ficheiro_iban:
-            file_b64 = base64.b64encode(ficheiro_iban.read()).decode('utf-8')
-            st.success(f"Ficheiro carregado: {ficheiro_iban.name}")
-            if st.button("Guardar e Concluir Integração",
-                         use_container_width=True, type="primary",
-                         key="btn_guardar_iban"):
-                u4 = _load_users_cached().copy()
-                mask = u4['Nome'] == user_nome
-                if mask.any():
-                    u4.loc[mask, 'IBAN_Comprovativo_b64'] = file_b64
-                    u4.loc[mask, 'IBAN_Data_Upload']      = \
-                        datetime.now().strftime("%d/%m/%Y %H:%M")
-                    save_db(u4, "usuarios.csv")
-                    inv("usuarios.csv")  # FIX 2 — selectivo
-                    log_audit(usuario=user_nome, acao="UPLOAD_IBAN",
-                              tabela="usuarios.csv", registro_id=user_nome,
-                              detalhes="Comprovativo IBAN uploaded", ip="")
-                    criar_notificacao(destinatario="admin",
-                        titulo="Comprovativo IBAN",
-                        mensagem=f"{user_nome} submeteu o comprovativo bancário.",
-                        tipo="info", acao_url="/admin?tab=rh")
-                    st.success("Integração completa! Bem-vindo(a) ao GESTNOW!")
-                    st.balloons()
-                    st.rerun()
+    if submetido:
+        if len(nova) < 8:
+            st.error("Mínimo 8 caracteres.")
+        elif nova != conf:
+            st.error("As passwords não coincidem.")
         else:
-            st.info("Seleciona o ficheiro para continuar.")
-
-        st.stop()
-
-    return False
+            up = _load_users_cached().copy()
+            mk = up['Nome'] == user_nome
+            if mk.any():
+                up.loc[mk, 'Password']            = hp(nova)
+                up.loc[mk, 'Password_Provisoria'] = ''
+                save_db(up, "usuarios.csv")
+                inv("usuarios.csv")
+            st.success("Password definida. A continuar...")
+            st.rerun()
+    st.stop()
+    return True
 
 
 # =============================================================================
@@ -669,6 +278,8 @@ if not st.session_state.get('user'):
     from mod_login import render_login
     render_login()
 else:
+    _verificar_password_provisoria(st.session_state.get('user', ''))
+
     DATA = load_all()
     (users, obras_db, frentes_db, registos_db, faturas_db, docs_db, incs_db,
      sw_db, obs_db, equip_db, diags_db, diags_u_db, folhas_db, comuns_db,
@@ -689,10 +300,19 @@ else:
         st.rerun()
 
     # ── BLOQUEIO CENTRALIZADO — só Técnicos e Chefes ──────────────────
-    if tipo not in ['Admin', 'Cliente']:
-        _render_validacao_obrigatoria(user_nome)
-
-        # ── Bloqueio contrato pendente de assinatura ───────────────
+    # O onboarding de 4 passos (Documentos/Preço/Perfil/IBAN) saiu daqui
+    # por completo — vive só no cps-ponto (DESENHO_ONBOARDING.md, passo
+    # 6).
+    # Secretariado e Armazém ficam de fora, tal como no cps-ponto
+    # (_ONBOARDING_TIPOS_SO_DOCUMENTOS): o contrato deles é em papel,
+    # fora da app (DESENHO_ONBOARDING.md, secção 1).
+    if tipo not in ['Admin', 'Cliente', 'Secretariado', 'Armazém']:
+        # ── Aviso de contrato pendente de assinatura — PERMANENTE, NÃO
+        # BLOQUEANTE (DESENHO_ONBOARDING.md, secção 4: "impedir alguém de
+        # trabalhar no primeiro dia por causa de papelada em atraso é
+        # pior do que o problema que resolve"). Tinha aqui um st.stop()
+        # que bloqueava a app inteira — o mesmo bug já corrigido na
+        # versão gémea do cps-ponto (_verificar_contrato); removido.
         try:
             u_ct_check = _load_users_cached()
             if not u_ct_check.empty:
@@ -704,17 +324,11 @@ else:
                     ct_validado = row_ct.get('Contrato_Validado_Admin','') == 'Sim'
 
                     if ct_enviado and not ct_assinado and not ct_validado:
-                        st.markdown(f"""
-                        <div style="background:{THEME['surface']};border:1px solid {THEME['border']};
-                            padding:30px;border-radius:20px;margin-bottom:25px;
-                            text-align:center;">
-                            <h2 style="color:{THEME['text']};margin:0 0 10px;">Contrato pendente de assinatura</h2>
-                            <p style="color:{THEME['text_secondary']};margin:0;font-size:0.95rem;">
-                                O teu contrato de trabalho está disponível.<br>
-                                Assina e faz upload para continuar a usar a app.
-                            </p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        st.warning(
+                            "Tens um contrato pendente de assinatura. Podes "
+                            "continuar a usar a app normalmente — só falta "
+                            "este passo."
+                        )
 
                         ct_b64 = row_ct.get('Contrato_b64','')
                         if ct_b64:
@@ -789,7 +403,7 @@ else:
                                     inv("usuarios.csv")  # FIX 2 — selectivo
                                     st.success("Assinatura submetida! O RH será notificado.")
                                     st.rerun()
-                        st.stop()
+                        st.markdown("---")
         except Exception as _e_ct:
             pass
 
