@@ -6,6 +6,8 @@ Decisões sobre o percurso de integração do colaborador, a seguir à auditoria
 
 ✅ **Feito** — Secretariado e Armazém já ficam de fora do aviso de contrato em `app.py`, tal como no cps-ponto (`_ONBOARDING_TIPOS_SO_DOCUMENTOS`), porque o contrato deles é em papel (secção 1). Os dois ficheiros estão agora consistentes nisto.
 
+✅ **Validado visualmente** (15/09/2026) — duas contas de teste dedicadas (`ZZ_TESTE_QA_Tecnico`, `ZZ_TESTE_QA_Secretariado`), criadas e depois apagadas de `usuarios.csv`, confirmaram na prática os três pontos centrais desta reformulação: o mecanismo de leitura obrigatória página a página (secção 2), a remoção do bloco do GestNow sem quebrar nada, e o aviso de contrato não bloqueante com a exclusão correta de Secretariado/Armazém. Ver a nota em baixo (secção 2) sobre um achado feito durante esta validação.
+
 ---
 
 ## 1. Onde vive o onboarding, e quem faz o quê
@@ -41,6 +43,14 @@ Hoje, a pessoa descarrega o ficheiro e confirma num botão — isso prova que ca
 **Mecanismo: por páginas, não por scroll contínuo.** Mostra-se o documento uma página de cada vez, avança-se página a página, e só depois de passar pela última é que o botão de confirmar aparece. Escolhido em vez de detetar scroll contínuo porque é mais barato de construir (não exige JavaScript nem um componente próprio — o Streamlit já sabe mostrar imagens de origem), é mais fiável em qualquer telemóvel (deixa de depender do leitor de PDF do browser, que varia muito entre aparelhos), e como evidência é pelo menos tão forte — obriga a uma ação explícita por página.
 
 **O que fica registado, por documento e por pessoa**: hora de abertura, hora de passagem por cada página, e hora de confirmação final. Não só a confirmação. O objetivo é conseguir detetar confirmações suspeitas — por exemplo, um documento de 10 páginas confirmado poucos segundos depois de aberto. Timestamp total sozinho ("esteve X minutos") não chega, porque não prova progressão nenhuma; a sequência de horas por página conta uma história muito mais convincente para um auditor.
+
+### Nota — contaminação de `pdfs_leitura_log.csv` por testes automatizados (corrigido)
+
+Ao validar visualmente este mecanismo (15/09/2026), descobriu-se que `pdfs_leitura_log.csv` tinha 214 linhas — **todas** de "Pessoa Teste", um fixture dos testes automatizados do cps-ponto, não de uma pessoa real. O ficheiro nunca teve nenhum conteúdo genuíno de produção.
+
+**Causa**: dois helpers de teste (`_run_leitura`, `_run_com_funcao`, em `tests/test_onboarding_tipos.py` no cps-ponto) mostram um documento pendente do onboarding para testar a UI, mas não mockavam `core._gcs_client`/`core._gcs_write` — e só *mostrar* um documento já dispara o evento "abertura" (e, ao navegar, "página") via `_gcs_append_row`, que fala directamente com o GCS sem passar por `save_db`. Sem o mock, cada corrida da suite escrevia a sério na bucket de produção.
+
+**Corrigido** (commit `8c07cf4`, cps-ponto): os dois helpers passam a mockar `core._gcs_client`/`core._gcs_write`, o mesmo padrão já usado nos outros testes deste ficheiro. Auditados os dois repositórios inteiros (cps-ponto e GestNow) à procura do mesmo padrão — nenhuma outra instância encontrada. O ficheiro foi limpo (214→0 linhas), com evidência completa guardada antes da escrita (`evidencia/pdfs_leitura_log_214_2026-09-15_antes-analise-contaminacao-testes.csv`, no repo GestNow-).
 
 ---
 
