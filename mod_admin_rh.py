@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import uuid, base64, hashlib, json, unicodedata, re
+import uuid, base64, hashlib, json, unicodedata, re, secrets
 from datetime import datetime, date, timedelta
 from io import BytesIO
 
@@ -11,12 +11,23 @@ from core import (
     cliente_select, registar_cliente_do_select,
     obra_select, get_cliente_da_obra,
     lista_rh_select, registar_valor_lista_rh, set_funcao_categoria,
+    get_lista_rh,
     THEME, _norm_nome_cliente, limpar_tentativas_login
 )
+
+_PDFS_OBRIGATORIOS_COLS = ["ID", "Nome", "Descricao", "Data_Upload",
+                           "Upload_Por", "Ficheiro_b64", "Funcoes"]
 
 # ── Tipos e cargos disponíveis ────────────────────────────────────────
 TIPOS_USUARIO = ["Técnico","Instrumentista","Engenheiro","Chefe de Equipa",
                  "Secretariado","Armazém","Admin","Cliente"]
+
+# ── Geração de credenciais em massa ────────────────────────────────────
+# Administrativos recebem password; todos os outros (incl. Chefe de
+# Equipa, que só vive no cps-ponto) recebem PIN. Cliente fica sempre de
+# fora — não tem conta operacional nestas apps.
+MASSA_TIPOS_PASSWORD  = {"Admin", "Secretariado", "Armazém"}
+MASSA_TIPOS_EXCLUIDOS = {"Cliente"}
 CARGOS_POR_TIPO = {
     "Técnico":        ["Técnico Eletricista","Técnico Mecânico","Técnico Automação",
                        "Técnico Instrumentação","Operador Especializado","Serralheiro","Outro"],
@@ -760,13 +771,15 @@ def render_admin_rh(*args):
         st.markdown("---")
 
     (tab_lista, tab_gestao, tab_eticadata,
-     tab_contrato, tab_template, tab_formacoes) = st.tabs([
+     tab_contrato, tab_template, tab_formacoes, tab_massa, tab_docs) = st.tabs([
         "Colaboradores",
         "Ficha do Colaborador",
         "Importar Eticadata",
         "Contratos",
         "Templates & Config",
         "Formações",
+        "Credenciais Iniciais (em massa)",
+        "Documentos Obrigatórios",
     ])
 
     # ════════════════════════════════════════════════════════════════
@@ -1244,7 +1257,7 @@ def render_admin_rh(*args):
 
                 if st.form_submit_button("Guardar Profissional",
                                          use_container_width=True, type="primary"):
-                    if _save_gi({
+                    _prof_updates = {
                         "PrecoHora": _gi_preco, "Local_Obra": _gi_local,
                         "Cliente_Obra": get_cliente_da_obra(_gi_local),
                         "Tamanho_Camisola": _gi_camisola, "Tamanho_Calca": _gi_calca,
@@ -1253,7 +1266,15 @@ def render_admin_rh(*args):
                         "Contrato_Enviado": _gi_ct_env, "Contrato_Enviado_Data": _gi_ct_env_data,
                         "Contrato_Assinado": _gi_ct_assin, "Contrato_Assinatura_Data": _gi_ct_assin_data,
                         "Contrato_Validado_Admin": _gi_ct_valid, "Contrato_Validado_Data": _gi_ct_valid_data,
-                    }) and _sync_rh_csv(nome_sel, {
+                    }
+                    # Mudar o Preço/Hora repõe a decisão da pessoa (Aceite/
+                    # Recusado) — sobretudo depois de uma recusa: o RH só
+                    # tem de mudar o número, sem passo extra, e a pessoa
+                    # volta a ver o ecrã de decisão com o valor novo.
+                    if _gi_preco.strip() != str(_vg("PrecoHora")).strip():
+                        _prof_updates["PrecoHoraStatus"] = ""
+                        _prof_updates["PrecoHoraData"]   = ""
+                    if _save_gi(_prof_updates) and _sync_rh_csv(nome_sel, {
                         "Salario_Base": _gi_salb, "Local_Trabalho": _gi_local_trab,
                     }):
                         st.success("Dados profissionais guardados.")
@@ -1367,9 +1388,11 @@ def render_admin_rh(*args):
                         st.success(f"Password de {nome_sel} redefinida.")
                         st.rerun()
 
-        # ── Redefinir PIN ────────────────────────────────────────────
+        # ── Gerar / Redefinir PIN ──────────────────────────────────────
         st.markdown("---")
-        with st.expander("Redefinir PIN"):
+        pin_existe = bool(str(row.get("PIN", "")).strip())
+        titulo_pin = "Redefinir PIN" if pin_existe else "Gerar PIN"
+        with st.expander(titulo_pin):
             st.markdown(
                 f"<p style='color:{THEME['text_secondary']}; font-size:0.8rem;'>"
                 f"ID: <code>{row.get('ID','—') or '—'}</code> &nbsp;·&nbsp; "
@@ -1377,33 +1400,49 @@ def render_admin_rh(*args):
                 f"</p>",
                 unsafe_allow_html=True
             )
-            novo_pin_admin = st.text_input(
-                "Novo PIN (4 dígitos) *", type="password", max_chars=4,
-                key="rh_novo_pin_admin", placeholder="0000")
-            conf_pin_admin = st.text_input(
-                "Confirmar PIN *", type="password", max_chars=4,
-                key="rh_conf_pin_admin")
-            if st.button("Redefinir PIN", key="btn_redef_pin",
-                         type="primary"):
-                if len(novo_pin_admin.strip()) != 4 or not novo_pin_admin.strip().isdigit():
-                    st.error("O PIN deve ter exatamente 4 dígitos numéricos.")
-                elif novo_pin_admin != conf_pin_admin:
-                    st.error("Os PINs não coincidem.")
-                else:
+
+            # Mostra o PIN gerado na execução anterior, uma única vez —
+            # nunca fica guardado em claro, só neste session_state
+            # transitório, e desaparece assim que a pessoa reconhece.
+            pin_mostrado = st.session_state.get("rh_pin_gerado_para")
+            if pin_mostrado and pin_mostrado.get("nome") == nome_sel:
+                st.success(
+                    f"PIN gerado para {nome_sel}: "
+                    f"**`{pin_mostrado['pin']}`**\n\n"
+                    "Anota-o agora e transmite-o à pessoa — não vai voltar "
+                    "a ser mostrado."
+                )
+                if st.button("Já anotei", key="btn_ack_pin_gerado"):
+                    del st.session_state["rh_pin_gerado_para"]
+                    st.rerun()
+            else:
+                if pin_existe:
+                    st.warning(
+                        "Já existe um PIN definido. Gerar um novo invalida "
+                        "imediatamente o atual — a pessoa deixa de conseguir "
+                        "entrar com o PIN antigo."
+                    )
+                if st.button(titulo_pin, key="btn_gerar_pin",
+                             type="primary"):
                     u_pin = _load_users_fresh()
                     mk_pin = u_pin["Nome"] == nome_sel
                     if mk_pin.any():
-                        u_pin.loc[mk_pin, "PIN"] = hp(novo_pin_admin.strip())
+                        novo_pin = f"{secrets.randbelow(10000):04d}"
+                        u_pin.loc[mk_pin, "PIN"] = hp(novo_pin)
+                        u_pin.loc[mk_pin, "PIN_Provisorio"] = "Sim"
                         save_db(u_pin, "usuarios.csv")
                         inv("usuarios.csv")
                         from core import _cached_load_all
                         _cached_load_all.clear()
                         log_audit(usuario=st.session_state.get("user","admin"),
-                                  acao="REDEFINIR_PIN",
+                                  acao="REDEFINIR_PIN" if pin_existe else "GERAR_PIN_INICIAL",
                                   tabela="usuarios.csv",
                                   registro_id=nome_sel,
-                                  detalhes="PIN redefinido pelo Admin")
-                        st.success(f"PIN de {nome_sel} redefinido.")
+                                  detalhes="PIN redefinido pelo Admin" if pin_existe
+                                           else "PIN inicial gerado pelo Admin")
+                        st.session_state["rh_pin_gerado_para"] = {
+                            "nome": nome_sel, "pin": novo_pin,
+                        }
                         st.rerun()
 
             if str(row.get("Bloqueado", "")).strip().lower() == "sim":
@@ -2771,6 +2810,53 @@ def render_admin_rh(*args):
             st.info("Sem colaboradores.")
             return
 
+        # ── Quem já completou o onboarding e ainda não tem contrato
+        # enviado — para o RH deixar de depender de se lembrar de cada
+        # pessoa (DESENHO_ONBOARDING.md, secção 4, ponto 2). Só se
+        # aplica a colaboradores/chefes — administrativos têm o
+        # contrato tratado em papel, fora da app (secção 1).
+        for _col_ct in ('Tipo', 'PDFs_Validados', 'PrecoHoraStatus',
+                        'Perfil_Completo', 'IBAN_Comprovativo_b64',
+                        'Contrato_Enviado', 'Contrato_Gerado'):
+            if _col_ct not in users_ct.columns:
+                users_ct[_col_ct] = ''
+
+        def _completou_onboarding(r):
+            return (
+                str(r.get('PDFs_Validados', '')).strip() == 'Sim'
+                and str(r.get('PrecoHoraStatus', '')).strip() == 'Aceite'
+                and str(r.get('Perfil_Completo', '')).strip() == 'Sim'
+                and bool(str(r.get('IBAN_Comprovativo_b64', '')).strip())
+            )
+
+        _mask_papel = users_ct['Tipo'].astype(str).str.strip().isin(MASSA_TIPOS_PASSWORD)
+        _mask_completou = users_ct.apply(_completou_onboarding, axis=1)
+        _mask_sem_contrato = users_ct['Contrato_Enviado'].astype(str).str.strip() != 'Sim'
+        pendentes_ct = users_ct[~_mask_papel & _mask_completou & _mask_sem_contrato]
+
+        st.markdown("#### Contrato por gerar/enviar")
+        if pendentes_ct.empty:
+            st.success("Ninguém à espera de contrato — todos os colaboradores "
+                        "que já completaram o onboarding têm contrato enviado.")
+        else:
+            st.warning(
+                f"{len(pendentes_ct)} colaborador(es) já completaram o "
+                "onboarding e ainda não têm contrato enviado."
+            )
+            for _, r_p in pendentes_ct.sort_values('Nome').iterrows():
+                estado_ct = ("Contrato gerado, por enviar"
+                             if str(r_p.get('Contrato_Gerado', '')).strip() == 'Sim'
+                             else "Contrato por gerar")
+                c_nome, c_btn = st.columns([3, 1])
+                with c_nome:
+                    st.markdown(f"**{r_p['Nome']}** — {estado_ct}")
+                with c_btn:
+                    if st.button("Ver", key=f"ct_ir_para_{r_p['Nome']}",
+                                 use_container_width=True):
+                        st.session_state['ct_colab_sel'] = r_p['Nome']
+                        st.rerun()
+        st.markdown("---")
+
         nomes_ct    = users_ct['Nome'].tolist()
         colab_ct    = st.session_state.get('rh_colaborador_sel', nomes_ct[0])
         idx_ct      = nomes_ct.index(colab_ct) if colab_ct in nomes_ct else 0
@@ -3176,3 +3262,292 @@ def render_admin_rh(*args):
     with tab_formacoes:
         from mod_admin_formacoes import render_formacoes
         render_formacoes(users, obras_db)
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 7 — CREDENCIAIS INICIAIS EM MASSA
+    # ════════════════════════════════════════════════════════════════
+    with tab_massa:
+        st.markdown("### Credenciais Iniciais (em massa)")
+        st.markdown(
+            "Gera uma password ou PIN inicial para várias contas de uma só "
+            "vez. Administrativos (Admin, Secretariado, Armazém) recebem "
+            "password; todos os outros recebem PIN. Contas Cliente ficam "
+            "sempre de fora. Cada credencial gerada fica marcada como "
+            "**provisória** — a pessoa é obrigada a trocá-la no primeiro "
+            "acesso, sem forma de contornar."
+        )
+
+        lote_gerado = st.session_state.get("rh_lote_gerado")
+
+        if lote_gerado:
+            st.success(
+                f"{len(lote_gerado)} credenciais geradas. Copia ou "
+                "descarrega agora — não vão voltar a ser mostradas."
+            )
+            df_lote = pd.DataFrame(lote_gerado)
+            st.dataframe(df_lote, use_container_width=True, hide_index=True,
+                         key="rh_lote_tabela")
+            csv_bytes = df_lote.to_csv(index=False).encode("utf-8-sig")
+            st.download_button(
+                "Descarregar CSV", data=csv_bytes,
+                file_name=f"credenciais_iniciais_{date.today().isoformat()}.csv",
+                mime="text/csv", key="btn_dl_lote"
+            )
+            if st.button("Já distribuí, apagar da ecrã", key="btn_ack_lote",
+                         type="primary"):
+                del st.session_state["rh_lote_gerado"]
+                st.rerun()
+        else:
+            u_massa = _load_users_fresh()
+            if u_massa.empty:
+                st.info("Sem dados de utilizadores.")
+            else:
+                if "Numero_Colaborador" not in u_massa.columns:
+                    u_massa["Numero_Colaborador"] = ""
+                if "Tipo" not in u_massa.columns:
+                    u_massa["Tipo"] = ""
+
+                def _grupo_credencial(tipo):
+                    t = str(tipo).strip()
+                    if t in MASSA_TIPOS_EXCLUIDOS:
+                        return None
+                    return "Password" if t in MASSA_TIPOS_PASSWORD else "PIN"
+
+                u_massa["_grupo"] = u_massa["Tipo"].apply(_grupo_credencial)
+                elegiveis = u_massa[u_massa["_grupo"].notna()].copy()
+                elegiveis = elegiveis[
+                    elegiveis["Numero_Colaborador"].astype(str).str.strip() != ""
+                ]
+
+                if elegiveis.empty:
+                    st.info("Nenhuma conta elegível (falta atribuir Número "
+                            "de Colaborador antes de gerar credenciais).")
+                else:
+                    elegiveis = elegiveis.sort_values(["_grupo", "Tipo", "Nome"])
+                    preview = elegiveis[
+                        ["Nome", "Numero_Colaborador", "Tipo", "_grupo"]
+                    ].rename(columns={"_grupo": "Credencial"})
+                    preview.insert(0, "Incluir", True)
+
+                    st.markdown(
+                        f"**{len(preview)} contas elegíveis** — desmarca "
+                        "quem deve ficar de fora desta leva."
+                    )
+                    editado = st.data_editor(
+                        preview, hide_index=True, use_container_width=True,
+                        key="rh_lote_editor",
+                        disabled=["Nome", "Numero_Colaborador", "Tipo", "Credencial"],
+                    )
+                    selecionados = editado[editado["Incluir"]]
+                    n_pwd = int((selecionados["Credencial"] == "Password").sum())
+                    n_pin = int((selecionados["Credencial"] == "PIN").sum())
+
+                    st.markdown(
+                        f"A gerar: **{n_pwd} passwords** e **{n_pin} PINs** "
+                        f"({len(selecionados)} contas no total)."
+                    )
+
+                    if len(selecionados) > 0:
+                        confirmar = st.checkbox(
+                            f"Confirmo: gerar {len(selecionados)} credenciais "
+                            "novas agora, invalidando imediatamente as que já "
+                            "existirem para estas contas.",
+                            key="rh_lote_confirmar"
+                        )
+                        if st.button("Gerar credenciais", key="btn_gerar_lote",
+                                     type="primary", disabled=not confirmar):
+                            u_write = _load_users_fresh()
+                            resultado = []
+                            numeros_pwd, numeros_pin = [], []
+                            for _, r in selecionados.iterrows():
+                                numero = str(r["Numero_Colaborador"]).strip()
+                                mk = (u_write["Numero_Colaborador"]
+                                      .astype(str).str.strip() == numero)
+                                if not mk.any():
+                                    continue
+                                if r["Credencial"] == "Password":
+                                    valor = secrets.token_urlsafe(9)
+                                    u_write.loc[mk, "Password"] = hp(valor)
+                                    u_write.loc[mk, "Password_Provisoria"] = "Sim"
+                                    numeros_pwd.append(numero)
+                                else:
+                                    valor = f"{secrets.randbelow(10000):04d}"
+                                    u_write.loc[mk, "PIN"] = hp(valor)
+                                    u_write.loc[mk, "PIN_Provisorio"] = "Sim"
+                                    numeros_pin.append(numero)
+                                resultado.append({
+                                    "Nome": r["Nome"],
+                                    "Numero_Colaborador": numero,
+                                    "Tipo": r["Tipo"],
+                                    "Credencial": r["Credencial"],
+                                    "Valor": valor,
+                                })
+                            save_db(u_write, "usuarios.csv")
+                            inv("usuarios.csv")
+                            from core import _cached_load_all
+                            _cached_load_all.clear()
+                            log_audit(
+                                usuario=st.session_state.get("user", "admin"),
+                                acao="GERAR_CREDENCIAIS_MASSA",
+                                tabela="usuarios.csv",
+                                registro_id=f"{len(resultado)}_contas",
+                                detalhes=(
+                                    f"Passwords ({len(numeros_pwd)}): "
+                                    f"{','.join(numeros_pwd)}; "
+                                    f"PINs ({len(numeros_pin)}): "
+                                    f"{','.join(numeros_pin)}"
+                                ),
+                            )
+                            st.session_state["rh_lote_gerado"] = resultado
+                            st.rerun()
+
+    # ════════════════════════════════════════════════════════════════
+    # TAB 8 — DOCUMENTOS OBRIGATÓRIOS (associação a funções)
+    # ════════════════════════════════════════════════════════════════
+    with tab_docs:
+        st.markdown("### Documentos Obrigatórios do Onboarding")
+        st.markdown(
+            "Documentos mostrados no onboarding do cps-ponto. Um documento "
+            "sem nenhuma função seleccionada aplica-se a toda a gente "
+            "(ex.: Manual de Acolhimento) — só passa a ser específico "
+            "quando se associa a uma ou mais funções."
+        )
+
+        pdfs_db = load_db("pdfs_obrigatorios.csv", _PDFS_OBRIGATORIOS_COLS,
+                           silent=True)
+
+        u_funcoes_docs = _load_users_fresh()
+        funcoes_em_uso = set()
+        if not u_funcoes_docs.empty and 'Funcao' in u_funcoes_docs.columns:
+            funcoes_em_uso = {
+                v.strip() for v in u_funcoes_docs['Funcao'].astype(str) if v.strip()
+            }
+        funcoes_catalogo = sorted(set(get_lista_rh('funcao')) | funcoes_em_uso)
+
+        def _funcoes_de(doc):
+            try:
+                return json.loads(doc.get('Funcoes', '') or '[]')
+            except Exception:
+                return []
+
+        st.markdown("#### Documentos existentes")
+        if pdfs_db.empty:
+            st.info("Ainda não há nenhum documento.")
+        else:
+            for _, doc in pdfs_db.sort_values('Nome').iterrows():
+                doc_id  = str(doc.get('ID', '')).strip()
+                titulo  = doc.get('Nome', '(sem nome)') or '(sem nome)'
+                funcoes_doc = _funcoes_de(doc)
+                etiqueta = ", ".join(funcoes_doc) if funcoes_doc else "Toda a gente"
+                with st.expander(f"{titulo} — {etiqueta}"):
+                    st.markdown(
+                        f"<p style='color:{THEME['text_secondary']};font-size:0.8rem;'>"
+                        f"Enviado por {doc.get('Upload_Por','—') or '—'} "
+                        f"em {doc.get('Data_Upload','—') or '—'}</p>",
+                        unsafe_allow_html=True
+                    )
+                    if doc.get('Ficheiro_b64'):
+                        try:
+                            st.download_button(
+                                "Descarregar", data=base64.b64decode(doc['Ficheiro_b64']),
+                                file_name=f"{titulo}.pdf", mime="application/pdf",
+                                key=f"doc_dl_{doc_id}"
+                            )
+                        except Exception:
+                            st.error("Erro no ficheiro.")
+
+                    novas_funcoes = st.multiselect(
+                        "Aplica-se a (vazio = toda a gente)",
+                        funcoes_catalogo,
+                        default=[f for f in funcoes_doc if f in funcoes_catalogo],
+                        key=f"doc_funcoes_{doc_id}"
+                    )
+                    col_g, col_r = st.columns(2)
+                    with col_g:
+                        if st.button("Guardar", key=f"doc_guardar_{doc_id}",
+                                     type="primary", use_container_width=True):
+                            u_docs = load_db("pdfs_obrigatorios.csv",
+                                              _PDFS_OBRIGATORIOS_COLS, silent=True)
+                            mk = u_docs['ID'] == doc_id
+                            if mk.any():
+                                u_docs.loc[mk, 'Funcoes'] = json.dumps(
+                                    novas_funcoes, ensure_ascii=False)
+                                save_db(u_docs, "pdfs_obrigatorios.csv")
+                                inv("pdfs_obrigatorios.csv")
+                                log_audit(
+                                    usuario=st.session_state.get("user", "admin"),
+                                    acao="EDITAR_FUNCOES_DOCUMENTO",
+                                    tabela="pdfs_obrigatorios.csv",
+                                    registro_id=doc_id,
+                                    detalhes=f"{titulo} -> "
+                                             f"{', '.join(novas_funcoes) or 'Toda a gente'}",
+                                )
+                                st.success("Guardado.")
+                                st.rerun()
+                    with col_r:
+                        confirmar_remover = st.checkbox(
+                            "Confirmo que quero remover este documento",
+                            key=f"doc_confirmar_remover_{doc_id}"
+                        )
+                        if st.button("Remover", key=f"doc_remover_{doc_id}",
+                                     use_container_width=True,
+                                     disabled=not confirmar_remover):
+                            u_docs = load_db("pdfs_obrigatorios.csv",
+                                              _PDFS_OBRIGATORIOS_COLS, silent=True)
+                            u_docs = u_docs[u_docs['ID'] != doc_id]
+                            save_db(u_docs, "pdfs_obrigatorios.csv")
+                            inv("pdfs_obrigatorios.csv")
+                            log_audit(
+                                usuario=st.session_state.get("user", "admin"),
+                                acao="REMOVER_DOCUMENTO_OBRIGATORIO",
+                                tabela="pdfs_obrigatorios.csv",
+                                registro_id=doc_id,
+                                detalhes=titulo,
+                            )
+                            st.success("Removido.")
+                            st.rerun()
+
+        st.markdown("---")
+        st.markdown("#### Novo documento")
+        with st.form("form_novo_doc_obrigatorio", clear_on_submit=True):
+            nome_doc  = st.text_input("Nome do documento *", key="novo_doc_nome")
+            desc_doc  = st.text_input("Descrição", key="novo_doc_desc")
+            funcoes_novo = st.multiselect(
+                "Aplica-se a (vazio = toda a gente)", funcoes_catalogo,
+                key="novo_doc_funcoes"
+            )
+            ficheiro_doc = st.file_uploader("Ficheiro (PDF)", type=["pdf"],
+                                             key="novo_doc_ficheiro")
+            submeter_doc = st.form_submit_button(
+                "Adicionar documento", type="primary", use_container_width=True)
+
+        if submeter_doc:
+            if not nome_doc.strip():
+                st.error("O nome é obrigatório.")
+            elif not ficheiro_doc:
+                st.error("Escolhe um ficheiro.")
+            else:
+                u_docs = load_db("pdfs_obrigatorios.csv",
+                                  _PDFS_OBRIGATORIOS_COLS, silent=True)
+                novo_doc = {
+                    "ID":           uuid.uuid4().hex[:8].upper(),
+                    "Nome":         nome_doc.strip(),
+                    "Descricao":    desc_doc.strip(),
+                    "Data_Upload":  datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "Upload_Por":   st.session_state.get("user", "Admin"),
+                    "Ficheiro_b64": base64.b64encode(ficheiro_doc.read()).decode(),
+                    "Funcoes":      json.dumps(funcoes_novo, ensure_ascii=False),
+                }
+                u_docs = pd.concat([u_docs, pd.DataFrame([novo_doc])], ignore_index=True)
+                save_db(u_docs, "pdfs_obrigatorios.csv")
+                inv("pdfs_obrigatorios.csv")
+                log_audit(
+                    usuario=st.session_state.get("user", "admin"),
+                    acao="CRIAR_DOCUMENTO_OBRIGATORIO",
+                    tabela="pdfs_obrigatorios.csv",
+                    registro_id=novo_doc["ID"],
+                    detalhes=f"{novo_doc['Nome']} -> "
+                             f"{', '.join(funcoes_novo) or 'Toda a gente'}",
+                )
+                st.success(f"Documento '{novo_doc['Nome']}' adicionado.")
+                st.rerun()

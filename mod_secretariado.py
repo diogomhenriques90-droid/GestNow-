@@ -67,9 +67,11 @@ def render_secretariado(*args):
 
     regs = _regs_com_data(registos_db) if not registos_db.empty else pd.DataFrame()
 
-    # Obras com chefe activo — apenas estas passam pelo Chefe antes do Secretariado
-    obras_com_chefe = set(inst_acessos_db['Obra'].dropna()) \
-                      if not inst_acessos_db.empty else set()
+    # Obras com chefe atribuído (Responsavel_Equipa) — só estas passam pelo
+    # Chefe antes do Secretariado; sem chefe atribuído cai sempre aqui.
+    obras_com_chefe = set(
+        obras_db.loc[obras_db['Responsavel_Equipa'].str.strip() != '', 'Obra']
+    ) if not obras_db.empty and 'Responsavel_Equipa' in obras_db.columns else set()
 
     _n_1val = len(regs[(regs['Status'] == '0') & (~regs['Obra'].isin(obras_com_chefe))]) \
               if not regs.empty else 0

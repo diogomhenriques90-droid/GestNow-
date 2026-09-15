@@ -510,15 +510,14 @@ def render_chefe(*args):
     # ── KPIs ──────────────────────────────────────────────────────────────────
     inicio_mes = hoje.replace(day=1)
     obras_chefe = []
-    if not inst_acessos_db.empty and 'Utilizador' in inst_acessos_db.columns:
-        obras_chefe = inst_acessos_db[
-            inst_acessos_db['Utilizador'] == user_nome
+    if not obras_db.empty and 'Responsavel_Equipa' in obras_db.columns:
+        obras_chefe = obras_db[
+            obras_db['Responsavel_Equipa'].str.strip() == user_nome
         ]['Obra'].tolist()
 
     regs_equipa = pd.DataFrame()
-    if not registos_db.empty:
-        regs_equipa = (registos_db[registos_db['Obra'].isin(obras_chefe)]
-                       if obras_chefe else registos_db.copy())
+    if not registos_db.empty and obras_chefe:
+        regs_equipa = registos_db[registos_db['Obra'].isin(obras_chefe)].copy()
 
     pendentes = len(regs_equipa[regs_equipa['Status'] == '0']) \
                 if not regs_equipa.empty else 0
@@ -536,8 +535,11 @@ def render_chefe(*args):
     with c1: st.metric("Técnicos",   num_tec)
     with c2: st.metric("Horas Mês",  f"{horas_mes:.0f}h")
     with c3: st.metric("Pendentes",  pendentes)
-    with c4: st.metric("Obras",
-        len(obras_chefe) or (len(obras_db) if not obras_db.empty else 0))
+    with c4: st.metric("Obras",      len(obras_chefe))
+
+    if not obras_chefe:
+        st.info("Ainda não estás atribuído como responsável de nenhuma obra "
+                 "— fala com o administrador para te atribuir uma.")
 
     st.divider()
 
@@ -1918,9 +1920,8 @@ def render_chefe(*args):
                         st.rerun()
 
         with sub_list:
-            if not incs_db.empty:
-                i_eq = incs_db[incs_db['Obra'].isin(obras_chefe)] \
-                       if obras_chefe else incs_db
+            if not incs_db.empty and obras_chefe:
+                i_eq = incs_db[incs_db['Obra'].isin(obras_chefe)]
                 cols_s = [c for c in ['Data','Utilizador','Obra','Descricao','Gravidade','Status']
                           if c in i_eq.columns]
                 if not i_eq.empty:

@@ -1,0 +1,273 @@
+﻿ID,Data,Hora,Destinatario,Titulo,Mensagem,Tipo,Lida,Acao_URL
+811B8AA3,11/05/2026,08:40:42,admin,✅ PDFs Validados,Diana Plácido validou todos os documentos.,success,Não,/admin?tab=rh
+E0DCB849,11/05/2026,08:40:45,admin,💰 Preço Hora Aceite,Diana Plácido aceitou €16.0/hora.,success,Não,/admin?tab=rh
+5194A630,11/05/2026,08:42:16,admin,👤 Perfil Preenchido,Diana Plácido completou todos os passos de integração.,success,Não,/admin?tab=rh
+9A94D6E6,11/05/2026,08:44:31,admin,📋 Novo Registo de Ponto,Diana Plácido registou 9h00m em Basf,info,Não,/admin?tab=validacoes
+FAB7186A,11/05/2026,08:45:18,admin,📋 Novo Registo de Ponto,Diana Plácido registou 4h00m em Sonae Mangualde,info,Não,/admin?tab=validacoes
+DC8D8CCA,11/05/2026,08:45:40,admin,📋 Novo Registo de Ponto,Diana Plácido registou 8h00m em Basf,info,Não,/admin?tab=validacoes
+B73075CF,11/05/2026,08:48:50,Shayan Shafie,✅ Horas Aprovadas,As suas 9.0h em Basf foram aprovadas!,success,Não,/registos
+515C6F9A,11/05/2026,08:48:51,Shayan Shafie,✅ Horas Aprovadas,As suas 9.0h em Basf foram aprovadas!,success,Não,/registos
+84019F3F,11/05/2026,08:48:51,Shayan Shafie,✅ Horas Aprovadas,As suas 9.0h em Basf foram aprovadas!,success,Não,/registos
+5802A9A6,11/05/2026,08:48:52,Cesar Flor,✅ Horas Aprovadas,As suas 9.0h em Basf foram aprovadas!,success,Não,/registos
+E1B090E8,11/05/2026,08:48:53,Cesar Flor,✅ Horas Aprovadas,As suas 9.0h em Basf foram aprovadas!,success,Não,/registos
+A5323F38,11/05/2026,08:48:53,Shayan Shafie,✅ Horas Aprovadas,As suas 8.0h em Sonae Mangualde foram aprovadas!,success,Não,/registos
+1852290E,11/05/2026,08:48:54,Cesar Flor,✅ Horas Aprovadas,As suas 9.0h em Basf foram aprovadas!,success,Não,/registos
+10EB7200,11/05/2026,08:48:55,Alexandre Reis,✅ Horas Aprovadas,As suas 4.0h em Basf foram aprovadas!,success,Não,/registos
+E9058389,11/05/2026,08:48:55,Alexandre Reis,✅ Horas Aprovadas,As suas 4.0h em Basf foram aprovadas!,success,Não,/registos
+0CF16ABE,11/05/2026,08:48:56,Alexandre Reis,✅ Horas Aprovadas,As suas 4.0h em Basf foram aprovadas!,success,Não,/registos
+5E38AA28,11/05/2026,08:48:57,Diana Plácido,✅ Horas Aprovadas,As suas 9.0h em Basf foram aprovadas!,success,Sim,/registos
+B31CED9C,11/05/2026,08:48:57,Diana Plácido,✅ Horas Aprovadas,As suas 4.0h em Sonae Mangualde foram aprovadas!,success,Sim,/registos
+809743D9,11/05/2026,08:48:58,Diana Plácido,✅ Horas Aprovadas,As suas 4.0h em Basf foram aprovadas!,success,Sim,/registos
+74A78C96,11/05/2026,15:35:56,admin,✅ PDFs Validados,Cleudir Rodrigues validou todos os documentos.,success,Não,/admin?tab=rh
+61404EA5,11/05/2026,15:36:09,admin,💰 Preço Hora Aceite,Cleudir Rodrigues aceitou €15.0/hora.,success,Não,/admin?tab=rh
+A740473F,11/05/2026,15:38:33,admin,👤 Perfil Preenchido,Cleudir Rodrigues completou todos os passos de integração.,success,Não,/admin?tab=rh
+5F18AC1A,11/05/2026,15:38:57,admin,🏦 Comprovativo IBAN,Cleudir Rodrigues submeteu o comprovativo bancário.,info,Não,/admin?tab=rh
+ADA36F27,11/05/2026,15:41:07,admin,📋 Novo Registo de Ponto,Cleudir Rodrigues registou 8h00m em Sines,info,Não,/admin?tab=validacoes
+F53EB46C,11/05/2026,16:02:53,Cleudir Rodrigues,📄 Contrato disponível,O teu contrato de trabalho está disponível para assinar. Acede ao teu Perfil para descarregar.,info,Não,/perfil?tab=contrato
+679B1796,12/05/2026,08:40:53,admin,✍️ Contrato Assinado,Cleudir Rodrigues submeteu o contrato assinado.,success,Não,/admin?tab=rh
+627E34A5,12/05/2026,08:51:37,Cleudir Rodrigues,✅ Contrato Validado,O teu contrato foi validado e está arquivado.,success,Não,/perfil?tab=contrato
+3C9F44D0,12/05/2026,13:32:48,Zon,✅ Ferramenta Aprovada,O teu pedido de ferramenta foi aprovado!,success,Não,/tecnico
+52EB0B37,12/05/2026,13:48:49,Cleudir Rodrigues,🟢 Horas Validadas,4.0h em Sines validadas.,success,Não,/
+C43A2833,12/05/2026,13:52:53,admin,⛽ Gasóleo,Cleudir Rodrigues: 8.5L,warning,Não,/admin?tab=validacoes
+93C1CFF7,12/05/2026,13:53:46,admin,📦 Material,Cleudir Rodrigues: 1un de 10 metros de cabo 3G2.5mm,warning,Não,/admin?tab=validacoes
+7198D1E9,12/05/2026,13:54:04,admin,🦺 EPI,Cleudir Rodrigues: 1x Luvas,warning,Não,/admin?tab=validacoes
+F6FE3B13,12/05/2026,13:54:31,admin,🔧 Ferramenta,Cleudir Rodrigues: 1 alicate,warning,Não,/admin?tab=validacoes
+82A8E6F5,12/05/2026,13:56:46,admin,📋 Novo Registo de Ponto,Cleudir Rodrigues registou 9h30m em Sines,info,Não,/admin?tab=validacoes
+FC9C2830,12/05/2026,13:58:17,admin,📋 Novo Registo de Ponto,Cleudir Rodrigues registou 9h00m em Sines,info,Não,/admin?tab=validacoes
+143C3E1D,12/05/2026,14:03:45,Cleudir Rodrigues,🟢 Horas Validadas,4h00m em Sines validadas.,success,Não,/
+8262DA76,12/05/2026,14:03:50,Cleudir Rodrigues,🟢 Horas Validadas,2h00m em Sines validadas.,success,Não,/
+42AC7682,12/05/2026,14:05:10,Cleudir Rodrigues,⚫ Horas Processadas,As tuas horas em Sines foram processadas para pagamento.,info,Não,/
+9BBA984E,12/05/2026,14:05:54,Patrícia Oliveira,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+087027E0,12/05/2026,14:05:54,Rafael Correia,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+C9A2AD80,12/05/2026,14:05:54,Alexandre Reis,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+82076106,12/05/2026,14:05:55,Renato Santos,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+DEE61B16,12/05/2026,14:05:55,Shayan Shafie,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+91D65172,12/05/2026,14:05:55,Cesar Flor,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+D275610D,12/05/2026,14:05:56,Diana Plácido,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Sim,/
+D5BBC8A7,14/05/2026,14:44:33,admin,📋 Novo Registo de Ponto,Cleudir Rodrigues registou 8h00m em Basf,info,Não,/admin?tab=validacoes
+AAA7799F,14/05/2026,14:49:10,Cleudir Rodrigues,🟢 Horas Validadas,4h00m em Basf validadas.,success,Não,/
+617B8859,14/05/2026,14:49:28,Cleudir Rodrigues,🟢 Horas Validadas,4h00m em Basf validadas.,success,Não,/
+D08A17C8,14/05/2026,15:07:07,Cleudir Rodrigues,✅ Gasóleo Validado,8.5L validados!,success,Não,/tecnico
+699BCE52,14/05/2026,15:22:02,Alexandre Reis,✅ Acesso à Obra Concedido,Tens acesso autorizado à obra Basf até 14/05/2027. Nível: Área Geral.,success,Não,/
+EEA14BCC,14/05/2026,16:48:37,admin,📋 Novo Registo de Ponto,Cleudir Rodrigues registou 8h00m em Sonae Mangualde,info,Não,/admin?tab=validacoes
+C386F16C,14/05/2026,18:54:18,admin,📋 Novo Registo de Ponto,Cleudir Rodrigues registou 9h00m em Basf,info,Não,/admin?tab=validacoes
+515A7E0F,15/05/2026,10:59:48,admin,✅ PDFs Validados,Jorge Oliveira validou todos os documentos.,success,Não,/admin?tab=rh
+828F8487,15/05/2026,10:59:57,admin,💰 Preço Hora Aceite,Jorge Oliveira aceitou €16.0/hora.,success,Não,/admin?tab=rh
+4D1F8008,15/05/2026,11:03:02,admin,👤 Perfil Preenchido,Jorge Oliveira completou todos os passos de integração.,success,Não,/admin?tab=rh
+E331323B,15/05/2026,11:04:07,admin,🏦 Comprovativo IBAN,Jorge Oliveira submeteu o comprovativo bancário.,info,Não,/admin?tab=rh
+C72DC97F,15/05/2026,11:04:09,admin,🏦 Comprovativo IBAN,Jorge Oliveira submeteu o comprovativo bancário.,info,Não,/admin?tab=rh
+DFD354BD,15/05/2026,12:34:13,admin,👤 Perfil Preenchido,Jorge Oliveira completou todos os passos de integração.,success,Não,/admin?tab=rh
+9F52E29F,15/05/2026,12:42:50,admin,🏦 Comprovativo IBAN,Jorge Oliveira submeteu o comprovativo bancário.,info,Não,/admin?tab=rh
+EC0BE490,15/05/2026,14:45:20,Cleudir Rodrigues,🟢 Horas Validadas,4h00m em Sonae Mangualde validadas.,success,Não,/
+39D5769A,15/05/2026,14:45:39,Cleudir Rodrigues,🟢 Horas Validadas,As tuas horas foram validadas por Jorge Oliveira.,success,Não,/
+793D6EB3,15/05/2026,16:05:07,admin,📋 Novo Registo de Ponto (Chefe),Jorge Oliveira registou 9h00m em Basf,info,Não,/admin?tab=validacoes
+E93D3DFD,15/05/2026,16:05:41,Jorge Oliveira,🟢 Horas Validadas,As tuas horas foram validadas por Jorge Oliveira.,success,Sim,/
+7A6E84C7,18/05/2026,14:42:37,admin,📋 Novo Ponto Registado,Diogo Henriques registou 4h00m em Luso Finsa,info,Não,/
+79951497,18/05/2026,15:03:32,admin,📋 Novo Ponto Registado,Cleudir Rodrigues registou 9h00m em Basf,info,Não,/
+B4F24CA4,18/05/2026,16:53:08,admin,📋 Novo Ponto Registado,Jorge Oliveira registou 9h00m em Greenvolt,info,Não,/
+AF22830D,18/05/2026,18:51:04,admin,📋 Novo Ponto Registado,Diogo Henriques registou 9h00m em Greenvolt,info,Não,/
+BF99517B,19/05/2026,08:43:26,admin,👤 Perfil Preenchido,Diogo Henriques completou o perfil.,success,Não,/
+96FEF76C,19/05/2026,08:43:46,admin,🏦 Comprovativo IBAN,Diogo Henriques submeteu o comprovativo.,info,Não,/
+89856126,19/05/2026,08:44:13,admin,📋 Novo Ponto Registado,Diogo Henriques registou 9h00m em Luso Finsa,info,Não,/
+E10DEEC3,19/05/2026,08:49:30,admin,📋 Novo Ponto Registado,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+8A622083,19/05/2026,10:36:45,Diogo Henriques,🟢 Horas Validadas,As tuas horas foram validadas por Jorge Oliveira.,success,Sim,/
+966AC70F,19/05/2026,10:36:47,Cleudir Rodrigues,🟢 Horas Validadas,As tuas horas foram validadas por Jorge Oliveira.,success,Não,/
+4E53F799,19/05/2026,10:36:48,Jorge Oliveira,🟢 Horas Validadas,As tuas horas foram validadas por Jorge Oliveira.,success,Sim,/
+6A7DE03F,19/05/2026,10:37:04,admin,📋 Novo Ponto Registado,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+5F388CB7,19/05/2026,10:37:36,Jorge Oliveira,🟢 Horas Validadas,As tuas horas foram validadas por Jorge Oliveira.,success,Sim,/
+64336C43,19/05/2026,11:05:55,admin,📋 Novo Ponto Registado,Jorge Oliveira registou 17h00m em Basf,info,Não,/
+41C3F9BC,19/05/2026,11:06:08,Jorge Oliveira,🟢 Horas Validadas,As tuas horas foram validadas por Jorge Oliveira.,success,Não,/
+CE99501C,19/05/2026,13:07:55,admin,📋 Novo Ponto Registado,Jorge Oliveira registou 5h00m em Basf,info,Não,/
+1D9645C4,19/05/2026,13:09:43,Jorge Oliveira,🟢 Horas Validadas,As tuas horas foram validadas por Jorge Oliveira.,success,Não,/
+D5EF4C9D,19/05/2026,13:11:21,admin,🛡️ Alerta HSE — Média,Jorge Oliveira: Caiu de um andaime e torceu o pulso.,warning,Não,/
+44305B6E,19/05/2026,13:11:27,admin,🛡️ Alerta HSE — Média,Jorge Oliveira: Caiu de um andaime e torceu o pulso.,warning,Não,/
+14EAE68E,19/05/2026,13:11:29,admin,🛡️ Alerta HSE — Média,Jorge Oliveira: Caiu de um andaime e torceu o pulso.,warning,Não,/
+A4DFFBE6,19/05/2026,17:01:58,admin,📋 Novo Ponto Registado,Jorge Oliveira registou 7h00m em Basf,info,Não,/
+7548D5A4,19/05/2026,17:03:01,Jorge Oliveira,🟢 Horas Validadas,4h00m em Basf validadas.,success,Não,/
+15D27852,19/05/2026,17:03:04,Jorge Oliveira,🟢 Horas Validadas,3h00m em Basf validadas.,success,Não,/
+B3871A4B,22/05/2026,07:30:38,admin,📋 Novo Ponto Registado,Jorge Oliveira registou 4h00m em Basf,info,Não,/
+E7876BF2,22/05/2026,07:31:31,admin,📋 Novo Ponto Registado,Jorge Oliveira registou 4h00m em Basf,info,Não,/
+415076E6,22/05/2026,07:37:07,Jorge Oliveira,🟢 Horas Validadas,4h00m em Basf validadas.,success,Não,/
+76F9E766,22/05/2026,07:37:11,Jorge Oliveira,🟢 Horas Validadas,4h00m em Basf validadas.,success,Não,/
+C5C31588,22/05/2026,08:19:44,admin,📋 Novo Ponto Registado,Jorge Oliveira registou 8h00m em Basf,info,Não,/
+D24D2A5A,22/05/2026,08:22:21,admin,📋 Nova Folha para Verificação IA,Jorge Oliveira submeteu folha #81B7E038 (Basf) — 10h00m. Verificar com IA no mod_admin.,info,Não,/
+DC7EA3BC,22/05/2026,09:07:56,Jorge Oliveira,🟢 Horas Validadas,Validadas por Jorge Oliveira.,success,Não,/
+65687FFB,22/05/2026,09:08:45,admin,📋 Nova Folha,Jorge Oliveira submeteu folha #B7C9FE8F (Basf) — 10h00m.,info,Não,/
+E63A3ECC,22/05/2026,09:29:48,admin,📋 Nova Folha,Jorge Oliveira submeteu folha #9D2C7019 (Basf) — 10h00m.,info,Não,/
+C25CEC30,22/05/2026,09:30:54,admin,📋 Nova Folha,Jorge Oliveira submeteu folha #4403B7E1 (Basf) — 10h00m.,info,Não,/
+453AA187,22/05/2026,10:12:08,admin,📋 Nova Folha,Jorge Oliveira submeteu folha #C6A892B5 (Basf) — 10h00m.,info,Não,/
+C217907F,22/05/2026,10:47:52,admin,📋 Novo Ponto,Diogo Henriques registou 10h00m em Basf,info,Não,/
+6B530899,22/05/2026,11:08:07,Diogo Henriques,🟢 Horas Validadas,5h00m em Basf validadas.,success,Não,/
+C90AF58C,22/05/2026,11:08:11,Diogo Henriques,🟢 Horas Validadas,5h00m em Basf validadas.,success,Não,/
+60AAD558,22/05/2026,11:09:26,admin,📋 Novo Ponto,Jorge Oliveira registou 3h00m em Basf,info,Não,/
+BD774A54,22/05/2026,11:10:34,admin,📋 Novo Ponto,Jorge Oliveira registou 6h00m em Sines,info,Não,/
+8F963A17,22/05/2026,11:21:28,Jorge Oliveira,🟢 Horas Validadas,3h00m em Basf validadas.,success,Não,/
+7DD6F9E4,22/05/2026,11:24:32,Jorge Oliveira,🟢 Horas Validadas,4h00m em Sines validadas.,success,Não,/
+4253766B,22/05/2026,11:24:59,Jorge Oliveira,🟢 Horas Validadas,2h00m em Sines validadas.,success,Não,/
+871D0175,22/05/2026,11:26:49,admin,📋 Nova Folha,Jorge Oliveira submeteu folha #76DB47C2 (Basf) — 13h00m.,info,Não,/
+BF92760D,22/05/2026,11:37:25,Cleudir Rodrigues,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+B480F043,22/05/2026,11:37:26,Jorge Oliveira,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+226A0C9F,22/05/2026,13:41:15,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+14513AD9,22/05/2026,14:02:42,admin,📋 Nova Folha,Jorge Oliveira submeteu folha #B2775A50 (Basf) — 9h00m.,info,Não,/
+A8FCDB44,22/05/2026,15:23:44,admin,📋 Novo Ponto,Diogo Henriques registou 4h30m em Sines,info,Não,/
+ED045B6C,22/05/2026,15:24:16,admin,📋 Novo Ponto,Diogo Henriques registou 4h00m em Basf,info,Não,/
+A74E2FD0,22/05/2026,15:26:55,admin,🛡️ HSE — Média,Diogo Henriques: caiu de um andaime,warning,Não,/
+1EE0AE0D,22/05/2026,15:28:54,Jorge Oliveira,🟢 Horas Validadas,Validadas por Jorge Oliveira.,success,Não,/
+7F28E56A,22/05/2026,15:29:01,Diogo Henriques,🟢 Horas Validadas,Validadas por Jorge Oliveira.,success,Não,/
+ABA48441,22/05/2026,15:31:04,admin,📋 Nova Folha,Jorge Oliveira submeteu folha #9894376F (Basf) — 13h00m.,info,Não,/
+7783E989,22/05/2026,15:34:16,Diogo Henriques,🟢 Horas Validadas,4h30m em Sines validadas.,success,Não,/
+B07EADF3,22/05/2026,15:49:18,admin,💰 Preço Aceite,Adriana Pinto aceitou €14.0/hora.,success,Não,/
+8B9C64CC,22/05/2026,15:50:58,admin,👤 Perfil Preenchido,Adriana Pinto completou o perfil.,success,Não,/
+0CB39DB1,22/05/2026,15:51:21,admin,🏦 IBAN Submetido,Adriana Pinto enviou comprovativo.,info,Não,/
+7ADEC840,22/05/2026,16:01:58,admin,👤 Perfil Preenchido,Diana Plácido completou o perfil.,success,Não,/
+65EF5FF5,22/05/2026,16:02:15,admin,🏦 IBAN Submetido,Diana Plácido enviou comprovativo.,info,Não,/
+B93291FA,22/05/2026,16:07:46,Diana Plácido,📄 Contrato disponível,O teu contrato de trabalho está disponível para assinar. Acede ao teu Perfil para descarregar.,info,Sim,/perfil?tab=contrato
+FCEE7525,22/05/2026,16:09:20,admin,✍️ Contrato Assinado,Diana Plácido submeteu o contrato.,success,Não,/
+A83E0AC5,22/05/2026,16:10:09,Diana Plácido,✅ Contrato Validado,O teu contrato foi validado e está arquivado.,success,Sim,/perfil?tab=contrato
+61BFE46F,22/05/2026,17:57:35,admin,📋 Novo Ponto,Jorge Oliveira registou 8h00m em Basf,info,Não,/
+731F73A8,22/05/2026,17:59:24,admin,📋 Nova Folha,Jorge Oliveira submeteu folha #624AACBB (Basf) — 8h00m.,info,Não,/
+3E207BCC,25/05/2026,17:35:21,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+4030F6C8,25/05/2026,17:38:00,Jorge Oliveira,🟢 Horas Validadas,4h00m em Basf validadas.,success,Não,/
+431DE4FE,25/05/2026,19:39:03,Jorge Oliveira,🟢 Horas Validadas,4h00m em Basf validadas.,success,Não,/
+268A2D01,26/05/2026,09:57:00,Jorge Oliveira,🟢 Horas Validadas,Validadas por Jorge Oliveira.,success,Não,/
+53AEA28A,26/05/2026,09:57:32,Jorge Oliveira,🟢 Horas Validadas,Validadas por Jorge Oliveira.,success,Não,/
+146B7DD4,26/05/2026,09:57:34,Jorge Oliveira,🟢 Horas Validadas,Validadas por Jorge Oliveira.,success,Não,/
+14CA47E1,26/05/2026,09:57:35,Jorge Oliveira,🟢 Horas Validadas,Validadas por Jorge Oliveira.,success,Não,/
+D648D540,26/05/2026,09:57:39,Jorge Oliveira,🟢 Horas Validadas,Validadas por Jorge Oliveira.,success,Não,/
+F7498395,26/05/2026,09:58:48,Jorge Oliveira,🟢 Horas Validadas,Validadas por Jorge Oliveira.,success,Não,/
+60EBE37C,26/05/2026,09:58:50,Jorge Oliveira,🟢 Horas Validadas,Validadas por Jorge Oliveira.,success,Não,/
+61F8EF3D,26/05/2026,12:54:39,admin,📋 Novo Ponto,Jorge Oliveira registou 4h30m em Basf,info,Não,/
+26181715,26/05/2026,16:37:50,Diogo Henriques,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+2C4D9CB3,26/05/2026,16:37:51,Jorge Oliveira,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+688A2021,26/05/2026,16:38:02,Diogo Henriques,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+EA420873,26/05/2026,16:38:03,Jorge Oliveira,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+8692D64D,29/05/2026,10:06:28,admin,📋 Novo Ponto,Jorge Oliveira registou 8h00m em Basf,info,Não,/
+62052534,29/05/2026,10:07:29,Jorge Oliveira,🟢 Horas Validadas,4h00m em Basf validadas.,success,Não,/
+94655BBD,29/05/2026,10:07:40,Jorge Oliveira,🟢 Horas Validadas,0h30m em Basf validadas.,success,Não,/
+744A4AB7,29/05/2026,10:07:55,Jorge Oliveira,🟢 Horas Validadas,4.0h em Basf validadas.,success,Não,/
+1A6700D5,29/05/2026,10:07:55,Jorge Oliveira,🟢 Horas Validadas,0.5h em Basf validadas.,success,Não,/
+3D3FCA06,29/05/2026,13:13:19,admin,📋 Novo Ponto,Jorge Oliveira registou 8h00m em Basf,info,Não,/
+A7422DF3,29/05/2026,13:22:18,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+26E1C32B,29/05/2026,13:23:29,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Basf,info,Não,/
+1AD0553F,29/05/2026,13:23:40,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Sines,info,Não,/
+19E9D48A,29/05/2026,14:15:41,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+C99ACD8B,29/05/2026,14:18:44,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Basf,info,Não,/
+41DB49D3,29/05/2026,14:50:38,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+49463F34,29/05/2026,14:50:51,Diogo Henriques,🟢 Horas Validadas,9h00m em Basf validadas.,success,Não,/
+B6B4F83F,29/05/2026,14:51:36,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+AEC53DB5,29/05/2026,14:55:54,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Basf,info,Não,/
+C7089A6A,29/05/2026,14:57:10,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Basf,info,Não,/
+6F2E990F,29/05/2026,16:20:07,Diogo Henriques,🟢 Horas Validadas,9h00m em Basf validadas.,success,Não,/
+A0D23CBF,29/05/2026,16:20:30,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+AD42FC48,01/06/2026,08:56:49,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+DBD3A285,01/06/2026,08:58:45,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Basf,info,Não,/
+17BCD2FC,01/06/2026,10:04:39,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+565E39DF,01/06/2026,10:05:39,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Basf,info,Não,/
+FA25A11F,01/06/2026,10:10:15,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Basf,info,Não,/
+6AACB0AD,01/06/2026,10:37:30,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+84CA0842,01/06/2026,10:38:44,admin,📋 Novo Ponto,Diogo Henriques registou 4h00m em Basf,info,Não,/
+DC5F14BD,01/06/2026,11:25:23,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+8F920431,01/06/2026,11:26:24,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Basf,info,Não,/
+74F9F7EC,01/06/2026,15:22:08,admin,📋 Novo Ponto,Jorge Oliveira registou 6h00m em Basf,info,Não,/
+E3D80612,01/06/2026,15:33:46,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Basf,info,Não,/
+8302D6F8,01/06/2026,17:21:09,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Basf,info,Não,/
+FD5194E8,01/06/2026,17:23:31,admin,📋 Novo Ponto,Jorge Oliveira registou 8h00m em Basf,info,Não,/
+248A0E26,01/06/2026,17:27:26,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Basf,info,Não,/
+E053AF44,01/06/2026,17:29:16,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Sonae Mangualde,info,Não,/
+7D97B822,01/06/2026,17:30:12,admin,📋 Novo Ponto,Diogo Henriques registou 7h30m em Basf,info,Não,/
+F7DB8B1A,01/06/2026,18:16:53,admin,📋 Novo Ponto,Jorge Oliveira registou 10h30m em Basf,info,Não,/
+05643870,01/06/2026,18:20:20,admin,📋 Novo Ponto,Diogo Henriques registou 2h00m em Basf,info,Não,/
+7DE4A2F0,01/06/2026,18:29:49,Diogo Henriques,🟢 Horas Validadas,Validadas por Jorge Oliveira.,success,Não,/
+7068FD98,01/06/2026,18:29:59,Diogo Henriques,🟢 Horas Validadas,Validadas por Jorge Oliveira.,success,Não,/
+BA2274E4,01/06/2026,18:30:03,Diogo Henriques,🟢 Horas Validadas,9h00m em Basf validadas.,success,Não,/
+83FDAB50,01/06/2026,18:30:05,Diogo Henriques,🟢 Horas Validadas,9h00m em Basf validadas.,success,Não,/
+AACE3F75,01/06/2026,18:30:07,Diogo Henriques,🟢 Horas Validadas,9h00m em Basf validadas.,success,Não,/
+1A60B7B9,01/06/2026,18:30:09,Diogo Henriques,🟢 Horas Validadas,9h00m em Basf validadas.,success,Não,/
+442839B2,01/06/2026,18:30:11,Diogo Henriques,🟢 Horas Validadas,9h00m em Basf validadas.,success,Não,/
+CC28B689,01/06/2026,18:30:12,Diogo Henriques,🟢 Horas Validadas,9h00m em Basf validadas.,success,Não,/
+A061DA7F,01/06/2026,18:30:14,Diogo Henriques,🟢 Horas Validadas,7h30m em Basf validadas.,success,Não,/
+DF2E8D6B,05/06/2026,09:51:01,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Sonae Mangualde,info,Não,/
+85DB11A1,05/06/2026,10:46:41,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Sonae Mangualde,info,Não,/
+A141126D,05/06/2026,10:47:35,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Sonae Mangualde,info,Não,/
+EEEBB7DD,05/06/2026,13:29:10,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Greenvolt,info,Não,/
+DEA28287,05/06/2026,13:29:57,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Greenvolt,info,Não,/
+94A7C15F,05/06/2026,13:40:04,Jorge Oliveira,⚫ Horas Processadas,As tuas horas em Basf foram processadas para pagamento.,info,Não,/
+4B1D83B3,05/06/2026,14:20:36,admin,📋 Novo Ponto,Diogo Henriques registou 9h00m em Escritório,info,Não,/
+EE00F1E5,05/06/2026,15:19:44,Alexandre Reis,🔐 Acesso Revogado,O teu acesso à obra Basf foi actualizado: Revogado.,info,Não,/
+D553F64E,05/06/2026,15:22:44,Cleudir Rodrigues,❌ Pedido Rejeitado,O teu pedido de Luvas foi rejeitado.,error,Não,/tecnico
+ACF1E139,05/06/2026,15:23:14,Alexandre Reis,📬 Material Enviado para Obra,Arnés enviado para Basf. Confirma a receção na app.,info,Não,/tecnico
+5D241B04,08/06/2026,13:07:26,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Sines,info,Não,/
+B373A7C8,08/06/2026,13:08:10,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em Sines,info,Não,/
+44CA2BAF,15/06/2026,09:53:23,Cleudir Rodrigues,✅ Pedido Aprovado,O teu pedido de Luvas foi aprovado! Será enviado para Sines.,success,Não,/tecnico
+5E3523B7,15/06/2026,13:47:47,admin,💰 Preço Aceite,Vitor Dias Graca aceitou €18.00/hora.,success,Não,/
+23FEBA96,17/06/2026,08:36:19,Cesar Flor,✅ Pedido Aprovado,O teu pedido de berebequim foi aprovado! Será enviado para Basf.,success,Não,/tecnico
+371AFE80,17/06/2026,08:36:21,Cesar Flor,✅ Pedido Aprovado,O teu pedido de berebequim foi aprovado! Será enviado para Basf.,success,Não,/tecnico
+6EA1C168,17/06/2026,08:36:32,Cesar Flor,✅ Pedido Aprovado,O teu pedido de berebequim foi aprovado! Será enviado para Basf.,success,Não,/tecnico
+646B5FC7,17/06/2026,08:36:44,Cesar Flor,✅ Pedido Aprovado,O teu pedido de berebequim foi aprovado! Será enviado para Basf.,success,Não,/tecnico
+B6D690F7,17/06/2026,08:36:59,Cesar Flor,✅ Pedido Aprovado,O teu pedido de berebequim foi aprovado! Será enviado para Basf.,success,Não,/tecnico
+0F736497,17/06/2026,08:37:40,Cleudir Rodrigues,❌ Pedido Rejeitado,O teu pedido de 1 alicate foi rejeitado.,error,Não,/tecnico
+ADF66F8A,17/06/2026,08:37:45,Cleudir Rodrigues,❌ Pedido Rejeitado,O teu pedido de 1 alicate foi rejeitado.,error,Não,/tecnico
+191BA78C,17/06/2026,08:37:49,Cleudir Rodrigues,❌ Pedido Rejeitado,O teu pedido de 1 alicate foi rejeitado.,error,Não,/tecnico
+95E18C32,17/06/2026,08:43:46,Cleudir Rodrigues,❌ Pedido Rejeitado,O teu pedido de 1 alicate foi rejeitado.,error,Não,/tecnico
+CA4C3EB5,17/06/2026,08:44:17,Cesar Flor,✅ Pedido Aprovado,O teu pedido de berebequim foi aprovado! Será enviado para Basf.,success,Não,/tecnico
+71D86979,17/06/2026,08:44:56,Renato Santos,📬 Material Enviado para Obra,Luvas enviado para Basf. Confirma a receção na app.,info,Não,/tecnico
+5137914E,17/06/2026,08:49:47,Cesar Flor,✅ Pedido Aprovado,O teu pedido de berebequim foi aprovado! Será enviado para Basf.,success,Não,/tecnico
+FC76C518,17/06/2026,08:50:06,Cleudir Rodrigues,❌ Pedido Rejeitado,O teu pedido de 1 alicate foi rejeitado.,error,Não,/tecnico
+823745FA,17/06/2026,08:50:29,Cleudir Rodrigues,❌ Pedido Rejeitado,O teu pedido de 1 alicate foi rejeitado.,error,Não,/tecnico
+BCF47FD5,17/06/2026,08:51:24,Zon,📬 Material Enviado para Obra,Berbequim enviado para Basf. Confirma a receção na app.,info,Não,/tecnico
+E9A8E2B1,17/06/2026,08:51:53,Cesar Flor,✅ Pedido Aprovado,O teu pedido de berebequim foi aprovado! Será enviado para Basf.,success,Não,/tecnico
+DCB7F216,17/06/2026,08:52:00,Cleudir Rodrigues,✅ Pedido Aprovado,O teu pedido de 1 alicate foi aprovado! Será enviado para Sines.,success,Não,/tecnico
+32FF876C,17/06/2026,08:52:14,Cesar Flor,✅ Pedido Aprovado,O teu pedido de berebequim foi aprovado! Será enviado para Basf.,success,Não,/tecnico
+503AC5B2,17/06/2026,08:52:19,Cesar Flor,✅ Pedido Aprovado,O teu pedido de berebequim foi aprovado! Será enviado para Basf.,success,Não,/tecnico
+9E318BE0,17/06/2026,08:54:00,Alexandre Reis,❌ Pedido Rejeitado,O teu pedido de Motor foi rejeitado.,error,Não,/tecnico
+D6F85C5C,19/06/2026,15:33:02,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em EFUELS - Cedência de mão de obra,info,Não,/
+AC8D585C,19/06/2026,15:51:17,admin,💰 Preço Aceite,Adriana Pinto aceitou €10.0/hora.,success,Não,/
+AF4F647D,19/06/2026,15:52:43,admin,👤 Perfil Preenchido,Adriana Pinto completou o perfil.,success,Não,/
+2F5FFBED,19/06/2026,15:52:58,admin,🏦 IBAN Submetido,Adriana Pinto enviou comprovativo.,info,Não,/
+96C0714D,19/06/2026,16:05:13,Adriana Pinto,📄 Contrato disponível,O teu contrato de trabalho está disponível para assinar. Acede ao teu Perfil para descarregar.,info,Sim,/perfil?tab=contrato
+534A1795,19/06/2026,16:09:27,admin,💰 Preço RECUSADO,Mauricio Figueiredo recusou €1.00/hora.,error,Não,/
+ED26451A,19/06/2026,16:11:00,admin,👤 Perfil Preenchido,Mauricio Figueiredo completou o perfil.,success,Não,/
+53487B44,19/06/2026,16:11:25,admin,🏦 IBAN Submetido,Mauricio Figueiredo enviou comprovativo.,info,Não,/
+64E32583,19/06/2026,16:13:06,admin,📋 Novo Ponto,Mauricio Figueiredo registou 7h30m em Escritório,info,Não,/
+CF0C9BD3,19/06/2026,16:56:12,Mauricio Figueiredo,📄 Contrato disponível,O teu contrato de trabalho está disponível para assinar. Acede ao teu Perfil para descarregar.,info,Não,/perfil?tab=contrato
+744D9818,19/06/2026,16:57:44,admin,💰 Preço Aceite,Diana Plácido aceitou €0.00/hora.,success,Não,/
+6DC816F4,19/06/2026,16:58:26,admin,👤 Perfil Preenchido,Diana Plácido completou o perfil.,success,Não,/
+9C4227E8,19/06/2026,16:58:53,admin,🏦 IBAN Submetido,Diana Plácido enviou comprovativo.,info,Não,/
+86C535D9,19/06/2026,17:01:21,Diana Plácido,📄 Contrato disponível,O teu contrato de trabalho está disponível para assinar. Acede ao teu Perfil para descarregar.,info,Sim,/perfil?tab=contrato
+F96034A2,19/06/2026,17:12:19,admin,✍️ Contrato Assinado,Mauricio Figueiredo submeteu o contrato.,success,Não,/
+C8FF1ED9,19/06/2026,17:17:14,Mauricio Figueiredo,✅ Contrato Validado,O teu contrato foi validado e está arquivado.,success,Não,/perfil?tab=contrato
+03A624AB,22/06/2026,10:20:44,admin,💰 Preço RECUSADO,Ana Carvalho recusou €1.00/hora.,error,Não,/
+8128F010,25/06/2026,08:24:51,admin,👤 Perfil Preenchido,Ana Carvalho completou o perfil.,success,Não,/
+2D436ED2,25/06/2026,08:26:19,admin,🏦 IBAN Submetido,Ana Carvalho enviou comprovativo.,info,Não,/
+DBFF180D,21/08/2026,17:32:10,Hélder Plácido,✅ Acesso à Obra Concedido,Tens acesso autorizado à obra Escritório até 31/12/2027. Nível: Acesso Total.,success,Não,/
+A62F6D26,21/08/2026,19:16:42,admin,📋 Novo Ponto,Jorge Oliveira registou 9h00m em EFUELS - Cedência de mão de obra,info,Não,/
+8C607C36,01/09/2026,10:28:38,admin,📋 Novo Ponto,Jorge Oliveira registou 2h00m em EFUELS - Cedência de mão de obra,info,Não,/
+75EEA304,01/09/2026,10:30:54,Diogo Henriques,Horas Validadas,9.0h em Sines validadas.,success,Não,/
+A857D8D1,01/09/2026,10:30:55,Diogo Henriques,Horas Validadas,9.0h em Basf validadas.,success,Não,/
+20D333AD,01/09/2026,10:30:55,Diogo Henriques,Horas Validadas,9.0h em Basf validadas.,success,Não,/
+EBA6A9EE,01/09/2026,10:30:56,Diogo Henriques,Horas Validadas,9.0h em Basf validadas.,success,Não,/
+79ABC86B,01/09/2026,10:30:56,Diogo Henriques,Horas Validadas,9.0h em Basf validadas.,success,Não,/
+B4907FC4,01/09/2026,10:30:57,Diogo Henriques,Horas Validadas,9.0h em Basf validadas.,success,Não,/
+DC72BBD9,01/09/2026,10:30:57,Diogo Henriques,Horas Validadas,9.0h em Basf validadas.,success,Não,/
+AFDC458A,01/09/2026,10:30:58,Diogo Henriques,Horas Validadas,4.0h em Basf validadas.,success,Não,/
+4FE8A3FA,01/09/2026,10:30:58,Diogo Henriques,Horas Validadas,9.0h em Sonae Mangualde validadas.,success,Não,/
+9372BA34,01/09/2026,10:30:59,Diogo Henriques,Horas Validadas,9.0h em Sonae Mangualde validadas.,success,Não,/
+D9BC3559,01/09/2026,10:31:08,Diogo Henriques,Horas Validadas,9h00m em Sonae Mangualde validadas.,success,Não,/
+B9337B15,01/09/2026,10:31:41,Diogo Henriques,Horas Validadas,9h00m em Sines validadas.,success,Não,/
+BFB22E2E,01/09/2026,10:31:45,Diogo Henriques,Horas Validadas,9h00m em Sines validadas.,success,Não,/
+1910908A,01/09/2026,10:31:48,Diogo Henriques,Horas Validadas,9h00m em Sines validadas.,success,Não,/
+7B3214F2,01/09/2026,10:31:51,Diogo Henriques,Horas Validadas,9.0h em Sines validadas.,success,Não,/
+DA96583C,01/09/2026,10:31:52,Diogo Henriques,Horas Validadas,9.0h em Basf validadas.,success,Não,/
+98DCD9E6,01/09/2026,10:31:52,Diogo Henriques,Horas Validadas,9.0h em Basf validadas.,success,Não,/
+25DA9CA1,01/09/2026,10:31:53,Diogo Henriques,Horas Validadas,9.0h em Basf validadas.,success,Não,/
+E9E38EA0,01/09/2026,10:31:53,Diogo Henriques,Horas Validadas,9.0h em Basf validadas.,success,Não,/
+F644E757,01/09/2026,10:31:54,Diogo Henriques,Horas Validadas,9.0h em Basf validadas.,success,Não,/
+73CF421B,01/09/2026,10:31:54,Diogo Henriques,Horas Validadas,9.0h em Basf validadas.,success,Não,/
+D72FE310,01/09/2026,10:31:55,Diogo Henriques,Horas Validadas,4.0h em Basf validadas.,success,Não,/
+CBC0CE20,01/09/2026,10:31:55,Diogo Henriques,Horas Validadas,9.0h em Sonae Mangualde validadas.,success,Não,/
+DCDB3B28,01/09/2026,10:31:56,Diogo Henriques,Horas Validadas,9.0h em Sonae Mangualde validadas.,success,Não,/
+65F9C1C9,01/09/2026,10:31:59,Diogo Henriques,Horas Validadas,9h00m em Sines validadas.,success,Não,/
+B549DA4B,01/09/2026,10:32:11,Diogo Henriques,Horas Validadas,9h00m em Sines validadas.,success,Não,/
+418DDAAC,01/09/2026,10:32:15,Diogo Henriques,Horas Validadas,9h00m em Sines validadas.,success,Não,/
+5A121C04,01/09/2026,10:32:17,Diogo Henriques,Horas Validadas,9h00m em Sines validadas.,success,Não,/
+D3EA68A7,01/09/2026,10:32:20,Diogo Henriques,Horas Validadas,9h00m em Sonae Mangualde validadas.,success,Não,/
