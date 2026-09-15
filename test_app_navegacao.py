@@ -188,7 +188,7 @@ class TestContratoPendenteSemIconesTemaClaro(unittest.TestCase):
     import (o que gerava um erro de "form aninhado" — dois st.form() na
     mesma execução de script)."""
 
-    def _run_passo(self, users_df, pdfs_df=None):
+    def _run_passo(self, users_df, pdfs_df=None, tipo='Técnico', cargo='Técnico'):
         import pandas as pd
         if pdfs_df is None:
             pdfs_df = pd.DataFrame(columns=[
@@ -202,11 +202,11 @@ class TestContratoPendenteSemIconesTemaClaro(unittest.TestCase):
                 return pdfs_df
             return orig_load_db(fn, cols, silent)
 
-        def _script():
+        def _script(tipo, cargo):
             import streamlit as st
             st.session_state['user']          = 'Técnico Teste'
-            st.session_state['tipo']          = 'Técnico'
-            st.session_state['cargo']         = 'Técnico'
+            st.session_state['tipo']          = tipo
+            st.session_state['cargo']         = cargo
             st.session_state['menu_selected'] = ''
             st.session_state['_fv']           = {}
             import app  # noqa: F401 — dispara o routing completo, que chama a função sozinho
@@ -214,7 +214,7 @@ class TestContratoPendenteSemIconesTemaClaro(unittest.TestCase):
         with patch("core._gcs_read", return_value=None), \
              patch("core._load_users_cached", return_value=users_df), \
              patch("core.load_db", side_effect=_load_db_lado):
-            at = AppTest.from_function(_script, default_timeout=30)
+            at = AppTest.from_function(_script, default_timeout=30, args=(tipo, cargo))
             at.run()
         return at
 
@@ -255,6 +255,20 @@ class TestContratoPendenteSemIconesTemaClaro(unittest.TestCase):
         # Prova de que já não bloqueia: o resto do ecrã do Técnico (que
         # antes nunca era alcançado, por causa do st.stop()) aparece.
         self.assertIn("Horas este mês", textos)
+
+    def test_secretariado_nao_ve_aviso_de_contrato(self):
+        """Secretariado e Armazém ficam de fora deste aviso, tal como no
+        cps-ponto (_ONBOARDING_TIPOS_SO_DOCUMENTOS) — o contrato deles é
+        em papel, fora da app (DESENHO_ONBOARDING.md, secção 1)."""
+        at = self._run_passo(self._base_user(
+            Contrato_Enviado="Sim", Contrato_Assinado="",
+            Contrato_Validado_Admin="",
+        ), tipo='Secretariado', cargo='Secretariado')
+        self.assertFalse(at.exception, msg=str(at.exception))
+        self.assertFalse(any(
+            "contrato pendente de assinatura" in w.value.lower()
+            for w in at.warning
+        ))
 
 
 class TestPasswordProvisoria(unittest.TestCase):

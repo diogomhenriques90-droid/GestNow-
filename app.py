@@ -303,7 +303,10 @@ else:
     # O onboarding de 4 passos (Documentos/Preço/Perfil/IBAN) saiu daqui
     # por completo — vive só no cps-ponto (DESENHO_ONBOARDING.md, passo
     # 6).
-    if tipo not in ['Admin', 'Cliente']:
+    # Secretariado e Armazém ficam de fora, tal como no cps-ponto
+    # (_ONBOARDING_TIPOS_SO_DOCUMENTOS): o contrato deles é em papel,
+    # fora da app (DESENHO_ONBOARDING.md, secção 1).
+    if tipo not in ['Admin', 'Cliente', 'Secretariado', 'Armazém']:
         # ── Aviso de contrato pendente de assinatura — PERMANENTE, NÃO
         # BLOQUEANTE (DESENHO_ONBOARDING.md, secção 4: "impedir alguém de
         # trabalhar no primeiro dia por causa de papelada em atraso é
